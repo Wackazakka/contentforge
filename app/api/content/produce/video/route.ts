@@ -112,18 +112,30 @@ function runVideoProduction(
     "make_tiktok_reforhandle.py"
   );
 
+  const configPath = `/tmp/${jobId}-config.json`;
+  const config = {
+    output: `/root/.openclaw/workspace/contentforge-output/${jobId}.mp4`,
+    service,
+    campaignId,
+  };
+
+  try {
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  } catch (err) {
+    console.error(`[video-produce] Failed to write config for job ${jobId}:`, err);
+  }
+
   console.log(`[video-produce] Starting Python script for job ${jobId}`, {
     scriptPath,
+    configPath,
     campaignId,
     service,
     scriptExists: fs.existsSync(scriptPath),
   });
 
-  const child = spawn(
-    "python3",
-    [scriptPath, "--campaign", campaignId, "--service", service],
-    { cwd: process.cwd() }
-  );
+  const child = spawn("python3", [scriptPath, configPath], {
+    cwd: process.cwd(),
+  });
 
   const stdoutChunks: Buffer[] = [];
   const stderrChunks: Buffer[] = [];
@@ -142,6 +154,12 @@ function runVideoProduction(
   });
 
   child.on("close", (code: number | null) => {
+    try {
+      fs.unlinkSync(configPath);
+    } catch {
+      // File may already be gone — ignore
+    }
+
     const stdout = Buffer.concat(stdoutChunks).toString().trim();
     const stderr = Buffer.concat(stderrChunks).toString().trim();
     console.log(`[video-produce] Python script exited for job ${jobId}`, {
@@ -159,6 +177,11 @@ function runVideoProduction(
   });
 
   child.on("error", (err: Error) => {
+    try {
+      fs.unlinkSync(configPath);
+    } catch {
+      // File may already be gone — ignore
+    }
     console.error(`[video-produce] Failed to spawn Python script for job ${jobId}:`, err.message);
     simulateProgress(jobId);
   });
