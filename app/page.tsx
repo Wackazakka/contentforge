@@ -4,13 +4,13 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Nav */}
-      <nav className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-        <span className="text-xl font-bold tracking-tight text-white">
-          Content<span className="text-violet-500">Forge</span>
+      <nav className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
+        <span className="text-xl font-bold tracking-tight text-gray-900">
+          Content<span className="text-green-600">Forge</span>
         </span>
         <Link
           href="/login"
-          className="text-sm font-medium text-zinc-300 hover:text-white transition-colors"
+          className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
         >
           Logg inn →
         </Link>
@@ -18,47 +18,47 @@ export default function Home() {
 
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center py-24">
-        <div className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 border border-violet-500/20 px-4 py-1.5 text-sm text-violet-400 mb-8">
+        <div className="inline-flex items-center gap-2 rounded-full bg-green-50 border border-green-200 px-4 py-1.5 text-sm text-green-700 mb-8">
           MVP — Beta
         </div>
-        <h1 className="text-5xl font-extrabold tracking-tight text-white max-w-2xl leading-tight mb-6">
+        <h1 className="text-5xl font-extrabold tracking-tight text-gray-900 max-w-2xl leading-tight mb-6">
           Profesjonelt annonse­materiell på{" "}
-          <span className="text-violet-500">sekunder</span>
+          <span className="text-green-600">sekunder</span>
         </h1>
-        <p className="text-lg text-zinc-400 max-w-xl mb-10">
+        <p className="text-lg text-gray-600 max-w-xl mb-10">
           Gi en brief — få ferdige video­annonser og artikler i alle social
           media-formater. Ingen designkompetanse nødvendig.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <Link
             href="/login"
-            className="rounded-full bg-violet-600 hover:bg-violet-500 text-white font-semibold px-8 py-3 text-base transition-colors"
+            className="rounded-full bg-green-600 hover:bg-green-500 text-white font-semibold px-8 py-3 text-base transition-colors"
           >
             Kom i gang
           </Link>
           <a
             href="#features"
-            className="rounded-full border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white font-medium px-8 py-3 text-base transition-colors"
+            className="rounded-full border border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 font-medium px-8 py-3 text-base transition-colors"
           >
             Se funksjoner
           </a>
         </div>
 
         {/* Services */}
-        <p className="mt-12 text-xs text-zinc-600 uppercase tracking-widest">
+        <p className="mt-12 text-xs text-gray-400 uppercase tracking-widest">
           Tjenester som bruker ContentForge
         </p>
-        <div className="mt-4 flex gap-6 items-center text-zinc-500 font-semibold text-sm">
+        <div className="mt-4 flex gap-6 items-center text-gray-600 font-semibold text-sm">
           <span>Reforhandle</span>
-          <span className="text-zinc-700">·</span>
+          <span className="text-gray-300">·</span>
           <span>SinglePicker</span>
         </div>
       </main>
 
       {/* Features */}
-      <section id="features" className="border-t border-zinc-800 py-20 px-6">
+      <section id="features" className="border-t border-gray-200 py-20 px-6">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center text-white mb-12">
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-12">
             Alt du trenger for innholdsproduksjon
           </h2>
           <div className="grid sm:grid-cols-3 gap-6">
@@ -81,11 +81,11 @@ export default function Home() {
             ].map((f) => (
               <div
                 key={f.title}
-                className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6"
+                className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
               >
                 <div className="text-3xl mb-4">{f.icon}</div>
-                <h3 className="font-semibold text-white mb-2">{f.title}</h3>
-                <p className="text-sm text-zinc-400 leading-relaxed">{f.desc}</p>
+                <h3 className="font-semibold text-gray-900 mb-2">{f.title}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -93,7 +93,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800 py-6 px-6 text-center text-xs text-zinc-600">
+      <footer className="border-t border-gray-200 py-6 px-6 text-center text-xs text-gray-400">
         ContentForge © {new Date().getFullYear()} — Wackazakka
       </footer>
     </div>

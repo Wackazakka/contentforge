@@ -10,18 +10,18 @@ export default async function DashboardLayout({
   await requireAuth();
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <nav className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <nav className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
         <Link
           href="/dashboard"
-          className="text-lg font-bold tracking-tight text-white"
+          className="text-lg font-bold tracking-tight text-gray-900"
         >
-          Content<span className="text-violet-500">Forge</span>
+          Content<span className="text-green-600">Forge</span>
         </Link>
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard/new"
-            className="rounded-full bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-5 py-2 transition-colors"
+            className="rounded-full bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-2 transition-colors"
           >
             + Ny kampanje
           </Link>

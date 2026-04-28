@@ -40,12 +40,12 @@ export default async function CampaignDetailPage({
       <div className="flex items-center gap-3 mb-8">
         <Link
           href="/dashboard"
-          className="text-zinc-500 hover:text-white text-sm transition-colors"
+          className="text-gray-500 hover:text-gray-900 text-sm transition-colors"
         >
           ← Tilbake
         </Link>
-        <span className="text-zinc-700">/</span>
-        <h1 className="text-xl font-bold text-white">{campaign.name}</h1>
+        <span className="text-gray-300">/</span>
+        <h1 className="text-xl font-bold text-gray-900">{campaign.name}</h1>
         <span
           className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[campaign.status]}`}
         >
@@ -54,7 +54,7 @@ export default async function CampaignDetailPage({
       </div>
 
       {/* Meta */}
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 mb-6">
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 mb-6 shadow-sm">
         <div className="grid sm:grid-cols-2 gap-4 text-sm">
           <MetaRow label="Produkt" value={campaign.productName} />
           <MetaRow label="Tjeneste" value={campaign.service} />
@@ -72,20 +72,20 @@ export default async function CampaignDetailPage({
             value={formatDate(campaign.createdAt)}
           />
         </div>
-        <div className="mt-4 p-3 rounded-lg bg-zinc-800/50 text-sm text-zinc-300 italic">
+        <div className="mt-4 p-3 rounded-lg bg-gray-100 text-sm text-gray-700 italic">
           &ldquo;{campaign.bodyCopy}&rdquo;
         </div>
       </div>
 
       {/* Assets */}
-      <h2 className="font-semibold text-white mb-4">Assets</h2>
+      <h2 className="font-semibold text-gray-900 mb-4">Assets</h2>
 
       {!isCompleted ? (
-        <div className="rounded-2xl border border-dashed border-zinc-800 py-16 flex flex-col items-center text-center">
+        <div className="rounded-2xl border border-dashed border-gray-300 py-16 flex flex-col items-center text-center bg-white">
           <div className="text-4xl mb-4">
             {campaign.status === "processing" ? "⚙️" : "⏳"}
           </div>
-          <p className="text-zinc-400 text-sm">
+          <p className="text-gray-500 text-sm">
             {campaign.status === "processing"
               ? "AI-pipeline kjører. Assets vil vises her når de er klare."
               : "Starter produksjon..."}
@@ -107,8 +107,8 @@ export default async function CampaignDetailPage({
 
       {/* Approval workflow */}
       {isCompleted && (
-        <div className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6">
-          <h2 className="font-semibold text-white mb-4">Godkjenningsflyt</h2>
+        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="font-semibold text-gray-900 mb-4">Godkjenningsflyt</h2>
           <div className="flex flex-col gap-3">
             {[
               { step: "Generering", status: "done", note: "12 assets produsert" },
@@ -127,10 +127,10 @@ export default async function CampaignDetailPage({
                 key={s.step}
                 className={`flex items-center gap-4 p-4 rounded-xl border ${
                   s.status === "done"
-                    ? "border-emerald-500/20 bg-emerald-500/5"
+                    ? "border-emerald-200 bg-emerald-50"
                     : s.status === "pending"
-                      ? "border-yellow-500/20 bg-yellow-500/5"
-                      : "border-zinc-800 opacity-50"
+                      ? "border-yellow-200 bg-yellow-50"
+                      : "border-gray-200 bg-gray-50 opacity-60"
                 }`}
               >
                 <span className="text-xl">
@@ -141,11 +141,11 @@ export default async function CampaignDetailPage({
                       : "🔒"}
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-white">{s.step}</p>
-                  <p className="text-xs text-zinc-500">{s.note}</p>
+                  <p className="text-sm font-semibold text-gray-900">{s.step}</p>
+                  <p className="text-xs text-gray-500">{s.note}</p>
                 </div>
                 {s.status === "pending" && (
-                  <button className="ml-auto rounded-full bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold px-4 py-1.5 transition-colors">
+                  <button className="ml-auto rounded-full bg-green-600 hover:bg-green-500 text-white text-xs font-semibold px-4 py-1.5 transition-colors">
                     Godkjenn
                   </button>
                 )}
@@ -161,8 +161,8 @@ export default async function CampaignDetailPage({
 function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="text-zinc-500">{label}: </span>
-      <span className="text-white">{value}</span>
+      <span className="text-gray-500 font-semibold">{label}: </span>
+      <span className="text-gray-900">{value}</span>
     </div>
   );
 }
@@ -181,21 +181,21 @@ function AssetCard({
   };
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
       <div
-        className={`${aspectMap[format] ?? "aspect-video"} bg-zinc-800 flex items-center justify-center text-4xl`}
+        className={`${aspectMap[format] ?? "aspect-video"} bg-gray-100 flex items-center justify-center text-4xl`}
       >
         {variant.icon}
       </div>
       <div className="p-3">
-        <p className="text-xs font-semibold text-white">
+        <p className="text-xs font-semibold text-gray-900">
           {format} — {variant.label}
         </p>
         <div className="mt-2 flex gap-2">
-          <button className="flex-1 text-xs rounded-full border border-zinc-700 hover:border-violet-500 text-zinc-400 hover:text-violet-400 py-1 transition-colors">
+          <button className="flex-1 text-xs rounded-full border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 transition-colors">
             Last ned
           </button>
-          <button className="flex-1 text-xs rounded-full border border-zinc-700 hover:border-violet-500 text-zinc-400 hover:text-violet-400 py-1 transition-colors">
+          <button className="flex-1 text-xs rounded-full border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 transition-colors">
             Forhåndsvis
           </button>
         </div>

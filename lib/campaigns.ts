@@ -61,8 +61,8 @@ export const STATUS_LABELS: Record<CampaignStatus, string> = {
 };
 
 export const STATUS_COLORS: Record<CampaignStatus, string> = {
-  draft: "text-zinc-400 bg-zinc-800",
-  processing: "text-yellow-400 bg-yellow-400/10",
-  completed: "text-emerald-400 bg-emerald-400/10",
-  failed: "text-red-400 bg-red-400/10",
+  draft: "text-gray-600 bg-gray-100",
+  processing: "text-yellow-700 bg-yellow-100",
+  completed: "text-green-700 bg-green-100",
+  failed: "text-red-700 bg-red-100",
 };

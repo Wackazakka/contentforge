@@ -66,18 +66,18 @@ export default function NewCampaignPage() {
       <div className="flex items-center gap-3 mb-8">
         <Link
           href="/dashboard"
-          className="text-zinc-500 hover:text-white text-sm transition-colors"
+          className="text-gray-500 hover:text-gray-900 text-sm transition-colors"
         >
           ← Tilbake
         </Link>
-        <span className="text-zinc-700">/</span>
-        <h1 className="text-xl font-bold text-white">Ny kampanje</h1>
+        <span className="text-gray-300">/</span>
+        <h1 className="text-xl font-bold text-gray-900">Ny kampanje</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {/* Basic info */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 flex flex-col gap-4">
-          <h2 className="font-semibold text-white text-sm uppercase tracking-widest text-zinc-400">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
+          <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
             Grunninfo
           </h2>
 
@@ -121,8 +121,8 @@ export default function NewCampaignPage() {
         </div>
 
         {/* Copy */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 flex flex-col gap-4">
-          <h2 className="font-semibold text-sm uppercase tracking-widest text-zinc-400">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
+          <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
             Innhold
           </h2>
 
@@ -174,8 +174,8 @@ export default function NewCampaignPage() {
                   onClick={() => setForm((f) => ({ ...f, tone: t.value }))}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
                     form.tone === t.value
-                      ? "bg-violet-600 border-violet-600 text-white"
-                      : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                      ? "bg-green-600 border-green-600 text-white"
+                      : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
                   }`}
                 >
                   {t.label}
@@ -186,8 +186,8 @@ export default function NewCampaignPage() {
         </div>
 
         {/* Media options */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 flex flex-col gap-4">
-          <h2 className="font-semibold text-sm uppercase tracking-widest text-zinc-400">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
+          <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
             Media
           </h2>
 
@@ -216,8 +216,8 @@ export default function NewCampaignPage() {
                     }
                     className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
                       form.musicStyle === m.value
-                        ? "bg-violet-600 border-violet-600 text-white"
-                        : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                        ? "bg-green-600 border-green-600 text-white"
+                        : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
                     }`}
                   >
                     {m.label}
@@ -236,8 +236,8 @@ export default function NewCampaignPage() {
                   onClick={() => toggle(fmt)}
                   className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
                     form.formats.includes(fmt)
-                      ? "bg-violet-600 border-violet-600 text-white"
-                      : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                      ? "bg-green-600 border-green-600 text-white"
+                      : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
                   }`}
                 >
                   {fmt}
@@ -250,7 +250,7 @@ export default function NewCampaignPage() {
         <button
           type="submit"
           disabled={loading || form.formats.length === 0}
-          className="rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
+          className="rounded-full bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
         >
           {loading ? "Starter produksjon..." : "Start produksjon"}
         </button>
@@ -260,7 +260,7 @@ export default function NewCampaignPage() {
 }
 
 const inputClass =
-  "w-full rounded-lg bg-zinc-800 border border-zinc-700 px-4 py-2.5 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm";
+  "w-full rounded-lg bg-white border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm";
 
 function Field({
   label,
@@ -271,7 +271,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm text-zinc-400 mb-1.5">{label}</label>
+      <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
       {children}
     </div>
   );
@@ -292,17 +292,17 @@ function Toggle({
       onClick={() => onChange(!checked)}
       className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border transition-colors ${
         checked
-          ? "bg-violet-600 border-violet-600 text-white"
-          : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
+          ? "bg-green-600 border-green-600 text-white"
+          : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
       }`}
     >
       <span
         className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-          checked ? "border-white bg-white" : "border-zinc-500"
+          checked ? "border-white bg-white" : "border-gray-400"
         }`}
       >
         {checked && (
-          <span className="w-2 h-2 rounded-full bg-violet-600 block" />
+          <span className="w-2 h-2 rounded-full bg-green-600 block" />
         )}
       </span>
       {label}

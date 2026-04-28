@@ -16,31 +16,31 @@ export default function DashboardPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Kampanjer</h1>
-          <p className="text-zinc-500 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-gray-900">Kampanjer</h1>
+          <p className="text-gray-500 text-sm mt-1">
             {campaigns.length} kampanje{campaigns.length !== 1 ? "r" : ""}
           </p>
         </div>
         <Link
           href="/dashboard/new"
-          className="rounded-full bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-5 py-2 transition-colors"
+          className="rounded-full bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-2 transition-colors"
         >
           + Ny kampanje
         </Link>
       </div>
 
       {campaigns.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-800 py-20 flex flex-col items-center text-center">
+        <div className="rounded-2xl border border-dashed border-gray-300 py-20 flex flex-col items-center text-center bg-white">
           <div className="text-4xl mb-4">🎬</div>
-          <h2 className="text-lg font-semibold text-white mb-2">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
             Ingen kampanjer ennå
           </h2>
-          <p className="text-zinc-500 text-sm mb-6">
+          <p className="text-gray-500 text-sm mb-6">
             Opprett din første kampanje for å starte innholdsproduksjonen.
           </p>
           <Link
             href="/dashboard/new"
-            className="rounded-full bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-6 py-2.5 transition-colors"
+            className="rounded-full bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-6 py-2.5 transition-colors"
           >
             Opprett kampanje
           </Link>
@@ -51,17 +51,17 @@ export default function DashboardPage() {
             <Link
               key={c.id}
               href={`/dashboard/${c.id}`}
-              className="rounded-2xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 p-5 flex items-center justify-between transition-colors group"
+              className="rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 p-5 flex items-center justify-between transition-colors group shadow-sm"
             >
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-lg">
+                <div className="w-10 h-10 rounded-xl bg-green-50 border border-green-200 flex items-center justify-center text-lg">
                   🎬
                 </div>
                 <div>
-                  <p className="font-semibold text-white group-hover:text-violet-300 transition-colors">
+                  <p className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
                     {c.name}
                   </p>
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-sm text-gray-500">
                     {c.productName} · {c.formats.join(", ")} ·{" "}
                     {formatDate(c.createdAt)}
                   </p>
@@ -73,7 +73,7 @@ export default function DashboardPage() {
                 >
                   {STATUS_LABELS[c.status]}
                 </span>
-                <span className="text-zinc-600 group-hover:text-zinc-400 transition-colors">
+                <span className="text-gray-400 group-hover:text-gray-600 transition-colors">
                   →
                 </span>
               </div>
@@ -97,10 +97,10 @@ export default function DashboardPage() {
         ].map((s) => (
           <div
             key={s.label}
-            className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-5"
+            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
           >
-            <p className="text-3xl font-bold text-white">{s.value}</p>
-            <p className="text-sm text-zinc-500 mt-1">{s.label}</p>
+            <p className="text-3xl font-bold text-gray-900">{s.value}</p>
+            <p className="text-sm text-gray-500 mt-1">{s.label}</p>
           </div>
         ))}
       </div>

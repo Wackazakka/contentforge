@@ -31,22 +31,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen items-center justify-center px-4">
+    <div className="flex flex-col min-h-screen items-center justify-center px-4 bg-gray-50">
       <Link
         href="/"
-        className="text-2xl font-bold tracking-tight text-white mb-10"
+        className="text-2xl font-bold tracking-tight text-gray-900 mb-10"
       >
-        Content<span className="text-violet-500">Forge</span>
+        Content<span className="text-green-600">Forge</span>
       </Link>
 
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-8">
-        <h1 className="text-xl font-semibold text-white mb-6">Logg inn</h1>
+      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+        <h1 className="text-xl font-semibold text-gray-900 mb-6">Logg inn</h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label
               htmlFor="password"
-              className="block text-sm text-zinc-400 mb-1.5"
+              className="block text-sm font-semibold text-gray-700 mb-1.5"
             >
               Admin-passord
             </label>
@@ -57,12 +57,12 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
               required
-              className="w-full rounded-lg bg-zinc-800 border border-zinc-700 px-4 py-2.5 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+              className="w-full rounded-lg bg-white border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 bg-red-400/10 rounded-lg px-3 py-2">
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               {error}
             </p>
           )}
@@ -70,7 +70,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors mt-2"
+            className="w-full rounded-full bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors mt-2"
           >
             {loading ? "Logger inn..." : "Logg inn"}
           </button>
