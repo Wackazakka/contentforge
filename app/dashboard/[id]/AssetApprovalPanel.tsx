@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type AssetStatus = "pending" | "approved" | "rejected";
-type JobStatus = "idle" | "pending" | "processing" | "done" | "failed";
 
 export type ImageAsset = {
   id: string;
@@ -38,16 +38,15 @@ const STATUS_CONFIG: Record<AssetStatus, { label: string; classes: string }> = {
   rejected: { label: "Avvist", classes: "bg-red-100 text-red-600" },
 };
 
-const POLL_INTERVAL_MS = 5000;
-
 export default function AssetApprovalPanel({
   campaignId,
   service,
   images,
   voiceovers,
   musicTracks,
-  videoSrc: initialVideoSrc,
 }: Props) {
+  const router = useRouter();
+
   const [imageStatuses, setImageStatuses] = useState<Record<string, AssetStatus>>(
     Object.fromEntries(images.map((img) => [img.id, "pending" as AssetStatus]))
   );
@@ -57,14 +56,8 @@ export default function AssetApprovalPanel({
   const [activeTrackIndex, setActiveTrackIndex] = useState(0);
   const [regenerating, setRegenerating] = useState<Record<string, boolean>>({});
 
-  // Video production state
-  const [jobStatus, setJobStatus] = useState<JobStatus>("idle");
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [videoUrl, setVideoUrl] = useState<string | null>(initialVideoSrc);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [produceError, setProduceError] = useState<string | null>(null);
-
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const approvedImages = images.filter((img) => imageStatuses[img.id] === "approved").length;
   const approvedVoiceovers = voiceovers.filter((vo) => voiceoverStatuses[vo.id] === "approved").length;
@@ -72,45 +65,11 @@ export default function AssetApprovalPanel({
   const totalCount = images.length + voiceovers.length;
   const allImagesApproved = images.length > 0 && images.every((img) => imageStatuses[img.id] === "approved");
   const allVoiceoversApproved = voiceovers.length === 0 || voiceovers.every((vo) => voiceoverStatuses[vo.id] === "approved");
-  const canProduce = allImagesApproved && allVoiceoversApproved && jobStatus === "idle";
+  const canProduce = allImagesApproved && allVoiceoversApproved && !isSubmitting;
 
-  // Start polling when we have a jobId
-  useEffect(() => {
-    if (!jobId || jobStatus === "done" || jobStatus === "failed") return;
-
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/content/produce/status?jobId=${jobId}`);
-        if (!res.ok) return;
-        const data = await res.json() as {
-          status: "pending" | "processing" | "done" | "failed";
-          progress: number;
-          videoUrl: string | null;
-        };
-        setProgress(data.progress);
-        setJobStatus(data.status);
-        if (data.status === "done") {
-          setVideoUrl(data.videoUrl);
-          clearInterval(pollRef.current!);
-        } else if (data.status === "failed") {
-          setProduceError("Videoproduksjon feilet. Prøv igjen.");
-          clearInterval(pollRef.current!);
-        }
-      } catch {
-        // network hiccup — keep polling
-      }
-    }, POLL_INTERVAL_MS);
-
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [jobId, jobStatus]);
-
-  async function handleProduce() {
-    console.log('Produser clicked', campaignId, service);
+  async function handleProduksjon() {
     setProduceError(null);
-    setJobStatus("pending");
-    setProgress(0);
+    setIsSubmitting(true);
     try {
       const res = await fetch("/api/content/produce/video", {
         method: "POST",
@@ -122,11 +81,10 @@ export default function AssetApprovalPanel({
         throw new Error(err.error ?? "Ukjent feil");
       }
       const data = await res.json() as { jobId: string };
-      setJobId(data.jobId);
-      setJobStatus("processing");
+      router.push(`/dashboard/${data.jobId}`);
     } catch (e) {
       setProduceError((e as Error).message);
-      setJobStatus("idle");
+      setIsSubmitting(false);
     }
   }
 
@@ -141,11 +99,9 @@ export default function AssetApprovalPanel({
     }
   }
 
-  const isProducing = jobStatus === "pending" || jobStatus === "processing";
-
   return (
     <div className="flex flex-col gap-8">
-      {/* Progress bar */}
+      {/* Approval progress bar */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-gray-700">Godkjenningsstatus</span>
@@ -259,6 +215,7 @@ export default function AssetApprovalPanel({
                 ? musicTracks.map((track, i) => (
                     <button
                       key={i}
+                      type="button"
                       onClick={() => setActiveTrackIndex(i)}
                       className={`text-xs rounded-full px-3 py-1.5 font-medium border transition-colors ${
                         i === activeTrackIndex
@@ -270,7 +227,10 @@ export default function AssetApprovalPanel({
                     </button>
                   ))
                 : null}
-              <button className="text-xs rounded-full px-3 py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors">
+              <button
+                type="button"
+                className="text-xs rounded-full px-3 py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors"
+              >
                 Bytt musikk
               </button>
             </div>
@@ -280,94 +240,31 @@ export default function AssetApprovalPanel({
 
       {/* Bottom actions */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        {/* Error */}
         {produceError && (
           <p className="text-sm text-red-600 mb-3">{produceError}</p>
         )}
-
-        {/* Video production progress */}
-        {isProducing && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-medium text-gray-700">Produserer video...</span>
-              <span className="text-sm text-gray-500">{progress}%</span>
-            </div>
-            <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-2 rounded-full bg-green-500 transition-all duration-700"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-400 mt-1.5">
-              Sjekker status hvert 5. sekund...
-            </p>
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Download button — shown when video is ready */}
-          {videoUrl && (
-            <div className="flex gap-2 flex-1">
-              <a
-                href={videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-center text-sm rounded-full border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2.5 font-medium transition-colors"
-              >
-                Forhåndsvis
-              </a>
-              <a
-                href={videoUrl}
-                download
-                className="flex-1 text-center text-sm rounded-full border border-green-300 bg-green-50 hover:bg-green-100 text-green-700 py-2.5 font-semibold transition-colors"
-              >
-                Last ned video
-              </a>
-            </div>
-          )}
-
-          {/* Produce / status button */}
-          {jobStatus === "done" ? (
-            <div className="sm:ml-auto flex items-center gap-2 px-6 py-2.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="w-4 h-4"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Video klar
-            </div>
-          ) : isProducing ? (
-            <div className="sm:ml-auto flex items-center gap-2 px-6 py-2.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm font-semibold">
-              <div className="w-3.5 h-3.5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-              Produserer...
-            </div>
-          ) : (
-            <button
-              disabled={!canProduce}
-              onClick={() => { console.log('btn clicked'); handleProduce(); }}
-              title={
-                !canProduce
-                  ? `Godkjenn alle assets først (${approvedCount}/${totalCount})`
-                  : undefined
-              }
-              className={`sm:ml-auto rounded-full px-8 py-2.5 text-sm font-semibold transition-colors ${
-                canProduce
-                  ? "bg-green-600 hover:bg-green-500 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
-              }`}
-            >
-              {canProduce
-                ? "Produser video"
-                : `Produser video (${approvedCount}/${totalCount} godkjent)`}
-            </button>
-          )}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            disabled={!canProduce}
+            onClick={handleProduksjon}
+            title={
+              !canProduce && !isSubmitting
+                ? `Godkjenn alle assets først (${approvedCount}/${totalCount})`
+                : undefined
+            }
+            className={`rounded-full px-8 py-2.5 text-sm font-semibold transition-colors ${
+              canProduce
+                ? "bg-green-600 hover:bg-green-500 text-white shadow-sm"
+                : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+            }`}
+          >
+            {isSubmitting
+              ? "Starter..."
+              : canProduce
+                ? "Start produksjon"
+                : `Start produksjon (${approvedCount}/${totalCount} godkjent)`}
+          </button>
         </div>
       </div>
     </div>
@@ -459,9 +356,9 @@ function ImageCard({
           <span className="text-xs text-gray-400">{asset.format}</span>
         </div>
 
-        {/* Approve / Reject / Regenerate */}
         <div className="flex gap-1.5 mb-1.5">
           <button
+            type="button"
             disabled={regenerating || status === "approved"}
             onClick={onApprove}
             className={`flex-1 text-xs rounded-full py-1.5 font-medium border transition-colors disabled:opacity-50 ${
@@ -473,6 +370,7 @@ function ImageCard({
             Godkjenn
           </button>
           <button
+            type="button"
             disabled={regenerating}
             onClick={onReject}
             className={`flex-1 text-xs rounded-full py-1.5 font-medium border transition-colors disabled:opacity-50 ${
@@ -484,6 +382,7 @@ function ImageCard({
             Avvis
           </button>
           <button
+            type="button"
             disabled={regenerating}
             onClick={onRegenerate}
             className="flex-1 text-xs rounded-full py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors disabled:opacity-50"
@@ -492,7 +391,6 @@ function ImageCard({
           </button>
         </div>
 
-        {/* Preview / Download */}
         <div className="flex gap-1.5">
           <a
             href={asset.src}
@@ -579,6 +477,7 @@ function VoiceoverCard({
 
       <div className="flex gap-1.5">
         <button
+          type="button"
           disabled={regenerating || status === "approved"}
           onClick={onApprove}
           className={`flex-1 text-xs rounded-full py-1.5 font-medium border transition-colors disabled:opacity-50 ${
@@ -590,6 +489,7 @@ function VoiceoverCard({
           Godkjenn
         </button>
         <button
+          type="button"
           disabled={regenerating}
           onClick={onReject}
           className={`flex-1 text-xs rounded-full py-1.5 font-medium border transition-colors disabled:opacity-50 ${
@@ -601,6 +501,7 @@ function VoiceoverCard({
           Avvis
         </button>
         <button
+          type="button"
           disabled={regenerating}
           onClick={onRegenerate}
           className="flex-1 text-xs rounded-full py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors disabled:opacity-50"

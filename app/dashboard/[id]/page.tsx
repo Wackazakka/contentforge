@@ -10,6 +10,11 @@ import AssetApprovalPanel, {
   type AudioAsset,
   type MusicTrack,
 } from "./AssetApprovalPanel";
+import JobProgressPanel from "./JobProgressPanel";
+
+// Matches crypto.randomUUID() output
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const IMAGE_BY_FORMAT: Record<string, string> = {
   "16:9": "/demo/images/banner_social.png",
@@ -35,7 +40,26 @@ export default async function CampaignDetailPage({
   const { id } = await params;
   const campaign = DEMO_CAMPAIGNS.find((c) => c.id === id);
 
-  if (!campaign) notFound();
+  if (!campaign) {
+    // If the ID looks like a job UUID, show the job progress view
+    if (!UUID_RE.test(id)) notFound();
+
+    return (
+      <div>
+        <div className="flex items-center gap-3 mb-8">
+          <Link
+            href="/dashboard"
+            className="text-gray-500 hover:text-gray-900 text-sm transition-colors"
+          >
+            ← Tilbake
+          </Link>
+          <span className="text-gray-300">/</span>
+          <h1 className="text-xl font-bold text-gray-900">Produksjonsjobb</h1>
+        </div>
+        <JobProgressPanel jobId={id} />
+      </div>
+    );
+  }
 
   const isCompleted = campaign.status === "completed";
 
