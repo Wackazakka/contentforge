@@ -53,12 +53,28 @@ export default function NewCampaignPage() {
     console.log('Start produksjon klikket', form);
     setLoading(true);
 
-    // Simulate processing delay for MVP
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      const res = await fetch('/api/content/produce/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: `campaign-${Date.now()}`,
+          service: form.service,
+          headline: form.headline,
+          cta: form.cta,
+          tone: form.tone,
+        }),
+      });
 
-    // In production this would POST to /api/campaigns
-    // For MVP we redirect back to dashboard with success message
-    router.push("/dashboard?created=1");
+      if (!res.ok) throw new Error('API error');
+      const { jobId } = await res.json();
+      
+      console.log('Got jobId:', jobId);
+      router.push(`/dashboard/${jobId}`);
+    } catch (err) {
+      console.error('Produksjon feilet:', err);
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
