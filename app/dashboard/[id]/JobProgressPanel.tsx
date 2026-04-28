@@ -36,6 +36,7 @@ export default function JobProgressPanel({ jobId }: Props) {
         setProgress(data.progress);
         setStatus(data.status);
         if (data.status === "done") {
+          console.log('Video produksjon ferdig. VideoUrl:', data.videoUrl);
           setVideoUrl(data.videoUrl);
           if (pollRef.current) clearInterval(pollRef.current);
         } else if (data.status === "failed") {
