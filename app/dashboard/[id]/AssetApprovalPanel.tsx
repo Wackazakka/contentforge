@@ -107,6 +107,7 @@ export default function AssetApprovalPanel({
   }, [jobId, jobStatus]);
 
   async function handleProduce() {
+    console.log('Produser clicked', campaignId, service);
     setProduceError(null);
     setJobStatus("pending");
     setProgress(0);
