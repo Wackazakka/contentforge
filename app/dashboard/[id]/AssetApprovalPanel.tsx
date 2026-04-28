@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type AssetStatus = "pending" | "approved" | "rejected";
+type JobStatus = "idle" | "pending" | "processing" | "done" | "failed";
 
 export type ImageAsset = {
   id: string;
@@ -23,6 +24,8 @@ export type MusicTrack = {
 };
 
 interface Props {
+  campaignId: string;
+  service: string;
   images: ImageAsset[];
   voiceovers: AudioAsset[];
   musicTracks: MusicTrack[];
@@ -35,11 +38,15 @@ const STATUS_CONFIG: Record<AssetStatus, { label: string; classes: string }> = {
   rejected: { label: "Avvist", classes: "bg-red-100 text-red-600" },
 };
 
+const POLL_INTERVAL_MS = 5000;
+
 export default function AssetApprovalPanel({
+  campaignId,
+  service,
   images,
   voiceovers,
   musicTracks,
-  videoSrc,
+  videoSrc: initialVideoSrc,
 }: Props) {
   const [imageStatuses, setImageStatuses] = useState<Record<string, AssetStatus>>(
     Object.fromEntries(images.map((img) => [img.id, "pending" as AssetStatus]))
@@ -49,7 +56,15 @@ export default function AssetApprovalPanel({
   );
   const [activeTrackIndex, setActiveTrackIndex] = useState(0);
   const [regenerating, setRegenerating] = useState<Record<string, boolean>>({});
-  const [produced, setProduced] = useState(false);
+
+  // Video production state
+  const [jobStatus, setJobStatus] = useState<JobStatus>("idle");
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [videoUrl, setVideoUrl] = useState<string | null>(initialVideoSrc);
+  const [produceError, setProduceError] = useState<string | null>(null);
+
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const approvedImages = images.filter((img) => imageStatuses[img.id] === "approved").length;
   const approvedVoiceovers = voiceovers.filter((vo) => voiceoverStatuses[vo.id] === "approved").length;
@@ -57,7 +72,62 @@ export default function AssetApprovalPanel({
   const totalCount = images.length + voiceovers.length;
   const allImagesApproved = images.length > 0 && images.every((img) => imageStatuses[img.id] === "approved");
   const allVoiceoversApproved = voiceovers.length === 0 || voiceovers.every((vo) => voiceoverStatuses[vo.id] === "approved");
-  const canProduce = allImagesApproved && allVoiceoversApproved && !produced;
+  const canProduce = allImagesApproved && allVoiceoversApproved && jobStatus === "idle";
+
+  // Start polling when we have a jobId
+  useEffect(() => {
+    if (!jobId || jobStatus === "done" || jobStatus === "failed") return;
+
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/content/produce/status?jobId=${jobId}`);
+        if (!res.ok) return;
+        const data = await res.json() as {
+          status: "pending" | "processing" | "done" | "failed";
+          progress: number;
+          videoUrl: string | null;
+        };
+        setProgress(data.progress);
+        setJobStatus(data.status);
+        if (data.status === "done") {
+          setVideoUrl(data.videoUrl);
+          clearInterval(pollRef.current!);
+        } else if (data.status === "failed") {
+          setProduceError("Videoproduksjon feilet. Prøv igjen.");
+          clearInterval(pollRef.current!);
+        }
+      } catch {
+        // network hiccup — keep polling
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [jobId, jobStatus]);
+
+  async function handleProduce() {
+    setProduceError(null);
+    setJobStatus("pending");
+    setProgress(0);
+    try {
+      const res = await fetch("/api/content/produce/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaignId, service }),
+      });
+      if (!res.ok) {
+        const err = await res.json() as { error?: string };
+        throw new Error(err.error ?? "Ukjent feil");
+      }
+      const data = await res.json() as { jobId: string };
+      setJobId(data.jobId);
+      setJobStatus("processing");
+    } catch (e) {
+      setProduceError((e as Error).message);
+      setJobStatus("idle");
+    }
+  }
 
   async function handleRegenerate(id: string, type: "image" | "voiceover") {
     setRegenerating((r) => ({ ...r, [id]: true }));
@@ -69,6 +139,8 @@ export default function AssetApprovalPanel({
       setVoiceoverStatuses((s) => ({ ...s, [id]: "pending" }));
     }
   }
+
+  const isProducing = jobStatus === "pending" || jobStatus === "processing";
 
   return (
     <div className="flex flex-col gap-8">
@@ -207,11 +279,36 @@ export default function AssetApprovalPanel({
 
       {/* Bottom actions */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        {/* Error */}
+        {produceError && (
+          <p className="text-sm text-red-600 mb-3">{produceError}</p>
+        )}
+
+        {/* Video production progress */}
+        {isProducing && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-sm font-medium text-gray-700">Produserer video...</span>
+              <span className="text-sm text-gray-500">{progress}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-2 rounded-full bg-green-500 transition-all duration-700"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1.5">
+              Sjekker status hvert 5. sekund...
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {videoSrc && (
+          {/* Download button — shown when video is ready */}
+          {videoUrl && (
             <div className="flex gap-2 flex-1">
               <a
-                href={videoSrc}
+                href={videoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 text-center text-sm rounded-full border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2.5 font-medium transition-colors"
@@ -219,15 +316,17 @@ export default function AssetApprovalPanel({
                 Forhåndsvis
               </a>
               <a
-                href={videoSrc}
+                href={videoUrl}
                 download
-                className="flex-1 text-center text-sm rounded-full border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 py-2.5 font-medium transition-colors"
+                className="flex-1 text-center text-sm rounded-full border border-green-300 bg-green-50 hover:bg-green-100 text-green-700 py-2.5 font-semibold transition-colors"
               >
-                Last ned
+                Last ned video
               </a>
             </div>
           )}
-          {produced ? (
+
+          {/* Produce / status button */}
+          {jobStatus === "done" ? (
             <div className="sm:ml-auto flex items-center gap-2 px-6 py-2.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-sm font-semibold">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -241,12 +340,17 @@ export default function AssetApprovalPanel({
                   clipRule="evenodd"
                 />
               </svg>
-              Videoproduksjon startet
+              Video klar
+            </div>
+          ) : isProducing ? (
+            <div className="sm:ml-auto flex items-center gap-2 px-6 py-2.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm font-semibold">
+              <div className="w-3.5 h-3.5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+              Produserer...
             </div>
           ) : (
             <button
               disabled={!canProduce}
-              onClick={() => setProduced(true)}
+              onClick={handleProduce}
               title={
                 !canProduce
                   ? `Godkjenn alle assets først (${approvedCount}/${totalCount})`

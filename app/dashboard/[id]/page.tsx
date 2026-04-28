@@ -122,10 +122,12 @@ export default async function CampaignDetailPage({
         </div>
       ) : (
         <AssetApprovalPanel
+          campaignId={campaign.id}
+          service={campaign.service}
           images={images}
           voiceovers={voiceovers}
           musicTracks={musicTracks}
-          videoSrc="/demo/video/reforhandle_launch.mp4"
+          videoSrc={null}
         />
       )}
     </div>
