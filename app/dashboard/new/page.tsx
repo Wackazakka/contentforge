@@ -49,8 +49,8 @@ export default function NewCampaignPage() {
     }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleProduksjon() {
+    console.log('Start produksjon klikket', form);
     setLoading(true);
 
     // Simulate processing delay for MVP
@@ -59,6 +59,11 @@ export default function NewCampaignPage() {
     // In production this would POST to /api/campaigns
     // For MVP we redirect back to dashboard with success message
     router.push("/dashboard?created=1");
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    handleProduksjon();
   }
 
   return (
@@ -248,7 +253,8 @@ export default function NewCampaignPage() {
         </div>
 
         <button
-          type="submit"
+          type="button"
+          onClick={handleProduksjon}
           disabled={loading || form.formats.length === 0}
           className="rounded-full bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
         >
