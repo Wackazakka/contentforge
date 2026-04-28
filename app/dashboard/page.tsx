@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DEMO_CAMPAIGNS, STATUS_LABELS, STATUS_COLORS } from "@/lib/campaigns";
+import { readHistory, type HistoryEntry } from "@/lib/jobHistory";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("nb-NO", {
@@ -9,8 +10,38 @@ function formatDate(iso: string) {
   });
 }
 
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString("nb-NO", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const HISTORY_STATUS_LABEL: Record<HistoryEntry["status"], string> = {
+  pending: "Venter",
+  processing: "Produserer...",
+  done: "Fullført",
+  failed: "Feil",
+};
+
+const HISTORY_STATUS_COLOR: Record<HistoryEntry["status"], string> = {
+  pending: "text-gray-600 bg-gray-100",
+  processing: "text-yellow-700 bg-yellow-100",
+  done: "text-green-700 bg-green-100",
+  failed: "text-red-700 bg-red-100",
+};
+
 export default function DashboardPage() {
   const campaigns = DEMO_CAMPAIGNS;
+  const history = readHistory();
+
+  const completedHistory = history.filter((e) => e.status === "done").length;
+  const processingHistory = history.filter(
+    (e) => e.status === "processing" || e.status === "pending"
+  ).length;
 
   return (
     <div>
@@ -103,6 +134,85 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500 mt-1">{s.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Production history */}
+      <div className="mt-12">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Produksjonshistorikk
+          </h2>
+          <span className="text-sm text-gray-500">
+            {history.length} jobb{history.length !== 1 ? "er" : ""}
+            {completedHistory > 0 && ` · ${completedHistory} fullført`}
+            {processingHistory > 0 && ` · ${processingHistory} pågår`}
+          </span>
+        </div>
+
+        {history.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-200 py-10 flex flex-col items-center text-center bg-white">
+            <p className="text-gray-400 text-sm">
+              Ingen produksjonsjobber ennå. Start produksjon fra en kampanje.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {history.map((entry) => (
+              <div
+                key={entry.jobId}
+                className="rounded-2xl border border-gray-200 bg-white p-5 flex items-center justify-between shadow-sm"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-lg flex-shrink-0">
+                    {entry.status === "done"
+                      ? "✅"
+                      : entry.status === "failed"
+                        ? "❌"
+                        : "⚙️"}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">
+                      {entry.campaignId} · {entry.service}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">
+                      {entry.jobId}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Startet {formatDateTime(entry.createdAt)}
+                      {entry.completedAt &&
+                        ` · Fullført ${formatDateTime(entry.completedAt)}`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                  <span
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${HISTORY_STATUS_COLOR[entry.status]}`}
+                  >
+                    {HISTORY_STATUS_LABEL[entry.status]}
+                  </span>
+
+                  {entry.status === "done" && entry.downloadUrl && (
+                    <a
+                      href={entry.downloadUrl}
+                      download
+                      className="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-600 hover:bg-green-500 text-white transition-colors"
+                    >
+                      Last ned
+                    </a>
+                  )}
+
+                  <Link
+                    href={`/dashboard/${entry.jobId}`}
+                    className="text-gray-400 hover:text-gray-700 transition-colors text-sm"
+                  >
+                    →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
