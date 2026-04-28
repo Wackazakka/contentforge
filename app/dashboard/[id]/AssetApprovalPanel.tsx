@@ -351,7 +351,7 @@ export default function AssetApprovalPanel({
           ) : (
             <button
               disabled={!canProduce}
-              onClick={handleProduce}
+              onClick={() => { console.log('btn clicked'); handleProduce(); }}
               title={
                 !canProduce
                   ? `Godkjenn alle assets først (${approvedCount}/${totalCount})`
