@@ -1,7 +1,10 @@
 import { type NextRequest } from "next/server";
-import { getJob } from "@/lib/jobs";
+import { getJob, updateJob } from "@/lib/jobs";
+import { updateHistoryEntry } from "@/lib/jobHistory";
 
 export const dynamic = "force-dynamic";
+
+const DROPLET_JOB_QUEUE_URL = "http://139.59.212.218:3002/jobs";
 
 export async function GET(req: NextRequest) {
   const jobId = req.nextUrl.searchParams.get("jobId");
@@ -10,8 +13,38 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: "Missing jobId" }, { status: 400 });
   }
 
-  const job = getJob(jobId);
+  // Primary source of truth: poll the droplet server (file-based, survives restarts)
+  try {
+    const res = await fetch(`${DROPLET_JOB_QUEUE_URL}/${jobId}`);
+    if (res.ok) {
+      const remote = (await res.json()) as { jobId: string; status: string };
 
+      if (remote.status === "done") {
+        const downloadUrl = `/api/content/download?jobId=${jobId}`;
+        updateJob(jobId, { status: "done", progress: 100, videoUrl: downloadUrl });
+        updateHistoryEntry(jobId, {
+          status: "done",
+          downloadUrl,
+          completedAt: new Date().toISOString(),
+        });
+        return Response.json({ status: "done", progress: 100, videoUrl: downloadUrl });
+      }
+
+      if (remote.status === "processing" || remote.status === "queued") {
+        const localJob = getJob(jobId);
+        return Response.json({
+          status: "processing",
+          progress: localJob?.progress ?? 5,
+          videoUrl: null,
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[status] Failed to poll droplet for job", jobId, err);
+  }
+
+  // Fallback: use local in-memory job state (valid when server is long-running)
+  const job = getJob(jobId);
   if (!job) {
     return Response.json({ error: "Job not found" }, { status: 404 });
   }
