@@ -107,17 +107,22 @@ function runVideoProduction(
   updateJob(jobId, { status: "processing", progress: 5 });
   updateHistoryEntry(jobId, { status: "processing" });
 
-  const scriptPath = path.join(
-    process.cwd(),
-    "make_tiktok_reforhandle.py"
-  );
+  const scriptPath = '/root/.openclaw/workspace/reforhandle-content/make_tiktok_reforhandle.py';
 
   const configPath = `/tmp/${jobId}-config.json`;
-  const config = {
-    output: `/root/.openclaw/workspace/contentforge-output/${jobId}.mp4`,
-    service,
-    campaignId,
-  };
+  let config: Record<string, unknown>;
+  try {
+    const baseConfig = JSON.parse(fs.readFileSync('/root/.openclaw/workspace/reforhandle-content/config.json', 'utf8'));
+    config = {
+      ...baseConfig,
+      output: `/root/.openclaw/workspace/contentforge-output/${jobId}.mp4`,
+    };
+  } catch (err) {
+    console.error(`[video-produce] Failed to read base config for job ${jobId}:`, err);
+    config = {
+      output: `/root/.openclaw/workspace/contentforge-output/${jobId}.mp4`,
+    };
+  }
 
   try {
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
