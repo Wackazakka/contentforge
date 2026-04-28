@@ -1,8 +1,8 @@
-import { type NextRequest } from "next/server";
-import fs from "fs";
-import { videoPath } from "@/lib/output";
+import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+
+const DROPLET_VIDEO_BASE = "http://139.59.212.218:3001/videos";
 
 export async function GET(req: NextRequest) {
   const jobId = req.nextUrl.searchParams.get("jobId");
@@ -16,19 +16,5 @@ export async function GET(req: NextRequest) {
     return new Response("Invalid jobId", { status: 400 });
   }
 
-  const filePath = videoPath(jobId);
-
-  if (!fs.existsSync(filePath)) {
-    return new Response("Video not found", { status: 404 });
-  }
-
-  const buffer = fs.readFileSync(filePath);
-
-  return new Response(buffer, {
-    headers: {
-      "Content-Type": "video/mp4",
-      "Content-Disposition": `attachment; filename="video-${jobId}.mp4"`,
-      "Content-Length": String(buffer.length),
-    },
-  });
+  return NextResponse.redirect(`${DROPLET_VIDEO_BASE}/${jobId}.mp4`);
 }
