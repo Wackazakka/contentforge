@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const DROPLET_VIDEO_BASE = "http://139.59.212.218:3001/videos";
+const DROPLET_VIDEO_BASE = "http://139.59.212.218:3002/videos";
 
 export async function GET(req: NextRequest) {
   const jobId = req.nextUrl.searchParams.get("jobId");
