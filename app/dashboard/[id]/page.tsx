@@ -5,13 +5,17 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
 } from "@/lib/campaigns";
+import AssetApprovalPanel, {
+  type ImageAsset,
+  type AudioAsset,
+  type MusicTrack,
+} from "./AssetApprovalPanel";
 
-const ASSET_VARIANTS = [
-  { key: "video_vo_music", label: "Video + Voiceover + Musikk", icon: "🎬" },
-  { key: "video_music", label: "Video + Musikk", icon: "🎵" },
-  { key: "image", label: "Stillbilde", icon: "🖼️" },
-  { key: "captioned", label: "Video med teksting", icon: "📝" },
-];
+const IMAGE_BY_FORMAT: Record<string, string> = {
+  "16:9": "/demo/images/banner_social.png",
+  "9:16": "/demo/images/bg_process.png",
+  "1:1": "/demo/images/profile_pic_square.png",
+};
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("nb-NO", {
@@ -34,6 +38,31 @@ export default async function CampaignDetailPage({
   if (!campaign) notFound();
 
   const isCompleted = campaign.status === "completed";
+
+  // Build asset lists for the approval panel
+  const images: ImageAsset[] = campaign.formats.map((format, i) => ({
+    id: `img-${format}-${i}`,
+    format,
+    label: `Bilde variant ${i + 1}`,
+    src: IMAGE_BY_FORMAT[format] ?? "/demo/images/banner_social.png",
+  }));
+
+  const voiceovers: AudioAsset[] = campaign.voiceover
+    ? [
+        { id: "vo-1", label: "Voiceover variant A", src: "/demo/vo/s1.mp3" },
+        { id: "vo-2", label: "Voiceover variant B", src: "/demo/vo/s2.mp3" },
+        { id: "vo-3", label: "Voiceover variant C", src: "/demo/vo/s3.mp3" },
+      ]
+    : [];
+
+  const musicTracks: MusicTrack[] = campaign.music
+    ? [
+        {
+          label: `${campaign.musicStyle.charAt(0).toUpperCase() + campaign.musicStyle.slice(1)} — Bakgrunnsmusikk`,
+          src: "/demo/music/background_music.mp3",
+        },
+      ]
+    : [];
 
   return (
     <div>
@@ -66,18 +95,18 @@ export default async function CampaignDetailPage({
             label="Voiceover"
             value={campaign.voiceover ? "Ja" : "Nei"}
           />
-          <MetaRow label="Musikk" value={campaign.music ? campaign.musicStyle : "Nei"} />
           <MetaRow
-            label="Opprettet"
-            value={formatDate(campaign.createdAt)}
+            label="Musikk"
+            value={campaign.music ? campaign.musicStyle : "Nei"}
           />
+          <MetaRow label="Opprettet" value={formatDate(campaign.createdAt)} />
         </div>
         <div className="mt-4 p-3 rounded-lg bg-gray-100 text-sm text-gray-700 italic">
           &ldquo;{campaign.bodyCopy}&rdquo;
         </div>
       </div>
 
-      {/* Assets */}
+      {/* Assets + approval */}
       <h2 className="font-semibold text-gray-900 mb-4">Assets</h2>
 
       {!isCompleted ? (
@@ -92,67 +121,12 @@ export default async function CampaignDetailPage({
           </p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {campaign.formats.flatMap((format) =>
-            ASSET_VARIANTS.map((variant) => (
-              <AssetCard
-                key={`${format}-${variant.key}`}
-                format={format}
-                variant={variant}
-              />
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Approval workflow */}
-      {isCompleted && (
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="font-semibold text-gray-900 mb-4">Godkjenningsflyt</h2>
-          <div className="flex flex-col gap-3">
-            {[
-              { step: "Generering", status: "done", note: "12 assets produsert" },
-              {
-                step: "Gjennomgang",
-                status: "pending",
-                note: "Venter på godkjenning",
-              },
-              {
-                step: "Publisering",
-                status: "locked",
-                note: "Låst til godkjenning er fullført",
-              },
-            ].map((s) => (
-              <div
-                key={s.step}
-                className={`flex items-center gap-4 p-4 rounded-xl border ${
-                  s.status === "done"
-                    ? "border-emerald-200 bg-emerald-50"
-                    : s.status === "pending"
-                      ? "border-yellow-200 bg-yellow-50"
-                      : "border-gray-200 bg-gray-50 opacity-60"
-                }`}
-              >
-                <span className="text-xl">
-                  {s.status === "done"
-                    ? "✅"
-                    : s.status === "pending"
-                      ? "⏳"
-                      : "🔒"}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{s.step}</p>
-                  <p className="text-xs text-gray-500">{s.note}</p>
-                </div>
-                {s.status === "pending" && (
-                  <button className="ml-auto rounded-full bg-green-600 hover:bg-green-500 text-white text-xs font-semibold px-4 py-1.5 transition-colors">
-                    Godkjenn
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <AssetApprovalPanel
+          images={images}
+          voiceovers={voiceovers}
+          musicTracks={musicTracks}
+          videoSrc="/demo/video/reforhandle_launch.mp4"
+        />
       )}
     </div>
   );
@@ -163,43 +137,6 @@ function MetaRow({ label, value }: { label: string; value: string }) {
     <div>
       <span className="text-gray-500 font-semibold">{label}: </span>
       <span className="text-gray-900">{value}</span>
-    </div>
-  );
-}
-
-function AssetCard({
-  format,
-  variant,
-}: {
-  format: string;
-  variant: { key: string; label: string; icon: string };
-}) {
-  const aspectMap: Record<string, string> = {
-    "16:9": "aspect-video",
-    "9:16": "aspect-[9/16]",
-    "1:1": "aspect-square",
-  };
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-      <div
-        className={`${aspectMap[format] ?? "aspect-video"} bg-gray-100 flex items-center justify-center text-4xl`}
-      >
-        {variant.icon}
-      </div>
-      <div className="p-3">
-        <p className="text-xs font-semibold text-gray-900">
-          {format} — {variant.label}
-        </p>
-        <div className="mt-2 flex gap-2">
-          <button className="flex-1 text-xs rounded-full border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 transition-colors">
-            Last ned
-          </button>
-          <button className="flex-1 text-xs rounded-full border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 transition-colors">
-            Forhåndsvis
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
