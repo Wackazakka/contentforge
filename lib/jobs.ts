@@ -36,6 +36,9 @@ export function getJob(id: string): Job | undefined {
 export function updateJob(id: string, updates: Partial<Job>): Job | undefined {
   const job = jobs.get(id);
   if (!job) return undefined;
+  if ("videoUrl" in updates) {
+    console.log(`[jobs] updateJob ${id}: setting videoUrl =`, updates.videoUrl ?? null);
+  }
   const updated = { ...job, ...updates };
   jobs.set(id, updated);
   return updated;

@@ -70,6 +70,14 @@ function markDone(jobId: string): void {
 
   saveVideoFile(jobId);
 
+  const videoFilePath = videoPath(jobId);
+  const videoExists = fs.existsSync(videoFilePath);
+  console.log(`[video-produce] markDone for job ${jobId}`, {
+    videoFilePath,
+    videoExists,
+    downloadUrl,
+  });
+
   updateJob(jobId, {
     status: "done",
     progress: 100,
@@ -104,13 +112,24 @@ function runVideoProduction(
     "make_tiktok_reforhandle.py"
   );
 
+  console.log(`[video-produce] Starting Python script for job ${jobId}`, {
+    scriptPath,
+    campaignId,
+    service,
+    scriptExists: fs.existsSync(scriptPath),
+  });
+
   const child = spawn(
     "python3",
     [scriptPath, "--campaign", campaignId, "--service", service],
     { cwd: process.cwd() }
   );
 
+  const stdoutChunks: Buffer[] = [];
+  const stderrChunks: Buffer[] = [];
+
   child.stdout.on("data", (data: Buffer) => {
+    stdoutChunks.push(data);
     const text = data.toString();
     const match = text.match(/progress:(\d+)/);
     if (match) {
@@ -118,15 +137,29 @@ function runVideoProduction(
     }
   });
 
+  child.stderr.on("data", (data: Buffer) => {
+    stderrChunks.push(data);
+  });
+
   child.on("close", (code: number | null) => {
+    const stdout = Buffer.concat(stdoutChunks).toString().trim();
+    const stderr = Buffer.concat(stderrChunks).toString().trim();
+    console.log(`[video-produce] Python script exited for job ${jobId}`, {
+      exitCode: code,
+      stdout: stdout || "(empty)",
+      stderr: stderr || "(empty)",
+    });
+
     if (code === 0) {
       markDone(jobId);
     } else {
+      console.log(`[video-produce] Non-zero exit code ${code} — falling back to simulateProgress for job ${jobId}`);
       simulateProgress(jobId);
     }
   });
 
-  child.on("error", () => {
+  child.on("error", (err: Error) => {
+    console.error(`[video-produce] Failed to spawn Python script for job ${jobId}:`, err.message);
     simulateProgress(jobId);
   });
 }
