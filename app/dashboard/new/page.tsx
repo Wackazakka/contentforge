@@ -23,6 +23,16 @@ const SERVICES = [
   { value: "custom", label: "Egendefinert" },
 ];
 
+const norwegianVoices = [
+  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Norsk stemme 1' },
+  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Norsk stemme 2' },
+  { id: '2dhHLsmg0MVma2t041qT', name: 'Norsk stemme 3' },
+  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Norsk stemme 4' },
+  { id: 'CMbvLbbccSd611KtwxV3', name: 'Norsk stemme 5' },
+  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Norsk stemme 6' },
+  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Norsk stemme 7' },
+];
+
 export default function NewCampaignPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -34,6 +44,7 @@ export default function NewCampaignPage() {
     cta: "",
     tone: "friendly",
     service: "reforhandle",
+    voiceId: 'nhvaqgRyAq6BmFs3WcdX',
     voiceover: true,
     music: true,
     musicStyle: "upbeat",
@@ -63,6 +74,7 @@ export default function NewCampaignPage() {
           headline: form.headline,
           bodyCopy: form.bodyCopy,
           tone: form.tone,
+          voiceId: form.voiceId,
         }),
       });
 
@@ -158,6 +170,18 @@ export default function NewCampaignPage() {
               placeholder="Spar tusenvis på strøm og internett"
               className={inputClass}
             />
+          </Field>
+
+          <Field label="Stemme">
+            <select
+              value={form.voiceId}
+              onChange={(e) => setForm(f => ({ ...f, voiceId: e.target.value }))}
+              className={inputClass}
+            >
+              {norwegianVoices.map(v => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
           </Field>
 
           <Field
