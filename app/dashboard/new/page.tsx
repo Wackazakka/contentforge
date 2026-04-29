@@ -36,6 +36,7 @@ const norwegianVoices = [
 export default function NewCampaignPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [campaignType, setCampaignType] = useState<"reklame" | "storytelling">("reklame");
   const [form, setForm] = useState({
     name: "",
     productName: "",
@@ -49,6 +50,8 @@ export default function NewCampaignPage() {
     music: true,
     musicStyle: "upbeat",
     formats: ["16:9", "9:16", "1:1"] as string[],
+    targetAudience: "",
+    problem: "",
   });
 
   function toggle(format: string) {
@@ -109,10 +112,36 @@ export default function NewCampaignPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {/* Campaign type toggle */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setCampaignType("reklame")}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+              campaignType === "reklame"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            📢 Reklame
+          </button>
+          <button
+            type="button"
+            onClick={() => setCampaignType("storytelling")}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+              campaignType === "storytelling"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            ✨ Storytelling
+          </button>
+        </div>
+
         {/* Basic info */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
           <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
-            Grunninfo
+            {campaignType === "reklame" ? "Grunninfo" : "Historiekampanje"}
           </h2>
 
           <Field label="Kampanjenavn">
@@ -157,21 +186,51 @@ export default function NewCampaignPage() {
         {/* Copy */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
           <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
-            Innhold
+            {campaignType === "reklame" ? "Innhold" : "Historieelementer"}
           </h2>
 
-          <Field label={`Headline (maks 40 tegn) — ${form.headline.length}/40`}>
-            <input
-              required
-              maxLength={40}
-              value={form.headline}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, headline: e.target.value }))
-              }
-              placeholder="Spar tusenvis på strøm og internett"
-              className={inputClass}
-            />
-          </Field>
+          {campaignType === "reklame" && (
+            <Field label={`Headline (maks 40 tegn) — ${form.headline.length}/40`}>
+              <input
+                required
+                maxLength={40}
+                value={form.headline}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, headline: e.target.value }))
+                }
+                placeholder="Spar tusenvis på strøm og internett"
+                className={inputClass}
+              />
+            </Field>
+          )}
+
+          {campaignType === "storytelling" && (
+            <Field label="Målgruppe">
+              <input
+                required
+                value={form.targetAudience}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, targetAudience: e.target.value }))
+                }
+                placeholder="Huseiere, 35-55 år, bor i Norge"
+                className={inputClass}
+              />
+            </Field>
+          )}
+
+          {campaignType === "storytelling" && (
+            <Field label="Problem som løses">
+              <input
+                required
+                value={form.problem}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, problem: e.target.value }))
+                }
+                placeholder="Betaler for mye på strøm og internett"
+                className={inputClass}
+              />
+            </Field>
+          )}
 
           <Field label="Stemme">
             <select
@@ -185,21 +244,23 @@ export default function NewCampaignPage() {
             </select>
           </Field>
 
-          <Field
-            label={`Body copy (maks 125 tegn) — ${form.bodyCopy.length}/125`}
-          >
-            <textarea
-              required
-              maxLength={125}
-              value={form.bodyCopy}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, bodyCopy: e.target.value }))
-              }
-              placeholder="Vi forhandler abonnementene dine — du betaler bare for resultater."
-              rows={3}
-              className={inputClass + " resize-none"}
-            />
-          </Field>
+          {campaignType === "reklame" && (
+            <Field
+              label={`Body copy (maks 125 tegn) — ${form.bodyCopy.length}/125`}
+            >
+              <textarea
+                required
+                maxLength={125}
+                value={form.bodyCopy}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, bodyCopy: e.target.value }))
+                }
+                placeholder="Vi forhandler abonnementene dine — du betaler bare for resultater."
+                rows={3}
+                className={inputClass + " resize-none"}
+              />
+            </Field>
+          )}
 
           <Field label="Call to action">
             <input
