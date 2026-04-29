@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       const remote = (await res.json()) as { jobId: string; status: string };
 
       if (remote.status === "done") {
-        const videoUrl = `http://139.59.212.218:3002/videos/${jobId}.mp4`;
+        const videoUrl = `http://139.59.212.218:3002/videos/${jobId}/output.mp4`;
         updateJob(jobId, { status: "done", progress: 100, videoUrl });
         updateHistoryEntry(jobId, {
           status: "done",
