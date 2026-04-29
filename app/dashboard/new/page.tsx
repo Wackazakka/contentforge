@@ -61,7 +61,7 @@ export default function NewCampaignPage() {
           campaignId: `campaign-${Date.now()}`,
           service: form.service,
           headline: form.headline,
-          cta: form.cta,
+          bodyCopy: form.bodyCopy,
           tone: form.tone,
         }),
       });
