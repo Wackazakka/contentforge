@@ -75,6 +75,7 @@ export default function NewCampaignPage() {
           bodyCopy: form.bodyCopy,
           tone: form.tone,
           voiceId: form.voiceId,
+          cta: form.cta,
         }),
       });
 
