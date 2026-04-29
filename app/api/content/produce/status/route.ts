@@ -20,14 +20,14 @@ export async function GET(req: NextRequest) {
       const remote = (await res.json()) as { jobId: string; status: string };
 
       if (remote.status === "done") {
-        const downloadUrl = `/api/content/download?jobId=${jobId}`;
-        updateJob(jobId, { status: "done", progress: 100, videoUrl: downloadUrl });
+        const videoUrl = `http://139.59.212.218:3002/videos/${jobId}.mp4`;
+        updateJob(jobId, { status: "done", progress: 100, videoUrl });
         updateHistoryEntry(jobId, {
           status: "done",
-          downloadUrl,
+          downloadUrl: videoUrl,
           completedAt: new Date().toISOString(),
         });
-        return Response.json({ status: "done", progress: 100, videoUrl: downloadUrl });
+        return Response.json({ status: "done", progress: 100, videoUrl });
       }
 
       if (remote.status === "processing" || remote.status === "queued") {
