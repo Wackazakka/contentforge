@@ -33,10 +33,17 @@ const norwegianVoices = [
   { id: 'uNsWM1StCcpydKYOjKyu', name: 'Norsk stemme 7' },
 ];
 
+interface Segment {
+  text: string;
+  imagePrompt: string;
+}
+
 export default function NewCampaignPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [scriptLoading, setScriptLoading] = useState(false);
   const [campaignType, setCampaignType] = useState<"reklame" | "storytelling">("reklame");
+  const [segments, setSegments] = useState<Segment[]>([]);
   const [form, setForm] = useState({
     name: "",
     productName: "",
@@ -63,29 +70,63 @@ export default function NewCampaignPage() {
     }));
   }
 
-  async function handleProduksjon() {
-    console.log('Start produksjon klikket', form);
-    setLoading(true);
+  function updateSegment(index: number, field: keyof Segment, value: string) {
+    setSegments((prev) =>
+      prev.map((seg, i) => (i === index ? { ...seg, [field]: value } : seg))
+    );
+  }
 
+  async function handleGenerateScript() {
+    setScriptLoading(true);
+    setSegments([]);
     try {
-      const res = await fetch('/api/content/produce/video', {
+      const res = await fetch('/api/content/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          campaignId: `campaign-${Date.now()}`,
+          targetAudience: form.targetAudience,
+          problem: form.problem,
+          productName: form.productName,
           service: form.service,
-          headline: form.headline,
-          bodyCopy: form.bodyCopy,
-          tone: form.tone,
-          voiceId: form.voiceId,
           cta: form.cta,
         }),
+      });
+      if (!res.ok) throw new Error('Script generation failed');
+      const { segments: generated } = await res.json();
+      setSegments(generated);
+    } catch (err) {
+      console.error('Script generation feilet:', err);
+    } finally {
+      setScriptLoading(false);
+    }
+  }
+
+  async function handleProduksjon() {
+    setLoading(true);
+    try {
+      const payload: Record<string, unknown> = {
+        campaignId: `campaign-${Date.now()}`,
+        service: form.service,
+        voiceId: form.voiceId,
+        cta: form.cta,
+      };
+
+      if (campaignType === "storytelling" && segments.length > 0) {
+        payload.segments = segments;
+      } else {
+        payload.headline = form.headline;
+        payload.bodyCopy = form.bodyCopy;
+        payload.tone = form.tone;
+      }
+
+      const res = await fetch('/api/content/produce/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error('API error');
       const { jobId } = await res.json();
-      
-      console.log('Got jobId:', jobId);
       router.push(`/dashboard/${jobId}`);
     } catch (err) {
       console.error('Produksjon feilet:', err);
@@ -97,6 +138,9 @@ export default function NewCampaignPage() {
     e.preventDefault();
     handleProduksjon();
   }
+
+  const storytellingReady =
+    campaignType === "storytelling" && segments.length > 0;
 
   return (
     <div className="max-w-2xl">
@@ -116,7 +160,7 @@ export default function NewCampaignPage() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setCampaignType("reklame")}
+            onClick={() => { setCampaignType("reklame"); setSegments([]); }}
             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
               campaignType === "reklame"
                 ? "bg-blue-600 text-white"
@@ -272,24 +316,26 @@ export default function NewCampaignPage() {
             />
           </Field>
 
-          <Field label="Tone">
-            <div className="flex flex-wrap gap-2">
-              {TONES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setForm((f) => ({ ...f, tone: t.value }))}
-                  className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
-                    form.tone === t.value
-                      ? "bg-green-600 border-green-600 text-white"
-                      : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </Field>
+          {campaignType === "reklame" && (
+            <Field label="Tone">
+              <div className="flex flex-wrap gap-2">
+                {TONES.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, tone: t.value }))}
+                    className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
+                      form.tone === t.value
+                        ? "bg-green-600 border-green-600 text-white"
+                        : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
         </div>
 
         {/* Media options */}
@@ -354,14 +400,80 @@ export default function NewCampaignPage() {
           </Field>
         </div>
 
-        <button
-          type="button"
-          onClick={handleProduksjon}
-          disabled={loading || form.formats.length === 0}
-          className="rounded-full bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
-        >
-          {loading ? "Starter produksjon..." : "Start produksjon"}
-        </button>
+        {/* Storytelling: Generate script button */}
+        {campaignType === "storytelling" && segments.length === 0 && (
+          <button
+            type="button"
+            onClick={handleGenerateScript}
+            disabled={
+              scriptLoading ||
+              !form.targetAudience ||
+              !form.problem ||
+              !form.productName ||
+              !form.cta
+            }
+            className="rounded-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
+          >
+            {scriptLoading ? "Genererer manus..." : "Generer manus"}
+          </button>
+        )}
+
+        {/* Storytelling: Editable segments */}
+        {campaignType === "storytelling" && segments.length > 0 && (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 flex flex-col gap-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-blue-800 text-sm uppercase tracking-widest">
+                Manus — rediger om nødvendig
+              </h2>
+              <button
+                type="button"
+                onClick={handleGenerateScript}
+                disabled={scriptLoading}
+                className="text-xs text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
+              >
+                {scriptLoading ? "Genererer..." : "Generer på nytt"}
+              </button>
+            </div>
+
+            {segments.map((seg, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                  Segment {i + 1}
+                </span>
+                <Field label="Voiceover-tekst">
+                  <textarea
+                    value={seg.text}
+                    onChange={(e) => updateSegment(i, "text", e.target.value)}
+                    rows={2}
+                    className={inputClass + " resize-none"}
+                  />
+                </Field>
+                <Field label="Bildeprompt (DALL-E)">
+                  <textarea
+                    value={seg.imagePrompt}
+                    onChange={(e) =>
+                      updateSegment(i, "imagePrompt", e.target.value)
+                    }
+                    rows={2}
+                    className={inputClass + " resize-none"}
+                  />
+                </Field>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Start produksjon — shown for reklame always, for storytelling only after segments */}
+        {(campaignType === "reklame" || storytellingReady) && (
+          <button
+            type="button"
+            onClick={handleProduksjon}
+            disabled={loading || form.formats.length === 0}
+            className="rounded-full bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
+          >
+            {loading ? "Starter produksjon..." : "Start produksjon"}
+          </button>
+        )}
       </form>
     </div>
   );

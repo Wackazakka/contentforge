@@ -6,16 +6,23 @@ export const dynamic = "force-dynamic";
 
 const DROPLET_JOB_QUEUE_URL = "http://139.59.212.218:3002/jobs";
 
+interface Segment {
+  text: string;
+  imagePrompt: string;
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { campaignId, service, headline, bodyCopy, voiceId, cta } = body as {
-    campaignId?: string;
-    service?: string;
-    headline?: string;
-    bodyCopy?: string;
-    voiceId?: string;
-    cta?: string;
-  };
+  const { campaignId, service, headline, bodyCopy, voiceId, cta, segments } =
+    body as {
+      campaignId?: string;
+      service?: string;
+      headline?: string;
+      bodyCopy?: string;
+      voiceId?: string;
+      cta?: string;
+      segments?: Segment[];
+    };
 
   if (!campaignId || !service) {
     return Response.json(
@@ -40,7 +47,16 @@ export async function POST(req: NextRequest) {
     const res = await fetch(DROPLET_JOB_QUEUE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jobId: job.id, campaignId, service, headline, bodyCopy, voiceId, cta }),
+      body: JSON.stringify({
+        jobId: job.id,
+        campaignId,
+        service,
+        headline,
+        bodyCopy,
+        voiceId,
+        cta,
+        ...(segments && segments.length > 0 ? { segments } : {}),
+      }),
     });
 
     if (!res.ok) {
