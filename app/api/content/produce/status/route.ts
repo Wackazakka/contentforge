@@ -15,9 +15,17 @@ export async function GET(req: NextRequest) {
 
   // Primary source of truth: poll the droplet server (file-based, survives restarts)
   try {
-    const res = await fetch(`${DROPLET_JOB_QUEUE_URL}/${jobId}`);
+    console.log("[status] Fetching from droplet:", `${DROPLET_JOB_QUEUE_URL}/${jobId}`);
+    const res = await fetch(`${DROPLET_JOB_QUEUE_URL}/${jobId}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    console.log("[status] Droplet response status:", res.status);
+
     if (res.ok) {
       const remote = (await res.json()) as { jobId: string; status: string };
+      console.log("[status] Droplet job data:", remote);
 
       if (remote.status === "done") {
         const videoUrl = `http://139.59.212.218:3002/videos/${jobId}/output.mp4`;
@@ -33,11 +41,28 @@ export async function GET(req: NextRequest) {
       if (remote.status === "processing" || remote.status === "queued") {
         const localJob = getJob(jobId);
         return Response.json({
-          status: "processing",
+          status: remote.status,
           progress: localJob?.progress ?? 5,
           videoUrl: null,
+          jobId: remote.jobId,
         });
       }
+
+      if (remote.status === "failed") {
+        return Response.json({
+          status: "failed",
+          progress: 0,
+          videoUrl: null,
+          error: (remote as any).error,
+        });
+      }
+
+      // Return whatever status the droplet reported
+      return Response.json(remote);
+    } else {
+      console.error("[status] Droplet fetch failed with status:", res.status);
+      const text = await res.text();
+      console.error("[status] Response body:", text);
     }
   } catch (err) {
     console.error("[status] Failed to poll droplet for job", jobId, err);
