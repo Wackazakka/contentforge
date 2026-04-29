@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 
-type JobStatus = "pending" | "processing" | "done" | "failed";
+type JobStatus = "pending" | "processing" | "done" | "failed" | "queued" | "generating" | "rendering";
 
 interface Props {
   jobId: string;
@@ -13,8 +13,21 @@ const POLL_INTERVAL_MS = 5000;
 const STATUS_MESSAGES: Record<JobStatus, string> = {
   pending: "Starter opp pipeline...",
   processing: "AI-pipeline kjører...",
+  queued: "Venter i kø...",
+  generating: "Genererer voiceover og bilder...",
+  rendering: "Komponerer video...",
   done: "Video er klar!",
   failed: "Produksjon feilet",
+};
+
+const STATUS_PROGRESS: Record<JobStatus, number> = {
+  pending: 5,
+  processing: 30,
+  queued: 5,
+  generating: 30,
+  rendering: 70,
+  done: 100,
+  failed: 0,
 };
 
 export default function JobProgressPanel({ jobId }: Props) {
@@ -30,10 +43,12 @@ export default function JobProgressPanel({ jobId }: Props) {
         if (!res.ok) return;
         const data = await res.json() as {
           status: JobStatus;
-          progress: number;
+          progress?: number;
           videoUrl: string | null;
         };
-        setProgress(data.progress);
+        // Use API progress if provided, otherwise use status-based progress
+        const progressValue = data.progress ?? STATUS_PROGRESS[data.status] ?? 0;
+        setProgress(progressValue);
         setStatus(data.status);
         if (data.status === "done") {
           console.log('Video produksjon ferdig. VideoUrl:', data.videoUrl);
@@ -57,7 +72,7 @@ export default function JobProgressPanel({ jobId }: Props) {
 
   const isDone = status === "done";
   const isFailed = status === "failed";
-  const isActive = status === "pending" || status === "processing";
+  const isActive = ["pending", "processing", "queued", "generating", "rendering"].includes(status);
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm max-w-xl">
