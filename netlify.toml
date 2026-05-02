@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_PUBLIC_BASE_URL = "https://contentforge.netlify.app"
+  NEXT_PUBLIC_SUPABASE_URL = "https://gpllxjgtxrbvnctbfgvo.supabase.co"
+  NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwbGx4amd0eHJidm5jdGJmZ3ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5Njg1OTAsImV4cCI6MjA5MDU0NDU5MH0.PCQ52_ot7UPkcQPY-BYhZ2_bfdptzd5PgOiVCrqJp9E"
