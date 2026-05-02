@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { Session } from '@supabase/supabase-js'
-import { supabase } from './supabaseClient'
+import { getSupabase } from './supabaseClient'
 
 type AuthContextType = {
   session: Session | null
@@ -17,25 +17,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
+    try {
+      const supabase = getSupabase()
+      
+      // Get initial session
+      supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
+        setSession(session)
+        setLoading(false)
+      })
+
+      // Listen for auth changes
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
+        setSession(session)
+      })
+
+      return () => subscription?.unsubscribe()
+    } catch (error) {
+      console.error('Auth setup error:', error)
       setLoading(false)
-    })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => subscription?.unsubscribe()
+    }
   }, [])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    setSession(null)
+    try {
+      const supabase = getSupabase()
+      await supabase.auth.signOut()
+      setSession(null)
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
   }
 
   return (
