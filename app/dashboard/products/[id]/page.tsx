@@ -331,6 +331,54 @@ export default function ProductPage() {
           </div>
         )}
 
+        {/* Ferdigstilte videoer */}
+        {jobs.filter((job) => job.status === 'done').length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Ferdigstilte videoer ({jobs.filter((job) => job.status === 'done').length})
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {jobs
+                .filter((job) => job.status === 'done')
+                .map((job) => {
+                  const videoUrl =
+                    (job.ai_parameters as any)?.video_url ||
+                    `http://139.59.212.218:3002/videos/${job.id}/output.mp4`
+                  return (
+                    <div
+                      key={job.id}
+                      className="p-4 rounded-lg border border-green-200 bg-green-50 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                          <p className="text-xs text-gray-500 mt-1">✅ Ferdigstilt</p>
+                        </div>
+                      </div>
+
+                      {/* Video preview */}
+                      <video
+                        src={videoUrl}
+                        controls
+                        className="w-full rounded-lg mb-3 bg-black"
+                        style={{ aspectRatio: '9/16', maxHeight: '300px' }}
+                      />
+
+                      {/* Download link */}
+                      <a
+                        href={videoUrl}
+                        download={`${job.title.replace(/\s+/g, '_')}.mp4`}
+                        className="inline-block px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        ⬇️ Last ned video
+                      </a>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        )}
+
         {/* Content Banks */}
         <div className="grid md:grid-cols-3 gap-6">
           {/* Videos */}
