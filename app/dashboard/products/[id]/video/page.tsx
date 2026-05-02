@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/authContext'
+import { getSupabase } from '@/lib/supabaseClient'
 
 export default function VideoProductionPage() {
   const router = useRouter()
@@ -59,9 +60,21 @@ export default function VideoProductionPage() {
     setLoading(true)
 
     try {
+      // Get session to include Authorization header
+      const { data: { session } } = await getSupabase().auth.getSession()
+      
+      if (!session?.access_token) {
+        setError('Ikke autentisert. Vennligst logg inn på nytt.')
+        setLoading(false)
+        return
+      }
+
       const response = await fetch('/api/productions/video', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           productId,
           campaignName,
