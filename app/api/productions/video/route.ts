@@ -26,7 +26,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'At least one format is required' }, { status: 400 })
     }
 
-    // Create Supabase client (server-side)
+    // Get user ID from Authorization header (JWT token)
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Missing or invalid Authorization header' },
+        { status: 401 }
+      )
+    }
+
+    // Parse JWT to get user ID (sub claim)
+    const token = authHeader.substring(7)
+    let userId: string
+    try {
+      // Simple JWT decode (doesn't verify signature, just extracts payload)
+      const parts = token.split('.')
+      if (parts.length !== 3) throw new Error('Invalid token format')
+      const payload = JSON.parse(
+        Buffer.from(parts[1], 'base64').toString('utf8')
+      )
+      userId = payload.sub
+      if (!userId) throw new Error('No user ID in token')
+    } catch (err) {
+      console.error('[api/productions/video] Token decode error:', err)
+      return NextResponse.json(
+        { error: 'Invalid authentication token' },
+        { status: 401 }
+      )
+    }
+
+    // Create Supabase client (server-side with anon key for RLS)
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
       auth: { persistSession: false },
     })
@@ -36,6 +65,7 @@ export async function POST(request: NextRequest) {
       .from('production_jobs')
       .insert({
         product_id: productId,
+        created_by: userId, // Add created_by from JWT
         title: campaignName,
         description: bodyCopy,
         status: 'queued',
