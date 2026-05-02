@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { signUp } from '@/lib/supabaseClient'
+import { signUp, getSupabase } from '@/lib/supabaseClient'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -60,7 +60,33 @@ export default function RegisterPage() {
         return
       }
 
-      // Success - redirect to login or dashboard
+      // Success - create organization for new user
+      if (data?.user?.id) {
+        try {
+          const supabase = getSupabase()
+          const slug = form.email.split('@')[0] + '-' + data.user.id.substring(0, 8)
+          
+          const { error: orgError } = await supabase
+            .from('organizations')
+            .insert({
+              name: form.fullName + "'s Organization",
+              owner_id: data.user.id,
+              slug: slug.toLowerCase(),
+              description: 'Default organization for ' + form.fullName,
+            })
+            .select()
+            .single()
+
+          if (orgError) {
+            console.error('Error creating organization:', orgError)
+            // Don't fail signup if org creation fails
+          }
+        } catch (orgErr) {
+          console.error('Organization creation exception:', orgErr)
+        }
+      }
+
+      // Redirect to login
       router.push('/login?message=Sign%20up%20successful!%20Please%20log%20in.')
     } catch (err) {
       setError('An unexpected error occurred')
