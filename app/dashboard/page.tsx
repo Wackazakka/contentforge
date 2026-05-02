@@ -182,16 +182,23 @@ export default function DashboardPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {products.map((product) => (
-                <div key={product.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                <Link
+                  key={product.id}
+                  href={`/dashboard/products/${product.id}`}
+                  className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
+                >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{product.name}</h3>
+                      <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{product.name}</h3>
                       {product.category && (
                         <p className="text-xs text-gray-500 mt-1 capitalize">{product.category}</p>
                       )}
                     </div>
                     <button
-                      onClick={() => handleDeleteProduct(product.id)}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleDeleteProduct(product.id)
+                      }}
                       className="text-red-600 hover:text-red-700 text-sm font-medium"
                     >
                       Slett
@@ -201,7 +208,7 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-600 mb-3">{product.description}</p>
                   )}
                   <p className="text-xs text-gray-400">Opprettet {formatDate(product.created_at)}</p>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -233,7 +240,7 @@ export default function DashboardPage() {
               {campaigns.map((campaign) => (
                 <div key={campaign.id} className="bg-white rounded-lg border border-gray-200 p-4">
                   <h3 className="font-semibold text-gray-900 mb-2">{campaign.name}</h3>
-                  <p className="text-sm text-gray-600 mb-3">{campaign.description}</p>
+                  <p className="text-sm text-gray-600 mb-3">{campaign.bodyCopy}</p>
                   <Link
                     href={`/dashboard/${campaign.id}`}
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium"
