@@ -1,26 +1,30 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from "next/link";
-import { useAuth } from "@/lib/authContext";
-import { DEMO_CAMPAIGNS, STATUS_LABELS, STATUS_COLORS } from "@/lib/campaigns";
+import Link from "next/link"
+import { useAuth } from "@/lib/authContext"
+import { getSupabase } from "@/lib/supabaseClient"
+import { useProducts } from "@/lib/useProducts"
+import { ProductModal } from "@/components/ProductModal"
+import { DEMO_CAMPAIGNS, STATUS_LABELS, STATUS_COLORS } from "@/lib/campaigns"
 
 export type HistoryEntry = {
-  jobId: string;
-  campaignId: string;
-  service: string;
-  status: "pending" | "processing" | "done" | "failed";
-  downloadUrl: string | null;
-  createdAt: string;
-  completedAt: string | null;
-};
+  jobId: string
+  campaignId: string
+  service: string
+  status: "pending" | "processing" | "done" | "failed"
+  downloadUrl: string | null
+  createdAt: string
+  completedAt: string | null
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("nb-NO", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  });
+  })
 }
 
 function formatDateTime(iso: string) {
@@ -30,7 +34,7 @@ function formatDateTime(iso: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+  })
 }
 
 const HISTORY_STATUS_LABEL: Record<HistoryEntry["status"], string> = {
@@ -38,219 +42,218 @@ const HISTORY_STATUS_LABEL: Record<HistoryEntry["status"], string> = {
   processing: "Produserer...",
   done: "Fullført",
   failed: "Feil",
-};
+}
 
 const HISTORY_STATUS_COLOR: Record<HistoryEntry["status"], string> = {
   pending: "text-gray-600 bg-gray-100",
   processing: "text-yellow-700 bg-yellow-100",
   done: "text-green-700 bg-green-100",
   failed: "text-red-700 bg-red-100",
-};
+}
 
 export default function DashboardPage() {
   const router = useRouter()
   const { session, signOut } = useAuth()
-  const campaigns = DEMO_CAMPAIGNS;
-  // TODO: Fetch from DB via API when DB is set up
-  const history: HistoryEntry[] = [];
+  const [organizationId, setOrganizationId] = useState<string | null>(null)
+  const [organizationName, setOrganizationName] = useState<string>('')
+  const [loadingOrg, setLoadingOrg] = useState(true)
+  const [showProductModal, setShowProductModal] = useState(false)
+  const [creatingProduct, setCreatingProduct] = useState(false)
 
-  const completedHistory = history.filter((e) => e.status === "done").length;
+  const campaigns = DEMO_CAMPAIGNS
+  const history: HistoryEntry[] = []
+  const { products, loading: productsLoading, createProduct, deleteProduct } = useProducts(organizationId)
+
+  const completedHistory = history.filter((e) => e.status === "done").length
   const processingHistory = history.filter(
     (e) => e.status === "processing" || e.status === "pending"
-  ).length;
+  ).length
+
+  // Fetch organization for current user
+  useEffect(() => {
+    if (!session?.user?.id) return
+
+    const fetchOrganization = async () => {
+      try {
+        const supabase = getSupabase()
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .eq('owner_id', session.user.id)
+          .single()
+
+        if (error) throw error
+
+        if (data) {
+          setOrganizationId(data.id)
+          setOrganizationName(data.name)
+        }
+      } catch (err) {
+        console.error('[Dashboard] Fetch organization error:', err)
+      } finally {
+        setLoadingOrg(false)
+      }
+    }
+
+    fetchOrganization()
+  }, [session?.user?.id])
 
   const handleLogout = async () => {
     await signOut()
     router.push('/login')
   }
 
+  const handleCreateProduct = async (name: string, description: string, category: string) => {
+    setCreatingProduct(true)
+    try {
+      await createProduct({ name, description, category })
+    } finally {
+      setCreatingProduct(false)
+    }
+  }
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (confirm('Er du sikker på at du vil slette dette produktet?')) {
+      await deleteProduct(productId)
+    }
+  }
+
+  if (loadingOrg) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Laster...</div>
+      </div>
+    )
+  }
+
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
       {/* Top nav with user info */}
-      <div className="mb-8 pb-6 border-b border-gray-200 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Kampanjer</h1>
-          {session?.user?.email && (
-            <p className="text-gray-500 text-sm mt-1">Logget inn som {session.user.email}</p>
-          )}
-        </div>
-        <button
-          onClick={handleLogout}
-          className="rounded-lg border border-gray-200 hover:border-red-200 hover:bg-red-50 text-gray-700 hover:text-red-700 text-sm font-medium px-4 py-2 transition-colors"
-        >
-          Logg ut
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Kampanjer</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {campaigns.length} kampanje{campaigns.length !== 1 ? "r" : ""}
-          </p>
-        </div>
-        <Link
-          href="/dashboard/new"
-          className="rounded-full bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-2 transition-colors"
-        >
-          + Ny kampanje
-        </Link>
-      </div>
-
-      {campaigns.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-300 py-20 flex flex-col items-center text-center bg-white">
-          <div className="text-4xl mb-4">🎬</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            Ingen kampanjer ennå
-          </h2>
-          <p className="text-gray-500 text-sm mb-6">
-            Opprett din første kampanje for å starte innholdsproduksjonen.
-          </p>
-          <Link
-            href="/dashboard/new"
-            className="rounded-full bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-6 py-2.5 transition-colors"
-          >
-            Opprett kampanje
-          </Link>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {campaigns.map((c) => (
-            <Link
-              key={c.id}
-              href={`/dashboard/${c.id}`}
-              className="rounded-2xl border border-gray-200 bg-white hover:bg-gray-50 p-5 flex items-center justify-between transition-colors group shadow-sm"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-green-50 border border-green-200 flex items-center justify-center text-lg">
-                  🎬
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
-                    {c.name}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {c.productName} · {c.formats.join(", ")} ·{" "}
-                    {formatDate(c.createdAt)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[c.status]}`}
-                >
-                  {STATUS_LABELS[c.status]}
-                </span>
-                <span className="text-gray-400 group-hover:text-gray-600 transition-colors">
-                  →
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="mt-10 grid sm:grid-cols-3 gap-4">
-        {[
-          { label: "Kampanjer totalt", value: campaigns.length },
-          {
-            label: "Fullført",
-            value: campaigns.filter((c) => c.status === "completed").length,
-          },
-          {
-            label: "Under produksjon",
-            value: campaigns.filter((c) => c.status === "processing").length,
-          },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
-          >
-            <p className="text-3xl font-bold text-gray-900">{s.value}</p>
-            <p className="text-sm text-gray-500 mt-1">{s.label}</p>
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">ContentForge</h1>
+            {session?.user?.email && (
+              <p className="text-gray-500 text-sm mt-1">Logget inn som {session.user.email}</p>
+            )}
           </div>
-        ))}
+          <button
+            onClick={handleLogout}
+            className="rounded-lg border border-gray-200 hover:border-red-200 hover:bg-red-50 text-gray-700 hover:text-red-700 text-sm font-medium px-4 py-2 transition-colors"
+          >
+            Logg ut
+          </button>
+        </div>
       </div>
 
-      {/* Production history */}
-      <div className="mt-12">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Produksjonshistorikk
-          </h2>
-          <span className="text-sm text-gray-500">
-            {history.length} jobb{history.length !== 1 ? "er" : ""}
-            {completedHistory > 0 && ` · ${completedHistory} fullført`}
-            {processingHistory > 0 && ` · ${processingHistory} pågår`}
-          </span>
-        </div>
-
-        {history.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 py-10 flex flex-col items-center text-center bg-white">
-            <p className="text-gray-400 text-sm">
-              Ingen produksjonsjobber ennå. Start produksjon fra en kampanje.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {history.map((entry) => (
-              <div
-                key={entry.jobId}
-                className="rounded-2xl border border-gray-200 bg-white p-5 flex items-center justify-between shadow-sm"
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-lg flex-shrink-0">
-                    {entry.status === "done"
-                      ? "✅"
-                      : entry.status === "failed"
-                        ? "❌"
-                        : "⚙️"}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">
-                      {entry.campaignId} · {entry.service}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">
-                      {entry.jobId}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Startet {formatDateTime(entry.createdAt)}
-                      {entry.completedAt &&
-                        ` · Fullført ${formatDateTime(entry.completedAt)}`}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                  <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${HISTORY_STATUS_COLOR[entry.status]}`}
-                  >
-                    {HISTORY_STATUS_LABEL[entry.status]}
-                  </span>
-
-                  {entry.status === "done" && entry.downloadUrl && (
-                    <a
-                      href={entry.downloadUrl}
-                      download
-                      className="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-600 hover:bg-green-500 text-white transition-colors"
-                    >
-                      Last ned
-                    </a>
-                  )}
-
-                  <Link
-                    href={`/dashboard/${entry.jobId}`}
-                    className="text-gray-400 hover:text-gray-700 transition-colors text-sm"
-                  >
-                    →
-                  </Link>
-                </div>
-              </div>
-            ))}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Organization info */}
+        {organizationName && (
+          <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h2 className="text-lg font-semibold text-blue-900">Organisasjon: {organizationName}</h2>
+            <p className="text-sm text-blue-700 mt-1">{products.length} produkt{products.length !== 1 ? 'er' : ''}</p>
           </div>
         )}
+
+        {/* Products Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Dine produkter</h2>
+            <button
+              onClick={() => setShowProductModal(true)}
+              className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 transition-colors"
+            >
+              + Nytt produkt
+            </button>
+          </div>
+
+          {productsLoading ? (
+            <div className="text-center text-gray-600">Laster produkter...</div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">Ingen produkter opprettet ennå</p>
+              <button
+                onClick={() => setShowProductModal(true)}
+                className="inline-block rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 transition-colors"
+              >
+                Opprett første produkt
+              </button>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {products.map((product) => (
+                <div key={product.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{product.name}</h3>
+                      {product.category && (
+                        <p className="text-xs text-gray-500 mt-1 capitalize">{product.category}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteProduct(product.id)}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium"
+                    >
+                      Slett
+                    </button>
+                  </div>
+                  {product.description && (
+                    <p className="text-sm text-gray-600 mb-3">{product.description}</p>
+                  )}
+                  <p className="text-xs text-gray-400">Opprettet {formatDate(product.created_at)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Campaigns Section (legacy) */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Kampanjer</h2>
+              <p className="text-gray-500 text-sm mt-1">
+                {campaigns.length} kampanje{campaigns.length !== 1 ? "r" : ""}
+              </p>
+            </div>
+            <Link
+              href="/dashboard/new"
+              className="rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-4 py-2 transition-colors"
+            >
+              + Ny kampanje
+            </Link>
+          </div>
+
+          {campaigns.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              Ingen kampanjer opprettet ennå
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {campaigns.map((campaign) => (
+                <div key={campaign.id} className="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 className="font-semibold text-gray-900 mb-2">{campaign.name}</h3>
+                  <p className="text-sm text-gray-600 mb-3">{campaign.description}</p>
+                  <Link
+                    href={`/dashboard/${campaign.id}`}
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    Åpne →
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Product Modal */}
+      <ProductModal
+        isOpen={showProductModal}
+        onClose={() => setShowProductModal(false)}
+        onSubmit={handleCreateProduct}
+        isLoading={creatingProduct}
+      />
     </div>
-  );
+  )
 }
