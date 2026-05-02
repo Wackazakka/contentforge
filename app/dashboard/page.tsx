@@ -1,6 +1,19 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
 import Link from "next/link";
+import { useAuth } from "@/lib/authContext";
 import { DEMO_CAMPAIGNS, STATUS_LABELS, STATUS_COLORS } from "@/lib/campaigns";
-import { readHistory, type HistoryEntry } from "@/lib/jobHistory";
+
+export type HistoryEntry = {
+  jobId: string;
+  campaignId: string;
+  service: string;
+  status: "pending" | "processing" | "done" | "failed";
+  downloadUrl: string | null;
+  createdAt: string;
+  completedAt: string | null;
+};
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("nb-NO", {
@@ -35,16 +48,40 @@ const HISTORY_STATUS_COLOR: Record<HistoryEntry["status"], string> = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { session, signOut } = useAuth()
   const campaigns = DEMO_CAMPAIGNS;
-  const history = readHistory();
+  // TODO: Fetch from DB via API when DB is set up
+  const history: HistoryEntry[] = [];
 
   const completedHistory = history.filter((e) => e.status === "done").length;
   const processingHistory = history.filter(
     (e) => e.status === "processing" || e.status === "pending"
   ).length;
 
+  const handleLogout = async () => {
+    await signOut()
+    router.push('/login')
+  }
+
   return (
     <div>
+      {/* Top nav with user info */}
+      <div className="mb-8 pb-6 border-b border-gray-200 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Kampanjer</h1>
+          {session?.user?.email && (
+            <p className="text-gray-500 text-sm mt-1">Logget inn som {session.user.email}</p>
+          )}
+        </div>
+        <button
+          onClick={handleLogout}
+          className="rounded-lg border border-gray-200 hover:border-red-200 hover:bg-red-50 text-gray-700 hover:text-red-700 text-sm font-medium px-4 py-2 transition-colors"
+        >
+          Logg ut
+        </button>
+      </div>
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Kampanjer</h1>
