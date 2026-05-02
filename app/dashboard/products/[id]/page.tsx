@@ -29,6 +29,21 @@ interface ProductProfile {
   brand_guidelines: Record<string, any> | null
 }
 
+interface ProductionJob {
+  id: string
+  product_id: string
+  created_by: string
+  title: string
+  description: string | null
+  status: 'draft' | 'queued' | 'generating' | 'rendering' | 'done' | 'failed'
+  content_type: string | null
+  video_format: string | null
+  ai_parameters: Record<string, any> | null
+  created_at: string
+  updated_at: string
+  completed_at: string | null
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('nb-NO', {
     day: 'numeric',
@@ -45,6 +60,8 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState<Product | null>(null)
   const [profile, setProfile] = useState<ProductProfile | null>(null)
+  const [jobs, setJobs] = useState<ProductionJob[]>([])
+  const [jobsLoading, setJobsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -90,6 +107,39 @@ export default function ProductPage() {
     }
 
     fetchProduct()
+  }, [productId, session?.user?.id])
+
+  // Fetch production jobs and poll every 5 seconds
+  useEffect(() => {
+    if (!productId || !session?.user?.id) return
+
+    const fetchJobs = async () => {
+      try {
+        setJobsLoading(true)
+        const supabase = getSupabase()
+
+        const { data: jobsData, error: jobsError } = await supabase
+          .from('production_jobs')
+          .select('*')
+          .eq('product_id', productId)
+          .order('created_at', { ascending: false })
+
+        if (jobsError) throw jobsError
+        setJobs(jobsData || [])
+      } catch (err) {
+        console.error('[ProductPage] Jobs fetch error:', err)
+      } finally {
+        setJobsLoading(false)
+      }
+    }
+
+    // Initial fetch
+    fetchJobs()
+
+    // Poll every 5 seconds for status updates
+    const interval = setInterval(fetchJobs, 5000)
+
+    return () => clearInterval(interval)
   }, [productId, session?.user?.id])
 
   if (loading) {
@@ -222,6 +272,64 @@ export default function ProductPage() {
             </button>
           </div>
         </div>
+
+        {/* Pågående produksjonsjobber */}
+        {jobs.length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Pågående produksjonsjobber {jobsLoading && <span className="text-sm text-gray-500">(oppdateres...)</span>}
+            </h2>
+            <div className="space-y-3">
+              {jobs
+                .filter(
+                  (job) =>
+                    job.status === 'queued' || job.status === 'generating' || job.status === 'rendering'
+                )
+                .map((job) => (
+                  <div
+                    key={job.id}
+                    className={`p-4 rounded-lg border-l-4 ${
+                      job.status === 'queued'
+                        ? 'border-l-yellow-400 bg-yellow-50'
+                        : job.status === 'generating'
+                        ? 'border-l-blue-400 bg-blue-50'
+                        : 'border-l-purple-400 bg-purple-50'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                        <p className="text-sm text-gray-600 mt-1">{job.description}</p>
+                        <div className="mt-2 flex items-center gap-4 text-xs">
+                          <span className="text-gray-500">
+                            Status:{' '}
+                            <span className="font-semibold">
+                              {job.status === 'queued'
+                                ? '⏳ Venter'
+                                : job.status === 'generating'
+                                ? '⚙️ Genererer innhold'
+                                : '🎬 Rendrer video'}
+                            </span>
+                          </span>
+                          <span className="text-gray-500">
+                            Format:{' '}
+                            <span className="font-semibold">
+                              {job.video_format?.split(',').join(', ') || 'N/A'}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              {jobs.filter(
+                (job) => job.status === 'queued' || job.status === 'generating' || job.status === 'rendering'
+              ).length === 0 && (
+                <p className="text-gray-500 text-center py-4">Ingen aktive jobber</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Content Banks */}
         <div className="grid md:grid-cols-3 gap-6">
