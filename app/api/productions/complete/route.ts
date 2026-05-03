@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Store generated assets in asset_banks table
     if (imageUrls && imageUrls.length > 0) {
-      const assetInserts = imageUrls.map((url, index) => ({
+      const assetInserts: Array<Record<string, any>> = imageUrls.map((url: string, index: number) => ({
         job_id: jobId,
         asset_type: 'image',
         asset_url: url,
