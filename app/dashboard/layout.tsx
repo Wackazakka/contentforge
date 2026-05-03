@@ -1,4 +1,3 @@
-import { requireAuth } from "@/lib/auth";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
 
@@ -7,7 +6,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAuth();
+  // Auth is now handled by Supabase/AuthContext on client side
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
