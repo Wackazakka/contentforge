@@ -166,7 +166,7 @@ export default function ProductPage() {
 
         const { data: assetsData, error: assetsError } = await supabase
           .from('asset_banks')
-          .select('*')
+          .select('id, asset_url, asset_type, metadata, created_at, product_id')
           .eq('product_id', productId)
           .eq('asset_type', 'image')
           .order('created_at', { ascending: false })
@@ -194,7 +194,7 @@ export default function ProductPage() {
 
         const { data: videosData, error: videosError } = await supabase
           .from('asset_banks')
-          .select('*')
+          .select('id, asset_url, asset_type, metadata, created_at, product_id')
           .eq('product_id', productId)
           .eq('asset_type', 'video')
           .order('created_at', { ascending: false })
