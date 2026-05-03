@@ -1,4 +1,5 @@
 import { type NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createJob, getJob, updateJob } from "@/lib/jobs";
 import { addHistoryEntry, updateHistoryEntry } from "@/lib/jobHistory";
 
@@ -46,6 +47,35 @@ export async function POST(req: NextRequest) {
     createdAt: new Date().toISOString(),
     completedAt: null,
   });
+
+  // Insert job into production_jobs table
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+    );
+
+    const campaignName = headline || bodyCopy?.substring(0, 50) || campaignId;
+    
+    await supabase
+      .from("production_jobs")
+      .insert({
+        id: job.id,
+        product_id: productId || null,
+        campaign_id: campaignId,
+        title: campaignName,
+        status: "queued",
+        content_type: "video",
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    console.log(`[video-produce] Job ${job.id} inserted into production_jobs with product_id: ${productId}`);
+  } catch (dbErr) {
+    console.error(`[video-produce] Failed to insert job into production_jobs:`, dbErr);
+    // Don't fail the whole request if DB insert fails - continue with droplet queue
+  }
 
   try {
     const res = await fetch(DROPLET_JOB_QUEUE_URL, {
