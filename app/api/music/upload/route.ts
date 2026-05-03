@@ -12,12 +12,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
+    // Get folder from query param (default: global)
+    const url = new URL(request.url)
+    const folder = url.searchParams.get('folder') || 'global'
+
     // Create new FormData for droplet
     const dropletFormData = new FormData()
     dropletFormData.append('file', file)
 
-    // Forward to droplet
-    const res = await fetch(`${DROPLET_URL}/music/upload`, {
+    // Forward to droplet with folder parameter
+    const res = await fetch(`${DROPLET_URL}/music/upload?folder=${encodeURIComponent(folder)}`, {
       method: 'POST',
       body: dropletFormData,
     })
