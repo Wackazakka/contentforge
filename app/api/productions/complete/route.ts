@@ -44,10 +44,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get product_id from production_jobs if needed
+    let productId = null
+    try {
+      const { data: jobData } = await supabase
+        .from('production_jobs')
+        .select('product_id')
+        .eq('id', jobId)
+        .single()
+      
+      productId = jobData?.product_id
+    } catch (err) {
+      console.warn('[api/productions/complete] Could not fetch product_id for job', jobId)
+    }
+
     // Store generated assets in asset_banks table
     if (imageUrls && imageUrls.length > 0) {
       const assetInserts: Array<Record<string, any>> = imageUrls.map((url: string, index: number) => ({
         job_id: jobId,
+        product_id: productId, // Link to product if available
         asset_type: 'image',
         asset_url: url,
         metadata: {
@@ -61,6 +76,7 @@ export async function POST(request: NextRequest) {
       // Add video asset
       assetInserts.push({
         job_id: jobId,
+        product_id: productId, // Link to product if available
         asset_type: 'video',
         asset_url: videoUrl,
         metadata: {
@@ -70,7 +86,8 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
       })
 
-      const { error: assetError } = await supabase
+      console.log(`[api/productions/complete] Inserting ${assetInserts.length} assets with imageUrls=${imageUrls.length}`)
+      const { error: assetError, data: assetData } = await supabase
         .from('asset_banks')
         .insert(assetInserts)
 
@@ -79,7 +96,29 @@ export async function POST(request: NextRequest) {
         // Don't fail the whole request if asset storage fails
         console.warn('[api/productions/complete] Continuing despite asset storage error')
       } else {
-        console.log(`[api/productions/complete] Stored ${assetInserts.length} assets in asset_banks`)
+        console.log(`[api/productions/complete] ✅ Stored ${assetInserts.length} assets in asset_banks`)
+      }
+    } else {
+      console.warn(`[api/productions/complete] No imageUrls provided (empty array), only storing video`)
+      // Still store video even if no images
+      const videoAsset = {
+        job_id: jobId,
+        product_id: productId,
+        asset_type: 'video',
+        asset_url: videoUrl,
+        metadata: {
+          source: 'contentforge-server',
+          campaignId,
+        },
+        created_at: new Date().toISOString(),
+      }
+      
+      const { error: videoError } = await supabase
+        .from('asset_banks')
+        .insert([videoAsset])
+      
+      if (videoError) {
+        console.error('[api/productions/complete] Video asset insert error:', videoError)
       }
     }
 
