@@ -437,24 +437,38 @@ export default function NewCampaignPage() {
                     <span className="text-xs font-medium text-gray-700 block mb-1">Fil</span>
                     <input
                       type="file"
-                      accept=".mp3,.wav,.ogg,.m4a,.flac"
+                      accept=".mp3"
                       onChange={async (e) => {
                         const file = e.currentTarget.files?.[0]
                         if (!file) return
+                        
+                        // Validate file type
+                        if (!file.name.toLowerCase().endsWith('.mp3')) {
+                          alert('Kun MP3-filer er tillatt')
+                          e.currentTarget.value = ''
+                          return
+                        }
+                        
+                        // Validate file size (4MB limit)
+                        const maxSize = 4 * 1024 * 1024 // 4MB
+                        if (file.size > maxSize) {
+                          alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)}MB). Maksimum er 4MB.`)
+                          e.currentTarget.value = ''
+                          return
+                        }
                         
                         const folder = (document.getElementById('musicFolder') as HTMLSelectElement)?.value || 'global'
                         const formData = new FormData()
                         formData.append('file', file)
                         
                         try {
-                          // Upload directly to droplet (bypass Netlify 4.5MB limit)
-                          const uploadUrl = `http://139.59.212.218:3002/music/upload?folder=${encodeURIComponent(folder)}`
-                          const res = await fetch(uploadUrl, {
+                          // Upload via Netlify proxy (within 4.5MB limit)
+                          const res = await fetch('/api/music/upload?' + new URLSearchParams({ folder }).toString(), {
                             method: 'POST',
                             body: formData,
                           })
                           if (res.ok) {
-                            // Reload music library via proxy
+                            // Reload music library
                             const data = await fetch('/api/music').then(r => r.json())
                             if (data.files) setMusicLibrary(data.files)
                             alert('Musikk lastet opp!')
