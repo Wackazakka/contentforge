@@ -46,6 +46,7 @@ export default function NewCampaignPage() {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([]);
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global');
+  const [selectedMusic, setSelectedMusic] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     productName: "",
@@ -124,6 +125,7 @@ export default function NewCampaignPage() {
         voiceId: form.voiceId,
         cta: form.cta,
         formats: form.formats, // Include selected formats
+        musicFile: selectedMusic, // Include selected music
       };
 
       if (campaignType === "storytelling" && segments.length > 0) {
@@ -504,9 +506,13 @@ export default function NewCampaignPage() {
                       type="button"
                       onClick={() => {
                         // Store selected music path for job submission
-                        console.log('Selected music:', music.filename)
+                        setSelectedMusic(music.filename)
                       }}
-                      className="text-left p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                      className={`text-left p-3 border-2 rounded-lg transition-colors ${
+                        selectedMusic === music.filename
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="font-medium text-gray-900">{music.name}</div>
