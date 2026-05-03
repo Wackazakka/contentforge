@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const TONES = [
@@ -40,10 +40,15 @@ interface Segment {
 
 export default function NewCampaignPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const productId = searchParams.get('productId');
+  const [productId, setProductId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [scriptLoading, setScriptLoading] = useState(false);
+
+  // Extract productId from URL on client side
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setProductId(params.get('productId'));
+  }, []);
   const [campaignType, setCampaignType] = useState<"reklame" | "storytelling">("reklame");
   const [segments, setSegments] = useState<Segment[]>([]);
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([]);
