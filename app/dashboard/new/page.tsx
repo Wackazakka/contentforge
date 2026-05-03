@@ -414,33 +414,69 @@ export default function NewCampaignPage() {
           </Field>
 
           <Field label="Bakgrunnsmusikk">
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Upload form */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700 block mb-2">Last opp ny musikk</span>
+                  <input
+                    type="file"
+                    accept=".mp3,.wav,.ogg,.m4a,.flac"
+                    onChange={async (e) => {
+                      const file = e.currentTarget.files?.[0]
+                      if (!file) return
+                      
+                      const formData = new FormData()
+                      formData.append('file', file)
+                      
+                      try {
+                        const res = await fetch('/api/music/upload', {
+                          method: 'POST',
+                          body: formData,
+                        })
+                        if (res.ok) {
+                          // Reload music library
+                          const data = await fetch('/api/music').then(r => r.json())
+                          if (data.files) setMusicLibrary(data.files)
+                          alert('Musikk lastet opp!')
+                        } else {
+                          alert('Upload feilet')
+                        }
+                      } catch (err) {
+                        console.error('Upload error:', err)
+                        alert('Upload feilet')
+                      }
+                    }}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-blue-500"
+                  />
+                </label>
+              </div>
+
+              {/* Music library */}
               {musicLibrary.length > 0 ? (
-                <>
-                  <div className="grid gap-2">
-                    {musicLibrary.map((music) => (
-                      <button
-                        key={music.filename}
-                        type="button"
-                        onClick={() => {
-                          // Store selected music path for job submission
-                          console.log('Selected music:', music.filename)
-                        }}
-                        className="text-left p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                      >
-                        <div className="font-medium text-gray-900">{music.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {(music.size / 1024 / 1024).toFixed(1)}MB
-                        </div>
-                        <audio
-                          controls
-                          className="mt-2 w-full h-6"
-                          src={music.url}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </>
+                <div className="grid gap-2">
+                  {musicLibrary.map((music) => (
+                    <button
+                      key={music.filename}
+                      type="button"
+                      onClick={() => {
+                        // Store selected music path for job submission
+                        console.log('Selected music:', music.filename)
+                      }}
+                      className="text-left p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    >
+                      <div className="font-medium text-gray-900">{music.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {(music.size / 1024 / 1024).toFixed(1)}MB
+                      </div>
+                      <audio
+                        controls
+                        className="mt-2 w-full h-6"
+                        src={`/api/music/${encodeURIComponent(music.filename)}`}
+                      />
+                    </button>
+                  ))}
+                </div>
               ) : (
                 <p className="text-gray-500 text-sm">Laster musikk-bibliotek...</p>
               )}
