@@ -254,7 +254,7 @@ export default function ProductPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Innholdsproduksjon</h2>
           <div className="grid md:grid-cols-2 gap-4">
             <button
-              onClick={() => router.push(`/dashboard/products/${productId}/video`)}
+              onClick={() => router.push(`/dashboard/new?productId=${productId}`)}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
             >
               <div className="text-2xl mb-2">🎬</div>
