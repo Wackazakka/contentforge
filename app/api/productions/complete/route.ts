@@ -76,6 +76,8 @@ export async function POST(request: NextRequest) {
         product_id: productId, // Link to product if available
         asset_type: 'image',
         asset_url: url,
+        name: `Bilde ${index + 1}`,
+        bank_type: 'image',
         metadata: {
           index,
           source: 'dalle-3',
@@ -90,6 +92,8 @@ export async function POST(request: NextRequest) {
         product_id: productId, // Link to product if available
         asset_type: 'video',
         asset_url: videoUrl,
+        name: 'Video',
+        bank_type: 'video',
         metadata: {
           source: 'contentforge-server',
           campaignId,
@@ -117,6 +121,8 @@ export async function POST(request: NextRequest) {
         product_id: productId,
         asset_type: 'video',
         asset_url: videoUrl,
+        name: 'Video',
+        bank_type: 'video',
         metadata: {
           source: 'contentforge-server',
           campaignId,
