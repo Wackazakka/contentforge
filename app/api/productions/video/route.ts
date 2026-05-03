@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
           tone: tone || 'professional',
           cta: cta || '',
           musicFile: null, // Use default music
+          video_format: formats.join(','), // Pass format(s) to droplet
         }),
       })
 
