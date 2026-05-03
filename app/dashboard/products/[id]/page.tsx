@@ -73,6 +73,8 @@ export default function ProductPage() {
   const [jobsLoading, setJobsLoading] = useState(false)
   const [assets, setAssets] = useState<AssetBank[]>([])
   const [assetsLoading, setAssetsLoading] = useState(false)
+  const [videos, setVideos] = useState<AssetBank[]>([])
+  const [videosLoading, setVideosLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -179,6 +181,34 @@ export default function ProductPage() {
     }
 
     fetchAssets()
+  }, [productId])
+
+  // Fetch asset bank videos
+  useEffect(() => {
+    if (!productId) return
+
+    const fetchVideos = async () => {
+      try {
+        setVideosLoading(true)
+        const supabase = getSupabase()
+
+        const { data: videosData, error: videosError } = await supabase
+          .from('asset_banks')
+          .select('*')
+          .eq('product_id', productId)
+          .eq('asset_type', 'video')
+          .order('created_at', { ascending: false })
+
+        if (videosError) throw videosError
+        setVideos(videosData || [])
+      } catch (err) {
+        console.error('[ProductPage] Videos fetch error:', err)
+      } finally {
+        setVideosLoading(false)
+      }
+    }
+
+    fetchVideos()
   }, [productId])
 
   if (loading) {
@@ -422,12 +452,38 @@ export default function ProductPage() {
         <div className="grid md:grid-cols-3 gap-6">
           {/* Videos */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Videoer</h3>
-            <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-              <div className="text-4xl mb-2">🎥</div>
-              <p className="text-sm">Ingen videoer opprettet ennå</p>
-              <p className="text-xs text-gray-400 mt-2">Videoer du genererer vil vises her</p>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Videoer ({videos.length})</h3>
+            {videosLoading ? (
+              <div className="text-center py-8 text-gray-500">Laster videoer...</div>
+            ) : videos.length > 0 ? (
+              <div className="space-y-4">
+                {videos.map((video) => (
+                  <div key={video.id} className="border border-gray-200 rounded-lg p-3">
+                    <video
+                      src={video.asset_url}
+                      controls
+                      className="w-full rounded-lg bg-gray-900 mb-3"
+                      style={{ maxHeight: '200px' }}
+                    />
+                    <div className="flex gap-2">
+                      <a
+                        href={video.asset_url}
+                        download={video.name || 'video.mp4'}
+                        className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        ⬇️ Last ned
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
+                <div className="text-4xl mb-2">🎥</div>
+                <p className="text-sm">Ingen videoer opprettet ennå</p>
+                <p className="text-xs text-gray-400 mt-2">Videoer du genererer vil vises her</p>
+              </div>
+            )}
           </div>
 
           {/* Articles */}
