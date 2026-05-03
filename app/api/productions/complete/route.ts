@@ -6,7 +6,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function POST(request: NextRequest) {
   try {
-    const { jobId, videoUrl, service, campaignId } = await request.json()
+    const { jobId, videoUrl, imageUrls = [], service, campaignId } = await request.json()
 
     if (!jobId || !videoUrl) {
       return NextResponse.json(
@@ -26,9 +26,10 @@ export async function POST(request: NextRequest) {
       .update({
         status: 'done',
         completed_at: new Date().toISOString(),
-        // Store video URL in ai_parameters for now (could add dedicated column)
+        // Store video URL and image URLs in ai_parameters
         ai_parameters: {
           video_url: videoUrl,
+          image_urls: imageUrls,
           service,
           campaignId,
         },
@@ -43,12 +44,53 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[api/productions/complete] Job ${jobId} marked as done with video URL: ${videoUrl}`)
+    // Store generated assets in asset_banks table
+    if (imageUrls && imageUrls.length > 0) {
+      const assetInserts = imageUrls.map((url, index) => ({
+        job_id: jobId,
+        asset_type: 'image',
+        asset_url: url,
+        metadata: {
+          index,
+          source: 'dalle-3',
+          campaignId,
+        },
+        created_at: new Date().toISOString(),
+      }))
+
+      // Add video asset
+      assetInserts.push({
+        job_id: jobId,
+        asset_type: 'video',
+        asset_url: videoUrl,
+        metadata: {
+          source: 'contentforge-server',
+          campaignId,
+        },
+        created_at: new Date().toISOString(),
+      })
+
+      const { error: assetError } = await supabase
+        .from('asset_banks')
+        .insert(assetInserts)
+
+      if (assetError) {
+        console.error('[api/productions/complete] Asset insert error:', assetError)
+        // Don't fail the whole request if asset storage fails
+        console.warn('[api/productions/complete] Continuing despite asset storage error')
+      } else {
+        console.log(`[api/productions/complete] Stored ${assetInserts.length} assets in asset_banks`)
+      }
+    }
+
+    console.log(`[api/productions/complete] Job ${jobId} marked as done with video URL: ${videoUrl} and ${imageUrls.length} images`)
 
     return NextResponse.json({
       jobId,
       status: 'done',
       videoUrl,
+      imageUrls,
+      assetsStored: imageUrls.length + 1, // images + video
     })
   } catch (err) {
     console.error('[api/productions/complete] Error:', err)
