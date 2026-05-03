@@ -13,7 +13,7 @@ interface Segment {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { campaignId, service, headline, bodyCopy, voiceId, cta, segments } =
+  const { campaignId, service, headline, bodyCopy, voiceId, cta, segments, formats, tone } =
     body as {
       campaignId?: string;
       service?: string;
@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
       voiceId?: string;
       cta?: string;
       segments?: Segment[];
+      formats?: string[];
+      tone?: string;
     };
 
   if (!campaignId || !service) {
@@ -55,6 +57,8 @@ export async function POST(req: NextRequest) {
         bodyCopy,
         voiceId,
         cta,
+        tone: tone || 'professional',
+        video_format: formats ? formats.join(',') : '9:16', // Default to 9:16 if not specified
         ...(segments && segments.length > 0 ? { segments } : {}),
       }),
     });

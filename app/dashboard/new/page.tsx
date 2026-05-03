@@ -109,6 +109,7 @@ export default function NewCampaignPage() {
         service: form.service,
         voiceId: form.voiceId,
         cta: form.cta,
+        formats: form.formats, // Include selected formats
       };
 
       if (campaignType === "storytelling" && segments.length > 0) {
