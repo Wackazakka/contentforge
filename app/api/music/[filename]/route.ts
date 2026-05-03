@@ -4,10 +4,11 @@ const DROPLET_URL = 'http://139.59.212.218:3002'
 
 export async function GET(
   request: Request,
-  { params }: { params: { filename: string } }
+  { params }: { params: Promise<{ filename: string }> }
 ) {
   try {
-    const filename = decodeURIComponent(params.filename)
+    const resolvedParams = await params
+    const filename = decodeURIComponent(resolvedParams.filename)
     const res = await fetch(`${DROPLET_URL}/music/files/${encodeURIComponent(filename)}`)
     
     if (!res.ok) {

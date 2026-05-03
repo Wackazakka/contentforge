@@ -417,45 +417,62 @@ export default function NewCampaignPage() {
             <div className="space-y-4">
               {/* Upload form */}
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                <label className="block">
-                  <span className="text-sm font-medium text-gray-700 block mb-2">Last opp ny musikk</span>
-                  <input
-                    type="file"
-                    accept=".mp3,.wav,.ogg,.m4a,.flac"
-                    onChange={async (e) => {
-                      const file = e.currentTarget.files?.[0]
-                      if (!file) return
-                      
-                      const formData = new FormData()
-                      formData.append('file', file)
-                      
-                      try {
-                        const res = await fetch('/api/music/upload', {
-                          method: 'POST',
-                          body: formData,
-                        })
-                        if (res.ok) {
-                          // Reload music library
-                          const data = await fetch('/api/music').then(r => r.json())
-                          if (data.files) setMusicLibrary(data.files)
-                          alert('Musikk lastet opp!')
-                        } else {
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <label className="block">
+                    <span className="text-xs font-medium text-gray-700 block mb-1">Mappe</span>
+                    <select
+                      id="musicFolder"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      defaultValue="global"
+                    >
+                      <option value="global">Global (alle produkter)</option>
+                      <option value="bildeal">BilDeal</option>
+                      <option value="reforhandle">Reforhandle</option>
+                      <option value="singlepicker">SinglePicker</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-xs font-medium text-gray-700 block mb-1">Fil</span>
+                    <input
+                      type="file"
+                      accept=".mp3,.wav,.ogg,.m4a,.flac"
+                      onChange={async (e) => {
+                        const file = e.currentTarget.files?.[0]
+                        if (!file) return
+                        
+                        const folder = (document.getElementById('musicFolder') as HTMLSelectElement)?.value || 'global'
+                        const formData = new FormData()
+                        formData.append('file', file)
+                        
+                        try {
+                          const res = await fetch(`/api/music/upload?folder=${encodeURIComponent(folder)}`, {
+                            method: 'POST',
+                            body: formData,
+                          })
+                          if (res.ok) {
+                            // Reload music library
+                            const data = await fetch('/api/music').then(r => r.json())
+                            if (data.files) setMusicLibrary(data.files)
+                            alert('Musikk lastet opp!')
+                            e.currentTarget.value = ''
+                          } else {
+                            alert('Upload feilet')
+                          }
+                        } catch (err) {
+                          console.error('Upload error:', err)
                           alert('Upload feilet')
                         }
-                      } catch (err) {
-                        console.error('Upload error:', err)
-                        alert('Upload feilet')
-                      }
-                    }}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-blue-500"
-                  />
-                </label>
+                      }}
+                      className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-blue-600 file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-blue-500"
+                    />
+                  </label>
+                </div>
               </div>
 
               {/* Music library */}
               {musicLibrary.length > 0 ? (
                 <div className="grid gap-2">
-                  {musicLibrary.map((music) => (
+                  {musicLibrary.map((music: any) => (
                     <button
                       key={music.filename}
                       type="button"
@@ -465,8 +482,13 @@ export default function NewCampaignPage() {
                       }}
                       className="text-left p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
                     >
-                      <div className="font-medium text-gray-900">{music.name}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-gray-900">{music.name}</div>
+                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                          {music.folder || 'global'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
                         {(music.size / 1024 / 1024).toFixed(1)}MB
                       </div>
                       <audio
