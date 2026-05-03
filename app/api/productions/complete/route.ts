@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Use ANON_KEY for now (will rely on RLS policies for access control)
+// TODO: Once we have the real service_role_key from Supabase, update SUPABASE_SERVICE_ROLE_KEY
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +17,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create Supabase client
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
+    // Create Supabase client with ANON_KEY (RLS policies will control access)
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
       auth: { persistSession: false },
     })
 
