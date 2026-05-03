@@ -468,7 +468,7 @@ export default function ProductPage() {
                     <div className="flex gap-2">
                       <a
                         href={video.asset_url}
-                        download={video.name || 'video.mp4'}
+                        download={(video as any).name || 'video.mp4'}
                         className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                       >
                         ⬇️ Last ned
