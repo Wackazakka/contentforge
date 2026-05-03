@@ -13,10 +13,11 @@ interface Segment {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { campaignId, service, headline, bodyCopy, voiceId, cta, segments, formats, tone } =
+  const { campaignId, service, productId, headline, bodyCopy, voiceId, cta, segments, formats, tone, musicFile } =
     body as {
       campaignId?: string;
       service?: string;
+      productId?: string;
       headline?: string;
       bodyCopy?: string;
       voiceId?: string;
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
       segments?: Segment[];
       formats?: string[];
       tone?: string;
+      musicFile?: string;
     };
 
   if (!campaignId || !service) {
@@ -33,7 +35,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const job = createJob(campaignId, service);
+  const job = createJob(campaignId, service, productId);
 
   addHistoryEntry({
     jobId: job.id,
@@ -52,6 +54,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         jobId: job.id,
         campaignId,
+        productId,
         service,
         headline,
         bodyCopy,
@@ -59,6 +62,7 @@ export async function POST(req: NextRequest) {
         cta,
         tone: tone || 'professional',
         video_format: formats ? formats.join(',') : '9:16', // Default to 9:16 if not specified
+        musicFile,
         ...(segments && segments.length > 0 ? { segments } : {}),
       }),
     });

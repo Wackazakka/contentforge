@@ -3,6 +3,7 @@ export type JobStatus = "pending" | "processing" | "done" | "failed";
 export interface Job {
   id: string;
   campaignId: string;
+  productId?: string;
   service: string;
   status: JobStatus;
   progress: number;
@@ -15,11 +16,12 @@ export interface Job {
 // Works in `next dev` / `next start`; not durable in serverless cold-starts.
 const jobs = new Map<string, Job>();
 
-export function createJob(campaignId: string, service: string): Job {
+export function createJob(campaignId: string, service: string, productId?: string): Job {
   const id = crypto.randomUUID();
   const job: Job = {
     id,
     campaignId,
+    productId,
     service,
     status: "pending",
     progress: 0,
