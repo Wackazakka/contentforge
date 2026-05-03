@@ -7,7 +7,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function POST(request: NextRequest) {
   try {
-    const { jobId, videoUrl, imageUrls = [], service, campaignId } = await request.json()
+    const { jobId, videoUrl, imageUrls = [], service, campaignId, productId } = await request.json()
 
     if (!jobId || !videoUrl) {
       return NextResponse.json(
@@ -55,25 +55,31 @@ export async function POST(request: NextRequest) {
     
     console.log(`[api/productions/complete] ✅ Job ${jobId} status updated to 'done'`)
 
-    // Get product_id from production_jobs if needed
-    let productId = null
-    try {
-      const { data: jobData } = await supabase
-        .from('production_jobs')
-        .select('product_id')
-        .eq('id', jobId)
-        .single()
-      
-      productId = jobData?.product_id
-    } catch (err) {
-      console.warn('[api/productions/complete] Could not fetch product_id for job', jobId)
+    // Use product_id from request body if available, otherwise fetch from production_jobs
+    let finalProductId = productId || null
+    if (!finalProductId) {
+      try {
+        const { data: jobData } = await supabase
+          .from('production_jobs')
+          .select('product_id')
+          .eq('id', jobId)
+          .single()
+        
+        finalProductId = jobData?.product_id
+      } catch (err) {
+        console.warn('[api/productions/complete] Could not fetch product_id for job', jobId)
+      }
+    }
+    
+    if (productId) {
+      console.log(`[api/productions/complete] Using productId from request: ${productId}`)
     }
 
     // Store generated assets in asset_banks table
     if (imageUrls && imageUrls.length > 0) {
       const assetInserts: Array<Record<string, any>> = imageUrls.map((url: string, index: number) => ({
         job_id: jobId,
-        product_id: productId, // Link to product if available
+        product_id: finalProductId, // Link to product if available
         asset_type: 'image',
         asset_url: url,
         name: `Bilde ${index + 1}`,
@@ -89,7 +95,7 @@ export async function POST(request: NextRequest) {
       // Add video asset
       assetInserts.push({
         job_id: jobId,
-        product_id: productId, // Link to product if available
+        product_id: finalProductId, // Link to product if available
         asset_type: 'video',
         asset_url: videoUrl,
         name: 'Video',
@@ -118,7 +124,7 @@ export async function POST(request: NextRequest) {
       // Still store video even if no images
       const videoAsset = {
         job_id: jobId,
-        product_id: productId,
+        product_id: finalProductId,
         asset_type: 'video',
         asset_url: videoUrl,
         name: 'Video',
