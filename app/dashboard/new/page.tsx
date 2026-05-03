@@ -62,9 +62,9 @@ export default function NewCampaignPage() {
     problem: "",
   });
 
-  // Load music library from droplet server
+  // Load music library via API proxy
   useEffect(() => {
-    fetch('http://139.59.212.218:3002/music')
+    fetch('/api/music')
       .then((res) => res.json())
       .then((data) => {
         if (data.files && Array.isArray(data.files)) {
