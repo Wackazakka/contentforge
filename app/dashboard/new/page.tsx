@@ -447,22 +447,26 @@ export default function NewCampaignPage() {
                         formData.append('file', file)
                         
                         try {
-                          const res = await fetch(`/api/music/upload?folder=${encodeURIComponent(folder)}`, {
+                          // Upload directly to droplet (bypass Netlify 4.5MB limit)
+                          const uploadUrl = `http://139.59.212.218:3002/music/upload?folder=${encodeURIComponent(folder)}`
+                          const res = await fetch(uploadUrl, {
                             method: 'POST',
                             body: formData,
                           })
                           if (res.ok) {
-                            // Reload music library
+                            // Reload music library via proxy
                             const data = await fetch('/api/music').then(r => r.json())
                             if (data.files) setMusicLibrary(data.files)
                             alert('Musikk lastet opp!')
                             e.currentTarget.value = ''
                           } else {
-                            alert('Upload feilet')
+                            const error = await res.text()
+                            console.error('Upload error:', error)
+                            alert(`Upload feilet: ${error}`)
                           }
                         } catch (err) {
                           console.error('Upload error:', err)
-                          alert('Upload feilet')
+                          alert('Upload feilet: ' + (err instanceof Error ? err.message : 'Ukjent feil'))
                         }
                       }}
                       className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-blue-600 file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-blue-500"
