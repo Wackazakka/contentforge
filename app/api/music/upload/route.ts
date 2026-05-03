@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
 
+// Allow large file uploads (up to 30 seconds for 500MB files)
+export const maxDuration = 30
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
