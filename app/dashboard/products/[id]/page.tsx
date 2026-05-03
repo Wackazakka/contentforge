@@ -44,6 +44,15 @@ interface ProductionJob {
   completed_at: string | null
 }
 
+interface AssetBank {
+  id: string
+  job_id: string
+  asset_type: 'image' | 'video'
+  asset_url: string
+  metadata: Record<string, any> | null
+  created_at: string
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('nb-NO', {
     day: 'numeric',
@@ -62,6 +71,8 @@ export default function ProductPage() {
   const [profile, setProfile] = useState<ProductProfile | null>(null)
   const [jobs, setJobs] = useState<ProductionJob[]>([])
   const [jobsLoading, setJobsLoading] = useState(false)
+  const [assets, setAssets] = useState<AssetBank[]>([])
+  const [assetsLoading, setAssetsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -141,6 +152,34 @@ export default function ProductPage() {
 
     return () => clearInterval(interval)
   }, [productId, session?.user?.id])
+
+  // Fetch asset bank images
+  useEffect(() => {
+    if (!productId) return
+
+    const fetchAssets = async () => {
+      try {
+        setAssetsLoading(true)
+        const supabase = getSupabase()
+
+        const { data: assetsData, error: assetsError } = await supabase
+          .from('asset_banks')
+          .select('*')
+          .eq('product_id', productId)
+          .eq('asset_type', 'image')
+          .order('created_at', { ascending: false })
+
+        if (assetsError) throw assetsError
+        setAssets(assetsData || [])
+      } catch (err) {
+        console.error('[ProductPage] Assets fetch error:', err)
+      } finally {
+        setAssetsLoading(false)
+      }
+    }
+
+    fetchAssets()
+  }, [productId])
 
   if (loading) {
     return (
@@ -403,12 +442,39 @@ export default function ProductPage() {
 
           {/* Images */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Bilder</h3>
-            <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-              <div className="text-4xl mb-2">🖼️</div>
-              <p className="text-sm">Ingen bilder opprettet ennå</p>
-              <p className="text-xs text-gray-400 mt-2">Bilder du genererer vil vises her</p>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Bilder ({assets.length})</h3>
+            {assetsLoading ? (
+              <div className="text-center py-8 text-gray-500">Laster bilder...</div>
+            ) : assets.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {assets.map((asset) => (
+                  <div key={asset.id} className="group relative bg-gray-100 rounded-lg overflow-hidden aspect-square">
+                    <img
+                      src={asset.asset_url}
+                      alt="Generated image"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <button
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                        onClick={() => {
+                          // TODO: Use in production
+                          alert('Funksjon kommer snart!')
+                        }}
+                      >
+                        Bruk i produksjon
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
+                <div className="text-4xl mb-2">🖼️</div>
+                <p className="text-sm">Ingen bilder opprettet ennå</p>
+                <p className="text-xs text-gray-400 mt-2">Bilder du genererer vil vises her</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
