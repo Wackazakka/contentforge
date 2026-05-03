@@ -3,8 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-// Use ANON_KEY for now (will rely on RLS policies for access control)
-// TODO: Once we have the real service_role_key from Supabase, update SUPABASE_SERVICE_ROLE_KEY
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,12 +16,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create Supabase client with ANON_KEY (RLS policies will control access)
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    // Use service_role_key if available (for UPDATE permissions), otherwise fall back to ANON_KEY
+    const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY
+    const keyType = SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'anon'
+    
+    console.log(`[api/productions/complete] Using Supabase client with key type: ${keyType}`)
+    
+    // Create Supabase client
+    const supabase = createClient(SUPABASE_URL!, supabaseKey!, {
       auth: { persistSession: false },
     })
 
     // Update production_job status to 'done' and set video URL
+    console.log(`[api/productions/complete] Updating job ${jobId} status to 'done'`)
     const { error: updateError } = await supabase
       .from('production_jobs')
       .update({
@@ -40,11 +46,14 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('[api/productions/complete] Update error:', updateError)
+      console.error('[api/productions/complete] Update failed with keyType:', keyType)
       return NextResponse.json(
-        { error: 'Failed to update production job status' },
+        { error: 'Failed to update production job status', details: updateError },
         { status: 500 }
       )
     }
+    
+    console.log(`[api/productions/complete] ✅ Job ${jobId} status updated to 'done'`)
 
     // Get product_id from production_jobs if needed
     let productId = null
