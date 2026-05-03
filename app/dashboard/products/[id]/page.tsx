@@ -412,7 +412,8 @@ export default function ProductPage() {
                 .map((job) => {
                   const videoUrl =
                     (job.ai_parameters as any)?.video_url ||
-                    `http://139.59.212.218:3002/videos/${job.id}/output.mp4`
+                    (job.ai_parameters as any)?.r2_url ||
+                    null
                   return (
                     <div
                       key={job.id}
@@ -425,22 +426,26 @@ export default function ProductPage() {
                         </div>
                       </div>
 
-                      {/* Video preview */}
-                      <video
-                        src={videoUrl}
-                        controls
-                        className="w-full rounded-lg mb-3 bg-black"
-                        style={{ aspectRatio: '9/16', maxHeight: '300px' }}
-                      />
+                      {videoUrl && (
+                        <>
+                          {/* Video preview */}
+                          <video
+                            src={videoUrl}
+                            controls
+                            className="w-full rounded-lg mb-3 bg-black"
+                            style={{ aspectRatio: '9/16', maxHeight: '300px' }}
+                          />
 
-                      {/* Download link */}
-                      <a
-                        href={videoUrl}
-                        download={`${job.title.replace(/\s+/g, '_')}.mp4`}
-                        className="inline-block px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        ⬇️ Last ned video
-                      </a>
+                          {/* Download link */}
+                          <a
+                            href={videoUrl}
+                            download={`${job.title.replace(/\s+/g, '_')}.mp4`}
+                            className="inline-block px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
+                          >
+                            ⬇️ Last ned video
+                          </a>
+                        </>
+                      )}
                     </div>
                   )
                 })}
