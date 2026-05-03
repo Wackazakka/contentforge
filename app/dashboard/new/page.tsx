@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 const TONES = [
@@ -40,6 +40,8 @@ interface Segment {
 
 export default function NewCampaignPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const productId = searchParams.get('productId');
   const [loading, setLoading] = useState(false);
   const [scriptLoading, setScriptLoading] = useState(false);
   const [campaignType, setCampaignType] = useState<"reklame" | "storytelling">("reklame");
@@ -126,6 +128,7 @@ export default function NewCampaignPage() {
         cta: form.cta,
         formats: form.formats, // Include selected formats
         musicFile: selectedMusic, // Include selected music
+        productId: productId || undefined, // Include product ID if available
       };
 
       if (campaignType === "storytelling" && segments.length > 0) {
