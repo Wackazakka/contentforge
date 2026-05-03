@@ -44,7 +44,8 @@ export default function NewCampaignPage() {
   const [scriptLoading, setScriptLoading] = useState(false);
   const [campaignType, setCampaignType] = useState<"reklame" | "storytelling">("reklame");
   const [segments, setSegments] = useState<Segment[]>([]);
-  const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; url: string; size: number }>>([]);
+  const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([]);
+  const [selectedMusicFolder, setSelectedMusicFolder] = useState('global');
   const [form, setForm] = useState({
     name: "",
     productName: "",
@@ -423,7 +424,8 @@ export default function NewCampaignPage() {
                     <select
                       id="musicFolder"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      defaultValue="global"
+                      value={selectedMusicFolder}
+                      onChange={(e) => setSelectedMusicFolder(e.target.value)}
                     >
                       <option value="global">Global (alle produkter)</option>
                       <option value="bildeal">BilDeal</option>
@@ -469,10 +471,16 @@ export default function NewCampaignPage() {
                 </div>
               </div>
 
-              {/* Music library */}
+              {/* Music library - filtered by selected folder (always include global) */}
               {musicLibrary.length > 0 ? (
-                <div className="grid gap-2">
-                  {musicLibrary.map((music: any) => (
+                <>
+                  {(() => {
+                    const filteredMusic = musicLibrary.filter(track => 
+                      track.folder === 'global' || track.folder === selectedMusicFolder
+                    )
+                    return (
+                      <div className="grid gap-2">
+                        {filteredMusic.map((music: any) => (
                     <button
                       key={music.filename}
                       type="button"
@@ -496,9 +504,12 @@ export default function NewCampaignPage() {
                         className="mt-2 w-full h-6"
                         src={`/api/music/${encodeURIComponent(music.filename)}`}
                       />
-                    </button>
-                  ))}
-                </div>
+                        </button>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </>
               ) : (
                 <p className="text-gray-500 text-sm">Laster musikk-bibliotek...</p>
               )}
