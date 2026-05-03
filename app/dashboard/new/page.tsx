@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -44,6 +44,7 @@ export default function NewCampaignPage() {
   const [scriptLoading, setScriptLoading] = useState(false);
   const [campaignType, setCampaignType] = useState<"reklame" | "storytelling">("reklame");
   const [segments, setSegments] = useState<Segment[]>([]);
+  const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; url: string; size: number }>>([]);
   const [form, setForm] = useState({
     name: "",
     productName: "",
@@ -60,6 +61,18 @@ export default function NewCampaignPage() {
     targetAudience: "",
     problem: "",
   });
+
+  // Load music library from droplet server
+  useEffect(() => {
+    fetch('http://139.59.212.218:3002/music')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.files && Array.isArray(data.files)) {
+          setMusicLibrary(data.files)
+        }
+      })
+      .catch((err) => console.error('Failed to load music library:', err))
+  }, [])
 
   function toggle(format: string) {
     setForm((f) => ({
@@ -397,6 +410,40 @@ export default function NewCampaignPage() {
                   {fmt}
                 </button>
               ))}
+            </div>
+          </Field>
+
+          <Field label="Bakgrunnsmusikk">
+            <div className="space-y-3">
+              {musicLibrary.length > 0 ? (
+                <>
+                  <div className="grid gap-2">
+                    {musicLibrary.map((music) => (
+                      <button
+                        key={music.filename}
+                        type="button"
+                        onClick={() => {
+                          // Store selected music path for job submission
+                          console.log('Selected music:', music.filename)
+                        }}
+                        className="text-left p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                      >
+                        <div className="font-medium text-gray-900">{music.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {(music.size / 1024 / 1024).toFixed(1)}MB
+                        </div>
+                        <audio
+                          controls
+                          className="mt-2 w-full h-6"
+                          src={music.url}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-gray-500 text-sm">Laster musikk-bibliotek...</p>
+              )}
             </div>
           </Field>
         </div>
