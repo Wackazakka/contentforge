@@ -7,7 +7,18 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function POST(request: NextRequest) {
   try {
-    const { jobId, videoUrl, imageUrls = [], service, campaignId, productId } = await request.json()
+    const body = await request.json()
+    console.log('[webhook] ========== WEBHOOK RECEIVED ==========')
+    console.log('[webhook] Full request body:', JSON.stringify(body, null, 2))
+    
+    const { jobId, videoUrl, imageUrls = [], service, campaignId, productId } = body
+    
+    console.log('[webhook] Extracted fields:')
+    console.log('[webhook] - jobId:', jobId)
+    console.log('[webhook] - videoUrl:', videoUrl)
+    console.log('[webhook] - imageUrls length:', imageUrls?.length)
+    console.log('[webhook] - productId:', productId)
+    console.log('[webhook] =====================================')
 
     if (!jobId || !videoUrl) {
       return NextResponse.json(
