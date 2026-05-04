@@ -54,10 +54,20 @@
 - ✅ **R2-upload of video works** — Python writes .done marker file when complete
 - ✅ **Videos display and play on product page from R2-URL** — Content Banks gallery
 
+### Audio & Music 
+- ✅ Voiceovers generated with Google TTS
+- ✅ Background music loaded from `/contentforge-server/music/` with subdirectories (global/, singlepicker/)
+- ✅ Music mixed with voiceovers using CompositeAudioClip
+- ✅ AAC audio codec applied in ffmpeg
+- ✅ **Music file paths fixed** — `path.join(MUSIC_DIR, musicFile)` preserves subdirectory structure
+- ✅ Both Reklame and Storytelling modes support custom music selection
+
 ### File Stability & R2 Upload
-- ✅ waitForFile() waits for file to stabilize (6+ seconds no growth)
-- ✅ Max 30 attempts (60 seconds total wait)
-- ✅ Logging shows file size progression
+- ✅ **waitForFile() now waits for .done marker file** (Python signals completion)
+- ✅ Python writes `output.mp4.done` after ffmpeg finishes encoding
+- ✅ Node waits for .done file (max 30 attempts, 60 seconds total)
+- ✅ .done file deleted after detected (cleanup)
+- ✅ Prevents race condition (video still being written when upload starts)
 - ✅ ai_parameters.r2_url stored in production_jobs
 - ✅ Service automatically restarts on code update
 
