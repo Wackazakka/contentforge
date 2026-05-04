@@ -84,9 +84,25 @@
 
 ---
 
+### Articles Generation
+- ✅ API route `/api/content/produce/article` — single platform per call
+- ✅ Frontend parallel execution via `Promise.all()` for multiple platforms
+- ✅ Claude generates Norwegian articles with platform-specific tone
+- ✅ LinkedIn articles start with strong opening sentence
+- ✅ UUID validation for campaignId (set to null if invalid)
+- ✅ Robust JSON parsing with better error handling
+- ✅ Articles section on product page with preview display
+- ⚠️ **Known issue:** Articles generated but may not display consistently on product page (RLS/fetch timing)
+
 ## 🔴 Kjente problemer / TODO
 
-### 1. product_profiles 406 Error
+### 1. Articles Not Displaying on Product Page
+**Status:** ⚠️ In progress  
+**Details:** Articles are generated and saved to DB, but don't always appear in the articles section on product page  
+**Cause:** Possible RLS policy issue, timing issue with fetch, or display logic  
+**Next steps:** Verify RLS policies, check browser console logs, debug fetch response
+
+### 2. product_profiles 406 Error
 **Status:** ❌ Not investigated  
 **Details:** `GET product_profiles?select=*&product_id=...` returns 406 Not Acceptable  
 **Impact:** Merkevareprofil (brand info) doesn't display on product page  
@@ -138,6 +154,19 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 | Commit | Message | Deploy ID |
 |--------|---------|-----------|
+| `0ede2d3` | feat: add robust JSON extraction with better error handling | — |
+| `e4f6753` | refactor: remove session check from articles fetch | — |
+| `9171bb6` | feat: add articles section to product page | — |
+| `57f4090` | feat: add strong opening sentence to LinkedIn articles | — |
+| `bca85a6` | fix: validate campaignId as UUID | — |
+| `748c31c` | feat: generate articles in Norwegian | — |
+| `90f09ce` | feat: disable DALL-E image generation temporarily | — |
+| `3c33b20` | refactor: single-platform API with Promise.all() | — |
+| `bb898fc` | fix: use crypto.randomUUID instead of uuid | — |
+| `cf90290` | feat: add articles generation feature | — |
+| `ed409f0` | feat: add brand profile editor form | — |
+| `c18476e` | refactor: remove read-only profile section | — |
+| `a6a5422` | fix: use maybeSingle() for product_profiles | — |
 | `e165632` | feat: restore Videos section in Content Banks with droplet URLs | `69f85fbd2779` |
 | `2d41ead` | docs: add comprehensive ContentForge v2 status document | — |
 | `bd47570` | cleanup: remove videos from asset_banks section | — |
