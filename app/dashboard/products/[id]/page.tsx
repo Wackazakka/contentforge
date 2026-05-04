@@ -27,7 +27,7 @@ interface ProductProfile {
   accent_color: string | null
   font_family: string | null
   brand_voice: string | null
-  brand_guidelines: Record<string, any> | null
+  brand_guidelines: string | null
 }
 
 interface ProductionJob {
@@ -146,9 +146,7 @@ export default function ProductPage() {
         accent_color: profile.accent_color || '',
         font_family: profile.font_family || '',
         brand_voice: profile.brand_voice || '',
-        brand_guidelines: typeof profile.brand_guidelines === 'string' 
-          ? profile.brand_guidelines 
-          : JSON.stringify(profile.brand_guidelines || {}, null, 2),
+        brand_guidelines: profile.brand_guidelines ? String(profile.brand_guidelines) : '',
       })
     }
   }, [profile])
@@ -162,14 +160,6 @@ export default function ProductPage() {
 
     try {
       const supabase = getSupabase()
-      
-      // Parse brand_guidelines as JSON if possible
-      let brandGuidelines: any = profileForm.brand_guidelines
-      try {
-        brandGuidelines = JSON.parse(profileForm.brand_guidelines || '{}')
-      } catch {
-        // Keep as string if not valid JSON
-      }
 
       const { error } = await supabase
         .from('product_profiles')
@@ -181,7 +171,7 @@ export default function ProductPage() {
           accent_color: profileForm.accent_color || null,
           font_family: profileForm.font_family || null,
           brand_voice: profileForm.brand_voice || null,
-          brand_guidelines: brandGuidelines,
+          brand_guidelines: profileForm.brand_guidelines || null,
         }, {
           onConflict: 'product_id'
         })
@@ -361,49 +351,6 @@ export default function ProductPage() {
             </div>
           </div>
 
-          {profile && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-md font-semibold text-gray-900 mb-4">Merkevareprofil</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {profile.primary_color && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-700">Primærfarge</label>
-                    <div className="mt-2 flex items-center gap-2">
-                      <div
-                        className="w-12 h-12 rounded-lg border border-gray-300"
-                        style={{ backgroundColor: profile.primary_color }}
-                      />
-                      <p className="text-sm text-gray-900">{profile.primary_color}</p>
-                    </div>
-                  </div>
-                )}
-                {profile.secondary_color && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-700">Sekundærfarge</label>
-                    <div className="mt-2 flex items-center gap-2">
-                      <div
-                        className="w-12 h-12 rounded-lg border border-gray-300"
-                        style={{ backgroundColor: profile.secondary_color }}
-                      />
-                      <p className="text-sm text-gray-900">{profile.secondary_color}</p>
-                    </div>
-                  </div>
-                )}
-                {profile.font_family && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-700">Font</label>
-                    <p className="text-sm text-gray-900 mt-2">{profile.font_family}</p>
-                  </div>
-                )}
-                {profile.brand_voice && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-700">Brand Voice</label>
-                    <p className="text-sm text-gray-900 mt-2 capitalize">{profile.brand_voice}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Brand Profile */}
@@ -519,9 +466,9 @@ export default function ProductPage() {
               <textarea
                 value={profileForm.brand_guidelines}
                 onChange={(e) => setProfileForm({ ...profileForm, brand_guidelines: e.target.value })}
-                placeholder="JSON eller fritekst med merkevareveileder..."
+                placeholder="Beskriv merkevareveileder, stilguide, eller retningslinjer..."
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
