@@ -414,6 +414,7 @@ export default function ProductPage() {
                     (job.ai_parameters as any)?.video_url ||
                     (job.ai_parameters as any)?.r2_url ||
                     null
+                  console.log('[DEBUG] videoUrl:', videoUrl, 'ai_parameters:', job.ai_parameters)
                   return (
                     <div
                       key={job.id}
