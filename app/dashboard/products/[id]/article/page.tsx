@@ -51,24 +51,29 @@ export default function ArticlePage() {
     try {
       const campaignId = `campaign-${Date.now()}`
 
-      const response = await fetch('/api/content/produce/article', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId,
-          campaignId,
-          topic,
-          platforms: selectedPlatforms,
-        }),
-      })
+      // Call API for each platform in parallel
+      const promises = selectedPlatforms.map((platform) =>
+        fetch('/api/content/produce/article', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId,
+            campaignId,
+            topic,
+            platform,
+          }),
+        }).then(async (response) => {
+          if (!response.ok) {
+            const data = await response.json()
+            throw new Error(data.error || `Feil ved generering av ${platform} artikkel`)
+          }
+          return response.json()
+        })
+      )
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Feil ved generering av artikler')
-      }
-
-      const data = await response.json()
-      setArticles(data.articles || [])
+      const results = await Promise.all(promises)
+      const generatedArticles = results.map((result) => result.article).filter(Boolean)
+      setArticles(generatedArticles)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Noe gikk galt')
     } finally {

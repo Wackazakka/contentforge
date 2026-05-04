@@ -12,7 +12,7 @@ interface GenerateArticleRequest {
   productId: string
   campaignId: string
   topic: string
-  platforms: string[]
+  platform: string
 }
 
 interface ArticleResult {
@@ -143,17 +143,15 @@ async function uploadImageToR2(imageUrl: string, campaignId: string, articleId: 
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateArticleRequest = await request.json()
-    const { productId, campaignId, topic, platforms } = body
+    const { productId, campaignId, topic, platform } = body
 
-    if (!productId || !campaignId || !topic || !platforms || platforms.length === 0) {
+    if (!productId || !campaignId || !topic || !platform) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-    const articles: ArticleResult[] = []
 
-    // Generate article for each platform
-    for (const platform of platforms) {
+    {
       try {
         console.log(`[article-produce] Starting ${platform} article generation for topic: "${topic}"`)
 
@@ -196,16 +194,21 @@ export async function POST(request: NextRequest) {
             message: (insertError as any).message,
             details: (insertError as any).details,
           })
-        } else {
-          articles.push({
+          throw new Error(`Database insert failed: ${(insertError as any).message}`)
+        }
+
+        console.log(`[article-produce] ✅ ${platform} article successfully created: ${articleId}`)
+
+        return NextResponse.json({
+          success: true,
+          article: {
             id: articleId,
             platform,
             title,
             content,
             image_url: r2Url || '', // Empty string while image generation is disabled
-          })
-          console.log(`[article-produce] ✅ ${platform} article successfully created: ${articleId}`)
-        }
+          },
+        })
       } catch (error) {
         console.error(`[article-produce] ❌ Error generating ${platform} article:`, {
           error: error instanceof Error ? error.message : String(error),
@@ -213,16 +216,9 @@ export async function POST(request: NextRequest) {
           platform,
           topic,
         })
-        // Continue with next platform
+        throw error
       }
     }
-
-    return NextResponse.json({
-      success: true,
-      articles,
-      generated: articles.length,
-      total: platforms.length,
-    })
   } catch (error) {
     console.error('[article-produce] Error:', error)
     return NextResponse.json(
