@@ -293,7 +293,7 @@ export default function ProductPage() {
 
   // Fetch articles
   useEffect(() => {
-    if (!productId || !session?.user?.id) return
+    if (!productId) return
 
     const fetchArticles = async () => {
       try {
@@ -316,7 +316,7 @@ export default function ProductPage() {
     }
 
     fetchArticles()
-  }, [productId, session?.user?.id])
+  }, [productId])
 
   if (loading) {
     return (
