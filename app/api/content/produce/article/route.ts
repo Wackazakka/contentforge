@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'crypto'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         const r2Url = await uploadImageToR2(imageUrl, campaignId, platform)
 
         // Create article ID
-        const articleId = uuidv4()
+        const articleId = randomUUID()
 
         // Insert into database
         const { error: insertError } = await supabase.from('articles').insert({
