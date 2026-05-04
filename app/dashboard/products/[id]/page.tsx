@@ -79,6 +79,19 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Profile form state
+  const [profileForm, setProfileForm] = useState({
+    logo_url: '',
+    primary_color: '',
+    secondary_color: '',
+    accent_color: '',
+    font_family: '',
+    brand_voice: '',
+    brand_guidelines: '',
+  })
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileMessage, setProfileMessage] = useState<string | null>(null)
+
   // Fetch product data
   useEffect(() => {
     if (!productId || !session?.user?.id) return
@@ -122,6 +135,80 @@ export default function ProductPage() {
 
     fetchProduct()
   }, [productId, session?.user?.id])
+
+  // Populate profile form when profile is loaded
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        logo_url: profile.logo_url || '',
+        primary_color: profile.primary_color || '',
+        secondary_color: profile.secondary_color || '',
+        accent_color: profile.accent_color || '',
+        font_family: profile.font_family || '',
+        brand_voice: profile.brand_voice || '',
+        brand_guidelines: typeof profile.brand_guidelines === 'string' 
+          ? profile.brand_guidelines 
+          : JSON.stringify(profile.brand_guidelines || {}, null, 2),
+      })
+    }
+  }, [profile])
+
+  // Handle profile save
+  const handleSaveProfile = async () => {
+    if (!productId) return
+    
+    setProfileSaving(true)
+    setProfileMessage(null)
+
+    try {
+      const supabase = getSupabase()
+      
+      // Parse brand_guidelines as JSON if possible
+      let brandGuidelines: any = profileForm.brand_guidelines
+      try {
+        brandGuidelines = JSON.parse(profileForm.brand_guidelines || '{}')
+      } catch {
+        // Keep as string if not valid JSON
+      }
+
+      const { error } = await supabase
+        .from('product_profiles')
+        .upsert({
+          product_id: productId,
+          logo_url: profileForm.logo_url || null,
+          primary_color: profileForm.primary_color || null,
+          secondary_color: profileForm.secondary_color || null,
+          accent_color: profileForm.accent_color || null,
+          font_family: profileForm.font_family || null,
+          brand_voice: profileForm.brand_voice || null,
+          brand_guidelines: brandGuidelines,
+        }, {
+          onConflict: 'product_id'
+        })
+
+      if (error) throw error
+
+      setProfileMessage('✅ Merkevareprofil lagret!')
+      
+      // Refresh profile data
+      const { data: updatedProfile } = await supabase
+        .from('product_profiles')
+        .select('*')
+        .eq('product_id', productId)
+        .maybeSingle()
+      
+      if (updatedProfile) {
+        setProfile(updatedProfile)
+      }
+
+      setTimeout(() => setProfileMessage(null), 3000)
+    } catch (err) {
+      console.error('[ProductPage] Save profile error:', err)
+      setProfileMessage('❌ Feil ved lagring av profil')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
 
   // Fetch production jobs and poll every 5 seconds
   useEffect(() => {
@@ -317,6 +404,136 @@ export default function ProductPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Brand Profile */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Merkevareprofil</h2>
+          
+          {profileMessage && (
+            <div className="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm">
+              {profileMessage}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {/* Logo URL */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
+              <input
+                type="text"
+                value={profileForm.logo_url}
+                onChange={(e) => setProfileForm({ ...profileForm, logo_url: e.target.value })}
+                placeholder="https://example.com/logo.png"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Primary Color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Primærfarge</label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={profileForm.primary_color || '#000000'}
+                  onChange={(e) => setProfileForm({ ...profileForm, primary_color: e.target.value })}
+                  className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={profileForm.primary_color}
+                  onChange={(e) => setProfileForm({ ...profileForm, primary_color: e.target.value })}
+                  placeholder="#000000"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Secondary Color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sekundærfarge</label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={profileForm.secondary_color || '#000000'}
+                  onChange={(e) => setProfileForm({ ...profileForm, secondary_color: e.target.value })}
+                  className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={profileForm.secondary_color}
+                  onChange={(e) => setProfileForm({ ...profileForm, secondary_color: e.target.value })}
+                  placeholder="#000000"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Accent Color */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Aksentfarge</label>
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={profileForm.accent_color || '#000000'}
+                  onChange={(e) => setProfileForm({ ...profileForm, accent_color: e.target.value })}
+                  className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={profileForm.accent_color}
+                  onChange={(e) => setProfileForm({ ...profileForm, accent_color: e.target.value })}
+                  placeholder="#000000"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Font Family */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Skriftfamilie</label>
+              <input
+                type="text"
+                value={profileForm.font_family}
+                onChange={(e) => setProfileForm({ ...profileForm, font_family: e.target.value })}
+                placeholder="e.g., 'Arial', 'Helvetica Neue'"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Brand Voice */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Merkevaretons</label>
+              <textarea
+                value={profileForm.brand_voice}
+                onChange={(e) => setProfileForm({ ...profileForm, brand_voice: e.target.value })}
+                placeholder="Beskriv hvordan merkevaren skal snakke og tonefallet..."
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Brand Guidelines */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Merkevareveileder</label>
+              <textarea
+                value={profileForm.brand_guidelines}
+                onChange={(e) => setProfileForm({ ...profileForm, brand_guidelines: e.target.value })}
+                placeholder="JSON eller fritekst med merkevareveileder..."
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              />
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSaveProfile}
+              disabled={profileSaving}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              {profileSaving ? 'Lagrer...' : 'Lagre profil'}
+            </button>
+          </div>
         </div>
 
         {/* Content Production */}
