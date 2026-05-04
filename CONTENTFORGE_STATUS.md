@@ -51,6 +51,8 @@
 - ✅ "Ferdigstilte videoer" section displays video with player
 - ✅ Download button works (droplet URL)
 - ✅ ffmpeg uses `-pix_fmt yuv420p` for browser compatibility
+- ✅ **R2-upload of video works** — Python writes .done marker file when complete
+- ✅ **Videos display and play on product page from R2-URL** — Content Banks gallery
 
 ### File Stability & R2 Upload
 - ✅ waitForFile() waits for file to stabilize (6+ seconds no growth)
@@ -74,19 +76,13 @@
 
 ## 🔴 Kjente problemer / TODO
 
-### 1. R2 Video Upload (PARTIAL UPLOAD)
-**Status:** ⚠️ Partial — Videos upload but often truncated  
-**Details:** Python writes file in chunks, Node uploads to R2 after stability check. But sometimes only ~524 KB of 1.9 MB arrives in R2 (race condition still possible).  
-**Workaround:** "Ferdigstilte videoer" uses droplet URL which has full file.  
-**Long-term fix:** Need Python to explicitly signal completion before Node uploads (e.g., write a `.done` marker file).
-
-### 2. product_profiles 406 Error
+### 1. product_profiles 406 Error
 **Status:** ❌ Not investigated  
 **Details:** `GET product_profiles?select=*&product_id=...` returns 406 Not Acceptable  
 **Impact:** Merkevareprofil (brand info) doesn't display on product page  
 **To debug:** Check Supabase query permissions, table structure, RLS policies
 
-### 3. Cache-Busting
+### 2. Cache-Busting
 **Status:** ✅ Mitigated  
 **Details:** Netlify cache sometimes serves stale code. Added `ignore = "/bin/false"` in netlify.toml.  
 **Workaround:** Use "Clear cache and deploy" on Netlify dashboard if needed
@@ -132,6 +128,8 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 | Commit | Message | Deploy ID |
 |--------|---------|-----------|
+| `e165632` | feat: restore Videos section in Content Banks with droplet URLs | `69f85fbd2779` |
+| `2d41ead` | docs: add comprehensive ContentForge v2 status document | — |
 | `bd47570` | cleanup: remove videos from asset_banks section | — |
 | `30fd9d7` | fix: store R2 video URL in ai_parameters.r2_url | `69f8451bc914` |
 | `a38b66d` | build: add ignore rule to netlify.toml | `69f77fe8015a` |
