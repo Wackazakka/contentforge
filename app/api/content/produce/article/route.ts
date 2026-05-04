@@ -162,15 +162,16 @@ export async function POST(request: NextRequest) {
         const { title, content } = await generateArticleContent(topic, platform)
         console.log(`[article-produce] ${platform}: Content generated - title: "${title.substring(0, 50)}..."`)
 
-        // Generate image
-        console.log(`[article-produce] ${platform}: Calling DALL-E API...`)
-        const imageUrl = await generateImage(topic)
-        console.log(`[article-produce] ${platform}: Image generated - URL: ${imageUrl.substring(0, 50)}...`)
+        // Generate image (temporarily disabled - TODO: re-enable after testing)
+        // console.log(`[article-produce] ${platform}: Calling DALL-E API...`)
+        // const imageUrl = await generateImage(topic)
+        // console.log(`[article-produce] ${platform}: Image generated - URL: ${imageUrl.substring(0, 50)}...`)
 
-        // Upload to R2
-        console.log(`[article-produce] ${platform}: Uploading image to R2...`)
-        const r2Url = await uploadImageToR2(imageUrl, campaignId, platform)
-        console.log(`[article-produce] ${platform}: R2 upload complete - URL: ${r2Url}`)
+        // Upload to R2 (temporarily disabled)
+        // console.log(`[article-produce] ${platform}: Uploading image to R2...`)
+        // const r2Url = await uploadImageToR2(imageUrl, campaignId, platform)
+        // console.log(`[article-produce] ${platform}: R2 upload complete - URL: ${r2Url}`)
+        const r2Url = '' // Placeholder until image generation is re-enabled
 
         // Create article ID
         const articleId = randomUUID()
@@ -185,7 +186,7 @@ export async function POST(request: NextRequest) {
           title,
           platform,
           content,
-          image_urls: [r2Url],
+          image_urls: r2Url ? [r2Url] : [], // Empty array until image generation is re-enabled
         })
 
         if (insertError) {
@@ -201,7 +202,7 @@ export async function POST(request: NextRequest) {
             platform,
             title,
             content,
-            image_url: r2Url,
+            image_url: r2Url || '', // Empty string while image generation is disabled
           })
           console.log(`[article-produce] ✅ ${platform} article successfully created: ${articleId}`)
         }
