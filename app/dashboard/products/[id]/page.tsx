@@ -450,7 +450,7 @@ export default function ProductPage() {
 
             {/* Brand Voice */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Merkevaretons</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Merkevaretone</label>
               <textarea
                 value={profileForm.brand_voice}
                 onChange={(e) => setProfileForm({ ...profileForm, brand_voice: e.target.value })}
