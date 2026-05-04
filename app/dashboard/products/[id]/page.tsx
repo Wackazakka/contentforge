@@ -76,6 +76,8 @@ export default function ProductPage() {
   const [assetsLoading, setAssetsLoading] = useState(false)
   const [videos, setVideos] = useState<AssetBank[]>([])
   const [videosLoading, setVideosLoading] = useState(false)
+  const [articles, setArticles] = useState<any[]>([])
+  const [articlesLoading, setArticlesLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -288,6 +290,33 @@ export default function ProductPage() {
 
     fetchVideos()
   }, [productId])
+
+  // Fetch articles
+  useEffect(() => {
+    if (!productId || !session?.user?.id) return
+
+    const fetchArticles = async () => {
+      try {
+        setArticlesLoading(true)
+        const supabase = getSupabase()
+
+        const { data: articlesData, error: articlesError } = await supabase
+          .from('articles')
+          .select('id, title, platform, content, created_at')
+          .eq('product_id', productId)
+          .order('created_at', { ascending: false })
+
+        if (articlesError) throw articlesError
+        setArticles(articlesData || [])
+      } catch (err) {
+        console.error('[ProductPage] Articles fetch error:', err)
+      } finally {
+        setArticlesLoading(false)
+      }
+    }
+
+    fetchArticles()
+  }, [productId, session?.user?.id])
 
   if (loading) {
     return (
@@ -702,6 +731,40 @@ export default function ProductPage() {
               </div>
             )}
           </div>
+
+          {/* Artikler */}
+          {articlesLoading ? (
+            <div className="text-center py-12 text-gray-500">Laster artikler...</div>
+          ) : articles.length > 0 ? (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Artikler ({articles.length})</h3>
+              <div className="space-y-4">
+                {articles.map((article) => (
+                  <div key={article.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{article.title}</h4>
+                        <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded capitalize">
+                          {article.platform}
+                        </span>
+                        <p className="text-sm text-gray-600 mt-2">
+                          {article.content.substring(0, 100)}
+                          {article.content.length > 100 ? '...' : ''}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">{new Date(article.created_at).toLocaleDateString('no-NO')}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 border border-gray-200 rounded-lg">
+              <div className="text-4xl mb-2">📝</div>
+              <p className="text-sm">Ingen artikler opprettet ennå</p>
+              <p className="text-xs text-gray-400 mt-2">Artikler du genererer vil vises her</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
