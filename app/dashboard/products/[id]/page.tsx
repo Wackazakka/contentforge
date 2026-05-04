@@ -107,7 +107,7 @@ export default function ProductPage() {
           .from('product_profiles')
           .select('*')
           .eq('product_id', productId)
-          .single()
+          .maybeSingle()
 
         if (profileData) {
           setProfile(profileData)
