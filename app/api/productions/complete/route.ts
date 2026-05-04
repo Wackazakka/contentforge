@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
         // Store video URL and image URLs in ai_parameters
         ai_parameters: {
           video_url: videoUrl,
+          r2_url: videoUrl, // R2 URL for use in frontend
           image_urls: imageUrls,
           service,
           campaignId,
