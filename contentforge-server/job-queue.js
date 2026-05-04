@@ -13,18 +13,26 @@ const ENV_PATH = '/opt/reforhandle/.env.local'
 
 const DEFAULT_VOICE_ID = 'nPczCjzI2devNBz1zQrb' // Brian (multilingual, supports Norwegian)
 
-// Wait for file to reach minimum size (e.g., Python still writing)
-async function waitForFile(filePath, minSize = 10000, maxAttempts = 5) {
+// Wait for file to stabilize (stop growing for 2 seconds)
+async function waitForFile(filePath, maxAttempts = 30) {
+  let lastSize = 0
+  let stableCount = 0
   for (let i = 0; i < maxAttempts; i++) {
-    const stats = fs.statSync(filePath)
-    if (stats.size >= minSize) {
-      console.log(`[job-queue] File ${path.basename(filePath)} reached ${stats.size} bytes after ${i} attempt(s)`)
-      return true
-    }
-    console.log(`[job-queue] File ${path.basename(filePath)} only ${stats.size} bytes (${minSize} needed), waiting 2s... (attempt ${i + 1}/${maxAttempts})`)
     await new Promise(r => setTimeout(r, 2000))
+    const stats = fs.statSync(filePath)
+    if (stats.size > 0 && stats.size === lastSize) {
+      stableCount++
+      if (stableCount >= 3) { // stable for 6 seconds (3 × 2s checks)
+        console.log(`[job-queue] File ${path.basename(filePath)} stable at ${stats.size} bytes after ${i + 1} attempt(s)`)
+        return true
+      }
+    } else {
+      stableCount = 0
+    }
+    lastSize = stats.size
+    console.log(`[job-queue] File ${path.basename(filePath)} is ${stats.size} bytes (stable: ${stableCount}/3), waiting... (attempt ${i + 1}/${maxAttempts})`)
   }
-  console.warn(`[job-queue] File ${path.basename(filePath)} still under ${minSize} bytes after ${maxAttempts} attempts`)
+  console.warn(`[job-queue] File ${path.basename(filePath)} did not stabilize after ${maxAttempts} attempts`)
   return false
 }
 
@@ -446,7 +454,7 @@ router.post('/', async (req, res) => {
               console.log(`[job-queue] Uploading video to R2 for job ${jobId}...`)
               
               // Wait for file to be fully written (Python renderer may still be writing)
-              const fileReady = await waitForFile(outputFile, 10000, 5)
+              const fileReady = await waitForFile(outputFile)
               if (!fileReady) {
                 console.warn(`[job-queue] Video file ${outputFile} is suspiciously small, but attempting upload anyway`)
               }
