@@ -41,6 +41,8 @@ Return JSON with:
   "content": "Full article content optimized for ${platform}"
 }`
 
+  console.log(`[generateArticleContent] ${platform}: API key present: ${!!ANTHROPIC_API_KEY}`)
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -61,15 +63,27 @@ Return JSON with:
   })
 
   if (!response.ok) {
-    throw new Error(`Claude API error: ${response.statusText}`)
+    const errorData = await response.json().catch(() => ({}))
+    console.error(`[generateArticleContent] ${platform}: Claude API error`, {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorData,
+    })
+    throw new Error(`Claude API error: ${response.status} ${response.statusText}`)
   }
 
   const data = await response.json()
-  const content = data.content[0].text
+  const content = data.content?.[0]?.text
+
+  if (!content) {
+    console.error(`[generateArticleContent] ${platform}: No content in response`, { data })
+    throw new Error('No content in Claude response')
+  }
 
   // Parse JSON from response
   const jsonMatch = content.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
+    console.error(`[generateArticleContent] ${platform}: Could not find JSON in response`, { content: content.substring(0, 200) })
     throw new Error('Could not parse article JSON from Claude')
   }
 
@@ -78,6 +92,8 @@ Return JSON with:
 
 // Generate image using DALL-E
 async function generateImage(topic: string): Promise<string> {
+  console.log(`[generateImage] API key present: ${!!OPENAI_API_KEY}`)
+
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
@@ -93,10 +109,21 @@ async function generateImage(topic: string): Promise<string> {
   })
 
   if (!response.ok) {
-    throw new Error(`DALL-E API error: ${response.statusText}`)
+    const errorData = await response.json().catch(() => ({}))
+    console.error(`[generateImage] DALL-E API error`, {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorData,
+    })
+    throw new Error(`DALL-E API error: ${response.status} ${response.statusText}`)
   }
 
   const data = await response.json()
+  if (!data.data?.[0]?.url) {
+    console.error(`[generateImage] No image URL in response`, { data })
+    throw new Error('No image URL in DALL-E response')
+  }
+
   return data.data[0].url
 }
 
@@ -128,22 +155,30 @@ export async function POST(request: NextRequest) {
     // Generate article for each platform
     for (const platform of platforms) {
       try {
-        console.log(`[article-produce] Generating ${platform} article for topic: ${topic}`)
+        console.log(`[article-produce] Starting ${platform} article generation for topic: "${topic}"`)
 
         // Generate content
+        console.log(`[article-produce] ${platform}: Calling Claude API...`)
         const { title, content } = await generateArticleContent(topic, platform)
+        console.log(`[article-produce] ${platform}: Content generated - title: "${title.substring(0, 50)}..."`)
 
         // Generate image
+        console.log(`[article-produce] ${platform}: Calling DALL-E API...`)
         const imageUrl = await generateImage(topic)
+        console.log(`[article-produce] ${platform}: Image generated - URL: ${imageUrl.substring(0, 50)}...`)
 
         // Upload to R2
+        console.log(`[article-produce] ${platform}: Uploading image to R2...`)
         const r2Url = await uploadImageToR2(imageUrl, campaignId, platform)
+        console.log(`[article-produce] ${platform}: R2 upload complete - URL: ${r2Url}`)
 
         // Create article ID
         const articleId = randomUUID()
+        console.log(`[article-produce] ${platform}: Article ID: ${articleId}`)
 
         // Insert into database
-        const { error: insertError } = await supabase.from('articles').insert({
+        console.log(`[article-produce] ${platform}: Inserting into database...`)
+        const { error: insertError, data: insertData } = await supabase.from('articles').insert({
           id: articleId,
           product_id: productId,
           campaign_id: campaignId,
@@ -154,7 +189,12 @@ export async function POST(request: NextRequest) {
         })
 
         if (insertError) {
-          console.error(`[article-produce] Insert error for ${platform}:`, insertError)
+          console.error(`[article-produce] ${platform}: Database insert failed`, {
+            error: insertError,
+            code: (insertError as any).code,
+            message: (insertError as any).message,
+            details: (insertError as any).details,
+          })
         } else {
           articles.push({
             id: articleId,
@@ -163,10 +203,15 @@ export async function POST(request: NextRequest) {
             content,
             image_url: r2Url,
           })
-          console.log(`[article-produce] ${platform} article created: ${articleId}`)
+          console.log(`[article-produce] ✅ ${platform} article successfully created: ${articleId}`)
         }
       } catch (error) {
-        console.error(`[article-produce] Error generating ${platform} article:`, error)
+        console.error(`[article-produce] ❌ Error generating ${platform} article:`, {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          platform,
+          topic,
+        })
         // Continue with next platform
       }
     }
