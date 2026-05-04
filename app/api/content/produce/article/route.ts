@@ -85,14 +85,23 @@ Return JSON with:
     throw new Error('No content in Claude response')
   }
 
-  // Parse JSON from response
+  // Robust JSON extraction - handles text around JSON
   const jsonMatch = content.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
     console.error(`[generateArticleContent] ${platform}: Could not find JSON in response`, { content: content.substring(0, 200) })
-    throw new Error('Could not parse article JSON from Claude')
+    throw new Error('No JSON found in Claude response')
   }
 
-  return JSON.parse(jsonMatch[0])
+  try {
+    const parsed = JSON.parse(jsonMatch[0])
+    return parsed
+  } catch (parseError) {
+    console.error(`[generateArticleContent] ${platform}: JSON parse error`, {
+      json: jsonMatch[0].substring(0, 100),
+      error: parseError instanceof Error ? parseError.message : String(parseError),
+    })
+    throw new Error('Failed to parse JSON from Claude response')
+  }
 }
 
 // Generate image using DALL-E
