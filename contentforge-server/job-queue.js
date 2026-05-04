@@ -480,8 +480,9 @@ router.post('/', async (req, res) => {
                 })
               )
 
-              videoUrl = `${process.env.R2_PUBLIC_URL}/videos/${jobId}/output.mp4`
-              console.log(`[job-queue] Video uploaded to R2: ${videoUrl}`)
+              // Keep videoUrl as droplet URL for asset_banks (R2 upload is just backup)
+              // videoUrl = `${process.env.R2_PUBLIC_URL}/videos/${jobId}/output.mp4`
+              console.log(`[job-queue] Video uploaded to R2 (backup), using droplet URL for asset_banks`)
             } catch (r2Err) {
               console.error(`[job-queue] R2 upload failed for job ${jobId}:`, r2Err.message)
               // Fallback to droplet URL if R2 fails
