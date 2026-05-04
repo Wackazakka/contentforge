@@ -8,6 +8,9 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
+// Validate UUID format
+const isValidUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+
 interface GenerateArticleRequest {
   productId: string
   campaignId: string
@@ -180,7 +183,7 @@ export async function POST(request: NextRequest) {
         const { error: insertError, data: insertData } = await supabase.from('articles').insert({
           id: articleId,
           product_id: productId,
-          campaign_id: campaignId,
+          campaign_id: isValidUuid(campaignId) ? campaignId : null,
           title,
           platform,
           content,
