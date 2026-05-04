@@ -1,6 +1,7 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  ignore = "/bin/false"
 
 [build.environment]
   NEXT_PUBLIC_BASE_URL = "https://contentforge.netlify.app"
