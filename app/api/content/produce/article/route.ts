@@ -30,7 +30,7 @@ interface ArticleResult {
 async function generateArticleContent(topic: string, platform: string): Promise<{ title: string; content: string }> {
   const platformGuides: Record<string, string> = {
     facebook: 'Write for Facebook: engaging, conversational, with emojis and a call-to-action. Include hashtags.',
-    linkedin: 'Write for LinkedIn: professional, insightful, thought-leadership style. No excessive emojis.',
+    linkedin: 'Write for LinkedIn: professional, insightful, thought-leadership style. No excessive emojis. START WITH A STRONG OPENING SENTENCE that grabs attention - do not begin mid-sentence. Make the first sentence compelling and complete.',
     x: 'Write for X/Twitter: concise (under 280 chars per tweet), punchy, with relevant hashtags.',
   }
 
