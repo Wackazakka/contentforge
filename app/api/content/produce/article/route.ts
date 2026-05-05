@@ -29,21 +29,22 @@ interface ArticleResult {
 // Generate article content using Claude
 async function generateArticleContent(topic: string, platform: string): Promise<{ title: string; content: string }> {
   const platformGuides: Record<string, string> = {
-    facebook: 'Write for Facebook: engaging, conversational, with emojis and a call-to-action. Include hashtags.',
-    linkedin: 'Write for LinkedIn: professional, insightful, thought-leadership style. No excessive emojis. START WITH A STRONG OPENING SENTENCE that grabs attention - do not begin mid-sentence. Make the first sentence compelling and complete.',
-    x: 'Write for X/Twitter: concise (under 280 chars per tweet), punchy, with relevant hashtags.',
+    facebook: 'Write for Facebook: engaging, conversational, with emojis and a call-to-action. Include hashtags. Keep the article under 150 words.',
+    linkedin: 'Write for LinkedIn: professional, insightful, thought-leadership style. No excessive emojis. START WITH A STRONG OPENING SENTENCE that grabs attention - do not begin mid-sentence. Make the first sentence compelling and complete. Keep the article under 150 words.',
+    x: 'Write for X/Twitter: concise (under 280 chars per tweet), punchy, with relevant hashtags. Keep the article under 150 words.',
   }
 
   const prompt = `Generate a ${platform} article about: "${topic}"
 
 IMPORTANT: Write the entire article in Norwegian (Norsk). All text must be in Norwegian.
+CRITICAL: Keep the article under 150 words. Do not exceed 150 words.
 
-${platformGuides[platform] || 'Write engaging content'}
+${platformGuides[platform] || 'Write engaging content. Keep the article under 150 words.'}
 
 Return JSON with:
 {
   "title": "Article title in Norwegian",
-  "content": "Full article content in Norwegian, optimized for ${platform}"
+  "content": "Full article content in Norwegian, optimized for ${platform}. Max 150 words."
 }`
 
   console.log(`[generateArticleContent] ${platform}: API key present: ${!!ANTHROPIC_API_KEY}`)
