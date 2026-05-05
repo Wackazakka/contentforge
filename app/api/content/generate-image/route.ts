@@ -148,11 +148,9 @@ export async function POST(request: NextRequest) {
         .insert({
           product_id: productId,
           bank_type: 'image',
+          name: `Article image - ${topic.substring(0, 50)}`,
           asset_url: r2Url,
-          metadata: {
-            name: `Article image - ${topic.substring(0, 50)}`,
-            topic: topic,
-          },
+          asset_type: 'image',
         })
         .select()
 
