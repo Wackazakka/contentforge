@@ -36,6 +36,14 @@ export async function POST(request: Request) {
 
     console.log('[start-production] Draft fetched:', { draftId: draft.id, segments: draft.segments?.length || 0 })
 
+    // Hent produkt for logo
+    console.log('[start-production] Fetching product logo...')
+    const { data: product } = await supabase
+      .from('products')
+      .select('logo_url')
+      .eq('id', draft.product_id)
+      .single()
+
     // Sjekk at alle segmenter er godkjent
     const segments = draft.segments || []
     const allApproved = segments.every((s: any) => s.approved === true)
@@ -80,6 +88,7 @@ export async function POST(request: Request) {
         video_format: draft.video_format || '9:16',
         musicStyle: draft.music_style || 'Upbeat',
         musicFile: draft.music_file || null,
+        logoUrl: product?.logo_url || null,
       }),
     })
 
