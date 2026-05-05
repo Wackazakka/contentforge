@@ -1,0 +1,338 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+import { getSupabase } from '@/lib/supabaseClient'
+
+interface Segment {
+  index: number
+  text: string
+  voiceover: string
+  image_url: string
+  approved: boolean
+}
+
+interface Draft {
+  id: string
+  product_id: string
+  campaign_id: string
+  status: string
+  segments: Segment[]
+}
+
+export default function DraftPage() {
+  const router = useRouter()
+  const params = useParams()
+  const productId = params?.id as string
+  const draftId = params?.draftId as string
+
+  const [draft, setDraft] = useState<Draft | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null)
+  const [assets, setAssets] = useState<any[]>([])
+  const [showImageBank, setShowImageBank] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!draftId) return
+
+    const fetchDraft = async () => {
+      try {
+        setLoading(true)
+        const supabase = getSupabase()
+
+        const { data, error: fetchError } = await supabase
+          .from('production_drafts')
+          .select('*')
+          .eq('id', draftId)
+          .single()
+
+        if (fetchError) throw fetchError
+        setDraft(data)
+      } catch (err) {
+        console.error('[DraftPage] Fetch error:', err)
+        setError(err instanceof Error ? err.message : 'Feil ved henting av draft')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDraft()
+  }, [draftId])
+
+  // Fetch available images from asset_banks
+  useEffect(() => {
+    if (!productId) return
+
+    const fetchAssets = async () => {
+      try {
+        const supabase = getSupabase()
+        const { data } = await supabase
+          .from('asset_banks')
+          .select('id, asset_url, name')
+          .eq('product_id', productId)
+          .eq('asset_type', 'image')
+
+        setAssets(data || [])
+      } catch (err) {
+        console.error('[DraftPage] Asset fetch error:', err)
+      }
+    }
+
+    fetchAssets()
+  }, [productId])
+
+  const toggleApproval = (index: number) => {
+    if (!draft) return
+
+    const updatedSegments = [...draft.segments]
+    updatedSegments[index].approved = !updatedSegments[index].approved
+    setDraft({ ...draft, segments: updatedSegments })
+  }
+
+  const regenerateImage = async (index: number) => {
+    if (!draft) return
+
+    try {
+      setRegeneratingIndex(index)
+      const segment = draft.segments[index]
+
+      const response = await fetch('/api/content/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: segment.text,
+          productId,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Image generation failed')
+
+      const data = await response.json()
+      const updatedSegments = [...draft.segments]
+      updatedSegments[index].image_url = data.imageUrl
+      setDraft({ ...draft, segments: updatedSegments })
+    } catch (err) {
+      console.error('[DraftPage] Regenerate error:', err)
+      alert('Feil ved regenerering av bilde')
+    } finally {
+      setRegeneratingIndex(null)
+    }
+  }
+
+  const selectImageFromBank = (index: number, assetUrl: string) => {
+    if (!draft) return
+
+    const updatedSegments = [...draft.segments]
+    updatedSegments[index].image_url = assetUrl
+    setDraft({ ...draft, segments: updatedSegments })
+    setShowImageBank(null)
+  }
+
+  const startProduction = async () => {
+    if (!draft) return
+
+    try {
+      // Call video production API with approved segments
+      const response = await fetch('/api/content/produce/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId,
+          campaignId: draft.campaign_id,
+          segments: draft.segments,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Video production failed')
+
+      // Redirect to product page on success
+      router.push(`/dashboard/products/${productId}`)
+    } catch (err) {
+      console.error('[DraftPage] Production error:', err)
+      alert('Feil ved start av produksjon')
+    }
+  }
+
+  const allApproved = draft?.segments?.every((s) => s.approved) ?? false
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Laster draft...</div>
+      </div>
+    )
+  }
+
+  if (error || !draft) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+            ← Tilbake til produkt
+          </Link>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">{error || 'Draft ikke funnet'}</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+            ← Tilbake til produkt
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">Godkjenn video-draft</h1>
+          <p className="text-gray-600 mt-2">Gjennomgå og godkjenn hver segment før produksjon</p>
+        </div>
+
+        {/* Segments */}
+        <div className="space-y-6 mb-8">
+          {draft.segments.map((segment, index) => (
+            <div key={index} className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex gap-6">
+                {/* Image */}
+                <div className="flex-shrink-0 w-48">
+                  {segment.image_url && (
+                    <img
+                      src={segment.image_url}
+                      alt={`Segment ${index + 1}`}
+                      className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                    />
+                  )}
+                  {!segment.image_url && (
+                    <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
+                      Ingen bilde
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Segment {index + 1}</h3>
+
+                    {/* Text */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tekst</label>
+                      <p className="text-gray-700 p-3 bg-gray-50 rounded border border-gray-200">{segment.text}</p>
+                    </div>
+
+                    {/* Voiceover */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Voiceover</label>
+                      <p className="text-gray-700 p-3 bg-gray-50 rounded border border-gray-200">{segment.voiceover}</p>
+                    </div>
+
+                    {/* Approval Status */}
+                    <div className="mb-4">
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                        segment.approved
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {segment.approved ? '✅ Godkjent' : '⏳ Venter på godkjenning'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => toggleApproval(index)}
+                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                        segment.approved
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      {segment.approved ? '✅ Godkjent' : '✅ Godkjenn'}
+                    </button>
+
+                    <button
+                      onClick={() => regenerateImage(index)}
+                      disabled={regeneratingIndex === index}
+                      className="px-4 py-2 rounded-lg font-medium text-sm bg-gray-200 hover:bg-gray-300 text-gray-900 transition-colors disabled:opacity-50"
+                    >
+                      {regeneratingIndex === index ? '🔄 Genererer...' : '🔄 Regenerer bilde'}
+                    </button>
+
+                    <button
+                      onClick={() => setShowImageBank(index)}
+                      className="px-4 py-2 rounded-lg font-medium text-sm bg-purple-600 hover:bg-purple-700 text-white transition-colors"
+                    >
+                      🖼️ Velg fra bank
+                    </button>
+
+                    {/* Image Bank Modal */}
+                    {showImageBank === index && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+                          <h4 className="text-lg font-semibold mb-4">Velg bilde fra bildebank</h4>
+                          <div className="grid grid-cols-3 gap-4 mb-4 max-h-96 overflow-y-auto">
+                            {assets.length > 0 ? (
+                              assets.map((asset) => (
+                                <button
+                                  key={asset.id}
+                                  onClick={() => selectImageFromBank(index, asset.asset_url)}
+                                  className="group relative rounded-lg overflow-hidden aspect-square border-2 border-transparent hover:border-blue-500"
+                                >
+                                  <img
+                                    src={asset.asset_url}
+                                    alt={asset.name}
+                                    className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
+                                  />
+                                </button>
+                              ))
+                            ) : (
+                              <p className="col-span-3 text-gray-500 text-center py-8">Ingen bilder i banken</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => setShowImageBank(null)}
+                            className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium"
+                          >
+                            Lukk
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Start Production Button */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex justify-between items-center">
+          <div className="text-sm text-gray-600">
+            {allApproved ? (
+              <span className="text-green-600 font-medium">✅ Alle segmenter godkjent - klar til produksjon</span>
+            ) : (
+              <span className="text-yellow-600 font-medium">
+                ⏳ {draft.segments.filter((s) => !s.approved).length} segment(er) venter på godkjenning
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={startProduction}
+            disabled={!allApproved}
+            className={`px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
+              allApproved
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-gray-400 cursor-not-allowed opacity-50'
+            }`}
+          >
+            🎬 Start produksjon
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
