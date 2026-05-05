@@ -64,11 +64,14 @@ export async function POST(request: Request) {
         campaignId: draft.campaign_id || draft.id, // fallback til draftId
         productId: draft.product_id,
         service: draft.service || 'storytelling',
-        voiceId: draft.voice_id || 'nPczCjzI2devNBz1zQrb',
+        targetAudience: draft.target_audience || '',
+        problem: draft.problem || '',
+        voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX',
         tone: draft.tone || 'Energisk',
         cta: draft.cta || '',
         segments: processedSegments,
         video_format: draft.video_format || '9:16',
+        musicStyle: draft.music_style || 'Upbeat',
         musicFile: draft.music_file || null,
       }),
     })

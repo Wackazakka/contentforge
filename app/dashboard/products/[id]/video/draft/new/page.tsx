@@ -27,10 +27,13 @@ export default function NewDraftPage() {
 
   const [topic, setTopic] = useState('')
   const [segmentCount, setSegmentCount] = useState(4)
+  const [targetAudience, setTargetAudience] = useState('')
+  const [problem, setProblem] = useState('')
   const [voiceId, setVoiceId] = useState('nhvaqgRyAq6BmFs3WcdX')
   const [tone, setTone] = useState('Energisk')
   const [cta, setCta] = useState('')
   const [videoFormat, setVideoFormat] = useState('9:16')
+  const [musicStyle, setMusicStyle] = useState('Upbeat')
   const [musicFile, setMusicFile] = useState<string | null>(null)
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [loading, setLoading] = useState(false)
@@ -72,10 +75,13 @@ export default function NewDraftPage() {
           campaignId,
           topic,
           segmentCount,
+          targetAudience,
+          problem,
           voiceId,
           tone,
           cta,
           videoFormat,
+          musicStyle,
           musicFile,
         }),
       })
@@ -149,6 +155,30 @@ export default function NewDraftPage() {
                     <option value={5}>5 segmenter</option>
                     <option value={6}>6 segmenter</option>
                   </select>
+                </div>
+
+                {/* Target Audience */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Målgruppe</label>
+                  <input
+                    type="text"
+                    value={targetAudience}
+                    onChange={(e) => setTargetAudience(e.target.value)}
+                    placeholder="F.eks. Huseiere, 35-55 år, bor i Norge"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Problem */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Problem som løses</label>
+                  <input
+                    type="text"
+                    value={problem}
+                    onChange={(e) => setProblem(e.target.value)}
+                    placeholder="F.eks. Betaler for mye på strøm og internett"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
 
                 {/* CTA */}
@@ -232,6 +262,27 @@ export default function NewDraftPage() {
                         }`}
                       >
                         {fmt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Music Style */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Musikk-stil</label>
+                  <div className="flex gap-2">
+                    {['Upbeat', 'Minimal', 'Cinematisk'].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setMusicStyle(s)}
+                        className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
+                          musicStyle === s
+                            ? 'bg-green-600 text-white border-green-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        {s}
                       </button>
                     ))}
                   </div>

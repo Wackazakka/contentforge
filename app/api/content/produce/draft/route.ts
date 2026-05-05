@@ -13,10 +13,13 @@ interface DraftRequest {
   campaignId: string
   topic: string
   segmentCount?: number
+  targetAudience?: string
+  problem?: string
   voiceId?: string
   tone?: string
   cta?: string
   videoFormat?: string
+  musicStyle?: string
   musicFile?: string | null
 }
 
@@ -29,10 +32,27 @@ interface Segment {
 }
 
 // Generate script using Claude
-async function generateScript(topic: string, segmentCount: number): Promise<Segment[]> {
+async function generateScript(
+  topic: string, 
+  segmentCount: number, 
+  targetAudience: string = '',
+  problem: string = '',
+  tone: string = 'Energisk',
+  cta: string = ''
+): Promise<Segment[]> {
   console.log(`[generateDraft] Calling Claude to generate script with ${segmentCount} segments for topic: "${topic}"`)
 
+  const audienceContext = targetAudience ? `Target audience: ${targetAudience}` : ''
+  const problemContext = problem ? `Problem to solve: ${problem}` : ''
+  const toneContext = `Tone: ${tone}`
+  const ctaContext = cta ? `Call-to-action: ${cta}` : ''
+
   const prompt = `Generate a video script for a TikTok/Reels video about: "${topic}"
+
+${audienceContext}
+${problemContext}
+${toneContext}
+${ctaContext}
 
 The script should have exactly ${segmentCount} segments.
 
@@ -113,10 +133,13 @@ export async function POST(request: NextRequest) {
       campaignId, 
       topic, 
       segmentCount = 4,
+      targetAudience,
+      problem,
       voiceId,
       tone,
       cta,
       videoFormat,
+      musicStyle,
       musicFile,
     } = body
 
@@ -132,7 +155,7 @@ export async function POST(request: NextRequest) {
 
     // Step 1: Generate script with Claude (NO IMAGE GENERATION)
     console.log(`[generateDraft] Step 1: Generating script...`)
-    let segments = await generateScript(topic, segmentCount)
+    let segments = await generateScript(topic, segmentCount, targetAudience, problem, tone, cta)
     console.log(`[generateDraft] Step 1: ✅ Script generated`)
 
     // Set empty image_url for each segment (images will be generated client-side)
@@ -153,10 +176,13 @@ export async function POST(request: NextRequest) {
         campaign_id: isValidUuid(campaignId) ? campaignId : null,
         status: 'draft',
         segments: segments,
-        voice_id: voiceId || 'nPczCjzI2devNBz1zQrb',
+        target_audience: targetAudience || '',
+        problem: problem || '',
+        voice_id: voiceId || 'nhvaqgRyAq6BmFs3WcdX',
         tone: tone || 'Energisk',
         cta: cta || '',
         video_format: videoFormat || '9:16',
+        music_style: musicStyle || 'Upbeat',
         music_file: musicFile || null,
       })
       .select('id')
