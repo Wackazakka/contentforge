@@ -5,6 +5,9 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+// Validate UUID format
+const isValidUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+
 interface DraftRequest {
   productId: string
   campaignId: string
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
       .from('production_drafts')
       .insert({
         product_id: productId,
-        campaign_id: campaignId,
+        campaign_id: isValidUuid(campaignId) ? campaignId : null,
         status: 'draft',
         segments: segments,
       })
