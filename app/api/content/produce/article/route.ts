@@ -85,20 +85,33 @@ Return JSON with:
     throw new Error('No content in Claude response')
   }
 
-  // Robust JSON extraction - handles text around JSON
-  const jsonMatch = content.match(/\{[\s\S]*\}/)
+  // Robust JSON extraction - handles markdown code blocks and raw JSON
+  console.log(`[generateArticleContent] ${platform}: Parsing JSON from Claude response`)
+  
+  // Remove markdown code blocks first (handles ```json\n...``` format)
+  const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+  
+  // Extract JSON object
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
-    console.error(`[generateArticleContent] ${platform}: Could not find JSON in response`, { content: content.substring(0, 200) })
+    console.error(`[generateArticleContent] ${platform}: Could not find JSON in response`, {
+      originalLength: content.length,
+      cleanedLength: cleaned.length,
+      preview: content.substring(0, 300),
+    })
     throw new Error('No JSON found in Claude response')
   }
 
   try {
+    console.log(`[generateArticleContent] ${platform}: Found JSON, parsing...`)
     const parsed = JSON.parse(jsonMatch[0])
+    console.log(`[generateArticleContent] ${platform}: ✅ JSON parsed successfully`)
     return parsed
   } catch (parseError) {
     console.error(`[generateArticleContent] ${platform}: JSON parse error`, {
-      json: jsonMatch[0].substring(0, 100),
+      json: jsonMatch[0].substring(0, 150),
       error: parseError instanceof Error ? parseError.message : String(parseError),
+      jsonLength: jsonMatch[0].length,
     })
     throw new Error('Failed to parse JSON from Claude response')
   }
