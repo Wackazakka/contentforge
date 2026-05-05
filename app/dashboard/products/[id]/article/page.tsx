@@ -89,6 +89,7 @@ export default function ArticlePage() {
       // Generate image in parallel
       setImageLoading(true)
       try {
+        console.log('[ArticlePage] Starting image generation for topic:', topic)
         const imageResponse = await fetch('/api/content/generate-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -98,15 +99,18 @@ export default function ArticlePage() {
           }),
         })
 
+        console.log('[ArticlePage] Image API response status:', imageResponse.status)
+
         if (imageResponse.ok) {
           const imageData = await imageResponse.json()
-          console.log('[ArticlePage] Image generated:', imageData.imageUrl)
+          console.log('[ArticlePage] Image generated successfully:', imageData.imageUrl)
           setImageUrl(imageData.imageUrl)
         } else {
-          console.warn('Image generation failed, continuing without image')
+          const errorData = await imageResponse.json().catch(() => ({}))
+          console.error('[ArticlePage] Image generation failed with status', imageResponse.status, errorData)
         }
       } catch (imgErr) {
-        console.warn('Image generation error:', imgErr)
+        console.error('[ArticlePage] Image generation error:', imgErr instanceof Error ? imgErr.message : String(imgErr))
       } finally {
         setImageLoading(false)
       }
