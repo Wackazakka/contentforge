@@ -1,5 +1,5 @@
 # ContentForge v2 Status Document
-*Oppdatert: 2026-05-04 08:15 UTC*
+*Oppdatert: 2026-05-05 08:32 UTC*
 
 ## Stack
 - **Frontend:** Next.js på Netlify (`contentforge-610.netlify.app`)
@@ -24,7 +24,7 @@
 
 ---
 
-## ✅ Hva som fungerer (Session 2026-05-04)
+## ✅ Hva som fungerer (Session 2026-05-05)
 
 ### Authentication & Core
 - ✅ Auth redirect loop FIXED (removed requireAuth from dashboard layout)
@@ -84,25 +84,48 @@
 
 ---
 
-### Articles Generation
+### Articles Generation & Display
 - ✅ API route `/api/content/produce/article` — single platform per call
 - ✅ Frontend parallel execution via `Promise.all()` for multiple platforms
 - ✅ Claude generates Norwegian articles with platform-specific tone
 - ✅ LinkedIn articles start with strong opening sentence
 - ✅ UUID validation for campaignId (set to null if invalid)
-- ✅ Robust JSON parsing with better error handling
-- ✅ Articles section on product page with preview display
-- ⚠️ **Known issue:** Articles generated but may not display consistently on product page (RLS/fetch timing)
+- ✅ Robust JSON parsing handles both markdown code blocks and raw JSON
+- ✅ Articles section on product page displays with preview (100 chars)
+- ✅ Article cards now clickable using `<a>` tag (navigation works!)
+- ✅ Article detail page `/dashboard/products/[id]/article/[articleId]` shows full content
+- ✅ Markdown rendering: `**bold**` → strong, `*italic*` → em
+- ✅ Copy-to-clipboard functionality on article detail page
+
+### Image Generation for Articles
+- ✅ `/api/content/generate-image` API route (POST)
+- ✅ DALL-E 3 generates professional article images
+- ✅ Images uploaded to R2 bucket (`images/articles/[uuid].png`)
+- ✅ Falls back to DALL-E URL if R2 upload fails
+- ✅ Images inserted into `asset_banks` table with metadata
+- ✅ Campaign image displayed above articles on generation page
+- ✅ Loading spinner while image generates
+
+## 🟢 Fixed This Session (2026-05-05)
+
+### Build Issues
+- ✅ **Missing @aws-sdk/client-s3** — Caused build failures (commit `18fb769`)
+- ✅ **Article cards not clickable** — Changed from `onClick` to `<a>` tag (commit `e9a901f`)
+- ✅ **Duplicate Articles section** — Removed hardcoded empty state that was blocking dynamic content (commit `eda4224`)
+- ✅ **Grid layout** — Moved articles section into `grid md:grid-cols-3` (commit `54728c7`)
+
+### JSON Parsing
+- ✅ Improved Claude response parsing to handle markdown code blocks
+- ✅ Added fallback for both `` ```json ``` `` and raw JSON formats
+
+### Image Generation
+- ✅ Added comprehensive error logging with R2 config checks
+- ✅ Step-by-step logging for debugging (DALL-E → R2 → asset_banks)
+- ✅ asset_banks insertion with all required fields
 
 ## 🔴 Kjente problemer / TODO
 
-### 1. Articles Not Displaying on Product Page
-**Status:** ⚠️ In progress  
-**Details:** Articles are generated and saved to DB, but don't always appear in the articles section on product page  
-**Cause:** Possible RLS policy issue, timing issue with fetch, or display logic  
-**Next steps:** Verify RLS policies, check browser console logs, debug fetch response
-
-### 2. product_profiles 406 Error
+### 1. product_profiles 406 Error
 **Status:** ❌ Not investigated  
 **Details:** `GET product_profiles?select=*&product_id=...` returns 406 Not Acceptable  
 **Impact:** Merkevareprofil (brand info) doesn't display on product page  
@@ -150,10 +173,25 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 ---
 
-## 📋 Recent Commits (Session 2026-05-04)
+## 📋 Recent Commits (Session 2026-05-05)
 
-| Commit | Message | Deploy ID |
-|--------|---------|-----------|
+| Commit | Message | Status |
+|--------|---------|--------|
+| `e9a901f` | fix: replace onClick with <a> tag for article card navigation | ✅ Works! |
+| `f7f3142` | fix: remove 150-word constraint from article generation prompts | ✅ |
+| `ab20777` | fix: update asset_banks insert with all required fields | ✅ |
+| `c5a0f1a` | fix: rename asset_type to bank_type in asset_banks insert | ✅ |
+| `aa684ac` | feat: add asset_banks insert for generated article images | ✅ |
+| `2398e80` | debug: enhance R2 upload error logging | ✅ |
+| `526c7f9` | debug: improve error logging in image generation | ✅ |
+| `8ca334a` | feat: add article detail page + clickable article cards | ✅ |
+| `a34f665` | feat: add DALL-E image generation API | ✅ |
+| `8e425e3` | feat: add simple markdown renderer for article content | ✅ |
+| `eda4224` | **fix: remove duplicate hardcoded Articles section** | ✅ |
+| `58f3074` | cleanup: remove debug text from articles section | ✅ |
+| `54728c7` | debug: move articles into grid layout | ✅ |
+| `c625557` | debug: add console logging to articles fetch | ✅ |
+| `ce013bb` | docs: update status with articles feature | ✅ |
 | `0ede2d3` | feat: add robust JSON extraction with better error handling | — |
 | `e4f6753` | refactor: remove session check from articles fetch | — |
 | `9171bb6` | feat: add articles section to product page | — |
