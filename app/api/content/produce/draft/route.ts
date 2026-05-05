@@ -59,8 +59,13 @@ The script should have exactly ${segmentCount} segments.
 For each segment, provide:
 1. Text (what to display on screen, max 200 chars)
 2. Voiceover (what to say, max 300 chars)
+3. Image prompt (descriptive, cinematic, for DALL-E 3 — IMPORTANT: add "no text, no words, no letters" at the end)
 
 Write everything in Norwegian.
+IMPORTANT PUNCTUATION:
+- End each line of text with proper punctuation (period, exclamation mark, or question mark)
+- Use Norwegian punctuation throughout
+- Ensure every sentence is complete and properly punctuated
 
 Return JSON with exactly this structure:
 {
