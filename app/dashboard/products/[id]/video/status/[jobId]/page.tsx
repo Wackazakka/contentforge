@@ -20,7 +20,7 @@ export default function VideoStatusPage() {
   useEffect(() => {
     const poll = async () => {
       try {
-        const res = await fetch(`http://139.59.212.218:3002/jobs/${jobId}`)
+        const res = await fetch(`/api/job-status/${jobId}`)
         const data = await res.json()
         setJob(data)
         if (data.status === 'done' || data.status === 'failed') return
