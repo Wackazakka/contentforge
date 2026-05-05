@@ -48,7 +48,8 @@ export async function POST(request: Request) {
       },
     })
 
-    const key = `voiceovers/${draftId}/segment_${segmentIndex}.mp3`
+    const timestamp = Date.now()
+    const key = `voiceovers/${draftId}/segment_${segmentIndex}_${timestamp}.mp3`
     console.log(`[preview-voiceover] Uploading to R2: ${key}`)
 
     await r2.send(
