@@ -437,16 +437,31 @@ export default function ProductPage() {
           )}
 
           <div className="space-y-4">
-            {/* Logo URL */}
+            {/* Logo */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
-              <input
-                type="text"
-                value={profileForm.logo_url}
-                onChange={(e) => setProfileForm({ ...profileForm, logo_url: e.target.value })}
-                placeholder="https://example.com/logo.png"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Logo</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={profileForm.logo_url}
+                  onChange={(e) => setProfileForm({ ...profileForm, logo_url: e.target.value })}
+                  placeholder="https://example.com/logo.png"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-gray-400 text-sm">eller</span>
+                <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm border border-gray-300 transition-colors">
+                  {logoUploading ? '⏳ Laster opp...' : '📁 Last opp'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              {profileForm.logo_url && (
+                <img src={profileForm.logo_url} alt="Logo preview" className="mt-3 h-12 w-auto object-contain" />
+              )}
             </div>
 
             {/* Primary Color */}
