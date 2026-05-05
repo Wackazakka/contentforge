@@ -36,6 +36,7 @@ export default function NewDraftPage() {
   const [musicStyle, setMusicStyle] = useState('Upbeat')
   const [musicFile, setMusicFile] = useState<string | null>(null)
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
+  const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -298,9 +299,9 @@ export default function NewDraftPage() {
                       <label className="block">
                         <span className="text-xs font-medium text-gray-700 block mb-1">Mappe</span>
                         <select
-                          id="musicFolder"
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          defaultValue="global"
+                          value={selectedMusicFolder}
+                          onChange={(e) => setSelectedMusicFolder(e.target.value)}
                         >
                           <option value="global">Global (alle produkter)</option>
                           <option value="bildeal">BilDeal</option>
@@ -330,12 +331,11 @@ export default function NewDraftPage() {
                               return
                             }
                             
-                            const folder = (document.getElementById('musicFolder') as HTMLSelectElement)?.value || 'global'
                             const formData = new FormData()
                             formData.append('file', file)
                             
                             try {
-                              const res = await fetch('/api/music/upload?' + new URLSearchParams({ folder }).toString(), {
+                              const res = await fetch('/api/music/upload?' + new URLSearchParams({ folder: selectedMusicFolder }).toString(), {
                                 method: 'POST',
                                 body: formData,
                               })
