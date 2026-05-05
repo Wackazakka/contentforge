@@ -1,8 +1,9 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
 
     console.log('[start-production] Starting production for draft:', draftId)
 
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
 
     // Hent draft med segmenter
     console.log('[start-production] Fetching draft from Supabase...')
