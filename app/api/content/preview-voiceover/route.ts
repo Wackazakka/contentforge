@@ -23,7 +23,8 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         text,
-        model_id: 'eleven_multilingual_v2',
+        model_id: 'eleven_turbo_v2_5',
+        language_code: 'no',
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     })
