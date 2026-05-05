@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { createClient } from '@supabase/supabase-js'
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const R2_ENDPOINT = process.env.R2_ENDPOINT
@@ -8,6 +9,8 @@ const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'contentforge-assets'
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 interface GenerateImageRequest {
   topic: string
@@ -97,6 +100,7 @@ async function uploadImageToR2(imageUrl: string, fileName: string): Promise<stri
 
     const publicUrl = `${R2_PUBLIC_URL}/${key}`
     console.log(`[generateImage] Public URL: ${publicUrl}`)
+    
     return publicUrl
   } catch (error) {
     console.error(`[generateImage] ❌ R2 upload FAILED:`, {
@@ -133,6 +137,34 @@ export async function POST(request: NextRequest) {
     const fileName = `${randomUUID()}.png`
     const r2Url = await uploadImageToR2(dallEUrl, fileName)
     console.log(`[generateImage] Step 2: ✅ R2 upload complete`)
+
+    // Insert into asset_banks
+    console.log(`[generateImage] Step 3: Storing in asset_banks...`)
+    try {
+      const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+      
+      const { data, error: dbError } = await supabase
+        .from('asset_banks')
+        .insert({
+          product_id: productId,
+          asset_type: 'image',
+          asset_url: r2Url,
+          metadata: {
+            name: `Article image - ${topic.substring(0, 50)}`,
+            topic: topic,
+          },
+        })
+        .select()
+
+      if (dbError) {
+        console.error(`[generateImage] asset_banks insert error:`, dbError)
+      } else {
+        console.log(`[generateImage] ✅ Stored in asset_banks:`, data?.[0]?.id)
+      }
+    } catch (dbErr) {
+      console.error(`[generateImage] asset_banks error:`, dbErr instanceof Error ? dbErr.message : String(dbErr))
+      // Don't fail the entire operation if asset_banks insert fails
+    }
 
     console.log(`[generateImage] ========== ✅ IMAGE GENERATION SUCCESS ==========`)
     console.log(`[generateImage] Final URL: ${r2Url}`)
