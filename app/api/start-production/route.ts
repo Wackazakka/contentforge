@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        campaignId: draft.campaign_id,
+        campaignId: draft.campaign_id || draft.id, // fallback til draftId
         productId: draft.product_id,
         service: draft.service || 'storytelling',
         segments: processedSegments,
