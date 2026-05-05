@@ -64,8 +64,11 @@ export async function POST(request: Request) {
         campaignId: draft.campaign_id || draft.id, // fallback til draftId
         productId: draft.product_id,
         service: draft.service || 'storytelling',
+        voiceId: draft.voice_id || 'nPczCjzI2devNBz1zQrb',
+        tone: draft.tone || 'Energisk',
+        cta: draft.cta || '',
         segments: processedSegments,
-        video_format: draft.video_format || 'tiktok',
+        video_format: draft.video_format || '9:16',
         musicFile: draft.music_file || null,
       }),
     })

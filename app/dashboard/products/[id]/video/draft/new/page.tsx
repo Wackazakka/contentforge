@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -11,8 +11,27 @@ export default function NewDraftPage() {
 
   const [topic, setTopic] = useState('')
   const [segmentCount, setSegmentCount] = useState(4)
+  const [voiceId, setVoiceId] = useState('nPczCjzI2devNBz1zQrb')
+  const [tone, setTone] = useState('Energisk')
+  const [cta, setCta] = useState('')
+  const [videoFormat, setVideoFormat] = useState('9:16')
+  const [musicFile, setMusicFile] = useState<string | null>(null)
+  const [musicList, setMusicList] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchMusic = async () => {
+      try {
+        const res = await fetch('/api/music')
+        const data = await res.json()
+        setMusicList(data.files || [])
+      } catch (err) {
+        console.error('Failed to fetch music list:', err)
+      }
+    }
+    fetchMusic()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +55,11 @@ export default function NewDraftPage() {
           campaignId,
           topic,
           segmentCount,
+          voiceId,
+          tone,
+          cta,
+          videoFormat,
+          musicFile,
         }),
       })
 
@@ -109,6 +133,91 @@ export default function NewDraftPage() {
                 <option value={6}>6 segmenter</option>
               </select>
               <p className="text-xs text-gray-500 mt-1">Hver segment blir en del av videoen</p>
+            </div>
+
+            {/* Voice ID */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Voice ID
+              </label>
+              <input
+                type="text"
+                value={voiceId}
+                onChange={(e) => setVoiceId(e.target.value)}
+                placeholder="nPczCjzI2devNBz1zQrb"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">ElevenLabs voice ID for voiceovers</p>
+            </div>
+
+            {/* Tone */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tone
+              </label>
+              <select
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="Energisk">Energisk</option>
+                <option value="Profesjonell">Profesjonell</option>
+                <option value="Vennlig">Vennlig</option>
+                <option value="Saklig">Saklig</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Tone for videoen</p>
+            </div>
+
+            {/* CTA */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Call-to-Action (CTA)
+              </label>
+              <input
+                type="text"
+                value={cta}
+                onChange={(e) => setCta(e.target.value)}
+                placeholder="F.eks. Besøk nettstedet vårt i dag!"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Oppfordring til handling på slutten av videoen</p>
+            </div>
+
+            {/* Video Format */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Videoformat
+              </label>
+              <select
+                value={videoFormat}
+                onChange={(e) => setVideoFormat(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="9:16">9:16 (Portrait/TikTok)</option>
+                <option value="16:9">16:9 (Landscape)</option>
+                <option value="1:1">1:1 (Square)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Format for videoen</p>
+            </div>
+
+            {/* Music File */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bakgrunnsmusikk
+              </label>
+              <select
+                value={musicFile || ''}
+                onChange={(e) => setMusicFile(e.target.value || null)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Ingen musikk</option>
+                {musicList.map((file) => (
+                  <option key={file} value={file}>
+                    {file}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Velg bakgrunnsmusikk for videoen</p>
             </div>
 
             {/* Info */}

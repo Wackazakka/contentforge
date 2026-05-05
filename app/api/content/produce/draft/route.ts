@@ -13,6 +13,11 @@ interface DraftRequest {
   campaignId: string
   topic: string
   segmentCount?: number
+  voiceId?: string
+  tone?: string
+  cta?: string
+  videoFormat?: string
+  musicFile?: string | null
 }
 
 interface Segment {
@@ -103,7 +108,17 @@ Make each segment engaging and suitable for short-form video.`
 export async function POST(request: NextRequest) {
   try {
     const body: DraftRequest = await request.json()
-    const { productId, campaignId, topic, segmentCount = 4 } = body
+    const { 
+      productId, 
+      campaignId, 
+      topic, 
+      segmentCount = 4,
+      voiceId,
+      tone,
+      cta,
+      videoFormat,
+      musicFile,
+    } = body
 
     if (!productId || !campaignId || !topic) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -138,6 +153,11 @@ export async function POST(request: NextRequest) {
         campaign_id: isValidUuid(campaignId) ? campaignId : null,
         status: 'draft',
         segments: segments,
+        voice_id: voiceId || 'nPczCjzI2devNBz1zQrb',
+        tone: tone || 'Energisk',
+        cta: cta || '',
+        video_format: videoFormat || '9:16',
+        music_file: musicFile || null,
       })
       .select('id')
       .single()
