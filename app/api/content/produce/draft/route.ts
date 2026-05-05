@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { randomUUID } from 'crypto'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-const R2_ENDPOINT = process.env.R2_ENDPOINT
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'contentforge-assets'
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
 interface DraftRequest {
   productId: string
@@ -105,82 +97,6 @@ Make each segment engaging and suitable for short-form video.`
   return parsed.segments || []
 }
 
-// Generate image using DALL-E
-async function generateImage(text: string): Promise<string> {
-  console.log(`[generateDraft] Calling DALL-E for image: "${text.substring(0, 50)}..."`)
-
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt: `Create a professional, engaging image for a video segment about: ${text}. High quality, bright colors, suitable for social media. Text-free.`,
-      n: 1,
-      size: '1024x1024',
-    }),
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    console.error(`[generateDraft] DALL-E error`, { status: response.status, error: errorData })
-    throw new Error(`DALL-E error: ${response.status}`)
-  }
-
-  const data = await response.json()
-  const imageUrl = data.data?.[0]?.url
-
-  if (!imageUrl) {
-    throw new Error('No image URL in DALL-E response')
-  }
-
-  console.log(`[generateDraft] ✅ Image generated`)
-  return imageUrl
-}
-
-// Upload image to R2
-async function uploadImageToR2(imageUrl: string, fileName: string): Promise<string> {
-  try {
-    console.log(`[generateDraft] Downloading image from DALL-E...`)
-    const imageResponse = await fetch(imageUrl)
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to download image: ${imageResponse.statusText}`)
-    }
-
-    const imageBuffer = await imageResponse.arrayBuffer()
-    console.log(`[generateDraft] Image downloaded, size: ${imageBuffer.byteLength} bytes`)
-
-    const s3Client = new S3Client({
-      region: 'auto',
-      endpoint: R2_ENDPOINT,
-      credentials: {
-        accessKeyId: R2_ACCESS_KEY_ID || '',
-        secretAccessKey: R2_SECRET_ACCESS_KEY || '',
-      },
-    })
-
-    const key = `images/drafts/${fileName}`
-    const uploadCommand = new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: key,
-      Body: Buffer.from(imageBuffer),
-      ContentType: 'image/png',
-    })
-
-    await s3Client.send(uploadCommand)
-    console.log(`[generateDraft] ✅ Uploaded to R2: ${key}`)
-
-    const publicUrl = `${R2_PUBLIC_URL}/${key}`
-    return publicUrl
-  } catch (error) {
-    console.error(`[generateDraft] R2 upload error:`, error)
-    // Return DALL-E URL as fallback
-    return imageUrl
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body: DraftRequest = await request.json()
@@ -196,31 +112,20 @@ export async function POST(request: NextRequest) {
     console.log(`[generateDraft] Topic: "${topic}"`)
     console.log(`[generateDraft] Segments: ${segmentCount}`)
 
-    // Step 1: Generate script with Claude
+    // Step 1: Generate script with Claude (NO IMAGE GENERATION)
     console.log(`[generateDraft] Step 1: Generating script...`)
     let segments = await generateScript(topic, segmentCount)
     console.log(`[generateDraft] Step 1: ✅ Script generated`)
 
-    // Step 2: Generate images for each segment
-    console.log(`[generateDraft] Step 2: Generating images for ${segments.length} segments...`)
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i]
-      try {
-        console.log(`[generateDraft] Segment ${i + 1}/${segments.length}...`)
-        const dallEUrl = await generateImage(segment.text)
-        const fileName = `${randomUUID()}.png`
-        const r2Url = await uploadImageToR2(dallEUrl, fileName)
-        segment.image_url = r2Url
-        console.log(`[generateDraft] ✅ Segment ${i + 1} complete`)
-      } catch (imgError) {
-        console.error(`[generateDraft] Image generation failed for segment ${i}:`, imgError)
-        segment.image_url = '' // Empty fallback
-      }
-    }
-    console.log(`[generateDraft] Step 2: ✅ All images generated`)
+    // Set empty image_url for each segment (images will be generated client-side)
+    segments = segments.map((seg) => ({
+      ...seg,
+      image_url: '',
+      approved: false,
+    }))
 
-    // Step 3: Save to production_drafts table
-    console.log(`[generateDraft] Step 3: Saving draft to database...`)
+    // Step 2: Save to production_drafts table
+    console.log(`[generateDraft] Step 2: Saving draft to database...`)
     const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
 
     const { data: draftData, error: draftError } = await supabase
@@ -243,10 +148,12 @@ export async function POST(request: NextRequest) {
     console.log(`[generateDraft] ✅ Draft saved with ID: ${draftId}`)
 
     console.log(`[generateDraft] ========== ✅ DRAFT GENERATION SUCCESS ==========`)
+    console.log(`[generateDraft] Note: Images will be generated client-side after draft is loaded`)
 
     return NextResponse.json({
       success: true,
       draftId,
+      segments,
     })
   } catch (error) {
     console.error('[generateDraft] ========== ❌ DRAFT GENERATION FAILED ==========')

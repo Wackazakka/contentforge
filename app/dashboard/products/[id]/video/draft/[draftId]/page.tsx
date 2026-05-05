@@ -50,6 +50,11 @@ export default function DraftPage() {
 
         if (fetchError) throw fetchError
         setDraft(data)
+
+        // Auto-generate images for all segments with empty image_url
+        if (data.segments && productId) {
+          await generateImagesForAllSegments(data)
+        }
       } catch (err) {
         console.error('[DraftPage] Fetch error:', err)
         setError(err instanceof Error ? err.message : 'Feil ved henting av draft')
@@ -59,7 +64,7 @@ export default function DraftPage() {
     }
 
     fetchDraft()
-  }, [draftId])
+  }, [draftId, productId])
 
   // Fetch available images from asset_banks
   useEffect(() => {
@@ -82,6 +87,60 @@ export default function DraftPage() {
 
     fetchAssets()
   }, [productId])
+
+  const generateImagesForAllSegments = async (draftData: Draft) => {
+    console.log('[DraftPage] Starting parallel image generation for all segments...')
+
+    const imagePromises = draftData.segments.map(async (segment, index) => {
+      if (segment.image_url && segment.image_url.trim()) {
+        console.log(`[DraftPage] Segment ${index} already has image, skipping`)
+        return { index, imageUrl: segment.image_url }
+      }
+
+      try {
+        console.log(`[DraftPage] Generating image for segment ${index}: "${segment.text.substring(0, 40)}..."`)
+        const response = await fetch('/api/content/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: segment.text,
+            productId,
+          }),
+        })
+
+        if (!response.ok) {
+          console.error(`[DraftPage] Image generation failed for segment ${index}`)
+          return { index, imageUrl: '' }
+        }
+
+        const data = await response.json()
+        console.log(`[DraftPage] ✅ Segment ${index} image generated`)
+        return { index, imageUrl: data.imageUrl }
+      } catch (err) {
+        console.error(`[DraftPage] Image generation error for segment ${index}:`, err)
+        return { index, imageUrl: '' }
+      }
+    })
+
+    try {
+      const results = await Promise.all(imagePromises)
+      console.log('[DraftPage] All image generation requests completed')
+
+      // Update draft with generated image URLs
+      const updatedSegments = draftData.segments.map((seg, idx) => {
+        const result = results.find((r) => r.index === idx)
+        return {
+          ...seg,
+          image_url: result?.imageUrl || seg.image_url || '',
+        }
+      })
+
+      setDraft({ ...draftData, segments: updatedSegments })
+      console.log('[DraftPage] Draft updated with generated images')
+    } catch (err) {
+      console.error('[DraftPage] Error during image generation:', err)
+    }
+  }
 
   const toggleApproval = (index: number) => {
     if (!draft) return
