@@ -315,19 +315,25 @@ export default function NewDraftPage() {
                           type="file"
                           accept=".mp3"
                           onChange={async (e) => {
-                            const file = e.currentTarget.files?.[0]
+                            const inputElement = e.currentTarget
+                            if (!inputElement) {
+                              console.error('[music upload] Input element is null')
+                              return
+                            }
+                            
+                            const file = inputElement.files?.[0]
                             if (!file) return
                             
                             if (!file.name.toLowerCase().endsWith('.mp3')) {
                               alert('Kun MP3-filer er tillatt')
-                              e.currentTarget.value = ''
+                              inputElement.value = ''
                               return
                             }
                             
                             const maxSize = 4 * 1024 * 1024
                             if (file.size > maxSize) {
                               alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)}MB). Maksimum er 4MB.`)
-                              e.currentTarget.value = ''
+                              inputElement.value = ''
                               return
                             }
                             
@@ -343,13 +349,17 @@ export default function NewDraftPage() {
                                 const data = await fetch('/api/music').then(r => r.json())
                                 if (data.files) setMusicLibrary(data.files)
                                 alert('Musikk lastet opp!')
-                                e.currentTarget.value = ''
+                                inputElement.value = ''
                               } else {
                                 const error = await res.text()
+                                console.error('[music upload] Server error:', error)
                                 alert(`Upload feilet: ${error}`)
+                                inputElement.value = ''
                               }
                             } catch (err) {
+                              console.error('[music upload] Error:', err)
                               alert('Upload feilet: ' + (err instanceof Error ? err.message : 'Ukjent feil'))
+                              inputElement.value = ''
                             }
                           }}
                           className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-blue-600 file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-blue-500"
