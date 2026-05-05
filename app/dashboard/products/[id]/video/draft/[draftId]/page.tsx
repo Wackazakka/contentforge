@@ -40,24 +40,49 @@ export default function DraftPage() {
     const fetchDraft = async () => {
       try {
         setLoading(true)
+        console.log('[DraftPage] Fetching draft with ID:', draftId)
         const supabase = getSupabase()
 
+        console.log('[DraftPage] Calling Supabase query...')
         const { data, error: fetchError } = await supabase
           .from('production_drafts')
           .select('*')
           .eq('id', draftId)
           .single()
 
-        if (fetchError) throw fetchError
+        console.log('[DraftPage] Supabase response:', { data, error: fetchError })
+
+        if (fetchError) {
+          console.error('[DraftPage] Supabase error details:', {
+            message: fetchError.message,
+            code: fetchError.code,
+            hint: fetchError.hint,
+            details: fetchError.details,
+          })
+          throw new Error(`Supabase error: ${fetchError.message}${fetchError.hint ? ' (' + fetchError.hint + ')' : ''}`)
+        }
+
+        if (!data) {
+          console.warn('[DraftPage] No draft data returned')
+          throw new Error('Draft not found')
+        }
+
+        console.log('[DraftPage] ✅ Draft fetched successfully:', {
+          draftId: data.id,
+          segmentCount: data.segments?.length || 0,
+        })
         setDraft(data)
 
         // Auto-generate images for all segments with empty image_url
         if (data.segments && productId) {
+          console.log('[DraftPage] Starting auto image generation...')
           await generateImagesForAllSegments(data)
         }
       } catch (err) {
         console.error('[DraftPage] Fetch error:', err)
-        setError(err instanceof Error ? err.message : 'Feil ved henting av draft')
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        setError(errorMsg)
+        console.error('[DraftPage] Full error object:', err)
       } finally {
         setLoading(false)
       }
@@ -89,16 +114,17 @@ export default function DraftPage() {
   }, [productId])
 
   const generateImagesForAllSegments = async (draftData: Draft) => {
-    console.log('[DraftPage] Starting parallel image generation for all segments...')
+    console.log('[DraftPage] ========== START AUTO IMAGE GENERATION ==========')
+    console.log(`[DraftPage] Generating images for ${draftData.segments.length} segments...`)
 
     const imagePromises = draftData.segments.map(async (segment, index) => {
       if (segment.image_url && segment.image_url.trim()) {
-        console.log(`[DraftPage] Segment ${index} already has image, skipping`)
+        console.log(`[DraftPage] Segment ${index}: ✅ Already has image`)
         return { index, imageUrl: segment.image_url }
       }
 
       try {
-        console.log(`[DraftPage] Generating image for segment ${index}: "${segment.text.substring(0, 40)}..."`)
+        console.log(`[DraftPage] Segment ${index}: Starting generation...`)
         const response = await fetch('/api/content/generate-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -108,16 +134,19 @@ export default function DraftPage() {
           }),
         })
 
+        console.log(`[DraftPage] Segment ${index}: API response status ${response.status}`)
+
         if (!response.ok) {
-          console.error(`[DraftPage] Image generation failed for segment ${index}`)
+          const errorData = await response.json().catch(() => ({}))
+          console.error(`[DraftPage] Segment ${index}: ❌ Image generation failed`, errorData)
           return { index, imageUrl: '' }
         }
 
         const data = await response.json()
-        console.log(`[DraftPage] ✅ Segment ${index} image generated`)
+        console.log(`[DraftPage] Segment ${index}: ✅ Image generated: ${data.imageUrl.substring(0, 60)}...`)
         return { index, imageUrl: data.imageUrl }
       } catch (err) {
-        console.error(`[DraftPage] Image generation error for segment ${index}:`, err)
+        console.error(`[DraftPage] Segment ${index}: ❌ Error`, err instanceof Error ? err.message : String(err))
         return { index, imageUrl: '' }
       }
     })
@@ -125,6 +154,7 @@ export default function DraftPage() {
     try {
       const results = await Promise.all(imagePromises)
       console.log('[DraftPage] All image generation requests completed')
+      console.log('[DraftPage] Results:', results.map((r) => ({ index: r.index, hasUrl: !!r.imageUrl })))
 
       // Update draft with generated image URLs
       const updatedSegments = draftData.segments.map((seg, idx) => {
@@ -136,9 +166,10 @@ export default function DraftPage() {
       })
 
       setDraft({ ...draftData, segments: updatedSegments })
-      console.log('[DraftPage] Draft updated with generated images')
+      console.log('[DraftPage] ========== ✅ DRAFT UPDATED WITH IMAGES ==========')
     } catch (err) {
-      console.error('[DraftPage] Error during image generation:', err)
+      console.error('[DraftPage] ========== ❌ ERROR DURING IMAGE GENERATION ==========')
+      console.error('[DraftPage] Error:', err)
     }
   }
 
