@@ -293,6 +293,7 @@ export default function ProductPage() {
 
   // Fetch articles
   useEffect(() => {
+    console.log('[Articles] useEffect triggered, productId:', productId)
     if (!productId) return
 
     const fetchArticles = async () => {
@@ -307,6 +308,7 @@ export default function ProductPage() {
           .order('created_at', { ascending: false })
 
         if (articlesError) throw articlesError
+        console.log('[Articles] Fetched articles:', articlesData?.length || 0)
         setArticles(articlesData || [])
       } catch (err) {
         console.error('[ProductPage] Articles fetch error:', err)
