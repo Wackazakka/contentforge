@@ -65,8 +65,16 @@ async function uploadImageToR2(imageUrl: string, fileName: string): Promise<stri
     const imageBuffer = await imageResponse.arrayBuffer()
     console.log(`[generateImage] Image downloaded, size: ${imageBuffer.byteLength} bytes`)
 
+    // Check R2 configuration
+    console.log(`[generateImage] R2 configuration check:`)
+    console.log(`  - R2_ENDPOINT: ${R2_ENDPOINT ? '✓ set' : '✗ MISSING'}`)
+    console.log(`  - R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID ? '✓ set' : '✗ MISSING'}`)
+    console.log(`  - R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY ? '✓ set' : '✗ MISSING'}`)
+    console.log(`  - R2_BUCKET_NAME: ${R2_BUCKET_NAME}`)
+    console.log(`  - R2_PUBLIC_URL: ${R2_PUBLIC_URL}`)
+
     // Upload to R2
-    console.log(`[generateImage] Uploading to R2...`)
+    console.log(`[generateImage] Starting R2 upload...`)
     const s3Client = new S3Client({
       region: 'auto',
       endpoint: R2_ENDPOINT,
@@ -85,13 +93,17 @@ async function uploadImageToR2(imageUrl: string, fileName: string): Promise<stri
     })
 
     await s3Client.send(uploadCommand)
-    console.log(`[generateImage] Uploaded to R2: ${key}`)
+    console.log(`[generateImage] ✅ Uploaded to R2: ${key}`)
 
     const publicUrl = `${R2_PUBLIC_URL}/${key}`
     console.log(`[generateImage] Public URL: ${publicUrl}`)
     return publicUrl
   } catch (error) {
-    console.error(`[generateImage] R2 upload error:`, error)
+    console.error(`[generateImage] ❌ R2 upload FAILED:`, {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+    console.warn(`[generateImage] ⚠️  Falling back to DALL-E URL (image not cached in R2)`)
     // Return original DALL-E URL as fallback
     return imageUrl
   }
@@ -103,26 +115,38 @@ export async function POST(request: NextRequest) {
     const { topic, productId } = body
 
     if (!topic || !productId) {
+      console.error('[generateImage] Validation failed: missing topic or productId')
       return NextResponse.json({ error: 'Missing topic or productId' }, { status: 400 })
     }
 
-    console.log(`[generateImage] Starting image generation for topic: "${topic}", productId: ${productId}`)
+    console.log(`[generateImage] ========== START IMAGE GENERATION ==========`)
+    console.log(`[generateImage] Topic: "${topic}"`)
+    console.log(`[generateImage] Product ID: ${productId}`)
 
     // Generate image with DALL-E
+    console.log(`[generateImage] Step 1: Calling DALL-E...`)
     const dallEUrl = await generateImageWithDallE(topic)
+    console.log(`[generateImage] Step 1: ✅ DALL-E returned image`)
 
     // Upload to R2
+    console.log(`[generateImage] Step 2: Uploading to R2...`)
     const fileName = `${randomUUID()}.png`
     const r2Url = await uploadImageToR2(dallEUrl, fileName)
+    console.log(`[generateImage] Step 2: ✅ R2 upload complete`)
 
-    console.log(`[generateImage] ✅ Image ready: ${r2Url}`)
+    console.log(`[generateImage] ========== ✅ IMAGE GENERATION SUCCESS ==========`)
+    console.log(`[generateImage] Final URL: ${r2Url}`)
 
     return NextResponse.json({
       success: true,
       imageUrl: r2Url,
     })
   } catch (error) {
-    console.error('[generateImage] Error:', error)
+    console.error('[generateImage] ========== ❌ IMAGE GENERATION FAILED ==========')
+    console.error('[generateImage] Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate image' },
       { status: 500 }
