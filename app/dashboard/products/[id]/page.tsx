@@ -704,23 +704,12 @@ export default function ProductPage() {
             ) : assets.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {assets.map((asset) => (
-                  <div key={asset.id} className="group relative bg-gray-100 rounded-lg overflow-hidden aspect-square">
+                  <div key={asset.id} className="relative bg-gray-100 rounded-lg overflow-hidden aspect-square">
                     <img
                       src={asset.asset_url}
                       alt="Generated image"
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <button
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                        onClick={() => {
-                          // TODO: Use in production
-                          alert('Funksjon kommer snart!')
-                        }}
-                      >
-                        Bruk i produksjon
-                      </button>
-                    </div>
                   </div>
                 ))}
               </div>
