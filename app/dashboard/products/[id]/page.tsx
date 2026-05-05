@@ -687,16 +687,6 @@ export default function ProductPage() {
             )}
           </div>
 
-          {/* Articles */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Artikler</h3>
-            <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-              <div className="text-4xl mb-2">📰</div>
-              <p className="text-sm">Ingen artikler opprettet ennå</p>
-              <p className="text-xs text-gray-400 mt-2">Artikler du genererer vil vises her</p>
-            </div>
-          </div>
-
           {/* Images */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Bilder ({assets.length})</h3>
