@@ -291,6 +291,73 @@ export default function NewDraftPage() {
                 {/* Music */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">Bakgrunnsmusikk</label>
+                  
+                  {/* Upload form */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mb-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="text-xs font-medium text-gray-700 block mb-1">Mappe</span>
+                        <select
+                          id="musicFolder"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          defaultValue="global"
+                        >
+                          <option value="global">Global (alle produkter)</option>
+                          <option value="bildeal">BilDeal</option>
+                          <option value="reforhandle">Reforhandle</option>
+                          <option value="singlepicker">SinglePicker</option>
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="text-xs font-medium text-gray-700 block mb-1">Fil</span>
+                        <input
+                          type="file"
+                          accept=".mp3"
+                          onChange={async (e) => {
+                            const file = e.currentTarget.files?.[0]
+                            if (!file) return
+                            
+                            if (!file.name.toLowerCase().endsWith('.mp3')) {
+                              alert('Kun MP3-filer er tillatt')
+                              e.currentTarget.value = ''
+                              return
+                            }
+                            
+                            const maxSize = 4 * 1024 * 1024
+                            if (file.size > maxSize) {
+                              alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)}MB). Maksimum er 4MB.`)
+                              e.currentTarget.value = ''
+                              return
+                            }
+                            
+                            const folder = (document.getElementById('musicFolder') as HTMLSelectElement)?.value || 'global'
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            
+                            try {
+                              const res = await fetch('/api/music/upload?' + new URLSearchParams({ folder }).toString(), {
+                                method: 'POST',
+                                body: formData,
+                              })
+                              if (res.ok) {
+                                const data = await fetch('/api/music').then(r => r.json())
+                                if (data.files) setMusicLibrary(data.files)
+                                alert('Musikk lastet opp!')
+                                e.currentTarget.value = ''
+                              } else {
+                                const error = await res.text()
+                                alert(`Upload feilet: ${error}`)
+                              }
+                            } catch (err) {
+                              alert('Upload feilet: ' + (err instanceof Error ? err.message : 'Ukjent feil'))
+                            }
+                          }}
+                          className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-blue-600 file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-blue-500"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
                   {musicLibrary.length > 0 ? (
                     <div className="grid gap-2">
                       {musicLibrary.map((music) => (
