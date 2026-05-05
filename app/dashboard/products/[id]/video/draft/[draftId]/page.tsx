@@ -19,6 +19,12 @@ interface Draft {
   campaign_id: string
   status: string
   segments: Segment[]
+  voice_id?: string
+  tone?: string
+  cta?: string
+  video_format?: string
+  music_style?: string
+  music_file?: string | null
 }
 
 export default function DraftPage() {
@@ -33,6 +39,8 @@ export default function DraftPage() {
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null)
   const [assets, setAssets] = useState<any[]>([])
   const [showImageBank, setShowImageBank] = useState<number | null>(null)
+  const [voicePreviews, setVoicePreviews] = useState<Record<number, string>>({})
+  const [voiceLoading, setVoiceLoading] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     if (!draftId) return
@@ -241,6 +249,32 @@ export default function DraftPage() {
     setShowImageBank(null)
   }
 
+  const previewVoiceover = async (index: number) => {
+    if (!draft) return
+    const segment = draft.segments[index]
+    setVoiceLoading((prev) => ({ ...prev, [index]: true }))
+    try {
+      const res = await fetch('/api/content/preview-voiceover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: segment.voiceover,
+          voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX',
+          draftId: draft.id,
+          segmentIndex: index,
+        }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        setVoicePreviews((prev) => ({ ...prev, [index]: data.url }))
+      }
+    } catch (err) {
+      console.error('Voiceover preview failed:', err)
+    } finally {
+      setVoiceLoading((prev) => ({ ...prev, [index]: false }))
+    }
+  }
+
   const startProduction = async () => {
     if (!draft) return
 
@@ -356,6 +390,25 @@ export default function DraftPage() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Voiceover</label>
                       <p className="text-gray-700 p-3 bg-gray-50 rounded border border-gray-200">{segment.voiceover}</p>
+
+                      {/* Voiceover preview */}
+                      <div className="mt-2 flex items-center gap-2">
+                        {voicePreviews[index] ? (
+                          <audio controls src={voicePreviews[index]} className="w-full h-8" />
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => previewVoiceover(index)}
+                          disabled={voiceLoading[index]}
+                          className="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {voiceLoading[index]
+                            ? '⏳ Genererer...'
+                            : voicePreviews[index]
+                              ? '🔊 Regenerer lyd'
+                              : '🎙️ Forhør lyd'}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Approval Status */}
