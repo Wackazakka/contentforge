@@ -13,26 +13,23 @@ const ENV_PATH = '/opt/reforhandle/.env.local'
 
 const DEFAULT_VOICE_ID = 'nPczCjzI2devNBz1zQrb' // Brian (multilingual, supports Norwegian)
 
-// Wait for file to stabilize (stop growing for 2 seconds)
+// Wait for .done marker file (Python renderer signals completion)
 async function waitForFile(filePath, maxAttempts = 30) {
-  let lastSize = 0
-  let stableCount = 0
+  const doneFile = filePath + '.done'
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise(r => setTimeout(r, 2000))
-    const stats = fs.statSync(filePath)
-    if (stats.size > 0 && stats.size === lastSize) {
-      stableCount++
-      if (stableCount >= 3) { // stable for 6 seconds (3 × 2s checks)
-        console.log(`[job-queue] File ${path.basename(filePath)} stable at ${stats.size} bytes after ${i + 1} attempt(s)`)
-        return true
+    if (fs.existsSync(doneFile)) {
+      try {
+        fs.unlinkSync(doneFile) // cleanup
+        console.log(`[job-queue] Done file found for ${path.basename(filePath)} after ${i + 1} attempt(s)`)
+      } catch (err) {
+        console.warn(`[job-queue] Could not delete done file: ${err.message}`)
       }
-    } else {
-      stableCount = 0
+      return true
     }
-    lastSize = stats.size
-    console.log(`[job-queue] File ${path.basename(filePath)} is ${stats.size} bytes (stable: ${stableCount}/3), waiting... (attempt ${i + 1}/${maxAttempts})`)
+    console.log(`[job-queue] Waiting for done file... attempt ${i + 1}/${maxAttempts}`)
   }
-  console.warn(`[job-queue] File ${path.basename(filePath)} did not stabilize after ${maxAttempts} attempts`)
+  console.warn(`[job-queue] Done file not found for ${path.basename(filePath)} after ${maxAttempts} attempts`)
   return false
 }
 
@@ -250,7 +247,7 @@ const MUSIC_DIR = path.join(__dirname, 'music')
 function buildDynamicConfig(jobId, { headline, bodyCopy, service, cta, musicFile }) {
   const dir = `${OUTPUT_DIR}/${jobId}`
   const backgroundMusic = musicFile
-    ? path.join(MUSIC_DIR, path.basename(musicFile))
+    ? path.join(MUSIC_DIR, musicFile)
     : DEFAULT_MUSIC_PATH
   return {
     segments: [
@@ -317,6 +314,9 @@ router.post('/', async (req, res) => {
   const jobId = clientJobId || crypto.randomUUID()
   const jobDir = `${OUTPUT_DIR}/${jobId}`
 
+  // DEBUG: Log music file
+  console.log('[DEBUG MUSIC] musicFile received:', musicFile)
+
   try {
     fs.mkdirSync(jobDir, { recursive: true })
   } catch (err) {
@@ -376,7 +376,9 @@ router.post('/', async (req, res) => {
             sub: null,
           })),
           output: `${jobDir}/output.mp4`,
-          backgroundMusic: musicFile || '/root/.openclaw/workspace/contentforge-server/music/spor1-upbeat.mp3',
+          backgroundMusic: musicFile
+            ? path.join(MUSIC_DIR, musicFile)
+            : '/root/.openclaw/workspace/contentforge-server/music/spor1-upbeat.mp3',
           format: video_format || '9:16', // Pass format to Python script
           jobId,
           campaignId,
@@ -424,6 +426,8 @@ router.post('/', async (req, res) => {
         config = buildDynamicConfig(jobId, { headline, bodyCopy, service, cta, musicFile })
         config.campaignId = campaignId
         config.format = video_format || '9:16' // Pass format to Python script
+        // DEBUG: Log background music path
+        console.log('[DEBUG MUSIC] backgroundMusic path:', config?.backgroundMusic)
         configPath = `${jobDir}/config.json`
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
         console.log(`[job-queue] Config written → ${configPath}`)
@@ -480,9 +484,9 @@ router.post('/', async (req, res) => {
                 })
               )
 
-              // Keep videoUrl as droplet URL for asset_banks (R2 upload is just backup)
-              // videoUrl = `${process.env.R2_PUBLIC_URL}/videos/${jobId}/output.mp4`
-              console.log(`[job-queue] Video uploaded to R2 (backup), using droplet URL for asset_banks`)
+              // Use R2 URL since we now wait for .done file (video fully written)
+              videoUrl = `${process.env.R2_PUBLIC_URL}/videos/${jobId}/output.mp4`
+              console.log(`[job-queue] Video uploaded to R2: ${videoUrl}`)
             } catch (r2Err) {
               console.error(`[job-queue] R2 upload failed for job ${jobId}:`, r2Err.message)
               // Fallback to droplet URL if R2 fails
