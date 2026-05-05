@@ -114,13 +114,13 @@ export default function VideoStatusPage() {
 
         {job?.status === 'failed' && (
           <div>
-            <p className="text-red-600 font-semibold text-lg mb-4">❌ Noe gikk galt</p>
-            <p className="text-red-500 text-sm mb-6">{job.error || 'En ukjent feil oppstod'}</p>
+            <p className="text-red-600 font-semibold text-lg mb-2">❌ Produksjon feilet</p>
+            <p className="text-sm text-gray-500 mb-6">{job.error}</p>
             <button
-              onClick={() => router.push(`/dashboard/products/${productId}`)}
-              className="w-full bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              onClick={() => router.back()}
+              className="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-200"
             >
-              Tilbake til produkt
+              Prøv igjen
             </button>
           </div>
         )}
