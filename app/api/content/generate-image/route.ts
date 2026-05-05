@@ -126,6 +126,17 @@ export async function POST(request: NextRequest) {
     console.log(`[generateImage] ========== START IMAGE GENERATION ==========`)
     console.log(`[generateImage] Topic: "${topic}"`)
     console.log(`[generateImage] Product ID: ${productId}`)
+    console.log(`[generateImage] Environment variables:`, {
+      OPENAI_API_KEY_set: !!OPENAI_API_KEY,
+      R2_ENDPOINT_set: !!R2_ENDPOINT,
+      R2_BUCKET: R2_BUCKET_NAME,
+    })
+
+    if (!OPENAI_API_KEY) {
+      const error = 'OPENAI_API_KEY is not set in environment variables on Netlify'
+      console.error(`[generateImage] FATAL ERROR: ${error}`)
+      return NextResponse.json({ error }, { status: 500 })
+    }
 
     // Generate image with DALL-E
     console.log(`[generateImage] Step 1: Calling DALL-E...`)
