@@ -5,6 +5,13 @@ const DROPLET_URL = 'http://139.59.212.218:3002'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+// Strip emojis from text for compatibility with renderer
+function stripEmojis(text: string): string {
+  return text
+    .replace(/[\u{1F000}-\u{1FFFF}|\u{2600}-\u{27FF}|\u{2300}-\u{23FF}|\u{2B00}-\u{2BFF}|\u{FE00}-\u{FEFF}|\u{1F900}-\u{1F9FF}|\u{1FA00}-\u{1FAFF}]/gu, '')
+    .trim()
+}
+
 export async function POST(request: Request) {
   try {
     const { draftId } = await request.json()
@@ -41,11 +48,11 @@ export async function POST(request: Request) {
       )
     }
 
-    // Bygg segments-array for job-queue
+    // Bygg segments-array for job-queue (strip emojis from text)
     const processedSegments = segments
       .sort((a: any, b: any) => a.index - b.index)
       .map((s: any) => ({
-        text: s.text,
+        text: stripEmojis(s.text),
         voiceover: s.voiceover,
         imageUrl: s.image_url,
       }))
