@@ -16,7 +16,7 @@ export default function NewDraftPage() {
   const [cta, setCta] = useState('')
   const [videoFormat, setVideoFormat] = useState('9:16')
   const [musicFile, setMusicFile] = useState<string | null>(null)
-  const [musicList, setMusicList] = useState<string[]>([])
+  const [musicFiles, setMusicFiles] = useState<{ filename: string; name: string; folder: string }[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,7 +25,7 @@ export default function NewDraftPage() {
       try {
         const res = await fetch('/api/music')
         const data = await res.json()
-        setMusicList(data.files || [])
+        setMusicFiles(data.files || [])
       } catch (err) {
         console.error('Failed to fetch music list:', err)
       }
@@ -211,9 +211,9 @@ export default function NewDraftPage() {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Ingen musikk</option>
-                {musicList.map((file) => (
-                  <option key={file} value={file}>
-                    {file}
+                {musicFiles.map((f) => (
+                  <option key={f.filename} value={f.filename}>
+                    {f.name} ({f.folder})
                   </option>
                 ))}
               </select>
