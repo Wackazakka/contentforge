@@ -7,6 +7,15 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/authContext'
 import { getSupabase } from '@/lib/supabaseClient'
 
+// Simple markdown renderer - converts **text** to <strong> and *text* to <em>
+function renderMarkdown(text: string) {
+  const html = text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+  
+  return <div dangerouslySetInnerHTML={{ __html: html }} />
+}
+
 interface Product {
   id: string
   organization_id: string
@@ -740,10 +749,9 @@ export default function ProductPage() {
                         <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded capitalize">
                           {article.platform}
                         </span>
-                        <p className="text-sm text-gray-600 mt-2">
-                          {article.content.substring(0, 100)}
-                          {article.content.length > 100 ? '...' : ''}
-                        </p>
+                        <div className="text-sm text-gray-600 mt-2">
+                          {renderMarkdown(article.content.substring(0, 100) + (article.content.length > 100 ? '...' : ''))}
+                        </div>
                         <p className="text-xs text-gray-400 mt-2">{new Date(article.created_at).toLocaleDateString('no-NO')}</p>
                       </div>
                     </div>

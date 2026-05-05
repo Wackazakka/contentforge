@@ -5,6 +5,15 @@ import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import Link from 'next/link'
 
+// Simple markdown renderer - converts **text** to <strong> and *text* to <em>
+function renderMarkdown(text: string) {
+  const html = text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+  
+  return <div dangerouslySetInnerHTML={{ __html: html }} />
+}
+
 interface Article {
   id: string
   platform: string
@@ -174,7 +183,9 @@ export default function ArticlePage() {
 
                     {/* Content */}
                     <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-48 overflow-y-auto">
-                      <p className="text-gray-700 whitespace-pre-wrap text-sm">{article.content}</p>
+                      <div className="text-gray-700 whitespace-pre-wrap text-sm">
+                        {renderMarkdown(article.content)}
+                      </div>
                     </div>
 
                     {/* Copy Button */}
