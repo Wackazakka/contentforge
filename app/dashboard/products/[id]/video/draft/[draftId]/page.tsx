@@ -406,7 +406,7 @@ export default function DraftPage() {
                             ? '⏳ Genererer...'
                             : voicePreviews[index]
                               ? '🔊 Regenerer lyd'
-                              : '🎙️ Forhør lyd'}
+                              : '🎙️ Hør stemme'}
                         </button>
                       </div>
                     </div>
