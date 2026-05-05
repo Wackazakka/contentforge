@@ -173,12 +173,33 @@ export default function DraftPage() {
     }
   }
 
-  const toggleApproval = (index: number) => {
+  const toggleApproval = async (index: number) => {
     if (!draft) return
 
-    const updatedSegments = [...draft.segments]
-    updatedSegments[index].approved = !updatedSegments[index].approved
-    setDraft({ ...draft, segments: updatedSegments })
+    try {
+      const updatedSegments = [...draft.segments]
+      updatedSegments[index].approved = !updatedSegments[index].approved
+      
+      // Update local state immediately
+      setDraft({ ...draft, segments: updatedSegments })
+
+      // Save to Supabase
+      const supabase = getSupabase()
+      const { error } = await supabase
+        .from('production_drafts')
+        .update({ segments: updatedSegments })
+        .eq('id', draftId)
+
+      if (error) {
+        console.error('[toggleApproval] Failed to save:', error)
+        alert('Feil ved lagring av godkjenning')
+      } else {
+        console.log('[toggleApproval] Segment approval saved for index:', index)
+      }
+    } catch (err) {
+      console.error('[toggleApproval] Error:', err)
+      alert('Feil ved lagring')
+    }
   }
 
   const regenerateImage = async (index: number) => {
@@ -224,6 +245,24 @@ export default function DraftPage() {
     if (!draft) return
 
     try {
+      // Verify that draft in DB actually has all approved before we start
+      console.log('[startProduction] Verifying draft approval status in database...')
+      const supabase = getSupabase()
+      const { data: freshDraft } = await supabase
+        .from('production_drafts')
+        .select('segments')
+        .eq('id', draft.id)
+        .single()
+
+      const allSaved = freshDraft?.segments?.every((s: any) => s.approved === true)
+      if (!allSaved) {
+        console.warn('[startProduction] Not all segments saved to database yet')
+        alert('Lagring pågår, prøv igjen om et sekund')
+        return
+      }
+
+      console.log('[startProduction] All segments verified as approved')
+
       // Call start-production API with draftId
       const response = await fetch('/api/start-production', {
         method: 'POST',
@@ -235,6 +274,8 @@ export default function DraftPage() {
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Video production failed')
+
+      console.log('[startProduction] Production started with jobId:', data.jobId)
 
       // Redirect to production status page
       router.push(`/dashboard/products/${productId}/video/status/${data.jobId}`)
