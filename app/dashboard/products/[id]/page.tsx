@@ -102,6 +102,7 @@ export default function ProductPage() {
   })
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
 
   // Fetch product data
   useEffect(() => {
@@ -209,6 +210,38 @@ export default function ProductPage() {
     } finally {
       setProfileSaving(false)
     }
+  }
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('productId', productId)
+      const res = await fetch('/api/products/upload-logo', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (data.url) {
+        setProfile((prev) => prev ? { ...prev, logo_url: data.url } : null)
+        setProfileForm((prev) => ({ ...prev, logo_url: data.url }))
+      }
+    } catch (err) {
+      console.error('Logo upload failed:', err)
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  const handleRemoveLogo = async () => {
+    if (!productId) return
+    const supabase = getSupabase()
+    await supabase.from('products').update({ logo_url: null }).eq('id', productId)
+    setProduct((prev) => prev ? { ...prev, logo_url: null } : null)
+    setProfile((prev) => prev ? { ...prev, logo_url: null } : null)
   }
 
   // Fetch production jobs and poll every 5 seconds
