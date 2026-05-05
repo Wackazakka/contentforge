@@ -89,15 +89,15 @@ export default function VideoStatusPage() {
           <div>
             <p className="text-green-600 font-semibold text-lg mb-4">✅ Videoen er klar!</p>
             <video
-              src={job.videoUrl}
+              src={`/api/video/${jobId}`}
               controls
-              className="w-full rounded-xl mb-6"
-              style={{ maxHeight: '500px' }}
+              className="rounded-xl mb-6 mx-auto"
+              style={{ maxHeight: '600px', maxWidth: '340px', width: '100%' }}
             />
             <div className="flex gap-3 justify-center flex-wrap">
               <a
-                href={job.videoUrl}
-                download
+                href={`/api/video/${jobId}`}
+                download={`video-${jobId}.mp4`}
                 className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
               >
                 ⬇️ Last ned
