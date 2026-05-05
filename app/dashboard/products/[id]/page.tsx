@@ -704,13 +704,19 @@ export default function ProductPage() {
             ) : assets.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {assets.map((asset) => (
-                  <div key={asset.id} className="relative bg-gray-100 rounded-lg overflow-hidden aspect-square">
+                  <a
+                    key={asset.id}
+                    href={asset.asset_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative bg-gray-100 rounded-lg overflow-hidden aspect-square block hover:opacity-90 transition-opacity"
+                  >
                     <img
                       src={asset.asset_url}
                       alt="Generated image"
                       className="w-full h-full object-cover"
                     />
-                  </div>
+                  </a>
                 ))}
               </div>
             ) : (
