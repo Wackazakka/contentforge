@@ -383,13 +383,31 @@ export default function DraftPage() {
                     {/* Text */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tekst</label>
-                      <p className="text-gray-700 p-3 bg-gray-50 rounded border border-gray-200">{segment.text}</p>
+                      <textarea
+                        value={segment.text}
+                        onChange={(e) => {
+                          const updatedSegments = [...draft.segments]
+                          updatedSegments[index].text = e.target.value
+                          setDraft({ ...draft, segments: updatedSegments })
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows={2}
+                      />
                     </div>
 
                     {/* Voiceover */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Voiceover</label>
-                      <p className="text-gray-700 p-3 bg-gray-50 rounded border border-gray-200">{segment.voiceover}</p>
+                      <textarea
+                        value={segment.voiceover}
+                        onChange={(e) => {
+                          const updatedSegments = [...draft.segments]
+                          updatedSegments[index].voiceover = e.target.value
+                          setDraft({ ...draft, segments: updatedSegments })
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows={3}
+                      />
 
                       {/* Voiceover preview */}
                       <div className="mt-2 flex items-center gap-2">
