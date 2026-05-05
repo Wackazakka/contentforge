@@ -224,21 +224,20 @@ export default function DraftPage() {
     if (!draft) return
 
     try {
-      // Call video production API with approved segments
-      const response = await fetch('/api/content/produce/video', {
+      // Call start-production API with draftId
+      const response = await fetch('/api/start-production', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          productId,
-          campaignId: draft.campaign_id,
-          segments: draft.segments,
+          draftId: draft.id,
         }),
       })
 
-      if (!response.ok) throw new Error('Video production failed')
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Video production failed')
 
-      // Redirect to product page on success
-      router.push(`/dashboard/products/${productId}`)
+      // Redirect to production status page
+      router.push(`/dashboard/products/${productId}/video/status/${data.jobId}`)
     } catch (err) {
       console.error('[DraftPage] Production error:', err)
       alert('Feil ved start av produksjon')
