@@ -1,5 +1,5 @@
 # ContentForge v2 Status Document
-*Oppdatert: 2026-05-05 08:32 UTC*
+*Oppdatert: 2026-05-05 17:25 UTC*
 
 ## Stack
 - **Frontend:** Next.js på Netlify (`contentforge-610.netlify.app`)
@@ -97,6 +97,41 @@
 - ✅ Markdown rendering: `**bold**` → strong, `*italic*` → em
 - ✅ Copy-to-clipboard functionality on article detail page
 
+### Video Draft System (Complete Pipeline)
+- ✅ **Draft creation** with Claude manus generation
+- ✅ **Segment approval workflow** with Supabase persistence
+- ✅ **Voiceover preview** — generate and play audio per segment
+  - Uses ElevenLabs `eleven_turbo_v2_5` model
+  - Norwegian language support (`language_code: 'no'`)
+  - Cache-busting with timestamp on R2 URLs
+  - Button states: "🎙️ Hør stemme" / "🔊 Regenerer lyd" / "⏳ Genererer..."
+- ✅ **Image regeneration and asset bank selection**
+- ✅ **Production submission** to job-queue with all draft parameters
+- ✅ **Real-time status tracking** via polling (`/api/job-status` proxy)
+- ✅ **Video playback** from R2 via proxy (`/api/video`)
+- ✅ **Product logo integration**
+  - Logo upload to R2 via `/api/products/upload-logo`
+  - Logo preview on product page
+  - Logo passed to Python renderer via `logoUrl` in config.json
+  - Dynamic logo download from URL with fallback to local logo
+  - Logo rendered on all video segments
+
+### Draft Form Extended Features
+- ✅ **Voice selection** — 7 Norwegian ElevenLabs voices
+- ✅ **Tone selection** — Buttons: Vennlig, Energisk, Profesjonell, Rolig
+- ✅ **Music selection** — Dynamic music library from droplet with preview players
+- ✅ **Video format** — Buttons: 9:16 (TikTok), 16:9, 1:1
+- ✅ **Target audience & problem context** — sent to Claude for better manus
+- ✅ **CTA (Call-to-Action)** — included in Claude prompt
+- ✅ **Musicstyle** — Upbeat, Minimal, Cinematisk
+
+### Text Processing & Rendering
+- ✅ **Emoji stripping** — removed from segment text before sending to renderer
+- ✅ **Punctuation requirements** — explicit in Claude prompt for proper sentence structure
+- ✅ **Newline handling** — Python splits on `\n` and word-wraps per paragraph
+- ✅ **Text bar positioning** — 25% of screen height, 185 alpha transparency
+- ✅ **Text positioning** — starts at H*0.80 for proper alignment
+
 ### Image Generation for Articles
 - ✅ `/api/content/generate-image` API route (POST)
 - ✅ DALL-E 3 generates professional article images
@@ -173,10 +208,36 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 ---
 
-## 📋 Recent Commits (Session 2026-05-05)
+## 📋 Recent Commits (Session 2026-05-05, Afternoon)
 
 | Commit | Message | Status |
 |--------|---------|--------|
+| `9e8a879` | feat: improve logo upload UI with file picker and preview | ✅ |
+| `892d8a1` | feat: fetch and send product logo_url to job-queue | ✅ |
+| `b86f5b8` | feat: add product logo upload and management UI | ✅ |
+| `7ad5c6e` | fix: add timestamp to voiceover filename to prevent browser caching | ✅ |
+| `bca6435` | fix: use eleven_turbo_v2_5 with language_code: 'no' to match job-queue | ✅ |
+| `c52f01d` | fix: remove language_code to let ElevenLabs auto-detect | ✓ (reverted) |
+| `64130e4` | fix: change voiceover language back to Norwegian | ✓ (reverted) |
+| `aef5510` | fix: change voiceover language from Norwegian to Danish | ✓ (reverted) |
+| `3514a65` | Revert "feat: add voiceover preview generation and playback per segment" | ✓ (reverted) |
+| `2eaadde` | Revert "fix: add language_code: 'no' to preview-voiceover API request" | ✓ (reverted) |
+| `f387e4c` | Revert "debug: improve error logging in preview-voiceover API" | ✓ (reverted) |
+| `8c1e542` | fix: change button text from 'Forhør lyd' to 'Hør stemme' | ✅ |
+| `e5efa1f` | debug: improve error logging in preview-voiceover API | ✓ (reverted) |
+| `cd39799` | fix: add language_code: 'no' to preview-voiceover API request | ✓ (reverted) |
+| `c2f53b8` | feat: add voiceover preview generation and playback per segment | ✅ |
+| `e65cf6b` | feat: add explicit punctuation requirements to Claude prompt | ✅ |
+| `ead42f9` | fix: strip emojis from segment text before sending to Python renderer | ✅ |
+| `4a8a6c0` | fix: use R2 video URL directly instead of proxy endpoint | ✅ |
+| `90b4d0f` | feat: add targetAudience, problem, and musicStyle to draft workflow | ✅ |
+| `eae4243` | refactor: redesign draft form with storytelling UX | ✅ |
+| `f05de08` | feat: replace voice textinput with dropdown, tone with button toggles | ✅ |
+| `79b63f0` | feat: improve music file selection with filename, name, folder | ✅ |
+| `3170b1b` | feat: add music proxy API and extend draft form | ✅ |
+| `127a636` | fix: update job-status API to use async params pattern | ✅ |
+| `69446ff` | feat: add job-status API proxy and update video status page | ✅ |
+| `f4af007` | feat: add video proxy API and update status page | ✅ |
 | `e9a901f` | fix: replace onClick with <a> tag for article card navigation | ✅ Works! |
 | `f7f3142` | fix: remove 150-word constraint from article generation prompts | ✅ |
 | `ab20777` | fix: update asset_banks insert with all required fields | ✅ |
