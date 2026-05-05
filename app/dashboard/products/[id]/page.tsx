@@ -742,7 +742,11 @@ export default function ProductPage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Artikler ({articles.length})</h3>
               <div className="space-y-4">
                 {articles.map((article) => (
-                  <div key={article.id} className="border border-gray-200 rounded-lg p-4">
+                  <a
+                    key={article.id}
+                    href={`/dashboard/products/${productId}/article/${article.id}`}
+                    className="block border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-all no-underline text-inherit"
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900">{article.title}</h4>
@@ -755,7 +759,7 @@ export default function ProductPage() {
                         <p className="text-xs text-gray-400 mt-2">{new Date(article.created_at).toLocaleDateString('no-NO')}</p>
                       </div>
                     </div>
-                  </div>
+                  </a>
                 ))}
               </div>
             </div>
