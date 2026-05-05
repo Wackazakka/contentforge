@@ -33,6 +33,8 @@ export default function ArticlePage() {
   const [loading, setLoading] = useState(false)
   const [articles, setArticles] = useState<Article[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imageLoading, setImageLoading] = useState(false)
 
   const platforms = ['facebook', 'linkedin', 'x']
 
@@ -83,6 +85,30 @@ export default function ArticlePage() {
       const results = await Promise.all(promises)
       const generatedArticles = results.map((result) => result.article).filter(Boolean)
       setArticles(generatedArticles)
+
+      // Generate image in parallel
+      setImageLoading(true)
+      try {
+        const imageResponse = await fetch('/api/content/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic,
+            productId,
+          }),
+        })
+
+        if (imageResponse.ok) {
+          const imageData = await imageResponse.json()
+          setImageUrl(imageData.imageUrl)
+        } else {
+          console.warn('Image generation failed, continuing without image')
+        }
+      } catch (imgErr) {
+        console.warn('Image generation error:', imgErr)
+      } finally {
+        setImageLoading(false)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Noe gikk galt')
     } finally {
@@ -168,6 +194,30 @@ export default function ArticlePage() {
 
             {!loading && articles.length > 0 && (
               <div className="space-y-6">
+                {/* Image Section */}
+                {imageLoading && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <p className="text-gray-600 mt-4">Genererer bilde...</p>
+                    </div>
+                  </div>
+                )}
+
+                {imageUrl && !imageLoading && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Kampanjebilde</h3>
+                    <img
+                      src={imageUrl}
+                      alt="Kampanjebilde"
+                      className="w-full rounded-lg border border-gray-200"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Image+Not+Available'
+                      }}
+                    />
+                  </div>
+                )}
+
                 <h2 className="text-lg font-semibold text-gray-900">Genererte artikler</h2>
                 {articles.map((article) => (
                   <div key={article.id} className="bg-white rounded-lg border border-gray-200 p-6">
