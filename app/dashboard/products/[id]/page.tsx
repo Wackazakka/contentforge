@@ -735,11 +735,13 @@ export default function ProductPage() {
           </div>
 
           {/* Artikler */}
-          {articlesLoading ? (
-            <div className="text-center py-12 text-gray-500">Laster artikler...</div>
-          ) : articles.length > 0 ? (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Artikler ({articles.length})</h3>
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <p style={{ color: 'red', fontSize: '12px', marginBottom: '1rem' }}>DEBUG: {articles.length} artikler, loading: {articlesLoading.toString()}</p>
+            {articlesLoading ? (
+              <div className="text-center py-12 text-gray-500">Laster artikler...</div>
+            ) : articles.length > 0 ? (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Artikler ({articles.length})</h3>
               <div className="space-y-4">
                 {articles.map((article) => (
                   <div key={article.id} className="border border-gray-200 rounded-lg p-4">
@@ -760,13 +762,14 @@ export default function ProductPage() {
                 ))}
               </div>
             </div>
-          ) : (
-            <div className="text-center py-12 border border-gray-200 rounded-lg">
-              <div className="text-4xl mb-2">📝</div>
-              <p className="text-sm">Ingen artikler opprettet ennå</p>
-              <p className="text-xs text-gray-400 mt-2">Artikler du genererer vil vises her</p>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-12 border border-gray-200 rounded-lg">
+                <div className="text-4xl mb-2">📝</div>
+                <p className="text-sm">Ingen artikler opprettet ennå</p>
+                <p className="text-xs text-gray-400 mt-2">Artikler du genererer vil vises her</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
