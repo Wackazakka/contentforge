@@ -100,6 +100,7 @@ export default function ArticlePage() {
 
         if (imageResponse.ok) {
           const imageData = await imageResponse.json()
+          console.log('[ArticlePage] Image generated:', imageData.imageUrl)
           setImageUrl(imageData.imageUrl)
         } else {
           console.warn('Image generation failed, continuing without image')
