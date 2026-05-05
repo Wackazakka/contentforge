@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
 
 export async function GET(
-  request: Request,
-  { params }: { params: { jobId: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    const res = await fetch(`${DROPLET_URL}/jobs/${params.jobId}`)
+    const { jobId } = await params
+    const res = await fetch(`${DROPLET_URL}/jobs/${jobId}`)
     const data = await res.json()
     return NextResponse.json(data)
   } catch (err: any) {
