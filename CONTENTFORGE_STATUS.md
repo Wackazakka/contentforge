@@ -1,5 +1,5 @@
 # ContentForge v2 Status Document
-*Oppdatert: 2026-05-05 17:25 UTC*
+*Oppdatert: 2026-05-05 19:11 UTC*
 
 ## Stack
 - **Frontend:** Next.js på Netlify (`contentforge-610.netlify.app`)
@@ -61,6 +61,10 @@
 - ✅ AAC audio codec applied in ffmpeg
 - ✅ **Music file paths fixed** — `path.join(MUSIC_DIR, musicFile)` preserves subdirectory structure
 - ✅ Both Reklame and Storytelling modes support custom music selection
+- ✅ **Music upload on draft creation page** — Users can upload MP3 to global or product-specific folders before creating draft
+- ✅ **Music folder selector** — Default "global", with BilDeal, Reforhandle, SinglePicker options
+- ✅ **File validation** — MP3 only, max 4MB, with user-friendly error messages
+- ✅ **Auto-reload library** — Music library refreshes after upload
 
 ### File Stability & R2 Upload
 - ✅ **waitForFile() now waits for .done marker file** (Python signals completion)
@@ -208,10 +212,17 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 ---
 
-## 📋 Recent Commits (Session 2026-05-05, Afternoon)
+## 📋 Recent Commits (Session 2026-05-05, Evening)
 
 | Commit | Message | Status |
 |--------|---------|--------|
+| `c255d7c` | fix: improve music upload error handling and logging with inputElement ref | ✅ |
+| `b98fd27` | fix: use React state for music folder selector instead of getElementById | ✅ |
+| `70ffeb4` | fix: move music upload from draft review to draft creation page | ✅ |
+| `c58c15a` | feat: add music upload to draft review page per segment | ✓ (reverted) |
+| `26ed707` | feat: make segment text and voiceover editable in draft review | ✅ |
+| `a98892a` | debug: add better error logging for missing OPENAI_API_KEY on Netlify | ✅ |
+| `c72299d` | docs: update status with voiceover preview and logo features | ✅ |
 | `9e8a879` | feat: improve logo upload UI with file picker and preview | ✅ |
 | `892d8a1` | feat: fetch and send product logo_url to job-queue | ✅ |
 | `b86f5b8` | feat: add product logo upload and management UI | ✅ |
