@@ -4,11 +4,20 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
-const VOICES = [
-  { id: 'nPczCjzI2devNBz1zQrb', label: 'Standard Voice (Norwegian)' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', label: 'Warm Voice' },
-  { id: '21m00Tcm4TlvDq3XWmlC', label: 'Deep Voice' },
-  { id: 'jsCqWAovK2LnVrm6hQnJ', label: 'Female Voice' },
+const NORWEGIAN_VOICES = [
+  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Norsk stemme 1' },
+  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Norsk stemme 2' },
+  { id: '2dhHLsmg0MVma2t041qT', name: 'Norsk stemme 3' },
+  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Norsk stemme 4' },
+  { id: 'CMbvLbbccSd611KtwxV3', name: 'Norsk stemme 5' },
+  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Norsk stemme 6' },
+  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Norsk stemme 7' },
+]
+
+const VIDEO_FORMATS = [
+  { value: '9:16', label: 'Portrait (TikTok)', color: 'blue' },
+  { value: '16:9', label: 'Landscape', color: 'blue' },
+  { value: '1:1', label: 'Square', color: 'blue' },
 ]
 
 export default function NewDraftPage() {
@@ -18,12 +27,12 @@ export default function NewDraftPage() {
 
   const [topic, setTopic] = useState('')
   const [segmentCount, setSegmentCount] = useState(4)
-  const [voiceId, setVoiceId] = useState('nPczCjzI2devNBz1zQrb')
+  const [voiceId, setVoiceId] = useState('nhvaqgRyAq6BmFs3WcdX')
   const [tone, setTone] = useState('Energisk')
   const [cta, setCta] = useState('')
   const [videoFormat, setVideoFormat] = useState('9:16')
   const [musicFile, setMusicFile] = useState<string | null>(null)
-  const [musicFiles, setMusicFiles] = useState<{ filename: string; name: string; folder: string }[]>([])
+  const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -33,7 +42,7 @@ export default function NewDraftPage() {
         const res = await fetch('/api/music')
         const data = await res.json()
         console.log('[music] fetched:', data.files?.length, 'files')
-        setMusicFiles(data.files || [])
+        setMusicLibrary(data.files || [])
       } catch (err) {
         console.error('Failed to fetch music list:', err)
       }
@@ -77,7 +86,6 @@ export default function NewDraftPage() {
       }
 
       const data = await response.json()
-      // Navigate to draft review page
       router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Noe gikk galt')
@@ -96,12 +104,12 @@ export default function NewDraftPage() {
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Opprett ny video-draft</h1>
-          <p className="text-gray-600 mt-2">Definer tema og antall segmenter for videoen</p>
+          <p className="text-gray-600 mt-2">Definer tema og innstillinger for videoen</p>
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-lg border border-gray-200 p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-8 space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
             {/* Error */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
@@ -109,154 +117,169 @@ export default function NewDraftPage() {
               </div>
             )}
 
-            {/* Topic */}
+            {/* GRUNNINFO Section */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tema for video *
-              </label>
-              <textarea
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="F.eks. Hvordan velge riktig biler for familiebruk"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={4}
-              />
-              <p className="text-xs text-gray-500 mt-1">Beskriv hva videoen skal handle om</p>
-            </div>
+              <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
+                Grunninfo
+              </h2>
+              <div className="space-y-4">
+                {/* Topic */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tema for video *</label>
+                  <textarea
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="F.eks. Hvordan velge riktig bil for familiebruk"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={4}
+                  />
+                </div>
 
-            {/* Segment Count */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Antall segmenter
-              </label>
-              <select
-                value={segmentCount}
-                onChange={(e) => setSegmentCount(Number(e.target.value))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value={2}>2 segmenter</option>
-                <option value={3}>3 segmenter</option>
-                <option value={4}>4 segmenter (anbefalt)</option>
-                <option value={5}>5 segmenter</option>
-                <option value={6}>6 segmenter</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Hver segment blir en del av videoen</p>
-            </div>
-
-            {/* Voice ID */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Voice
-              </label>
-              <select
-                value={voiceId}
-                onChange={(e) => setVoiceId(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {VOICES.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Velg stemme for voiceovers</p>
-            </div>
-
-            {/* Tone */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Tone
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {['Vennlig', 'Energisk', 'Profesjonell', 'Rolig'].map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setTone(t)}
-                    className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
-                      tone === t
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
-                    }`}
+                {/* Segment Count */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Antall segmenter</label>
+                  <select
+                    value={segmentCount}
+                    onChange={(e) => setSegmentCount(Number(e.target.value))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {t}
-                  </button>
-                ))}
+                    <option value={2}>2 segmenter</option>
+                    <option value={3}>3 segmenter</option>
+                    <option value={4}>4 segmenter (anbefalt)</option>
+                    <option value={5}>5 segmenter</option>
+                    <option value={6}>6 segmenter</option>
+                  </select>
+                </div>
+
+                {/* CTA */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Call-to-Action (CTA)</label>
+                  <input
+                    type="text"
+                    value={cta}
+                    onChange={(e) => setCta(e.target.value)}
+                    placeholder="F.eks. Besøk nettstedet vårt i dag!"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
               </div>
-              <p className="text-xs text-gray-500 mt-2">Velg tone for videoen</p>
             </div>
 
-            {/* CTA */}
+            {/* INNHOLD Section */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Call-to-Action (CTA)
-              </label>
-              <input
-                type="text"
-                value={cta}
-                onChange={(e) => setCta(e.target.value)}
-                placeholder="F.eks. Besøk nettstedet vårt i dag!"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">Oppfordring til handling på slutten av videoen</p>
+              <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
+                Innhold
+              </h2>
+              <div className="space-y-4">
+                {/* Voice */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Stemme</label>
+                  <select
+                    value={voiceId}
+                    onChange={(e) => setVoiceId(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {NORWEGIAN_VOICES.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Tone */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Tone</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {['Vennlig', 'Energisk', 'Profesjonell', 'Rolig'].map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTone(t)}
+                        className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
+                          tone === t
+                            ? 'bg-green-600 text-white border-green-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Video Format */}
+            {/* MEDIA Section */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Videoformat
-              </label>
-              <select
-                value={videoFormat}
-                onChange={(e) => setVideoFormat(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="9:16">9:16 (Portrait/TikTok)</option>
-                <option value="16:9">16:9 (Landscape)</option>
-                <option value="1:1">1:1 (Square)</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Format for videoen</p>
-            </div>
+              <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
+                Media
+              </h2>
+              <div className="space-y-4">
+                {/* Video Format */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Videoformat</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {VIDEO_FORMATS.map((fmt) => (
+                      <button
+                        key={fmt.value}
+                        type="button"
+                        onClick={() => setVideoFormat(fmt.value)}
+                        className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
+                          videoFormat === fmt.value
+                            ? 'bg-green-600 text-white border-green-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        {fmt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Music File */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bakgrunnsmusikk
-              </label>
-              <select
-                value={musicFile || ''}
-                onChange={(e) => setMusicFile(e.target.value || null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Ingen musikk</option>
-                {musicFiles.map((f) => (
-                  <option key={f.filename} value={f.filename}>
-                    {f.name} ({f.folder})
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Velg bakgrunnsmusikk for videoen</p>
-            </div>
-
-            {/* Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
-              <p className="font-medium mb-2">📌 Prosess:</p>
-              <ol className="list-decimal list-inside space-y-1 text-xs">
-                <li>Claude genererer et manus med {segmentCount} segmenter</li>
-                <li>DALL-E genererer et bilde for hvert segment</li>
-                <li>Du godkjenner segmentene før produksjon starter</li>
-              </ol>
+                {/* Music */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Bakgrunnsmusikk</label>
+                  {musicLibrary.length > 0 ? (
+                    <div className="grid gap-2">
+                      {musicLibrary.map((music) => (
+                        <button
+                          key={music.filename}
+                          type="button"
+                          onClick={() => setMusicFile(music.filename)}
+                          className={`text-left p-3 border-2 rounded-lg transition-colors ${
+                            musicFile === music.filename
+                              ? 'border-green-500 bg-green-50'
+                              : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium text-gray-900">{music.name}</div>
+                            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                              {music.folder || 'global'}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {(music.size / 1024 / 1024).toFixed(1)}MB
+                          </div>
+                          <audio controls className="mt-2 w-full h-6" src={`/api/music/${encodeURIComponent(music.filename)}`} />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Laster musikk-bibliotek...</p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-4">
               <button
                 type="submit"
                 disabled={loading}
                 className={`flex-1 px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
-                  loading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
+                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
                 {loading ? '⏳ Genererer draft...' : '🎬 Opprett draft'}
