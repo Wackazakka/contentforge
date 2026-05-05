@@ -726,7 +726,6 @@ export default function ProductPage() {
 
           {/* Artikler */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <p style={{ color: 'red', fontSize: '12px', marginBottom: '1rem' }}>DEBUG: {articles.length} artikler, loading: {articlesLoading.toString()}</p>
             {articlesLoading ? (
               <div className="text-center py-12 text-gray-500">Laster artikler...</div>
             ) : articles.length > 0 ? (
