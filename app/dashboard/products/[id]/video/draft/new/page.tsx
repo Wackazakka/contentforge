@@ -4,6 +4,13 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
+const VOICES = [
+  { id: 'nPczCjzI2devNBz1zQrb', label: 'Standard Voice (Norwegian)' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', label: 'Warm Voice' },
+  { id: '21m00Tcm4TlvDq3XWmlC', label: 'Deep Voice' },
+  { id: 'jsCqWAovK2LnVrm6hQnJ', label: 'Female Voice' },
+]
+
 export default function NewDraftPage() {
   const router = useRouter()
   const params = useParams()
@@ -25,6 +32,7 @@ export default function NewDraftPage() {
       try {
         const res = await fetch('/api/music')
         const data = await res.json()
+        console.log('[music] fetched:', data.files?.length, 'files')
         setMusicFiles(data.files || [])
       } catch (err) {
         console.error('Failed to fetch music list:', err)
@@ -138,34 +146,44 @@ export default function NewDraftPage() {
             {/* Voice ID */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Voice ID
+                Voice
               </label>
-              <input
-                type="text"
+              <select
                 value={voiceId}
                 onChange={(e) => setVoiceId(e.target.value)}
-                placeholder="nPczCjzI2devNBz1zQrb"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">ElevenLabs voice ID for voiceovers</p>
+              >
+                {VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Velg stemme for voiceovers</p>
             </div>
 
             {/* Tone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Tone
               </label>
-              <select
-                value={tone}
-                onChange={(e) => setTone(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="Energisk">Energisk</option>
-                <option value="Profesjonell">Profesjonell</option>
-                <option value="Vennlig">Vennlig</option>
-                <option value="Saklig">Saklig</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Tone for videoen</p>
+              <div className="flex gap-2 flex-wrap">
+                {['Vennlig', 'Energisk', 'Profesjonell', 'Rolig'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTone(t)}
+                    className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
+                      tone === t
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">Velg tone for videoen</p>
             </div>
 
             {/* CTA */}
