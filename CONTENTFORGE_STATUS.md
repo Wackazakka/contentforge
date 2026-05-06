@@ -1,5 +1,5 @@
 # ContentForge v2 Status Document
-*Oppdatert: 2026-05-05 19:11 UTC*
+*Oppdatert: 2026-05-06 10:16 UTC*
 
 ## Stack
 - **Frontend:** Next.js på Netlify (`contentforge-610.netlify.app`)
@@ -212,10 +212,40 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 ---
 
-## 📋 Recent Commits (Session 2026-05-05, Evening)
+## 🆕 Session 2026-05-06: Publishing & OAuth Integration
+
+### Features Implemented
+- ✅ **Facebook/Instagram OAuth** — Complete OAuth flow with state parameter for user ID
+- ✅ **Facebook Page Publishing** — Video + caption publishing with publications history
+- ✅ **Instagram Reels Publishing** — Media container upload, polling, and publication tracking
+- ✅ **Publications Database** — Track all published content with metadata (user, product, draft, caption, timestamp)
+- ✅ **Publishing Dashboard** (`/dashboard/publish`) — Content selection, platform toggle, caption input, history
+- ✅ **Draft Title Field** — Added `title` input to draft creation, persisted to `production_drafts`
+- ✅ **Music Upload on Draft Creation** — Folder selection, file validation, library refresh
+- ✅ **Segment Text Editing** — Editable textarea for segment text and voiceover on draft review
+
+### Known Issues
+- ⚠️ **SinglePicker Page Missing** — Not returned by Facebook `/me/accounts` API; manually inserted row was deleted (page_id: 61575397917208)
+  - Cause: Unclear why Facebook doesn't return this page via Graph API
+  - Impact: Cannot republish to SinglePicker without manual database recovery
+  - Action needed: Manual re-insert with valid access token, or investigate Facebook Business Manager configuration
+
+### OAuth Scope Evolution
+- Started: `pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish`
+- Removed `instagram_basic` (deprecated in new Instagram API)
+- Current: `pages_show_list,pages_read_engagement,pages_manage_posts,instagram_content_publish`
+
+---
+
+## 📋 Recent Commits (Session 2026-05-06, Publishing & OAuth)
 
 | Commit | Message | Status |
 |--------|---------|--------|
+| `6ae8188` | fix: remove instagram_basic from OAuth scope, keep only instagram_content_publish | ✅ |
+| `1796a7a` | fix: add instagram_basic and instagram_content_publish to OAuth scope | ✅ |
+| `c1d38b4` | feat: add Instagram publishing API with media container upload and polling | ✅ |
+| `3dd6803` | feat: save publications to database and display publishing history | ✅ |
+| `5883844` | feat: add content selection and publishing UI to publish dashboard | ✅ |
 | `c255d7c` | fix: improve music upload error handling and logging with inputElement ref | ✅ |
 | `b98fd27` | fix: use React state for music folder selector instead of getElementById | ✅ |
 | `70ffeb4` | fix: move music upload from draft review to draft creation page | ✅ |
