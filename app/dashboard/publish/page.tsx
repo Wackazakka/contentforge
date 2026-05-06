@@ -253,28 +253,26 @@ function PublishPage() {
         </div>
       )}
 
-      {/* Bildeskrift */}
-      {selectedContent && (
+      {/* Caption og publiser */}
+      {selectedPages.length > 0 && (
         <div className="bg-white rounded-xl border p-6 mb-6">
-          <h2 className="font-semibold mb-4">Bildeskrift</h2>
+          <h2 className="font-semibold mb-4">Caption</h2>
           <textarea
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            placeholder="Skriv en bildeskrift for videon..."
-            className="w-full border rounded-lg px-3 py-2 mb-4"
             rows={4}
+            placeholder="Skriv en caption til innlegget..."
+            className="w-full border rounded-lg px-3 py-2 text-sm"
           />
           <button
             onClick={handlePublish}
-            disabled={publishing || !selectedPages.length}
-            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors font-medium"
+            disabled={publishing || !caption}
+            className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
           >
-            {publishing ? '⏳ Publiserer...' : '🚀 Publiser'}
+            {publishing ? '⏳ Publiserer...' : '🚀 Publiser nå'}
           </button>
           {publishResult && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm">
-              {publishResult.success ? '✅ Publisert!' : `❌ ${publishResult.error}`}
-            </div>
+            <p className="mt-3 text-sm text-green-600">✅ Publisert!</p>
           )}
         </div>
       )}
