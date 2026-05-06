@@ -13,6 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing videoUrl or caption' }, { status: 400 })
     }
 
+    console.log('[publish/facebook] videoUrl:', videoUrl)
     console.log('[publish/facebook] Publishing to pages:', pageIds)
 
     const supabase = createClient(
