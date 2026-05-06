@@ -25,6 +25,20 @@ function PublishPage() {
   const [connections, setConnections] = useState<SocialConnection[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Get current user
+    const fetchUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser()
+        setUserId(data.user?.id || null)
+      } catch (err) {
+        console.error('[publish] Failed to fetch user:', err)
+      }
+    }
+    fetchUser()
+  }, [supabase])
 
   useEffect(() => {
     const connected = searchParams.get('connected')
@@ -102,12 +116,16 @@ function PublishPage() {
         {connections.length === 0 ? (
           <div>
             <p className="text-gray-500 mb-4">Ingen kontoer koblet ennå.</p>
-            <a
-              href="/api/auth/facebook"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
-            >
-              Koble til Facebook/Instagram
-            </a>
+            {userId ? (
+              <a
+                href={`/api/auth/facebook?userId=${userId}`}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
+              >
+                Koble til Facebook/Instagram
+              </a>
+            ) : (
+              <p className="text-gray-400 text-sm">Laster bruker...</p>
+            )}
           </div>
         ) : (
           <div className="space-y-2">
@@ -118,12 +136,14 @@ function PublishPage() {
                 <span className="text-xs text-gray-400">{c.platform}</span>
               </div>
             ))}
-            <a
-              href="/api/auth/facebook"
-              className="inline-block mt-2 text-sm text-blue-600 hover:underline"
-            >
-              + Koble til flere kontoer
-            </a>
+            {userId && (
+              <a
+                href={`/api/auth/facebook?userId=${userId}`}
+                className="inline-block mt-2 text-sm text-blue-600 hover:underline"
+              >
+                + Koble til flere kontoer
+              </a>
+            )}
           </div>
         )}
       </div>
