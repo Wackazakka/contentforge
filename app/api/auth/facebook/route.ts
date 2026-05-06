@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const params = new URLSearchParams({
       client_id: process.env.META_APP_ID!,
       redirect_uri: process.env.META_REDIRECT_URI!,
-      scope: 'pages_show_list,pages_read_engagement,pages_manage_posts',
+      scope: 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish',
       response_type: 'code',
       state: userId,
     })
