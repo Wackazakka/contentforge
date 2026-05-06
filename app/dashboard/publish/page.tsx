@@ -218,7 +218,7 @@ function PublishPage() {
                       }`}
                     >
                       <p className="text-sm font-medium">
-                        {v.campaign_name || v.topic || 'Uten navn'}
+                        {v.campaign_name || v.title || 'Uten navn'}
                       </p>
                       <p className="text-xs text-gray-400">
                         {new Date(v.created_at).toLocaleDateString('nb-NO', {
