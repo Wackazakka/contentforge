@@ -53,7 +53,8 @@ function PublishPage() {
     // Fetch products
     const fetchProducts = async () => {
       try {
-        const { data } = await supabase.from('products').select('*')
+        const { data, error } = await supabase.from('products').select('*')
+        console.log('[publish] products:', data, 'error:', error)
         setProducts(data || [])
       } catch (err) {
         console.error('[publish] Failed to fetch products:', err)
@@ -70,11 +71,12 @@ function PublishPage() {
     }
     const fetchVideos = async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('production_drafts')
           .select('*')
           .eq('product_id', selectedProduct)
           .not('job_id', 'is', null)
+        console.log('[publish] videos for product', selectedProduct, ':', data, 'error:', error)
         setVideos(data || [])
       } catch (err) {
         console.error('[publish] Failed to fetch videos:', err)
