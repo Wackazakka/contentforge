@@ -26,6 +26,15 @@ function PublishPage() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [products, setProducts] = useState<any[]>([])
+  const [selectedProduct, setSelectedProduct] = useState<string>('')
+  const [contentType, setContentType] = useState<'video' | 'article'>('video')
+  const [videos, setVideos] = useState<any[]>([])
+  const [selectedContent, setSelectedContent] = useState<any>(null)
+  const [selectedPages, setSelectedPages] = useState<string[]>([])
+  const [caption, setCaption] = useState('')
+  const [publishing, setPublishing] = useState(false)
+  const [publishResult, setPublishResult] = useState<any>(null)
 
   useEffect(() => {
     // Get current user
@@ -39,6 +48,40 @@ function PublishPage() {
     }
     fetchUser()
   }, [supabase])
+
+  useEffect(() => {
+    // Fetch products
+    const fetchProducts = async () => {
+      try {
+        const { data } = await supabase.from('products').select('*')
+        setProducts(data || [])
+      } catch (err) {
+        console.error('[publish] Failed to fetch products:', err)
+      }
+    }
+    fetchProducts()
+  }, [supabase])
+
+  useEffect(() => {
+    // Fetch videos when product is selected
+    if (!selectedProduct) {
+      setVideos([])
+      return
+    }
+    const fetchVideos = async () => {
+      try {
+        const { data } = await supabase
+          .from('production_drafts')
+          .select('*')
+          .eq('product_id', selectedProduct)
+          .not('job_id', 'is', null)
+        setVideos(data || [])
+      } catch (err) {
+        console.error('[publish] Failed to fetch videos:', err)
+      }
+    }
+    fetchVideos()
+  }, [selectedProduct, supabase])
 
   useEffect(() => {
     const connected = searchParams.get('connected')
@@ -100,6 +143,35 @@ function PublishPage() {
     }
   }
 
+  const handlePublish = async () => {
+    if (!selectedContent || selectedPages.length === 0 || !caption) {
+      setMessage('❌ Velg innhold, sider og skriv en bildeskrift')
+      return
+    }
+
+    setPublishing(true)
+    try {
+      const videoUrl = `${process.env.NEXT_PUBLIC_R2_URL}/videos/${selectedContent.job_id}/output.mp4`
+      const res = await fetch('/api/publish/facebook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pageIds: selectedPages,
+          videoUrl,
+          caption,
+        }),
+      })
+      const data = await res.json()
+      setPublishResult(data)
+      setMessage(data.success ? '✅ Publisert!' : `❌ ${data.error}`)
+    } catch (err) {
+      console.error('[publish] Publish error:', err)
+      setMessage('❌ Error publishing')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-2xl font-bold mb-6">Publiser innhold</h1>
@@ -107,6 +179,103 @@ function PublishPage() {
       {message && (
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           {message}
+        </div>
+      )}
+
+      {/* Velg innhold */}
+      {connections.length > 0 && (
+        <div className="bg-white rounded-xl border p-6 mb-6">
+          <h2 className="font-semibold mb-4">Velg innhold</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Produkt</label>
+              <select
+                value={selectedProduct}
+                onChange={(e) => setSelectedProduct(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2"
+              >
+                <option value="">Velg produkt...</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {videos.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Video</label>
+                <div className="space-y-2">
+                  {videos.map((v) => (
+                    <div
+                      key={v.id}
+                      onClick={() => setSelectedContent(v)}
+                      className={`p-3 border rounded-lg cursor-pointer ${
+                        selectedContent?.id === v.id ? 'border-blue-500 bg-blue-50' : ''
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{v.campaign_name || v.id.slice(0, 8)}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(v.created_at).toLocaleDateString('nb-NO')}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Kanal-velger */}
+      {selectedContent && (
+        <div className="bg-white rounded-xl border p-6 mb-6">
+          <h2 className="font-semibold mb-4">Velg sider</h2>
+          <div className="space-y-2">
+            {connections.map((c) => (
+              <label key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={selectedPages.includes(c.page_id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedPages((prev) => [...prev, c.page_id])
+                    } else {
+                      setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
+                    }
+                  }}
+                />
+                <span>📘 {c.page_name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Bildeskrift */}
+      {selectedContent && (
+        <div className="bg-white rounded-xl border p-6 mb-6">
+          <h2 className="font-semibold mb-4">Bildeskrift</h2>
+          <textarea
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Skriv en bildeskrift for videon..."
+            className="w-full border rounded-lg px-3 py-2 mb-4"
+            rows={4}
+          />
+          <button
+            onClick={handlePublish}
+            disabled={publishing || !selectedPages.length}
+            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors font-medium"
+          >
+            {publishing ? '⏳ Publiserer...' : '🚀 Publiser'}
+          </button>
+          {publishResult && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm">
+              {publishResult.success ? '✅ Publisert!' : `❌ ${publishResult.error}`}
+            </div>
+          )}
         </div>
       )}
 
