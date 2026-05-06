@@ -12,6 +12,7 @@ interface DraftRequest {
   productId: string
   campaignId: string
   topic: string
+  title?: string
   segmentCount?: number
   targetAudience?: string
   problem?: string
@@ -136,7 +137,8 @@ export async function POST(request: NextRequest) {
     const { 
       productId, 
       campaignId, 
-      topic, 
+      topic,
+      title,
       segmentCount = 4,
       targetAudience,
       problem,
@@ -179,6 +181,7 @@ export async function POST(request: NextRequest) {
       .insert({
         product_id: productId,
         campaign_id: isValidUuid(campaignId) ? campaignId : null,
+        title: title || topic,
         status: 'draft',
         segments: segments,
         target_audience: targetAudience || '',

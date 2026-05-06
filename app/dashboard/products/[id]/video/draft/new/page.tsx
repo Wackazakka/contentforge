@@ -26,6 +26,7 @@ export default function NewDraftPage() {
   const productId = params?.id as string
 
   const [topic, setTopic] = useState('')
+  const [title, setTitle] = useState('')
   const [segmentCount, setSegmentCount] = useState(4)
   const [targetAudience, setTargetAudience] = useState('')
   const [problem, setProblem] = useState('')
@@ -75,6 +76,7 @@ export default function NewDraftPage() {
           productId,
           campaignId,
           topic,
+          title,
           segmentCount,
           targetAudience,
           problem,
@@ -130,6 +132,19 @@ export default function NewDraftPage() {
                 Grunninfo
               </h2>
               <div className="space-y-4">
+                {/* Title */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tittel på video *</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="F.eks. Bruktbil-tips vår 2026"
+                  />
+                </div>
+
                 {/* Topic */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tema for video *</label>
