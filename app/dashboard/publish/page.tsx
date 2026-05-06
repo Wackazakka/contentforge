@@ -36,6 +36,7 @@ function PublishPage() {
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<any>(null)
   const [publications, setPublications] = useState<any[]>([])
+  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram'>('facebook')
 
   useEffect(() => {
     // Get current user
@@ -164,7 +165,8 @@ function PublishPage() {
         }
       })
 
-      const res = await fetch('/api/publish/facebook', {
+      const endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,6 +299,35 @@ function PublishPage() {
                 <span>📘 {c.page_name}</span>
               </label>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Platform selection */}
+      {selectedContent && (
+        <div className="bg-white rounded-xl border p-6 mb-6">
+          <h2 className="font-semibold mb-4">Velg plattform</h2>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setPublishPlatform('facebook')}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                publishPlatform === 'facebook'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📘 Facebook
+            </button>
+            <button
+              onClick={() => setPublishPlatform('instagram')}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                publishPlatform === 'instagram'
+                  ? 'bg-pink-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📷 Instagram
+            </button>
           </div>
         </div>
       )}
