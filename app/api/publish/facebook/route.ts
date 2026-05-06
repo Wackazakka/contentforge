@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: Request) {
   try {
-    const { pageIds, videoUrl, caption } = await request.json()
+    const { pageIds, videoUrl, caption, draftId, productId, userId, pages } = await request.json()
 
     if (!pageIds || !Array.isArray(pageIds) || pageIds.length === 0) {
       return NextResponse.json({ error: 'No page IDs provided' }, { status: 400 })
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         // Hent page access token
         const { data: conn, error } = await supabase
           .from('social_connections')
-          .select('access_token')
+          .select('*')
           .eq('page_id', pageId)
           .single()
 
@@ -60,6 +60,25 @@ export async function POST(request: Request) {
           results.push({ pageId, success: false, error: data.error.message })
         } else {
           console.log('[publish/facebook] Successfully posted to page:', pageId)
+          
+          // Lagre publisering i Supabase
+          if (draftId && productId && userId) {
+            const pageName = pages?.[pageId] || conn.page_name
+            await supabase.from('publications').insert({
+              user_id: userId,
+              product_id: productId,
+              draft_id: draftId,
+              platform: 'facebook',
+              page_id: pageId,
+              page_name: pageName,
+              post_id: data.id,
+              caption,
+              video_url: videoUrl,
+              status: 'published',
+            })
+            console.log('[publish/facebook] Publication saved to database for page:', pageId)
+          }
+          
           results.push({ pageId, success: true, post_id: data.id })
         }
       } catch (err) {

@@ -35,6 +35,7 @@ function PublishPage() {
   const [caption, setCaption] = useState('')
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<any>(null)
+  const [publications, setPublications] = useState<any[]>([])
 
   useEffect(() => {
     // Get current user
@@ -154,6 +155,15 @@ function PublishPage() {
     setPublishing(true)
     try {
       const videoUrl = `${process.env.NEXT_PUBLIC_R2_URL}/videos/${selectedContent.job_id}/output.mp4`
+      
+      // Build pages map for page names
+      const pagesMap: Record<string, string> = {}
+      connections.forEach((c) => {
+        if (selectedPages.includes(c.page_id)) {
+          pagesMap[c.page_id] = c.page_name
+        }
+      })
+
       const res = await fetch('/api/publish/facebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -161,11 +171,23 @@ function PublishPage() {
           pageIds: selectedPages,
           videoUrl,
           caption,
+          draftId: selectedContent.id,
+          productId: selectedProduct,
+          userId,
+          pages: pagesMap,
         }),
       })
       const data = await res.json()
       setPublishResult(data)
       setMessage(data.success ? '✅ Publisert!' : `❌ ${data.error}`)
+      
+      // Refresh publications
+      const { data: pubs } = await supabase
+        .from('publications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20)
+      setPublications(pubs || [])
     } catch (err) {
       console.error('[publish] Publish error:', err)
       setMessage('❌ Error publishing')
@@ -173,6 +195,23 @@ function PublishPage() {
       setPublishing(false)
     }
   }
+
+  // Fetch publications on mount and when publishResult changes
+  useEffect(() => {
+    const fetchPublications = async () => {
+      try {
+        const { data } = await supabase
+          .from('publications')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20)
+        setPublications(data || [])
+      } catch (err) {
+        console.error('[publish] Failed to fetch publications:', err)
+      }
+    }
+    fetchPublications()
+  }, [publishResult, supabase])
 
   return (
     <div className="max-w-4xl mx-auto p-8">
@@ -323,6 +362,34 @@ function PublishPage() {
           </div>
         )}
       </div>
+
+      {/* Publiseringshistorikk */}
+      {publications.length > 0 && (
+        <div className="bg-white rounded-xl border p-6 mt-6">
+          <h2 className="font-semibold mb-4">Publiseringshistorikk</h2>
+          <div className="space-y-3">
+            {publications.map((p) => (
+              <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">📘 {p.page_name}</p>
+                  <p className="text-xs text-gray-400 mt-1">{p.caption?.slice(0, 60)}...</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs text-green-600 font-medium">✅ Publisert</span>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {new Date(p.created_at).toLocaleDateString('nb-NO', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
