@@ -217,10 +217,17 @@ function PublishPage() {
                         selectedContent?.id === v.id ? 'border-blue-500 bg-blue-50' : ''
                       }`}
                     >
-                      <p className="text-sm font-medium">{v.campaign_name || v.id.slice(0, 8)}</p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(v.created_at).toLocaleDateString('nb-NO')}
+                      <p className="text-sm font-medium">
+                        {v.campaign_name || v.topic || 'Uten navn'}
                       </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(v.created_at).toLocaleDateString('nb-NO', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </p>
+                      {v.job_id && <span className="text-xs text-green-600">✅ Video klar</span>}
                     </div>
                   ))}
                 </div>
