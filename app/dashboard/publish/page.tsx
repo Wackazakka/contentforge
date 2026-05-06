@@ -87,85 +87,45 @@ function PublishPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">📱 Publiseringsverktøy</h1>
-        <p className="text-gray-600 mb-6">Koble til og administrer dine sosiale medier-kontoer</p>
+    <div className="max-w-4xl mx-auto p-8">
+      <h1 className="text-2xl font-bold mb-6">Publiser innhold</h1>
 
-        {message && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            {message}
-          </div>
-        )}
+      {message && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          {message}
+        </div>
+      )}
 
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          {/* Facebook/Instagram Connect */}
-          <div className="bg-white p-6 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 transition-colors">
-            <div className="text-3xl mb-2">f</div>
-            <h2 className="font-semibold text-gray-900 mb-2">Facebook / Instagram</h2>
-            <p className="text-sm text-gray-600 mb-4">Koble til dine Facebook-sider og Instagram-kontoer</p>
+      {/* Koblede kontoer */}
+      <div className="bg-white rounded-xl border p-6 mb-6">
+        <h2 className="font-semibold mb-4">Koblede kontoer</h2>
+        {connections.length === 0 ? (
+          <div>
+            <p className="text-gray-500 mb-4">Ingen kontoer koblet ennå.</p>
             <a
               href="/api/auth/facebook"
-              className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
             >
-              🔗 Koble til Facebook
+              Koble til Facebook/Instagram
             </a>
           </div>
-
-          {/* TikTok Connect (placeholder) */}
-          <div className="bg-white p-6 rounded-lg border-2 border-dashed border-gray-300 opacity-50">
-            <div className="text-3xl mb-2">♪</div>
-            <h2 className="font-semibold text-gray-900 mb-2">TikTok</h2>
-            <p className="text-sm text-gray-600 mb-4">Kommer snart</p>
-            <button disabled className="inline-block px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed text-sm font-medium">
-              🔗 Koble til TikTok
-            </button>
+        ) : (
+          <div className="space-y-2">
+            {connections.map((c) => (
+              <div key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <span>{c.platform === 'facebook' ? '📘' : '📸'}</span>
+                <span className="font-medium">{c.page_name}</span>
+                <span className="text-xs text-gray-400">{c.platform}</span>
+              </div>
+            ))}
+            <a
+              href="/api/auth/facebook"
+              className="inline-block mt-2 text-sm text-blue-600 hover:underline"
+            >
+              + Koble til flere kontoer
+            </a>
           </div>
-
-          {/* LinkedIn Connect (placeholder) */}
-          <div className="bg-white p-6 rounded-lg border-2 border-dashed border-gray-300 opacity-50">
-            <div className="text-3xl mb-2">in</div>
-            <h2 className="font-semibold text-gray-900 mb-2">LinkedIn</h2>
-            <p className="text-sm text-gray-600 mb-4">Kommer snart</p>
-            <button disabled className="inline-block px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed text-sm font-medium">
-              🔗 Koble til LinkedIn
-            </button>
-          </div>
-        </div>
-
-        {/* Connected Accounts */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            {loading ? 'Laster...' : `Dine kontoer (${connections.length})`}
-          </h2>
-
-          {loading ? (
-            <p className="text-gray-500">Laster forbindelser...</p>
-          ) : connections.length === 0 ? (
-            <p className="text-gray-500">Ingen kontoer koblet til ennå. Klikk på knappene ovenfor for å koble til.</p>
-          ) : (
-            <div className="space-y-3">
-              {connections.map((conn) => (
-                <div key={conn.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {conn.platform === 'facebook' ? '📘' : '📷'} {conn.page_name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {conn.platform} • ID: {conn.page_id}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleDisconnect(conn.id)}
-                    className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-sm font-medium transition-colors"
-                  >
-                    🔌 Koble fra
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )
