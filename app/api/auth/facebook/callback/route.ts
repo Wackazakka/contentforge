@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+const BASE_URL = 'https://contentforge-610.netlify.app'
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -9,12 +11,12 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('[facebook/callback] Error from Meta:', error)
-      return NextResponse.redirect('/dashboard/publish?error=' + error)
+      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=${error}`)
     }
 
     if (!code) {
       console.error('[facebook/callback] No code received')
-      return NextResponse.redirect('/dashboard/publish?error=no_code')
+      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_code`)
     }
 
     console.log('[facebook/callback] Received code, exchanging for token...')
@@ -39,7 +41,7 @@ export async function GET(request: Request) {
 
     if (!tokenData.access_token) {
       console.error('[facebook/callback] No access token in response:', tokenData)
-      return NextResponse.redirect('/dashboard/publish?error=token_failed')
+      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=token_failed`)
     }
 
     console.log('[facebook/callback] Token obtained, fetching pages...')
@@ -52,7 +54,7 @@ export async function GET(request: Request) {
 
     if (!pagesData.data || pagesData.data.length === 0) {
       console.error('[facebook/callback] No pages found:', pagesData)
-      return NextResponse.redirect('/dashboard/publish?error=no_pages')
+      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_pages`)
     }
 
     console.log('[facebook/callback] Found', pagesData.data.length, 'pages')
@@ -68,7 +70,7 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       console.error('[facebook/callback] No auth header, redirecting to login')
-      return NextResponse.redirect('/login?callback=' + encodeURIComponent(request.url))
+      return NextResponse.redirect(`${BASE_URL}/login?callback=${encodeURIComponent(request.url)}`)
     }
 
     // Extract user ID from auth header (bearer token)
@@ -97,13 +99,13 @@ export async function GET(request: Request) {
       }
     } catch (err) {
       console.error('[facebook/callback] Failed to parse user from token:', err)
-      return NextResponse.redirect('/dashboard/publish?error=auth_failed')
+      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=auth_failed`)
     }
 
     console.log('[facebook/callback] ✅ All connections saved')
-    return NextResponse.redirect('/dashboard/publish?connected=facebook')
+    return NextResponse.redirect(`${BASE_URL}/dashboard/publish?connected=facebook`)
   } catch (err) {
     console.error('[facebook/callback] Error:', err)
-    return NextResponse.redirect('/dashboard/publish?error=server_error')
+    return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=server_error`)
   }
 }
