@@ -31,7 +31,7 @@ async function generateImageWithDallE(topic: string): Promise<string> {
     },
     body: JSON.stringify({
       model: 'dall-e-3',
-      prompt: `Create a professional, visually appealing image for an article about: ${topic}. High quality, suitable for articles and social media. Clean, modern style.`,
+      prompt: `Create a professional, visually appealing image for an article about: ${topic}. High quality, suitable for articles and social media. Clean, modern style. No text, letters, words, or typography in the image.`,
       n: 1,
       size: '1024x1024',
     }),
