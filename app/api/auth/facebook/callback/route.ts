@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     console.log('[facebook/callback] Received code for user:', userId)
 
     // Exchange code for access token
-    const tokenRes = await fetch('https://graph.facebook.com/v19.0/oauth/access_token', {
+    const tokenRes = await fetch('https://graph.facebook.com/v21.0/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 
     // Get user's pages
     const pagesRes = await fetch(
-      `https://graph.facebook.com/v19.0/me/accounts?access_token=${tokenData.access_token}`
+      `https://graph.facebook.com/v21.0/me/accounts?access_token=${tokenData.access_token}`
     )
     const pagesData = await pagesRes.json()
 
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
 
     // Alternative endpoint: also fetch from /me with accounts field (catches New Page Experience pages)
     const meRes = await fetch(
-      `https://graph.facebook.com/v19.0/me?fields=id,name,accounts{id,name,access_token,instagram_business_account}&access_token=${tokenData.access_token}`
+      `https://graph.facebook.com/v21.0/me?fields=id,name,accounts{id,name,access_token,instagram_business_account}&access_token=${tokenData.access_token}`
     )
     const meData = await meRes.json()
     
@@ -83,7 +83,7 @@ export async function GET(request: Request) {
     // Hardkodet fallback for SinglePicker App (New Page Experience)
     console.log('[facebook/callback] Fetching SinglePicker App page as fallback...')
     const singlePickerAppRes = await fetch(
-      `https://graph.facebook.com/v19.0/1104756536056684?fields=id,name,access_token&access_token=${tokenData.access_token}`
+      `https://graph.facebook.com/v21.0/1104756536056684?fields=id,name,access_token&access_token=${tokenData.access_token}`
     )
     const singlePickerAppData = await singlePickerAppRes.json()
     if (singlePickerAppData.id && !pagesData.data.find((p: any) => p.id === singlePickerAppData.id)) {

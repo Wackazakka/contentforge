@@ -33,7 +33,7 @@ export async function POST(request: Request) {
         const tokenForIg = conn.user_access_token || conn.access_token
         console.log('[publish/instagram] Using token type:', conn.user_access_token ? 'user_access_token' : 'page_access_token')
         const igRes = await fetch(
-          `https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${tokenForIg}`
+          `https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${tokenForIg}`
         )
         const igData = await igRes.json()
         let igAccountId = igData.instagram_business_account?.id
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         console.log('[publish/instagram] Found Instagram account:', igAccountId)
 
         // Steg 2: Opprett media container (reels)
-        const containerRes = await fetch(`https://graph.facebook.com/v19.0/${igAccountId}/media`, {
+        const containerRes = await fetch(`https://graph.facebook.com/v21.0/${igAccountId}/media`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
         while (status === 'IN_PROGRESS' && attempts < 30) {
           await new Promise((r) => setTimeout(r, 3000))
           const statusRes = await fetch(
-            `https://graph.facebook.com/v19.0/${containerData.id}?fields=status_code&access_token=${tokenForIg}`
+            `https://graph.facebook.com/v21.0/${containerData.id}?fields=status_code&access_token=${tokenForIg}`
           )
           const statusData = await statusRes.json()
           status = statusData.status_code
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
         console.log('[publish/instagram] Video processing finished, publishing...')
 
         // Steg 3: Publiser containeren
-        const publishRes = await fetch(`https://graph.facebook.com/v19.0/${igAccountId}/media_publish`, {
+        const publishRes = await fetch(`https://graph.facebook.com/v21.0/${igAccountId}/media_publish`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
