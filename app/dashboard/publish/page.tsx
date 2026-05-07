@@ -30,6 +30,7 @@ function PublishPage() {
   const [selectedProduct, setSelectedProduct] = useState<string>('')
   const [contentType, setContentType] = useState<'video' | 'article'>('video')
   const [videos, setVideos] = useState<any[]>([])
+  const [articles, setArticles] = useState<any[]>([])
   const [selectedContent, setSelectedContent] = useState<any>(null)
   const [selectedPages, setSelectedPages] = useState<string[]>([])
   const [caption, setCaption] = useState('')
@@ -66,26 +67,39 @@ function PublishPage() {
   }, [supabase])
 
   useEffect(() => {
-    // Fetch videos when product is selected
+    // Fetch videos or articles when product is selected
     if (!selectedProduct) {
       setVideos([])
+      setArticles([])
       return
     }
-    const fetchVideos = async () => {
+    
+    const fetchContent = async () => {
       try {
-        const { data, error } = await supabase
-          .from('production_drafts')
-          .select('*')
-          .eq('product_id', selectedProduct)
-          .not('job_id', 'is', null)
-        console.log('[publish] videos for product', selectedProduct, ':', data, 'error:', error)
-        setVideos(data || [])
+        if (contentType === 'video') {
+          const { data, error } = await supabase
+            .from('production_drafts')
+            .select('*')
+            .eq('product_id', selectedProduct)
+            .not('job_id', 'is', null)
+          console.log('[publish] videos for product', selectedProduct, ':', data, 'error:', error)
+          setVideos(data || [])
+          setArticles([])
+        } else {
+          const { data, error } = await supabase
+            .from('articles')
+            .select('*')
+            .eq('product_id', selectedProduct)
+          console.log('[publish] articles for product', selectedProduct, ':', data, 'error:', error)
+          setArticles(data || [])
+          setVideos([])
+        }
       } catch (err) {
-        console.error('[publish] Failed to fetch videos:', err)
+        console.error('[publish] Failed to fetch content:', err)
       }
     }
-    fetchVideos()
-  }, [selectedProduct, supabase])
+    fetchContent()
+  }, [selectedProduct, contentType, supabase])
 
   useEffect(() => {
     const connected = searchParams.get('connected')
@@ -155,8 +169,6 @@ function PublishPage() {
 
     setPublishing(true)
     try {
-      const videoUrl = `${process.env.NEXT_PUBLIC_R2_URL}/videos/${selectedContent.job_id}/output.mp4`
-      
       // Build pages map for page names
       const pagesMap: Record<string, string> = {}
       connections.forEach((c) => {
@@ -165,19 +177,30 @@ function PublishPage() {
         }
       })
 
-      const endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
+      let endpoint = '/api/publish/facebook'
+      const body: any = {
+        pageIds: selectedPages,
+        contentType,
+        draftId: selectedContent.id,
+        productId: selectedProduct,
+        userId,
+        pages: pagesMap,
+      }
+
+      if (contentType === 'video') {
+        body.videoUrl = `${process.env.NEXT_PUBLIC_R2_URL}/videos/${selectedContent.job_id}/output.mp4`
+        body.caption = caption
+        endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
+      } else {
+        body.articleContent = selectedContent.content
+        body.articleTitle = selectedContent.title
+        endpoint = '/api/publish/facebook-article'
+      }
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pageIds: selectedPages,
-          videoUrl,
-          caption,
-          draftId: selectedContent.id,
-          productId: selectedProduct,
-          userId,
-          pages: pagesMap,
-        }),
+        body: JSON.stringify(body),
       })
       const data = await res.json()
       setPublishResult(data)
@@ -229,6 +252,37 @@ function PublishPage() {
       {connections.length > 0 && (
         <div className="bg-white rounded-xl border p-6 mb-6">
           <h2 className="font-semibold mb-4">Velg innhold</h2>
+          
+          {/* Content Type Toggle */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => {
+                setContentType('video')
+                setSelectedContent(null)
+              }}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                contentType === 'video'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📹 Video
+            </button>
+            <button
+              onClick={() => {
+                setContentType('article')
+                setSelectedContent(null)
+              }}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                contentType === 'article'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📄 Artikkel
+            </button>
+          </div>
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Produkt</label>
@@ -246,7 +300,7 @@ function PublishPage() {
               </select>
             </div>
 
-            {videos.length > 0 && (
+            {contentType === 'video' && videos.length > 0 && (
               <div>
                 <label className="block text-sm font-medium mb-1">Video</label>
                 <div className="space-y-2">
@@ -269,6 +323,36 @@ function PublishPage() {
                         })}
                       </p>
                       {v.job_id && <span className="text-xs text-green-600">✅ Video klar</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {contentType === 'article' && articles.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Artikkel</label>
+                <div className="space-y-2">
+                  {articles.map((a) => (
+                    <div
+                      key={a.id}
+                      onClick={() => setSelectedContent(a)}
+                      className={`p-3 border rounded-lg cursor-pointer ${
+                        selectedContent?.id === a.id ? 'border-blue-500 bg-blue-50' : ''
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{a.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                          {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(a.created_at).toLocaleDateString('nb-NO', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -318,17 +402,22 @@ function PublishPage() {
             >
               📘 Facebook
             </button>
-            <button
-              onClick={() => setPublishPlatform('instagram')}
-              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                publishPlatform === 'instagram'
-                  ? 'bg-pink-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📷 Instagram
-            </button>
+            {contentType === 'video' && (
+              <button
+                onClick={() => setPublishPlatform('instagram')}
+                className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                  publishPlatform === 'instagram'
+                    ? 'bg-pink-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                📷 Instagram
+              </button>
+            )}
           </div>
+          {contentType === 'article' && (
+            <p className="text-xs text-gray-500 mt-2">📄 Artikler kan kun publiseres til Facebook</p>
+          )}
         </div>
       )}
 
