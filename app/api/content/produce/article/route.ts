@@ -178,11 +178,9 @@ async function generateImageInBackground(
     console.log(`[article-produce] [background] Starting image generation for article ${articleId}`)
 
     // Call /api/content/generate-image endpoint
-    const BASE_URL = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000'
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
 
-    const generateImageRes = await fetch(`${BASE_URL}/api/content/generate-image`, {
+    const generateImageRes = await fetch(`${SITE_URL}/api/content/generate-image`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
