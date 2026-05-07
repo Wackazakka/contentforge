@@ -1,5 +1,5 @@
 # ContentForge v2 Status Document
-*Oppdatert: 2026-05-07 10:15 UTC*
+*Oppdatert: 2026-05-07 17:02 UTC*
 
 ## Stack
 - **Frontend:** Next.js på Netlify (`contentforge-610.netlify.app`)
@@ -224,13 +224,17 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 - ✅ **Music Upload on Draft Creation** — Folder selection, file validation, library refresh
 - ✅ **Segment Text Editing** — Editable textarea for segment text and voiceover on draft review
 
-### Known Issues (Resolved)
+### Known Issues (All Resolved ✅)
 - ~~⚠️ **SinglePicker Page Missing** — Not returned by Facebook `/me/accounts` API~~ ✅ RESOLVED
-  - Solution: Added alternative `/me?fields=accounts` endpoint to catch New Page Experience pages
+  - Solution: Added alternative `/me?fields=accounts` endpoint + hardcoded fallback
+- ~~⚠️ **Instagram Publishing Failure** — "Application does not have permission for this action"~~ ✅ RESOLVED
+  - Root cause: Using page access token instead of user access token
+  - Solution: Stored `user_access_token` in `social_connections`, used for Instagram API calls
+  - API upgrade: v19.0 → v21.0 for improved Instagram support
 
-## 🆕 Session 2026-05-07: Article Publishing & Image Generation
+## 🆕 Session 2026-05-07: Article Publishing, Image Generation & Instagram Fix
 
-### Features Implemented
+### Part 1: Article Publishing & Image Generation ✅
 - ✅ **Article Publishing UI** — Added "📹 Video" / "📄 Artikkel" toggle on publishing dashboard
 - ✅ **Article Fetching** — Fetch articles from `articles` table filtered by `product_id`
 - ✅ **Facebook Article Publishing** — POST to `/{page_id}/feed` (text) or `/{page_id}/photos` (with image)
@@ -239,6 +243,8 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 - ✅ **No-Text DALL-E Prompt** — Added instruction to avoid typography/text in generated images
 - ✅ **Platform Filtering** — Hide Instagram option when article selected (text-only to Facebook)
 - ✅ **Content Type Tracking** — `publications.content_type` field supports 'article' and 'video'
+- ✅ **Draft Title Field** — Videos and articles support optional title field
+- ✅ **Publications History** — All publishes (video/article) tracked in database
 
 ### Image Generation Flow (WORKING ✅)
 1. User generates articles (3 platforms) via `/api/content/produce/article`
@@ -248,6 +254,26 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 5. Backend updates each article: `UPDATE articles SET image_urls = [r2_url]`
 6. Frontend displays articles with images after generation
 
+### Part 2: Instagram Reels Publishing Fix ✅
+- ✅ **User Access Token Storage** — Added `user_access_token` column to `social_connections` table
+- ✅ **OAuth Token Handling** — Facebook callback now stores both page and user access tokens
+- ✅ **Instagram Token Usage** — Instagram publishing uses `user_access_token` instead of page token
+- ✅ **Fallback Logic** — Uses page token if user token unavailable (backward compatible)
+- ✅ **API Version Upgrade** — Updated from v19.0 to v21.0 (improved Instagram support for Pages)
+- ✅ **SinglePicker App Hardcoding** — Added fallback for SinglePicker App page discovery (page_id: 1104756536056684)
+- ✅ **Instagram Account ID Fallback** — Hardcoded IG account ID for SinglePicker App (17841434830750460)
+- ✅ **Complete Instagram Reels Workflow** — Media container creation → polling → publishing ✅ WORKING
+
+### Instagram Publishing Flow (WORKING ✅)
+1. User connects Facebook/Instagram via OAuth → stores user + page tokens
+2. Frontend selects page + video → calls `/api/publish/instagram`
+3. Backend fetches user access token from `social_connections`
+4. Fetches Instagram Business Account ID: `GET /{pageId}?fields=instagram_business_account`
+5. Creates media container: `POST /{igAccountId}/media` with REELS type
+6. Polls status: `GET /{containerId}?fields=status_code` (max 30 attempts, 3sec intervals)
+7. Publishes: `POST /{igAccountId}/media_publish` with container ID
+8. Saves to `publications` table with `platform: 'instagram'`
+
 ### OAuth Scope Evolution
 - Started: `pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish`
 - Removed `instagram_basic` (deprecated in new Instagram API)
@@ -255,19 +281,23 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 ---
 
-## 📋 Recent Commits (Session 2026-05-07, Article Publishing & Image Gen)
+## 📋 Recent Commits (Session 2026-05-07, Final Session)
 
 | Commit | Message | Status |
 |--------|---------|--------|
+| `d8e7d09` | debug: log raw token exchange response body for inspection | ✅ |
+| `f55b25f` | debug: add detailed logging for user access token handling in Facebook OAuth callback | ✅ |
+| `85b0f76` | debug: add detailed logging for Instagram media container creation request | ✅ |
+| `655f71b` | fix: upgrade Facebook Graph API from v19.0 to v21.0 for Instagram content publishing support | ✅ |
+| `096c80a` | fix: store and use user access token for Instagram content publishing | ✅ |
+| `60cc8c9` | feat: add hardcoded Instagram Business Account ID fallback for SinglePicker App | ✅ |
+| `9a27458` | fix: update SinglePicker App page_id from 61589478086870 to 1104756536056684 | ✅ |
+| `6373f8f` | feat: add SinglePicker App hardcoded fallback to OAuth callback | ✅ |
+| `084d841` | fix: set draft_id to null for articles and add error handling for publications insert | ✅ |
+| `397fb34` | docs: update status with article publishing and image generation features | ✅ |
+| `00c3652` | feat: add privacy policy page | ✅ |
 | `cd0bd54` | fix: add instruction to avoid text and typography in DALL-E image generation | ✅ |
 | `5e21482` | feat: pass articleIds to generate-image and update articles with image URLs directly in API | ✅ |
-| `bca5c6e` | feat: update all generated articles with image URLs after generation completes | ✅ |
-| `7e5f633` | fix: pass productId correctly to background image generation endpoint | ✅ |
-| `96d635f` | debug: add detailed logging for article image update in background task | ✅ |
-| `26d9bf5` | feat: generate article images in background after returning to user | ✅ |
-| `9406a16` | fix: use NEXT_PUBLIC_SITE_URL for background image generation fetch | ✅ |
-| `b6489d1` | feat: publish articles with images to Facebook using /photos endpoint, fallback to /feed | ✅ |
-| `9758d80` | feat: add article publishing support with Facebook posting and content_type tracking | ✅ |
 
 ### Previous Session Commits (2026-05-06)
 | Commit | Message |
