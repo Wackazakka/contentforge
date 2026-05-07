@@ -33,7 +33,13 @@ export async function POST(request: Request) {
           `https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${conn.access_token}`
         )
         const igData = await igRes.json()
-        const igAccountId = igData.instagram_business_account?.id
+        let igAccountId = igData.instagram_business_account?.id
+
+        // Hardkodet fallback for SinglePicker App (New Page Experience)
+        if (!igAccountId && pageId === '1104756536056684') {
+          console.log('[publish/instagram] Using hardcoded Instagram account ID for SinglePicker App')
+          igAccountId = '17841434830750460'
+        }
 
         if (!igAccountId) {
           console.error('[publish/instagram] No Instagram account found for page:', pageId)
