@@ -15,6 +15,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 interface GenerateImageRequest {
   topic: string
   productId: string
+  articleIds?: string[]
 }
 
 // Generate image using DALL-E 3
@@ -116,7 +117,7 @@ async function uploadImageToR2(imageUrl: string, fileName: string): Promise<stri
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateImageRequest = await request.json()
-    const { topic, productId } = body
+    const { topic, productId, articleIds } = body
 
     if (!topic || !productId) {
       console.error('[generateImage] Validation failed: missing topic or productId')
@@ -177,6 +178,30 @@ export async function POST(request: NextRequest) {
 
     console.log(`[generateImage] ========== ✅ IMAGE GENERATION SUCCESS ==========`)
     console.log(`[generateImage] Final URL: ${r2Url}`)
+
+    // Update articles with image URLs if articleIds provided
+    if (articleIds && articleIds.length > 0) {
+      console.log(`[generateImage] Updating ${articleIds.length} articles with image URL`)
+      const supabaseClient = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+
+      for (const articleId of articleIds) {
+        try {
+          console.log(`[generateImage] Updating article ${articleId} with image URL: ${r2Url.substring(0, 50)}...`)
+          const { error: updateError } = await supabaseClient
+            .from('articles')
+            .update({ image_urls: [r2Url] })
+            .eq('id', articleId)
+
+          if (updateError) {
+            console.error(`[generateImage] Failed to update article ${articleId}:`, updateError)
+          } else {
+            console.log(`[generateImage] ✅ Article ${articleId} updated with image`)
+          }
+        } catch (err) {
+          console.error(`[generateImage] Error updating article ${articleId}:`, err)
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
