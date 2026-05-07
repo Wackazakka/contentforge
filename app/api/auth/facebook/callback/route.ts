@@ -40,8 +40,13 @@ export async function GET(request: Request) {
       }).toString(),
     })
 
-    const tokenData = await tokenRes.json()
     console.log('[facebook/callback] Token response status:', tokenRes.status)
+    
+    // Log raw response for debugging
+    const rawText = await tokenRes.text()
+    console.log('[facebook/callback] Raw token response:', rawText)
+    
+    const tokenData = JSON.parse(rawText)
     console.log('[facebook/callback] User token starts with:', tokenData.access_token?.substring(0, 20))
     console.log('[facebook/callback] User token length:', tokenData.access_token?.length)
     console.log('[facebook/callback] Full token response keys:', Object.keys(tokenData))
