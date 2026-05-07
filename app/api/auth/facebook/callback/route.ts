@@ -42,6 +42,9 @@ export async function GET(request: Request) {
 
     const tokenData = await tokenRes.json()
     console.log('[facebook/callback] Token response status:', tokenRes.status)
+    console.log('[facebook/callback] User token starts with:', tokenData.access_token?.substring(0, 20))
+    console.log('[facebook/callback] User token length:', tokenData.access_token?.length)
+    console.log('[facebook/callback] Full token response keys:', Object.keys(tokenData))
 
     if (!tokenData.access_token) {
       console.error('[facebook/callback] No access token in response:', tokenData)
@@ -104,6 +107,7 @@ export async function GET(request: Request) {
     // Save each page connection
     for (const page of pagesData.data) {
       console.log('[facebook/callback] Saving page:', page.name)
+      console.log('[facebook/callback] Saving user_access_token starting with:', tokenData.access_token?.substring(0, 20))
       await supabase.from('social_connections').upsert(
         {
           user_id: userId,
