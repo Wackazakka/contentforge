@@ -53,6 +53,15 @@ export async function POST(request: Request) {
         console.log('[publish/instagram] Found Instagram account:', igAccountId)
 
         // Steg 2: Opprett media container (reels)
+        console.log('[publish/instagram] Making request to:', `https://graph.facebook.com/v21.0/${igAccountId}/media`)
+        console.log('[publish/instagram] Token starts with:', tokenForIg?.substring(0, 20))
+        console.log('[publish/instagram] Token type in use:', conn.user_access_token ? 'user_token' : 'page_token')
+        console.log('[publish/instagram] Request body:', JSON.stringify({
+          media_type: 'REELS',
+          video_url: videoUrl,
+          caption: caption?.substring(0, 50),
+        }))
+
         const containerRes = await fetch(`https://graph.facebook.com/v21.0/${igAccountId}/media`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
