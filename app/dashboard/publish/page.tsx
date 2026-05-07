@@ -194,6 +194,7 @@ function PublishPage() {
       } else {
         body.articleContent = selectedContent.content
         body.articleTitle = selectedContent.title
+        body.articleId = selectedContent.id
         endpoint = '/api/publish/facebook-article'
       }
 

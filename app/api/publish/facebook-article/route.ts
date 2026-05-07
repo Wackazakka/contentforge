@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: Request) {
   try {
-    const { pageIds, articleContent, articleTitle, draftId, productId, userId, pages } = await request.json()
+    const { pageIds, articleContent, articleTitle, articleId, draftId, productId, userId, pages } = await request.json()
 
     if (!pageIds || !Array.isArray(pageIds) || pageIds.length === 0) {
       return NextResponse.json({ error: 'No page IDs provided' }, { status: 400 })
@@ -20,6 +20,26 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
+
+    // Fetch article to get image_urls
+    let imageUrl: string | undefined = undefined
+    if (articleId) {
+      console.log('[publish/facebook-article] Fetching article image_urls for:', articleId)
+      const { data: article, error: articleError } = await supabase
+        .from('articles')
+        .select('image_urls')
+        .eq('id', articleId)
+        .single()
+
+      if (articleError) {
+        console.warn('[publish/facebook-article] Failed to fetch article image_urls:', articleError)
+      } else if (article?.image_urls && article.image_urls.length > 0) {
+        imageUrl = article.image_urls[0] as string
+        console.log('[publish/facebook-article] Article has image:', imageUrl.substring(0, 50) + '...')
+      } else {
+        console.log('[publish/facebook-article] Article has no image, will use text post')
+      }
+    }
 
     const results = []
 
@@ -42,25 +62,43 @@ export async function POST(request: Request) {
 
         console.log('[publish/facebook-article] Posting article to page:', pageId)
 
-        // Post article to Facebook feed
         const postContent = `${articleTitle}\n\n${articleContent}`
-        
-        const res = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: postContent,
-            access_token: conn.access_token,
-          }),
-        })
+        let postRes, postData, postId
 
-        const data = await res.json()
-
-        if (data.error) {
-          console.error('[publish/facebook-article] Facebook error for page:', pageId, data.error)
-          results.push({ pageId, success: false, error: data.error.message })
+        if (imageUrl) {
+          // Post with image using /{page_id}/photos endpoint
+          console.log('[publish/facebook-article] Posting with image to page:', pageId)
+          postRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}/photos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              url: imageUrl,
+              caption: postContent,
+              access_token: conn.access_token,
+            }),
+          })
+          postData = await postRes.json()
+          postId = postData.id
         } else {
-          console.log('[publish/facebook-article] Successfully posted to page:', pageId)
+          // Post as text only using /{page_id}/feed endpoint
+          console.log('[publish/facebook-article] Posting as text post to page:', pageId)
+          postRes = await fetch(`https://graph.facebook.com/v19.0/${pageId}/feed`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: postContent,
+              access_token: conn.access_token,
+            }),
+          })
+          postData = await postRes.json()
+          postId = postData.id
+        }
+
+        if (postData.error) {
+          console.error('[publish/facebook-article] Facebook error for page:', pageId, postData.error)
+          results.push({ pageId, success: false, error: postData.error.message })
+        } else {
+          console.log('[publish/facebook-article] Successfully posted to page:', pageId, 'post_id:', postId)
 
           // Lagre i publications
           const pageName = pages?.[pageId] || conn.page_name
@@ -71,14 +109,14 @@ export async function POST(request: Request) {
             platform: 'facebook',
             page_id: pageId,
             page_name: pageName,
-            post_id: data.id,
+            post_id: postId || '',
             caption: articleTitle,
-            video_url: null,
+            video_url: imageUrl ? imageUrl : null,
             content_type: 'article',
             status: 'published',
           })
 
-          results.push({ pageId, success: true, post_id: data.id })
+          results.push({ pageId, success: true, post_id: postId })
         }
       } catch (err) {
         console.error('[publish/facebook-article] Error posting to page:', pageId, err)
