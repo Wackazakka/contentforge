@@ -1,5 +1,5 @@
 # ContentForge v2 Status Document
-*Oppdatert: 2026-05-06 10:16 UTC*
+*Oppdatert: 2026-05-07 10:15 UTC*
 
 ## Stack
 - **Frontend:** Next.js på Netlify (`contentforge-610.netlify.app`)
@@ -224,11 +224,29 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 - ✅ **Music Upload on Draft Creation** — Folder selection, file validation, library refresh
 - ✅ **Segment Text Editing** — Editable textarea for segment text and voiceover on draft review
 
-### Known Issues
-- ⚠️ **SinglePicker Page Missing** — Not returned by Facebook `/me/accounts` API; manually inserted row was deleted (page_id: 61575397917208)
-  - Cause: Unclear why Facebook doesn't return this page via Graph API
-  - Impact: Cannot republish to SinglePicker without manual database recovery
-  - Action needed: Manual re-insert with valid access token, or investigate Facebook Business Manager configuration
+### Known Issues (Resolved)
+- ~~⚠️ **SinglePicker Page Missing** — Not returned by Facebook `/me/accounts` API~~ ✅ RESOLVED
+  - Solution: Added alternative `/me?fields=accounts` endpoint to catch New Page Experience pages
+
+## 🆕 Session 2026-05-07: Article Publishing & Image Generation
+
+### Features Implemented
+- ✅ **Article Publishing UI** — Added "📹 Video" / "📄 Artikkel" toggle on publishing dashboard
+- ✅ **Article Fetching** — Fetch articles from `articles` table filtered by `product_id`
+- ✅ **Facebook Article Publishing** — POST to `/{page_id}/feed` (text) or `/{page_id}/photos` (with image)
+- ✅ **Background Image Generation** — Generate DALL-E images after article creation, update `articles.image_urls`
+- ✅ **Direct Image-to-Article Updates** — Generate-image endpoint now directly updates article records with image URLs
+- ✅ **No-Text DALL-E Prompt** — Added instruction to avoid typography/text in generated images
+- ✅ **Platform Filtering** — Hide Instagram option when article selected (text-only to Facebook)
+- ✅ **Content Type Tracking** — `publications.content_type` field supports 'article' and 'video'
+
+### Image Generation Flow (WORKING ✅)
+1. User generates articles (3 platforms) via `/api/content/produce/article`
+2. Articles stored in `articles` table with `image_urls: []`
+3. Frontend calls `/api/content/generate-image` with `articleIds`
+4. Backend generates DALL-E image → uploads to R2
+5. Backend updates each article: `UPDATE articles SET image_urls = [r2_url]`
+6. Frontend displays articles with images after generation
 
 ### OAuth Scope Evolution
 - Started: `pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish`
@@ -237,16 +255,28 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 ---
 
-## 📋 Recent Commits (Session 2026-05-06, Publishing & OAuth)
+## 📋 Recent Commits (Session 2026-05-07, Article Publishing & Image Gen)
 
 | Commit | Message | Status |
 |--------|---------|--------|
-| `6ae8188` | fix: remove instagram_basic from OAuth scope, keep only instagram_content_publish | ✅ |
-| `1796a7a` | fix: add instagram_basic and instagram_content_publish to OAuth scope | ✅ |
-| `c1d38b4` | feat: add Instagram publishing API with media container upload and polling | ✅ |
-| `3dd6803` | feat: save publications to database and display publishing history | ✅ |
-| `5883844` | feat: add content selection and publishing UI to publish dashboard | ✅ |
-| `c255d7c` | fix: improve music upload error handling and logging with inputElement ref | ✅ |
+| `cd0bd54` | fix: add instruction to avoid text and typography in DALL-E image generation | ✅ |
+| `5e21482` | feat: pass articleIds to generate-image and update articles with image URLs directly in API | ✅ |
+| `bca5c6e` | feat: update all generated articles with image URLs after generation completes | ✅ |
+| `7e5f633` | fix: pass productId correctly to background image generation endpoint | ✅ |
+| `96d635f` | debug: add detailed logging for article image update in background task | ✅ |
+| `26d9bf5` | feat: generate article images in background after returning to user | ✅ |
+| `9406a16` | fix: use NEXT_PUBLIC_SITE_URL for background image generation fetch | ✅ |
+| `b6489d1` | feat: publish articles with images to Facebook using /photos endpoint, fallback to /feed | ✅ |
+| `9758d80` | feat: add article publishing support with Facebook posting and content_type tracking | ✅ |
+
+### Previous Session Commits (2026-05-06)
+| Commit | Message |
+|--------|---------|
+| `9b9f34b` | fix: remove hardcoded SinglePicker page_id fallback, rely on /me/accounts |
+| `af3123d` | feat: add hardcoded SinglePicker page fallback fetch |
+| `ec6f8a5` | feat: add alternative /me endpoint to catch New Page Experience pages |
+| `6ae8188` | fix: remove instagram_basic from OAuth scope |
+| `4a6316e` | docs: update status with publishing, OAuth, and known SinglePicker issue |
 | `b98fd27` | fix: use React state for music folder selector instead of getElementById | ✅ |
 | `70ffeb4` | fix: move music upload from draft review to draft creation page | ✅ |
 | `c58c15a` | feat: add music upload to draft review page per segment | ✓ (reverted) |
