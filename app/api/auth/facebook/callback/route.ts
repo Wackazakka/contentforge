@@ -61,7 +61,24 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_pages`)
     }
 
-    console.log('[facebook/callback] Found', pagesData.data.length, 'pages')
+    console.log('[facebook/callback] Found', pagesData.data.length, 'pages from /me/accounts')
+
+    // Alternative endpoint: also fetch from /me with accounts field (catches New Page Experience pages)
+    const meRes = await fetch(
+      `https://graph.facebook.com/v19.0/me?fields=id,name,accounts{id,name,access_token,instagram_business_account}&access_token=${tokenData.access_token}`
+    )
+    const meData = await meRes.json()
+    
+    if (meData.accounts && meData.accounts.data && meData.accounts.data.length > 0) {
+      console.log('[facebook/callback] Found', meData.accounts.data.length, 'pages from /me endpoint (alternative)')
+      // Merge with existing pages (avoid duplicates)
+      const existingPageIds = new Set(pagesData.data.map((p: any) => p.id))
+      const newPages = meData.accounts.data.filter((p: any) => !existingPageIds.has(p.id))
+      console.log('[facebook/callback] Adding', newPages.length, 'new pages from /me endpoint')
+      if (newPages.length > 0) {
+        pagesData.data.push(...newPages)
+      }
+    }
 
     // Use service role client to save connections (bypasses RLS)
     const supabase = createClient(
