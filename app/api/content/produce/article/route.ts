@@ -216,10 +216,13 @@ async function generateImageInBackground(
     // Update articles table with image URL
     const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
 
-    const { error: updateError } = await supabase
+    console.log('[article-produce] [background] Updating article', articleId, 'with image URL:', imageUrl)
+    const { error: updateError, data } = await supabase
       .from('articles')
       .update({ image_urls: [imageUrl] })
       .eq('id', articleId)
+
+    console.log('[article-produce] [background] Update result:', { error: updateError, data })
 
     if (updateError) {
       console.error(
