@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
+import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 
 // Simple markdown renderer - converts **text** to <strong> and *text* to <em>
@@ -35,6 +36,12 @@ export default function ArticlePage() {
   const [error, setError] = useState<string | null>(null)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [imageLoading, setImageLoading] = useState(false)
+
+  // Initialize Supabase client
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  )
 
   const platforms = ['facebook', 'linkedin', 'x']
 
@@ -105,6 +112,26 @@ export default function ArticlePage() {
           const imageData = await imageResponse.json()
           console.log('[ArticlePage] Image generated successfully:', imageData.imageUrl)
           setImageUrl(imageData.imageUrl)
+
+          // Oppdater alle artikler med bilde-URL
+          console.log('[ArticlePage] Updating', articles.length, 'articles with image URL')
+          for (const article of articles) {
+            try {
+              console.log('[ArticlePage] Updating article', article.id, 'with image:', imageData.imageUrl.substring(0, 50) + '...')
+              const { error: updateError } = await supabase
+                .from('articles')
+                .update({ image_urls: [imageData.imageUrl] })
+                .eq('id', article.id)
+
+              if (updateError) {
+                console.error('[ArticlePage] Failed to update article', article.id, ':', updateError)
+              } else {
+                console.log('[ArticlePage] ✅ Article', article.id, 'updated with image')
+              }
+            } catch (err) {
+              console.error('[ArticlePage] Error updating article', article.id, ':', err)
+            }
+          }
         } else {
           const errorData = await imageResponse.json().catch(() => ({}))
           console.error('[ArticlePage] Image generation failed with status', imageResponse.status, errorData)
