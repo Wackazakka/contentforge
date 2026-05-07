@@ -172,7 +172,8 @@ async function generateImageInBackground(
   articleId: string,
   title: string,
   topic: string,
-  campaignId: string
+  campaignId: string,
+  productId: string
 ): Promise<void> {
   try {
     console.log(`[article-produce] [background] Starting image generation for article ${articleId}`)
@@ -185,7 +186,7 @@ async function generateImageInBackground(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         topic: title || topic, // Use article title as prompt, fallback to topic
-        productId: '', // Not needed for image generation
+        productId: productId, // Pass productId for proper asset banking
       }),
     })
 
@@ -311,7 +312,7 @@ export async function POST(request: NextRequest) {
         })
 
         // Generate image in background (non-blocking)
-        generateImageInBackground(articleId, title, topic, campaignId).catch((err) => {
+        generateImageInBackground(articleId, title, topic, campaignId, productId).catch((err) => {
           console.error(`[article-produce] Background image generation failed for article ${articleId}:`, err)
         })
 
