@@ -83,7 +83,7 @@ export async function GET(request: Request) {
     // Hardkodet fallback for SinglePicker App (New Page Experience)
     console.log('[facebook/callback] Fetching SinglePicker App page as fallback...')
     const singlePickerAppRes = await fetch(
-      `https://graph.facebook.com/v19.0/61589478086870?fields=id,name,access_token&access_token=${tokenData.access_token}`
+      `https://graph.facebook.com/v19.0/1104756536056684?fields=id,name,access_token&access_token=${tokenData.access_token}`
     )
     const singlePickerAppData = await singlePickerAppRes.json()
     if (singlePickerAppData.id && !pagesData.data.find((p: any) => p.id === singlePickerAppData.id)) {
