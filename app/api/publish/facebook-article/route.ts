@@ -102,10 +102,11 @@ export async function POST(request: Request) {
 
           // Lagre i publications
           const pageName = pages?.[pageId] || conn.page_name
-          await supabase.from('publications').insert({
+          console.log('[publish/facebook-article] Saving to publications table for page:', pageId)
+          const { error: publishError } = await supabase.from('publications').insert({
             user_id: userId,
             product_id: productId,
-            draft_id: draftId,
+            draft_id: null, // Articles don't have a draft_id (unlike videos)
             platform: 'facebook',
             page_id: pageId,
             page_name: pageName,
@@ -116,7 +117,13 @@ export async function POST(request: Request) {
             status: 'published',
           })
 
-          results.push({ pageId, success: true, post_id: postId })
+          if (publishError) {
+            console.error('[publish/facebook-article] Failed to save publication for page:', pageId, publishError)
+            results.push({ pageId, success: false, error: `Published but failed to record: ${publishError.message}` })
+          } else {
+            console.log('[publish/facebook-article] ✅ Publication saved for page:', pageId)
+            results.push({ pageId, success: true, post_id: postId })
+          }
         }
       } catch (err) {
         console.error('[publish/facebook-article] Error posting to page:', pageId, err)
