@@ -167,6 +167,80 @@ async function uploadImageToR2(imageUrl: string, campaignId: string, articleId: 
   }
 }
 
+// Background image generation and article update
+async function generateImageInBackground(
+  articleId: string,
+  title: string,
+  topic: string,
+  campaignId: string
+): Promise<void> {
+  try {
+    console.log(`[article-produce] [background] Starting image generation for article ${articleId}`)
+
+    // Call /api/content/generate-image endpoint
+    const BASE_URL = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000'
+
+    const generateImageRes = await fetch(`${BASE_URL}/api/content/generate-image`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: title || topic, // Use article title as prompt, fallback to topic
+        productId: '', // Not needed for image generation
+      }),
+    })
+
+    if (!generateImageRes.ok) {
+      const error = await generateImageRes.json()
+      console.error(
+        `[article-produce] [background] Image generation API failed for article ${articleId}:`,
+        error
+      )
+      return
+    }
+
+    const imageData = await generateImageRes.json()
+    const imageUrl = imageData.image_url
+
+    if (!imageUrl) {
+      console.error(
+        `[article-produce] [background] No image URL returned for article ${articleId}`
+      )
+      return
+    }
+
+    console.log(
+      `[article-produce] [background] Image generated for article ${articleId}, URL: ${imageUrl.substring(0, 50)}...`
+    )
+
+    // Update articles table with image URL
+    const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+
+    const { error: updateError } = await supabase
+      .from('articles')
+      .update({ image_urls: [imageUrl] })
+      .eq('id', articleId)
+
+    if (updateError) {
+      console.error(
+        `[article-produce] [background] Failed to update image_urls for article ${articleId}:`,
+        updateError
+      )
+      return
+    }
+
+    console.log(
+      `[article-produce] [background] ✅ Article ${articleId} successfully updated with image URL`
+    )
+  } catch (err) {
+    console.error(
+      `[article-produce] [background] Unexpected error generating image for article ${articleId}:`,
+      err
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateArticleRequest = await request.json()
@@ -226,16 +300,24 @@ export async function POST(request: NextRequest) {
 
         console.log(`[article-produce] ✅ ${platform} article successfully created: ${articleId}`)
 
-        return NextResponse.json({
+        // Return article immediately to user
+        const response = NextResponse.json({
           success: true,
           article: {
             id: articleId,
             platform,
             title,
             content,
-            image_url: r2Url || '', // Empty string while image generation is disabled
+            image_url: '', // Will be updated after background image generation
           },
         })
+
+        // Generate image in background (non-blocking)
+        generateImageInBackground(articleId, title, topic, campaignId).catch((err) => {
+          console.error(`[article-produce] Background image generation failed for article ${articleId}:`, err)
+        })
+
+        return response
       } catch (error) {
         console.error(`[article-produce] ❌ Error generating ${platform} article:`, {
           error: error instanceof Error ? error.message : String(error),
