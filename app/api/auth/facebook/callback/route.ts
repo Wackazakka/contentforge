@@ -80,6 +80,25 @@ export async function GET(request: Request) {
       }
     }
 
+    // Hardkodet fallback for SinglePicker (New Page Experience)
+    console.log('[facebook/callback] Fetching SinglePicker page as fallback...')
+    const singlePickerRes = await fetch(
+      `https://graph.facebook.com/v19.0/1063029843559889?fields=id,name,access_token&access_token=${tokenData.access_token}`
+    )
+    const singlePickerData = await singlePickerRes.json()
+    if (singlePickerData.id) {
+      // Check if already exists
+      const singlePickerExists = pagesData.data.some((p: any) => p.id === singlePickerData.id)
+      if (!singlePickerExists) {
+        console.log('[facebook/callback] Adding SinglePicker from fallback fetch')
+        pagesData.data.push(singlePickerData)
+      } else {
+        console.log('[facebook/callback] SinglePicker already in pages list')
+      }
+    } else {
+      console.log('[facebook/callback] SinglePicker fallback failed:', singlePickerData)
+    }
+
     // Use service role client to save connections (bypasses RLS)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
