@@ -16,10 +16,10 @@ export async function POST(request: Request) {
       try {
         console.log('[publish/instagram] Processing page:', pageId)
 
-        // Hent page access token
+        // Hent page og user access tokens
         const { data: conn } = await supabase
           .from('social_connections')
-          .select('access_token, page_name')
+          .select('access_token, user_access_token, page_name')
           .eq('page_id', pageId)
           .single()
 
@@ -29,8 +29,11 @@ export async function POST(request: Request) {
         }
 
         // Steg 1: Hent Instagram Business Account ID
+        // Bruk user_access_token for Instagram API (fallback til page token)
+        const tokenForIg = conn.user_access_token || conn.access_token
+        console.log('[publish/instagram] Using token type:', conn.user_access_token ? 'user_access_token' : 'page_access_token')
         const igRes = await fetch(
-          `https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${conn.access_token}`
+          `https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${tokenForIg}`
         )
         const igData = await igRes.json()
         let igAccountId = igData.instagram_business_account?.id
@@ -57,7 +60,7 @@ export async function POST(request: Request) {
             media_type: 'REELS',
             video_url: videoUrl,
             caption,
-            access_token: conn.access_token,
+            access_token: tokenForIg,
           }),
         })
 
@@ -77,7 +80,7 @@ export async function POST(request: Request) {
         while (status === 'IN_PROGRESS' && attempts < 30) {
           await new Promise((r) => setTimeout(r, 3000))
           const statusRes = await fetch(
-            `https://graph.facebook.com/v19.0/${containerData.id}?fields=status_code&access_token=${conn.access_token}`
+            `https://graph.facebook.com/v19.0/${containerData.id}?fields=status_code&access_token=${tokenForIg}`
           )
           const statusData = await statusRes.json()
           status = statusData.status_code
@@ -99,7 +102,7 @@ export async function POST(request: Request) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             creation_id: containerData.id,
-            access_token: conn.access_token,
+            access_token: tokenForIg,
           }),
         })
 

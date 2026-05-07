@@ -111,6 +111,7 @@ export async function GET(request: Request) {
           page_id: page.id,
           page_name: page.name,
           access_token: page.access_token,
+          user_access_token: tokenData.access_token, // Store user token for Instagram publishing
         },
         { onConflict: 'user_id,platform,page_id' }
       )
