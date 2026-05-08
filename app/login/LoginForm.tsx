@@ -66,7 +66,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md rounded-2xl shadow-sm p-8 border" style={{ backgroundColor: '#ffffff', borderColor: '#e5e2d9' }}>
+    <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8 border border-gray-200">
       <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-2 mb-3">
           <HexagonIcon />
@@ -74,24 +74,24 @@ export function LoginForm() {
             Center<span style={{ color: '#378ADD' }}>Forge</span>
           </span>
         </div>
-        <p className="text-sm" style={{ color: '#6b7280' }}>Logg inn på din konto</p>
+        <p className="text-sm text-gray-500">Logg inn på din konto</p>
       </div>
 
       {message && (
-        <div className="mb-5 p-4 rounded-lg" style={{ backgroundColor: '#f0faf6', border: '1px solid #1D9E75' }}>
-          <p className="text-sm" style={{ color: '#1D9E75' }}>{message}</p>
+        <div className="mb-5 p-4 rounded-lg bg-green-50 border border-green-200">
+          <p className="text-sm text-green-700">{message}</p>
         </div>
       )}
 
       {error && (
-        <div className="mb-5 p-4 rounded-lg" style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5' }}>
+        <div className="mb-5 p-4 rounded-lg bg-red-50 border border-red-200">
           <p className="text-sm text-red-600">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1.5" style={{ color: '#2C2C2A' }}>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
             E-post
           </label>
           <input
@@ -100,14 +100,13 @@ export function LoginForm() {
             value={form.email}
             onChange={handleChange}
             disabled={loading}
-            className="w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none disabled:opacity-50 transition-colors"
-            style={{ backgroundColor: '#F1EFE8', border: '1px solid #d1cec7', color: '#2C2C2A' }}
+            className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
             placeholder="du@eksempel.no"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1.5" style={{ color: '#2C2C2A' }}>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
             Passord
           </label>
           <input
@@ -116,8 +115,7 @@ export function LoginForm() {
             value={form.password}
             onChange={handleChange}
             disabled={loading}
-            className="w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none disabled:opacity-50 transition-colors"
-            style={{ backgroundColor: '#F1EFE8', border: '1px solid #d1cec7', color: '#2C2C2A' }}
+            className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
             placeholder="••••••••"
           />
         </div>
@@ -132,7 +130,7 @@ export function LoginForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm" style={{ color: '#9ca3af' }}>
+      <p className="mt-6 text-center text-sm text-gray-400">
         Har du ikke konto?{' '}
         <Link href="/register" className="font-medium hover:underline" style={{ color: '#185FA5' }}>
           Registrer deg
