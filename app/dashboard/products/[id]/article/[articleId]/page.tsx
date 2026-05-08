@@ -11,6 +11,7 @@ interface Article {
   title: string
   platform: string
   content: string
+  image_urls: string[] | null
   created_at: string
 }
 
@@ -114,6 +115,16 @@ export default function ArticleDetailPage() {
           <p className="text-sm text-gray-500 mb-8">
             Opprettet: {new Date(article.created_at).toLocaleDateString('no-NO')}
           </p>
+
+          {/* Illustration */}
+          {article.image_urls?.[0] && (
+            <img
+              src={article.image_urls[0]}
+              alt={article.title}
+              className="w-full rounded-xl object-cover mb-8"
+              style={{ maxHeight: '400px' }}
+            />
+          )}
 
           {/* Divider */}
           <div className="border-t border-gray-200 my-8"></div>

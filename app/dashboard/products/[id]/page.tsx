@@ -368,7 +368,7 @@ export default function ProductPage() {
 
         const { data: articlesData, error: articlesError } = await supabase
           .from('articles')
-          .select('id, title, platform, content, created_at')
+          .select('id, title, platform, content, image_urls, created_at')
           .eq('product_id', productId)
           .order('created_at', { ascending: false })
 
@@ -881,6 +881,13 @@ export default function ProductPage() {
                         className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-3">
+                          {article.image_urls?.[0] && (
+                            <img
+                              src={article.image_urls[0]}
+                              alt={article.title}
+                              className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                            />
+                          )}
                           <div className="flex-1 min-w-0">
                             <a
                               href={`/dashboard/products/${productId}/article/${article.id}`}
