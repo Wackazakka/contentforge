@@ -112,9 +112,9 @@ export default function ProductPage() {
   const [openSections, setOpenSections] = useState({
     jobs: true,
     doneJobs: true,
-    videos: true,
-    images: true,
-    articles: true,
+    videos: false,
+    images: false,
+    articles: false,
   })
   const toggleSection = (key: keyof typeof openSections) =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -774,7 +774,6 @@ export default function ProductPage() {
                           <p className="text-sm font-medium text-gray-800 mb-2">{title}</p>
                           <video
                             src={video.asset_url}
-                            muted
                             preload="metadata"
                             controls
                             className="w-full rounded-lg bg-gray-900 mb-3"
