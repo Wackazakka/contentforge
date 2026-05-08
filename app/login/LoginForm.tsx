@@ -5,22 +5,31 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from '@/lib/supabaseClient'
 
+function HexagonIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <polygon
+        points="12,2.5 20.8,7.75 20.8,16.25 12,21.5 3.2,16.25 3.2,7.75"
+        stroke="#378ADD"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  )
+}
+
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-  })
+  const [form, setForm] = useState({ email: '', password: '' })
 
   useEffect(() => {
     const msg = searchParams.get('message')
-    if (msg) {
-      setMessage(decodeURIComponent(msg))
-    }
+    if (msg) setMessage(decodeURIComponent(msg))
   }, [searchParams])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,32 +42,23 @@ export function LoginForm() {
     setError(null)
     setLoading(true)
 
-    // Validation
     if (!form.email.includes('@')) {
-      setError('Valid email is required')
+      setError('Ugyldig e-postadresse')
       setLoading(false)
       return
     }
     if (!form.password) {
-      setError('Password is required')
+      setError('Passord er påkrevd')
       setLoading(false)
       return
     }
 
     try {
       const { data, error: signInError } = await signIn(form.email, form.password)
-
-      if (signInError) {
-        setError(signInError.message)
-        return
-      }
-
-      if (data.session) {
-        // Success - redirect to dashboard
-        router.push('/dashboard')
-      }
+      if (signInError) { setError(signInError.message); return }
+      if (data.session) router.push('/dashboard')
     } catch (err) {
-      setError('An unexpected error occurred')
+      setError('En uventet feil oppstod')
       console.error(err)
     } finally {
       setLoading(false)
@@ -66,28 +66,33 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md bg-slate-800 rounded-lg shadow-lg p-8 border border-slate-700">
+    <div className="w-full max-w-md rounded-2xl shadow-sm p-8 border" style={{ backgroundColor: '#ffffff', borderColor: '#e5e2d9' }}>
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">ContentForge</h1>
-        <p className="text-slate-400">Create stunning content with AI</p>
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <HexagonIcon />
+          <span className="text-2xl font-bold" style={{ color: '#0C447C' }}>
+            Center<span style={{ color: '#378ADD' }}>Forge</span>
+          </span>
+        </div>
+        <p className="text-sm" style={{ color: '#6b7280' }}>Logg inn på din konto</p>
       </div>
 
       {message && (
-        <div className="mb-6 p-4 bg-green-500/10 border border-green-500 rounded-lg">
-          <p className="text-green-400 text-sm">{message}</p>
+        <div className="mb-5 p-4 rounded-lg" style={{ backgroundColor: '#f0faf6', border: '1px solid #1D9E75' }}>
+          <p className="text-sm" style={{ color: '#1D9E75' }}>{message}</p>
         </div>
       )}
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg">
-          <p className="text-red-400 text-sm">{error}</p>
+        <div className="mb-5 p-4 rounded-lg" style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5' }}>
+          <p className="text-sm text-red-600">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
-            Email
+          <label className="block text-sm font-medium mb-1.5" style={{ color: '#2C2C2A' }}>
+            E-post
           </label>
           <input
             type="email"
@@ -95,14 +100,15 @@ export function LoginForm() {
             value={form.email}
             onChange={handleChange}
             disabled={loading}
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 disabled:opacity-50"
-            placeholder="you@example.com"
+            className="w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none disabled:opacity-50 transition-colors"
+            style={{ backgroundColor: '#F1EFE8', border: '1px solid #d1cec7', color: '#2C2C2A' }}
+            placeholder="du@eksempel.no"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">
-            Password
+          <label className="block text-sm font-medium mb-1.5" style={{ color: '#2C2C2A' }}>
+            Passord
           </label>
           <input
             type="password"
@@ -110,7 +116,8 @@ export function LoginForm() {
             value={form.password}
             onChange={handleChange}
             disabled={loading}
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+            className="w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none disabled:opacity-50 transition-colors"
+            style={{ backgroundColor: '#F1EFE8', border: '1px solid #d1cec7', color: '#2C2C2A' }}
             placeholder="••••••••"
           />
         </div>
@@ -118,20 +125,19 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-2.5 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          style={{ backgroundColor: '#185FA5' }}
         >
-          {loading ? 'Signing in...' : 'Sign In'}
+          {loading ? 'Logger inn...' : 'Logg inn'}
         </button>
       </form>
 
-      <div className="mt-6 text-center">
-        <p className="text-slate-400 text-sm">
-          Don't have an account?{' '}
-          <Link href="/register" className="text-blue-400 hover:text-blue-300">
-            Sign up
-          </Link>
-        </p>
-      </div>
+      <p className="mt-6 text-center text-sm" style={{ color: '#9ca3af' }}>
+        Har du ikke konto?{' '}
+        <Link href="/register" className="font-medium hover:underline" style={{ color: '#185FA5' }}>
+          Registrer deg
+        </Link>
+      </p>
     </div>
   )
 }
