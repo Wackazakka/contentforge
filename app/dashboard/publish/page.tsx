@@ -198,8 +198,8 @@ function PublishPage() {
         platform: publishPlatform,
         content_type: contentType,
         publish_at: publishTime.toISOString(),
-        product_id: selectedProduct || null,
-        page_ids: selectedPages,
+        production_id: selectedProduct || null,
+        page_id: selectedPages[0] || null,
         caption,
         draft_id: selectedContent.id,
         job_id: selectedContent.job_id || null,
@@ -215,23 +215,8 @@ function PublishPage() {
       console.log('[schedule] result data:', data, 'error:', error)
 
       if (error) {
-        // Retry with only the columns the table is guaranteed to have
-        console.warn('[schedule] Full insert failed, retrying with minimal columns:', error.message)
-        const { data: data2, error: error2 } = await supabase
-          .from('scheduled_publications')
-          .insert({
-            platform: publishPlatform,
-            content_type: contentType,
-            publish_at: publishTime.toISOString(),
-          })
-          .select()
-
-        console.log('[schedule] minimal insert result:', data2, 'error:', error2)
-
-        if (error2) {
-          setMessage(`❌ Kunne ikke planlegge: ${error2.message}`)
-          return
-        }
+        setMessage(`❌ Kunne ikke planlegge: ${error.message}`)
+        return
       }
 
       setMessage(

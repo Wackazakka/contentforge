@@ -72,7 +72,7 @@ export default function CalendarPage() {
     setLoading(true)
     const [pubRes, schedRes] = await Promise.all([
       supabase.from('publications').select('id,platform,status,content_type,created_at,product_id').order('created_at', { ascending: false }).limit(200),
-      supabase.from('scheduled_publications').select('id,platform,content_type,publish_at,product_id').order('publish_at', { ascending: true }).limit(200),
+      supabase.from('scheduled_publications').select('id,platform,content_type,publish_at,production_id').order('publish_at', { ascending: true }).limit(200),
     ])
 
     const published: CalendarEntry[] = (pubRes.data || []).map((p: Publication) => ({
