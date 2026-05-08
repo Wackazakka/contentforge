@@ -1,5 +1,6 @@
-# ContentForge v2 Status Document
-*Oppdatert: 2026-05-07 17:02 UTC*
+# CenterForge Platform Status Document
+*Oppdatert: 2026-05-08 06:59 UTC*
+*(Tidligere kjent som ContentForge v2 — rebranded to CenterForge)*
 
 ## Stack
 - **Frontend:** Next.js på Netlify (`contentforge-610.netlify.app`)
@@ -226,53 +227,81 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 ### Known Issues (All Resolved ✅)
 - ~~⚠️ **SinglePicker Page Missing** — Not returned by Facebook `/me/accounts` API~~ ✅ RESOLVED
-  - Solution: Added alternative `/me?fields=accounts` endpoint + hardcoded fallback
-- ~~⚠️ **Instagram Publishing Failure** — "Application does not have permission for this action"~~ ✅ RESOLVED
-  - Root cause: Using page access token instead of user access token
-  - Solution: Stored `user_access_token` in `social_connections`, used for Instagram API calls
-  - API upgrade: v19.0 → v21.0 for improved Instagram support
+- ~~⚠️ **Instagram Publishing Failure (#10)** — "Application does not have permission for this action"~~ ✅ RESOLVED
+  - Root cause 1: Using page access token instead of user access token
+  - Root cause 2: @singlepicker not connected to Facebook page in Instagram settings
+  - Solutions: 
+    1. Stored `user_access_token` in social_connections for Instagram API
+    2. Manually accepted Instagram Tester invitation
+    3. Connected IG account to Facebook page in settings
+    4. API upgrade: v19.0 → v21.0 for improved Instagram support
 
-## 🆕 Session 2026-05-07: Article Publishing, Image Generation & Instagram Fix
+## 🆕 Session 2026-05-08: Instagram Fix, Scheduled Publishing, Calendar & Rebranding
 
-### Part 1: Article Publishing & Image Generation ✅
-- ✅ **Article Publishing UI** — Added "📹 Video" / "📄 Artikkel" toggle on publishing dashboard
-- ✅ **Article Fetching** — Fetch articles from `articles` table filtered by `product_id`
-- ✅ **Facebook Article Publishing** — POST to `/{page_id}/feed` (text) or `/{page_id}/photos` (with image)
-- ✅ **Background Image Generation** — Generate DALL-E images after article creation, update `articles.image_urls`
-- ✅ **Direct Image-to-Article Updates** — Generate-image endpoint now directly updates article records with image URLs
-- ✅ **No-Text DALL-E Prompt** — Added instruction to avoid typography/text in generated images
-- ✅ **Platform Filtering** — Hide Instagram option when article selected (text-only to Facebook)
-- ✅ **Content Type Tracking** — `publications.content_type` field supports 'article' and 'video'
-- ✅ **Draft Title Field** — Videos and articles support optional title field
-- ✅ **Publications History** — All publishes (video/article) tracked in database
+### Instagram Publishing — FINAL FIX ✅
+**Root Cause Identified & Resolved:**
+- Problem: @singlepicker Instagram account was NOT connected to Facebook page "SinglePicker App"
+- Solution: Manually accepted Instagram Tester invitation via instagram.com/accounts/manage_access/
+- Connected @singlepicker to Facebook page in Instagram settings
+- Result: Instagram Reels publishing now fully operational ✅
 
-### Image Generation Flow (WORKING ✅)
-1. User generates articles (3 platforms) via `/api/content/produce/article`
-2. Articles stored in `articles` table with `image_urls: []`
-3. Frontend calls `/api/content/generate-image` with `articleIds`
-4. Backend generates DALL-E image → uploads to R2
-5. Backend updates each article: `UPDATE articles SET image_urls = [r2_url]`
-6. Frontend displays articles with images after generation
+**Database & Token Fixes:**
+- ✅ Deleted incorrect social_connections rows (old page_id 61575397917208)
+- ✅ Manually sourced valid access_token via Graph API Explorer
+- ✅ Added `user_access_token` column for Instagram API calls
+- ✅ API upgraded: v19.0 → v21.0 (better Instagram support)
 
-### Part 2: Instagram Reels Publishing Fix ✅
-- ✅ **User Access Token Storage** — Added `user_access_token` column to `social_connections` table
-- ✅ **OAuth Token Handling** — Facebook callback now stores both page and user access tokens
-- ✅ **Instagram Token Usage** — Instagram publishing uses `user_access_token` instead of page token
-- ✅ **Fallback Logic** — Uses page token if user token unavailable (backward compatible)
-- ✅ **API Version Upgrade** — Updated from v19.0 to v21.0 (improved Instagram support for Pages)
-- ✅ **SinglePicker App Hardcoding** — Added fallback for SinglePicker App page discovery (page_id: 1104756536056684)
-- ✅ **Instagram Account ID Fallback** — Hardcoded IG account ID for SinglePicker App (17841434830750460)
-- ✅ **Complete Instagram Reels Workflow** — Media container creation → polling → publishing ✅ WORKING
+### Scheduled Publishing ✅
+**New Features:**
+- ✅ `scheduled_publications` table in Supabase (scheduled posts with publish_at timestamp)
+- ✅ `/api/cron/process-scheduled` Netlify endpoint (checks and publishes scheduled content)
+- ✅ Cron job on droplet (server.js, runs every minute)
+- ✅ Date/time picker on publishing dashboard
+- ✅ "Schedule" button (in addition to "Publish Now")
+- ✅ Content scheduled for future publication stores in `scheduled_publications`
 
-### Instagram Publishing Flow (WORKING ✅)
-1. User connects Facebook/Instagram via OAuth → stores user + page tokens
-2. Frontend selects page + video → calls `/api/publish/instagram`
-3. Backend fetches user access token from `social_connections`
-4. Fetches Instagram Business Account ID: `GET /{pageId}?fields=instagram_business_account`
-5. Creates media container: `POST /{igAccountId}/media` with REELS type
-6. Polls status: `GET /{containerId}?fields=status_code` (max 30 attempts, 3sec intervals)
-7. Publishes: `POST /{igAccountId}/media_publish` with container ID
-8. Saves to `publications` table with `platform: 'instagram'`
+**Cron Workflow:**
+1. Droplet cron checks `scheduled_publications` every minute
+2. If `publish_at <= NOW()`: trigger `/api/cron/process-scheduled`
+3. Endpoint publishes to Facebook/Instagram via existing APIs
+4. Moves record to `publications` table, deletes from `scheduled_publications`
+
+### Content Calendar (/dashboard/calendar) ✅
+- ✅ Table view of all scheduled & published content
+- ✅ Calendar view (month/week/day)
+- ✅ Filtering: platform (Facebook/Instagram), status (scheduled/published/failed), date range
+- ✅ Sorting: by date, platform, status
+- ✅ Deletion: remove scheduled posts before publish time
+
+### UI/UX Improvements ✅
+- ✅ **Unified NavBar** — Consistent navigation on all dashboard pages
+- ✅ **"Publish" Buttons on Content Cards** — Quick publish from product/article/video views
+- ✅ **Product Page Collapsible Sections** — Videos, Articles, Images sections collapse/expand
+- ✅ **Delete Functions** — Remove videos, articles, scheduled posts, completed jobs
+- ✅ **Image Previews** — Article detail page shows `image_urls`
+- ✅ **Data Cleanup** — Removed stale production_drafts and production_jobs
+- ✅ **Campaign Section Fix** — Now shows real data from database (not hardcoded)
+
+### CenterForge Rebranding ✅
+**Name Change:** ContentForge → CenterForge
+**Visual Identity:**
+- Primary: #0C447C (dark blue)
+- Secondary: #185FA5 (medium blue)
+- Accent: #378ADD (light blue)
+- Success: #1D9E75 (teal)
+- Neutral: #2C2C2A (dark gray)
+- Background: #F1EFE8 (cream)
+
+**Implementation:**
+- ✅ Hexagon logo in NavBar
+- ✅ Cream background (#F1EFE8) on all pages
+- ✅ CSS variables and Tailwind tokens updated
+- ✅ Color scheme applied consistently across UI
+
+### API Updates ✅
+- ✅ Facebook Graph API: v19.0 → v21.0
+- ✅ Cache-control headers on OAuth callback
+- ✅ Debug logging added for troubleshooting (can be removed in production)
 
 ### OAuth Scope Evolution
 - Started: `pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish`
@@ -281,7 +310,26 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 ---
 
-## 📋 Recent Commits (Session 2026-05-07, Final Session)
+## 📊 Platform Statistics
+
+### Databases
+- **Supabase:** 12+ tables (users, products, articles, videos, publications, scheduled_publications, etc.)
+- **R2:** Image, video, and voiceover storage (pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev)
+- **Droplet:** Job queue (139.59.212.218:3002) with background processing
+
+### API Integrations
+- **Facebook Graph API** v21.0 (OAuth, page management, publishing)
+- **Instagram Business API** (Reels publishing, media containers, polling)
+- **OpenAI** (Article generation, image generation with DALL-E 3)
+- **ElevenLabs** (Norwegian voiceover with eleven_turbo_v2_5)
+- **Cloudflare** (R2 storage, CDN)
+
+### Deployment
+- **Frontend:** Netlify (3c29d628-6c63-45b3-a446-4fbdb593c495)
+- **Backend:** Netlify Functions + Droplet cron
+- **Database:** Supabase (jvnavubholyvihvytqkn)
+
+## 📋 Session 2026-05-07 & 2026-05-08 Commits
 
 | Commit | Message | Status |
 |--------|---------|--------|
