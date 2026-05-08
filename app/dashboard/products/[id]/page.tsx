@@ -1,18 +1,15 @@
 'use client'
 
-// Cache-bust: 2026-05-04 06:32 UTC
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/authContext'
 import { getSupabase } from '@/lib/supabaseClient'
 
-// Simple markdown renderer - converts **text** to <strong> and *text* to <em>
 function renderMarkdown(text: string) {
   const html = text
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-  
   return <div dangerouslySetInnerHTML={{ __html: html }} />
 }
 
@@ -45,7 +42,7 @@ interface ProductionJob {
   created_by: string
   title: string
   description: string | null
-  status: 'draft' | 'queued' | 'generating' | 'rendering' | 'done' | 'failed'
+  status: 'draft' | 'queued' | 'generating' | 'rendering' | 'done' | 'completed' | 'failed'
   content_type: string | null
   video_format: string | null
   ai_parameters: Record<string, any> | null
@@ -71,6 +68,28 @@ function formatDate(iso: string) {
   })
 }
 
+function SectionHeader({
+  title,
+  open,
+  onToggle,
+}: {
+  title: string
+  open: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      className="w-full flex items-center justify-between mb-4 text-left group"
+    >
+      <h2 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+        {title}
+      </h2>
+      <span className="text-gray-400 text-sm select-none">{open ? '▲' : '▼'}</span>
+    </button>
+  )
+}
+
 export default function ProductPage() {
   const router = useRouter()
   const params = useParams()
@@ -90,7 +109,16 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Profile form state
+  const [openSections, setOpenSections] = useState({
+    jobs: true,
+    doneJobs: true,
+    videos: true,
+    images: true,
+    articles: true,
+  })
+  const toggleSection = (key: keyof typeof openSections) =>
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
+
   const [profileForm, setProfileForm] = useState({
     logo_url: '',
     primary_color: '',
@@ -104,7 +132,6 @@ export default function ProductPage() {
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
 
-  // Fetch product data
   useEffect(() => {
     if (!productId || !session?.user?.id) return
 
@@ -112,7 +139,6 @@ export default function ProductPage() {
       try {
         const supabase = getSupabase()
 
-        // Fetch product
         const { data: productData, error: productError } = await supabase
           .from('products')
           .select('*')
@@ -127,16 +153,13 @@ export default function ProductPage() {
 
         setProduct(productData)
 
-        // Fetch product profile
         const { data: profileData } = await supabase
           .from('product_profiles')
           .select('*')
           .eq('product_id', productId)
           .maybeSingle()
 
-        if (profileData) {
-          setProfile(profileData)
-        }
+        if (profileData) setProfile(profileData)
       } catch (err) {
         console.error('[ProductPage] Fetch error:', err)
         setError(err instanceof Error ? err.message : 'Feil ved henting av produkt')
@@ -148,7 +171,6 @@ export default function ProductPage() {
     fetchProduct()
   }, [productId, session?.user?.id])
 
-  // Populate profile form when profile is loaded
   useEffect(() => {
     if (profile) {
       setProfileForm({
@@ -163,10 +185,8 @@ export default function ProductPage() {
     }
   }, [profile])
 
-  // Handle profile save
   const handleSaveProfile = async () => {
     if (!productId) return
-    
     setProfileSaving(true)
     setProfileMessage(null)
 
@@ -175,33 +195,31 @@ export default function ProductPage() {
 
       const { error } = await supabase
         .from('product_profiles')
-        .upsert({
-          product_id: productId,
-          logo_url: profileForm.logo_url || null,
-          primary_color: profileForm.primary_color || null,
-          secondary_color: profileForm.secondary_color || null,
-          accent_color: profileForm.accent_color || null,
-          font_family: profileForm.font_family || null,
-          brand_voice: profileForm.brand_voice || null,
-          brand_guidelines: profileForm.brand_guidelines || null,
-        }, {
-          onConflict: 'product_id'
-        })
+        .upsert(
+          {
+            product_id: productId,
+            logo_url: profileForm.logo_url || null,
+            primary_color: profileForm.primary_color || null,
+            secondary_color: profileForm.secondary_color || null,
+            accent_color: profileForm.accent_color || null,
+            font_family: profileForm.font_family || null,
+            brand_voice: profileForm.brand_voice || null,
+            brand_guidelines: profileForm.brand_guidelines || null,
+          },
+          { onConflict: 'product_id' }
+        )
 
       if (error) throw error
 
       setProfileMessage('✅ Merkevareprofil lagret!')
-      
-      // Refresh profile data
+
       const { data: updatedProfile } = await supabase
         .from('product_profiles')
         .select('*')
         .eq('product_id', productId)
         .maybeSingle()
-      
-      if (updatedProfile) {
-        setProfile(updatedProfile)
-      }
+
+      if (updatedProfile) setProfile(updatedProfile)
 
       setTimeout(() => setProfileMessage(null), 3000)
     } catch (err) {
@@ -226,7 +244,7 @@ export default function ProductPage() {
       })
       const data = await res.json()
       if (data.url) {
-        setProfile((prev) => prev ? { ...prev, logo_url: data.url } : null)
+        setProfile((prev) => (prev ? { ...prev, logo_url: data.url } : null))
         setProfileForm((prev) => ({ ...prev, logo_url: data.url }))
       }
     } catch (err) {
@@ -240,11 +258,24 @@ export default function ProductPage() {
     if (!productId) return
     const supabase = getSupabase()
     await supabase.from('products').update({ logo_url: null }).eq('id', productId)
-    setProduct((prev) => prev ? { ...prev, logo_url: null } : null)
-    setProfile((prev) => prev ? { ...prev, logo_url: null } : null)
+    setProduct((prev) => (prev ? { ...prev, logo_url: null } : null))
+    setProfile((prev) => (prev ? { ...prev, logo_url: null } : null))
   }
 
-  // Fetch production jobs and poll every 5 seconds
+  const handleDeleteVideo = async (id: string) => {
+    if (!confirm('Slett denne videoen?')) return
+    const supabase = getSupabase()
+    await supabase.from('asset_banks').delete().eq('id', id)
+    setVideos((prev) => prev.filter((v) => v.id !== id))
+  }
+
+  const handleDeleteArticle = async (id: string) => {
+    if (!confirm('Slett denne artikkelen?')) return
+    const supabase = getSupabase()
+    await supabase.from('articles').delete().eq('id', id)
+    setArticles((prev) => prev.filter((a) => a.id !== id))
+  }
+
   useEffect(() => {
     if (!productId || !session?.user?.id) return
 
@@ -268,16 +299,11 @@ export default function ProductPage() {
       }
     }
 
-    // Initial fetch
     fetchJobs()
-
-    // Poll every 5 seconds for status updates
     const interval = setInterval(fetchJobs, 5000)
-
     return () => clearInterval(interval)
   }, [productId, session?.user?.id])
 
-  // Fetch asset bank images
   useEffect(() => {
     if (!productId) return
 
@@ -305,7 +331,6 @@ export default function ProductPage() {
     fetchAssets()
   }, [productId])
 
-  // Fetch asset bank videos
   useEffect(() => {
     if (!productId) return
 
@@ -316,7 +341,7 @@ export default function ProductPage() {
 
         const { data: videosData, error: videosError } = await supabase
           .from('asset_banks')
-          .select('id, asset_url, asset_type, metadata, created_at, product_id')
+          .select('id, asset_url, asset_type, metadata, created_at, product_id, job_id')
           .eq('product_id', productId)
           .eq('asset_type', 'video')
           .order('created_at', { ascending: false })
@@ -333,9 +358,7 @@ export default function ProductPage() {
     fetchVideos()
   }, [productId])
 
-  // Fetch articles
   useEffect(() => {
-    console.log('[Articles] useEffect triggered, productId:', productId)
     if (!productId) return
 
     const fetchArticles = async () => {
@@ -350,7 +373,6 @@ export default function ProductPage() {
           .order('created_at', { ascending: false })
 
         if (articlesError) throw articlesError
-        console.log('[Articles] Fetched articles:', articlesData?.length || 0)
         setArticles(articlesData || [])
       } catch (err) {
         console.error('[ProductPage] Articles fetch error:', err)
@@ -385,13 +407,21 @@ export default function ProductPage() {
     )
   }
 
+  const activeJobs = jobs.filter(
+    (j) => !['done', 'completed', 'failed'].includes(j.status)
+  )
+  const doneJobs = jobs.filter((j) => j.status === 'done' || j.status === 'completed')
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
           <div>
-            <Link href="/dashboard" className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-2 inline-block">
+            <Link
+              href="/dashboard"
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-2 inline-block"
+            >
               ← Tilbake til dashboard
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
@@ -423,13 +453,12 @@ export default function ProductPage() {
               <p className="text-gray-900 mt-1">{formatDate(product.created_at)}</p>
             </div>
           </div>
-
         </div>
 
         {/* Brand Profile */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Merkevareprofil</h2>
-          
+
           {profileMessage && (
             <div className="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm">
               {profileMessage}
@@ -437,7 +466,6 @@ export default function ProductPage() {
           )}
 
           <div className="space-y-4">
-            {/* Logo */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Logo</label>
               <div className="flex gap-2 items-center">
@@ -460,11 +488,14 @@ export default function ProductPage() {
                 </label>
               </div>
               {profileForm.logo_url && (
-                <img src={profileForm.logo_url} alt="Logo preview" className="mt-3 h-12 w-auto object-contain" />
+                <img
+                  src={profileForm.logo_url}
+                  alt="Logo preview"
+                  className="mt-3 h-12 w-auto object-contain"
+                />
               )}
             </div>
 
-            {/* Primary Color */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Primærfarge</label>
               <div className="flex gap-2">
@@ -484,27 +515,29 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Secondary Color */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sekundærfarge</label>
               <div className="flex gap-2">
                 <input
                   type="color"
                   value={profileForm.secondary_color || '#000000'}
-                  onChange={(e) => setProfileForm({ ...profileForm, secondary_color: e.target.value })}
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, secondary_color: e.target.value })
+                  }
                   className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
                 />
                 <input
                   type="text"
                   value={profileForm.secondary_color}
-                  onChange={(e) => setProfileForm({ ...profileForm, secondary_color: e.target.value })}
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, secondary_color: e.target.value })
+                  }
                   placeholder="#000000"
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
 
-            {/* Accent Color */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Aksentfarge</label>
               <div className="flex gap-2">
@@ -524,7 +557,6 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Font Family */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Skriftfamilie</label>
               <input
@@ -536,7 +568,6 @@ export default function ProductPage() {
               />
             </div>
 
-            {/* Brand Voice */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Merkevaretone</label>
               <textarea
@@ -548,19 +579,21 @@ export default function ProductPage() {
               />
             </div>
 
-            {/* Brand Guidelines */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Merkevareveileder</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Merkevareveileder
+              </label>
               <textarea
                 value={profileForm.brand_guidelines}
-                onChange={(e) => setProfileForm({ ...profileForm, brand_guidelines: e.target.value })}
+                onChange={(e) =>
+                  setProfileForm({ ...profileForm, brand_guidelines: e.target.value })
+                }
                 placeholder="Beskriv merkevareveileder, stilguide, eller retningslinjer..."
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
-            {/* Save Button */}
             <button
               onClick={handleSaveProfile}
               disabled={profileSaving}
@@ -585,7 +618,9 @@ export default function ProductPage() {
             </button>
 
             <button
-              onClick={() => router.push(`/dashboard/products/${productId}/video/draft/new`)}
+              onClick={() =>
+                router.push(`/dashboard/products/${productId}/video/draft/new`)
+              }
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left"
             >
               <div className="text-2xl mb-2">🎬</div>
@@ -604,19 +639,17 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* Pågående produksjonsjobber */}
-        {jobs.length > 0 && (
+        {/* Active jobs */}
+        {activeJobs.length > 0 && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Pågående produksjonsjobber {jobsLoading && <span className="text-sm text-gray-500">(oppdateres...)</span>}
-            </h2>
-            <div className="space-y-3">
-              {jobs
-                .filter(
-                  (job) =>
-                    job.status === 'queued' || job.status === 'generating' || job.status === 'rendering'
-                )
-                .map((job) => (
+            <SectionHeader
+              title={`Pågående produksjonsjobber (${activeJobs.length})${jobsLoading ? ' …' : ''}`}
+              open={openSections.jobs}
+              onToggle={() => toggleSection('jobs')}
+            />
+            {openSections.jobs && (
+              <div className="space-y-3">
+                {activeJobs.map((job) => (
                   <div
                     key={job.id}
                     className={`p-4 rounded-lg border-l-4 ${
@@ -627,51 +660,44 @@ export default function ProductPage() {
                         : 'border-l-purple-400 bg-purple-50'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{job.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{job.description}</p>
-                        <div className="mt-2 flex items-center gap-4 text-xs">
-                          <span className="text-gray-500">
-                            Status:{' '}
-                            <span className="font-semibold">
-                              {job.status === 'queued'
-                                ? '⏳ Venter'
-                                : job.status === 'generating'
-                                ? '⚙️ Genererer innhold'
-                                : '🎬 Rendrer video'}
-                            </span>
-                          </span>
-                          <span className="text-gray-500">
-                            Format:{' '}
-                            <span className="font-semibold">
-                              {job.video_format?.split(',').join(', ') || 'N/A'}
-                            </span>
-                          </span>
-                        </div>
-                      </div>
+                    <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{job.description}</p>
+                    <div className="mt-2 flex items-center gap-4 text-xs">
+                      <span className="text-gray-500">
+                        Status:{' '}
+                        <span className="font-semibold">
+                          {job.status === 'queued'
+                            ? '⏳ Venter'
+                            : job.status === 'generating'
+                            ? '⚙️ Genererer innhold'
+                            : '🎬 Rendrer video'}
+                        </span>
+                      </span>
+                      <span className="text-gray-500">
+                        Format:{' '}
+                        <span className="font-semibold">
+                          {job.video_format?.split(',').join(', ') || 'N/A'}
+                        </span>
+                      </span>
                     </div>
                   </div>
                 ))}
-              {jobs.filter(
-                (job) => job.status === 'queued' || job.status === 'generating' || job.status === 'rendering'
-              ).length === 0 && (
-                <p className="text-gray-500 text-center py-4">Ingen aktive jobber</p>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Ferdigstilte videoer */}
-        {jobs.filter((job) => job.status === 'done').length > 0 && (
+        {/* Done jobs */}
+        {doneJobs.length > 0 && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Ferdigstilte videoer ({jobs.filter((job) => job.status === 'done').length})
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {jobs
-                .filter((job) => job.status === 'done')
-                .map((job) => {
+            <SectionHeader
+              title={`Ferdigstilte videoer (${doneJobs.length})`}
+              open={openSections.doneJobs}
+              onToggle={() => toggleSection('doneJobs')}
+            />
+            {openSections.doneJobs && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {doneJobs.map((job) => {
                   const videoUrl =
                     (job.ai_parameters as any)?.video_url ||
                     (job.ai_parameters as any)?.r2_url ||
@@ -690,137 +716,223 @@ export default function ProductPage() {
 
                       {videoUrl && (
                         <>
-                          {/* Video preview */}
                           <video
                             src={videoUrl}
                             controls
                             className="w-full rounded-lg mb-3 bg-black"
                             style={{ aspectRatio: '9/16', maxHeight: '300px' }}
                           />
-
-                          {/* Download link */}
-                          <a
-                            href={videoUrl}
-                            download={`${job.title.replace(/\s+/g, '_')}.mp4`}
-                            className="inline-block px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
-                          >
-                            ⬇️ Last ned video
-                          </a>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/publish?type=video&job_id=${job.id}&product_id=${productId}`
+                                )
+                              }
+                              className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                            >
+                              🚀 Publiser
+                            </button>
+                            <a
+                              href={videoUrl}
+                              download={`${job.title.replace(/\s+/g, '_')}.mp4`}
+                              className="flex-1 text-center bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                            >
+                              ⬇️ Last ned
+                            </a>
+                          </div>
                         </>
                       )}
                     </div>
                   )
                 })}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Content Banks */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="space-y-6">
           {/* Videos */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Videoer ({videos.length})</h3>
-            {videosLoading ? (
-              <div className="text-center py-8 text-gray-500">Laster videoer...</div>
-            ) : videos.length > 0 ? (
-              <div className="space-y-4">
-                {videos.map((video) => (
-                  <div key={video.id} className="border border-gray-200 rounded-lg p-3">
-                    <video
-                      src={video.asset_url}
-                      controls
-                      className="w-full rounded-lg bg-gray-900 mb-3"
-                      style={{ maxHeight: '200px' }}
-                    />
-                    <div className="flex gap-2">
-                      <a
-                        href={video.asset_url}
-                        download={(video as any).name || 'video.mp4'}
-                        className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        ⬇️ Last ned
-                      </a>
-                    </div>
+            <SectionHeader
+              title={`Videoer (${videos.length})`}
+              open={openSections.videos}
+              onToggle={() => toggleSection('videos')}
+            />
+            {openSections.videos && (
+              <>
+                {videosLoading ? (
+                  <div className="text-center py-8 text-gray-500">Laster videoer...</div>
+                ) : videos.length > 0 ? (
+                  <div className="space-y-4">
+                    {videos.map((video) => {
+                      const title =
+                        video.metadata?.title || `Video – ${formatDate(video.created_at)}`
+                      return (
+                        <div key={video.id} className="border border-gray-200 rounded-lg p-3">
+                          <p className="text-sm font-medium text-gray-800 mb-2">{title}</p>
+                          <video
+                            src={video.asset_url}
+                            muted
+                            preload="metadata"
+                            controls
+                            className="w-full rounded-lg bg-gray-900 mb-3"
+                            style={{ maxHeight: '200px' }}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/publish?type=video&job_id=${video.job_id}&product_id=${productId}`
+                                )
+                              }
+                              className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                            >
+                              🚀 Publiser
+                            </button>
+                            <a
+                              href={video.asset_url}
+                              download={(video as any).name || 'video.mp4'}
+                              className="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              ⬇️ Last ned
+                            </a>
+                            <button
+                              onClick={() => handleDeleteVideo(video.id)}
+                              className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              🗑
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-                <div className="text-4xl mb-2">🎥</div>
-                <p className="text-sm">Ingen videoer opprettet ennå</p>
-                <p className="text-xs text-gray-400 mt-2">Videoer du genererer vil vises her</p>
-              </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
+                    <div className="text-4xl mb-2">🎥</div>
+                    <p className="text-sm">Ingen videoer opprettet ennå</p>
+                    <p className="text-xs text-gray-400 mt-2">Videoer du genererer vil vises her</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
           {/* Images */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Bilder ({assets.length})</h3>
-            {assetsLoading ? (
-              <div className="text-center py-8 text-gray-500">Laster bilder...</div>
-            ) : assets.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {assets.map((asset) => (
-                  <a
-                    key={asset.id}
-                    href={asset.asset_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative bg-gray-100 rounded-lg overflow-hidden aspect-square block hover:opacity-90 transition-opacity"
-                  >
-                    <img
-                      src={asset.asset_url}
-                      alt="Generated image"
-                      className="w-full h-full object-cover"
-                    />
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
-                <div className="text-4xl mb-2">🖼️</div>
-                <p className="text-sm">Ingen bilder opprettet ennå</p>
-                <p className="text-xs text-gray-400 mt-2">Bilder du genererer vil vises her</p>
-              </div>
+            <SectionHeader
+              title={`Bilder (${assets.length})`}
+              open={openSections.images}
+              onToggle={() => toggleSection('images')}
+            />
+            {openSections.images && (
+              <>
+                {assetsLoading ? (
+                  <div className="text-center py-8 text-gray-500">Laster bilder...</div>
+                ) : assets.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {assets.map((asset) => (
+                      <a
+                        key={asset.id}
+                        href={asset.asset_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative bg-gray-100 rounded-lg overflow-hidden aspect-square block hover:opacity-90 transition-opacity"
+                      >
+                        <img
+                          src={asset.asset_url}
+                          alt="Generated image"
+                          className="w-full h-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
+                    <div className="text-4xl mb-2">🖼️</div>
+                    <p className="text-sm">Ingen bilder opprettet ennå</p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Bilder du genererer vil vises her
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* Artikler */}
+          {/* Articles */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            {articlesLoading ? (
-              <div className="text-center py-12 text-gray-500">Laster artikler...</div>
-            ) : articles.length > 0 ? (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Artikler ({articles.length})</h3>
-              <div className="space-y-4">
-                {articles.map((article) => (
-                  <a
-                    key={article.id}
-                    href={`/dashboard/products/${productId}/article/${article.id}`}
-                    className="block border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-all no-underline text-inherit"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">{article.title}</h4>
-                        <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded capitalize">
-                          {article.platform}
-                        </span>
-                        <div className="text-sm text-gray-600 mt-2">
-                          {renderMarkdown(article.content.substring(0, 100) + (article.content.length > 100 ? '...' : ''))}
+            <SectionHeader
+              title={`Artikler (${articles.length})`}
+              open={openSections.articles}
+              onToggle={() => toggleSection('articles')}
+            />
+            {openSections.articles && (
+              <>
+                {articlesLoading ? (
+                  <div className="text-center py-12 text-gray-500">Laster artikler...</div>
+                ) : articles.length > 0 ? (
+                  <div className="space-y-4">
+                    {articles.map((article) => (
+                      <div
+                        key={article.id}
+                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <a
+                              href={`/dashboard/products/${productId}/article/${article.id}`}
+                              className="font-semibold text-gray-900 hover:text-blue-700 transition-colors"
+                            >
+                              {article.title}
+                            </a>
+                            <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded capitalize">
+                              {article.platform}
+                            </span>
+                            <div className="text-sm text-gray-600 mt-2">
+                              {renderMarkdown(
+                                article.content.substring(0, 100) +
+                                  (article.content.length > 100 ? '...' : '')
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-400 mt-2">
+                              {new Date(article.created_at).toLocaleDateString('no-NO')}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2 flex-shrink-0">
+                            <button
+                              onClick={() =>
+                                router.push(
+                                  `/dashboard/publish?type=article&content_id=${article.id}&product_id=${productId}`
+                                )
+                              }
+                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
+                            >
+                              🚀 Publiser
+                            </button>
+                            <button
+                              onClick={() => handleDeleteArticle(article.id)}
+                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors"
+                            >
+                              🗑 Slett
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-400 mt-2">{new Date(article.created_at).toLocaleDateString('no-NO')}</p>
                       </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-            ) : (
-              <div className="text-center py-12 border border-gray-200 rounded-lg">
-                <div className="text-4xl mb-2">📝</div>
-                <p className="text-sm">Ingen artikler opprettet ennå</p>
-                <p className="text-xs text-gray-400 mt-2">Artikler du genererer vil vises her</p>
-              </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 border border-gray-200 rounded-lg">
+                    <div className="text-4xl mb-2">📝</div>
+                    <p className="text-sm text-gray-500">Ingen artikler opprettet ennå</p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      Artikler du genererer vil vises her
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

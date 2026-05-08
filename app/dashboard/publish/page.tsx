@@ -38,6 +38,8 @@ function PublishPage() {
   const [publishResult, setPublishResult] = useState<any>(null)
   const [publications, setPublications] = useState<any[]>([])
   const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram'>('facebook')
+  const [prefillJobId, setPrefillJobId] = useState<string | null>(null)
+  const [prefillContentId, setPrefillContentId] = useState<string | null>(null)
 
   useEffect(() => {
     // Get current user
@@ -85,6 +87,10 @@ function PublishPage() {
           console.log('[publish] videos for product', selectedProduct, ':', data, 'error:', error)
           setVideos(data || [])
           setArticles([])
+          if (prefillJobId && data) {
+            const match = data.find((v: any) => v.job_id === prefillJobId)
+            if (match) setSelectedContent(match)
+          }
         } else {
           const { data, error } = await supabase
             .from('articles')
@@ -93,13 +99,17 @@ function PublishPage() {
           console.log('[publish] articles for product', selectedProduct, ':', data, 'error:', error)
           setArticles(data || [])
           setVideos([])
+          if (prefillContentId && data) {
+            const match = data.find((a: any) => a.id === prefillContentId)
+            if (match) setSelectedContent(match)
+          }
         }
       } catch (err) {
         console.error('[publish] Failed to fetch content:', err)
       }
     }
     fetchContent()
-  }, [selectedProduct, contentType, supabase])
+  }, [selectedProduct, contentType, supabase, prefillJobId, prefillContentId])
 
   useEffect(() => {
     const connected = searchParams.get('connected')
@@ -112,6 +122,17 @@ function PublishPage() {
     if (error) {
       setMessage(`❌ Error: ${error}`)
     }
+
+    // Pre-fill from product page links
+    const type = searchParams.get('type') as 'video' | 'article' | null
+    const productId = searchParams.get('product_id')
+    const jobId = searchParams.get('job_id')
+    const contentId = searchParams.get('content_id')
+
+    if (type) setContentType(type)
+    if (productId) setSelectedProduct(productId)
+    if (jobId) setPrefillJobId(jobId)
+    if (contentId) setPrefillContentId(contentId)
   }, [searchParams])
 
   useEffect(() => {
@@ -303,29 +324,58 @@ function PublishPage() {
 
             {contentType === 'video' && videos.length > 0 && (
               <div>
-                <label className="block text-sm font-medium mb-1">Video</label>
-                <div className="space-y-2">
-                  {videos.map((v) => (
-                    <div
-                      key={v.id}
-                      onClick={() => setSelectedContent(v)}
-                      className={`p-3 border rounded-lg cursor-pointer ${
-                        selectedContent?.id === v.id ? 'border-blue-500 bg-blue-50' : ''
-                      }`}
-                    >
-                      <p className="text-sm font-medium">
-                        {v.campaign_name || v.title || v.segments?.[0]?.text?.slice(0, 50) || 'Uten navn'}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(v.created_at).toLocaleDateString('nb-NO', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                        })}
-                      </p>
-                      {v.job_id && <span className="text-xs text-green-600">✅ Video klar</span>}
-                    </div>
-                  ))}
+                <label className="block text-sm font-medium mb-2">Video</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {videos.map((v) => {
+                    const videoUrl = v.job_id
+                      ? `${process.env.NEXT_PUBLIC_R2_URL}/videos/${v.job_id}/output.mp4`
+                      : null
+                    const isSelected = selectedContent?.id === v.id
+                    return (
+                      <div
+                        key={v.id}
+                        onClick={() => setSelectedContent(v)}
+                        className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-blue-500 ring-2 ring-blue-200'
+                            : 'border-gray-200 hover:border-blue-300'
+                        }`}
+                      >
+                        {videoUrl ? (
+                          <video
+                            src={videoUrl}
+                            muted
+                            preload="metadata"
+                            className="w-full object-cover bg-black"
+                            style={{ maxHeight: '140px' }}
+                          />
+                        ) : (
+                          <div
+                            className="w-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl"
+                            style={{ height: '100px' }}
+                          >
+                            🎬
+                          </div>
+                        )}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+                            ✔ Valgt
+                          </div>
+                        )}
+                        <div className="p-2">
+                          <p className="text-xs font-medium truncate text-gray-800">
+                            {v.campaign_name || v.title || v.segments?.[0]?.text?.slice(0, 40) || 'Uten navn'}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(v.created_at).toLocaleDateString('nb-NO', {
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
