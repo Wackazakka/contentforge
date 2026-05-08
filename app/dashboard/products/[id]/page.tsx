@@ -870,51 +870,52 @@ export default function ProductPage() {
                         key={article.id}
                         className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          {article.image_urls?.[0] && (
-                            <img
-                              src={article.image_urls[0]}
-                              alt={article.title}
-                              className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-                            />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <a
-                              href={`/dashboard/products/${productId}/article/${article.id}`}
-                              className="block font-semibold text-gray-900 hover:text-blue-700 transition-colors mb-1"
-                            >
-                              {article.title}
-                            </a>
-                            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded capitalize">
-                              {article.platform}
-                            </span>
-                            <div className="text-sm text-gray-600 mt-2">
-                              {renderMarkdown(
-                                article.content.substring(0, 100) +
-                                  (article.content.length > 100 ? '...' : '')
-                              )}
+                        <div>
+                          <div className="flex gap-3 mb-2">
+                            {article.image_urls?.[0] && (
+                              <img
+                                src={article.image_urls[0]}
+                                alt={article.title}
+                                className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <a
+                                href={`/dashboard/products/${productId}/article/${article.id}`}
+                                className="block font-semibold text-gray-900 hover:text-blue-700 transition-colors mb-1 leading-snug"
+                              >
+                                {article.title}
+                              </a>
+                              <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded capitalize">
+                                {article.platform}
+                              </span>
                             </div>
-                            <p className="text-xs text-gray-400 mt-2">
+                          </div>
+                          <p className="text-sm text-gray-500 mb-2 line-clamp-2">
+                            {article.content.replace(/\n/g, ' ').substring(0, 120)}...
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-gray-400">
                               {new Date(article.created_at).toLocaleDateString('no-NO')}
                             </p>
-                          </div>
-                          <div className="flex flex-col gap-2 flex-shrink-0">
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/dashboard/publish?type=article&content_id=${article.id}&product_id=${productId}`
-                                )
-                              }
-                              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
-                            >
-                              🚀 Publiser
-                            </button>
-                            <button
-                              onClick={() => handleDeleteArticle(article.id)}
-                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors"
-                            >
-                              🗑 Slett
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() =>
+                                  router.push(
+                                    `/dashboard/publish?type=article&content_id=${article.id}&product_id=${productId}`
+                                  )
+                                }
+                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                              >
+                                🚀 Publiser
+                              </button>
+                              <button
+                                onClick={() => handleDeleteArticle(article.id)}
+                                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors"
+                              >
+                                🗑 Slett
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
