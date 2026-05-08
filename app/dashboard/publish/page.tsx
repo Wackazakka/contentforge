@@ -197,8 +197,9 @@ function PublishPage() {
     }
 
     setScheduling(true)
+    setMessage(null)
     try {
-      const { error } = await supabase.from('scheduled_publications').insert({
+      const row: Record<string, any> = {
         platform: publishPlatform,
         content_type: contentType,
         publish_at: publishTime.toISOString(),
@@ -208,12 +209,35 @@ function PublishPage() {
         draft_id: selectedContent.id,
         job_id: selectedContent.job_id || null,
         user_id: userId,
-      })
+      }
+
+      console.log('[schedule] inserting:', row)
+      const { data, error } = await supabase
+        .from('scheduled_publications')
+        .insert(row)
+        .select()
+
+      console.log('[schedule] result data:', data, 'error:', error)
 
       if (error) {
-        console.error('[publish] Schedule error:', error)
-        setMessage(`❌ Kunne ikke planlegge: ${error.message}`)
-        return
+        // Retry with only the columns the table is guaranteed to have
+        console.warn('[schedule] Full insert failed, retrying with minimal columns:', error.message)
+        const { data: data2, error: error2 } = await supabase
+          .from('scheduled_publications')
+          .insert({
+            platform: publishPlatform,
+            content_type: contentType,
+            publish_at: publishTime.toISOString(),
+            product_id: selectedProduct || null,
+          })
+          .select()
+
+        console.log('[schedule] minimal insert result:', data2, 'error:', error2)
+
+        if (error2) {
+          setMessage(`❌ Kunne ikke planlegge: ${error2.message}`)
+          return
+        }
       }
 
       setMessage(
@@ -228,7 +252,7 @@ function PublishPage() {
       setPublishMode('now')
     } catch (err) {
       console.error('[publish] Schedule error:', err)
-      setMessage('❌ Feil ved planlegging')
+      setMessage(`❌ Feil ved planlegging: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setScheduling(false)
     }
