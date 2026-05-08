@@ -313,194 +313,187 @@ function PublishPage() {
   }, [publishResult, supabase])
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
+    <div className="max-w-3xl mx-auto p-8">
       <h1 className="text-2xl font-bold mb-6">Publiser innhold</h1>
 
       {message && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className={`mb-4 p-4 rounded-lg border text-sm ${
+          message.startsWith('✅')
+            ? 'bg-green-50 border-green-200 text-green-800'
+            : message.startsWith('❌')
+            ? 'bg-red-50 border-red-200 text-red-700'
+            : 'bg-blue-50 border-blue-200'
+        }`}>
           {message}
         </div>
       )}
 
-      {/* Velg innhold */}
-      {connections.length > 0 && (
-        <div className="bg-white rounded-xl border p-6 mb-6">
-          <h2 className="font-semibold mb-4">Velg innhold</h2>
-          
-          {/* Content Type Toggle */}
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => {
-                setContentType('video')
-                setSelectedContent(null)
-              }}
-              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                contentType === 'video'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+      {/* ── Steg 1: Innhold ── */}
+      <div className="bg-white rounded-xl border p-6 mb-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Steg 1 — Velg innhold</p>
+
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => { setContentType('video'); setSelectedContent(null) }}
+            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+              contentType === 'video' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            📹 Video
+          </button>
+          <button
+            onClick={() => { setContentType('article'); setSelectedContent(null) }}
+            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+              contentType === 'article' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            📄 Artikkel
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Produkt</label>
+            <select
+              value={selectedProduct}
+              onChange={(e) => setSelectedProduct(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2"
             >
-              📹 Video
-            </button>
-            <button
-              onClick={() => {
-                setContentType('article')
-                setSelectedContent(null)
-              }}
-              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                contentType === 'article'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📄 Artikkel
-            </button>
+              <option value="">Velg produkt...</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           </div>
 
-          <div className="space-y-4">
+          {contentType === 'video' && videos.length > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-1">Produkt</label>
-              <select
-                value={selectedProduct}
-                onChange={(e) => setSelectedProduct(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="">Velg produkt...</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {contentType === 'video' && videos.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Video</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {videos.map((v) => {
-                    const videoUrl = v.job_id
-                      ? `${process.env.NEXT_PUBLIC_R2_URL}/videos/${v.job_id}/output.mp4`
-                      : null
-                    const isSelected = selectedContent?.id === v.id
-                    return (
-                      <div
-                        key={v.id}
-                        onClick={() => setSelectedContent(v)}
-                        className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
-                          isSelected
-                            ? 'border-blue-500 ring-2 ring-blue-200'
-                            : 'border-gray-200 hover:border-blue-300'
-                        }`}
-                      >
-                        {videoUrl ? (
-                          <video
-                            src={videoUrl}
-                            muted
-                            preload="metadata"
-                            className="w-full object-cover bg-black"
-                            style={{ maxHeight: '140px' }}
-                          />
-                        ) : (
-                          <div
-                            className="w-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl"
-                            style={{ height: '100px' }}
-                          >
-                            🎬
-                          </div>
-                        )}
-                        {isSelected && (
-                          <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-                            ✔ Valgt
-                          </div>
-                        )}
-                        <div className="p-2">
-                          <p className="text-xs font-medium truncate text-gray-800">
-                            {v.campaign_name || v.title || v.segments?.[0]?.text?.slice(0, 40) || 'Uten navn'}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(v.created_at).toLocaleDateString('nb-NO', {
-                              day: 'numeric',
-                              month: 'short',
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {contentType === 'article' && articles.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-1">Artikkel</label>
-                <div className="space-y-2">
-                  {articles.map((a) => (
+              <label className="block text-sm font-medium mb-2">Velg video</label>
+              <div className="grid grid-cols-2 gap-3">
+                {videos.map((v) => {
+                  const videoUrl = v.job_id
+                    ? `${process.env.NEXT_PUBLIC_R2_URL}/videos/${v.job_id}/output.mp4`
+                    : null
+                  const isSelected = selectedContent?.id === v.id
+                  return (
                     <div
-                      key={a.id}
-                      onClick={() => setSelectedContent(a)}
-                      className={`p-3 border rounded-lg cursor-pointer ${
-                        selectedContent?.id === a.id ? 'border-blue-500 bg-blue-50' : ''
+                      key={v.id}
+                      onClick={() => setSelectedContent(v)}
+                      className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
+                        isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-blue-300'
                       }`}
                     >
-                      <p className="text-sm font-medium">{a.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                          {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(a.created_at).toLocaleDateString('nb-NO', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </span>
+                      {videoUrl ? (
+                        <video src={videoUrl} muted preload="metadata" className="w-full object-cover bg-black" style={{ maxHeight: '140px' }} />
+                      ) : (
+                        <div className="w-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl" style={{ height: '100px' }}>🎬</div>
+                      )}
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">✔ Valgt</div>
+                      )}
+                      <div className="p-2">
+                        <p className="text-xs font-medium truncate text-gray-800">
+                          {v.campaign_name || v.title || v.segments?.[0]?.text?.slice(0, 40) || 'Uten navn'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(v.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
+            </div>
+          )}
+
+          {contentType === 'article' && articles.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Velg artikkel</label>
+              <div className="space-y-2">
+                {articles.map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={() => setSelectedContent(a)}
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                      selectedContent?.id === a.id ? 'border-blue-500 bg-blue-50' : 'hover:border-blue-300'
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{a.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                        {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(a.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Steg 2: Caption + Tidspunkt ── alltid synlig når innhold er valgt */}
+      {selectedContent && (
+        <div className="bg-white rounded-xl border p-6 mb-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Steg 2 — Caption og tidspunkt</p>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Caption</label>
+            <textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              rows={4}
+              placeholder="Skriv en caption til innlegget..."
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Når skal det publiseres?</label>
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setPublishMode('now')}
+                className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  publishMode === 'now' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🚀 Publiser nå
+              </button>
+              <button
+                onClick={() => setPublishMode('schedule')}
+                className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  publishMode === 'schedule' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🗓 Planlegg tidspunkt
+              </button>
+            </div>
+            {publishMode === 'schedule' && (
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             )}
           </div>
         </div>
       )}
 
-      {/* Kanal-velger */}
-      {selectedContent && (
-        <div className="bg-white rounded-xl border p-6 mb-6">
-          <h2 className="font-semibold mb-4">Velg sider</h2>
-          <div className="space-y-2">
-            {connections.map((c) => (
-              <label key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
-                <input
-                  type="checkbox"
-                  checked={selectedPages.includes(c.page_id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedPages((prev) => [...prev, c.page_id])
-                    } else {
-                      setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
-                    }
-                  }}
-                />
-                <span>📘 {c.page_name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* ── Steg 3: Kanal ── */}
+      {selectedContent && connections.length > 0 && (
+        <div className="bg-white rounded-xl border p-6 mb-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Steg 3 — Velg kanal</p>
 
-      {/* Platform selection */}
-      {selectedContent && (
-        <div className="bg-white rounded-xl border p-6 mb-6">
-          <h2 className="font-semibold mb-4">Velg plattform</h2>
-          <div className="flex gap-3">
+          <div className="flex gap-2 mb-4">
             <button
               onClick={() => setPublishPlatform('facebook')}
               className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                publishPlatform === 'facebook'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                publishPlatform === 'facebook' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               📘 Facebook
@@ -509,9 +502,7 @@ function PublishPage() {
               <button
                 onClick={() => setPublishPlatform('instagram')}
                 className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                  publishPlatform === 'instagram'
-                    ? 'bg-pink-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  publishPlatform === 'instagram' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 📷 Instagram
@@ -519,98 +510,58 @@ function PublishPage() {
             )}
           </div>
           {contentType === 'article' && (
-            <p className="text-xs text-gray-500 mt-2">📄 Artikler kan kun publiseres til Facebook</p>
+            <p className="text-xs text-gray-400 mb-3">Artikler kan kun publiseres til Facebook</p>
           )}
+
+          <div className="space-y-2">
+            {connections.map((c) => (
+              <label key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={selectedPages.includes(c.page_id)}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedPages((prev) => [...prev, c.page_id])
+                    else setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
+                  }}
+                />
+                <span>{c.platform === 'facebook' ? '📘' : '📷'} {c.page_name}</span>
+              </label>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Caption og publiser */}
-      {selectedPages.length > 0 && (
-        <div className="bg-white rounded-xl border p-6 mb-6">
-          <h2 className="font-semibold mb-4">Caption</h2>
-          <textarea
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            rows={4}
-            placeholder="Skriv en caption til innlegget..."
-            className="w-full border rounded-lg px-3 py-2 text-sm"
-          />
-
-          {/* Publiser nå / Planlegg toggle */}
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={() => setPublishMode('now')}
-              className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
-                publishMode === 'now'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              🚀 Publiser nå
-            </button>
-            <button
-              onClick={() => setPublishMode('schedule')}
-              className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
-                publishMode === 'schedule'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              🗓 Planlegg
-            </button>
-          </div>
-
-          {publishMode === 'now' && (
+      {/* ── Send-knapp ── */}
+      {selectedContent && caption && selectedPages.length > 0 && (
+        <div className="mb-6">
+          {publishMode === 'now' ? (
             <button
               onClick={handlePublish}
-              disabled={publishing || !caption}
-              className="mt-3 w-full bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
+              disabled={publishing}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
             >
               {publishing ? '⏳ Publiserer...' : '🚀 Publiser nå'}
             </button>
-          )}
-
-          {publishMode === 'schedule' && (
-            <div className="mt-3 space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tidspunkt for publisering
-                </label>
-                <input
-                  type="datetime-local"
-                  value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
-                  min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-              <button
-                onClick={handleSchedule}
-                disabled={scheduling || !caption || !scheduledAt}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
-              >
-                {scheduling ? '⏳ Planlegger...' : '🗓 Bekreft planlegging'}
-              </button>
-            </div>
-          )}
-
-          {publishResult && (
-            <p className="mt-3 text-sm text-green-600">✅ Publisert!</p>
+          ) : (
+            <button
+              onClick={handleSchedule}
+              disabled={scheduling || !scheduledAt}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
+            >
+              {scheduling ? '⏳ Planlegger...' : `🗓 Planlegg${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}`}
+            </button>
           )}
         </div>
       )}
 
-      {/* Koblede kontoer */}
+      {/* ── Koblede kontoer ── */}
       <div className="bg-white rounded-xl border p-6 mb-6">
-        <h2 className="font-semibold mb-4">Koblede kontoer</h2>
+        <h2 className="font-semibold mb-3">Koblede kontoer</h2>
         {connections.length === 0 ? (
           <div>
-            <p className="text-gray-500 mb-4">Ingen kontoer koblet ennå.</p>
+            <p className="text-gray-500 mb-4 text-sm">Ingen kontoer koblet ennå.</p>
             {userId ? (
-              <a
-                href={`/api/auth/facebook?userId=${userId}`}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
-              >
+              <a href={`/api/auth/facebook?userId=${userId}`} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
                 Koble til Facebook/Instagram
               </a>
             ) : (
@@ -621,16 +572,13 @@ function PublishPage() {
           <div className="space-y-2">
             {connections.map((c) => (
               <div key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <span>{c.platform === 'facebook' ? '📘' : '📸'}</span>
-                <span className="font-medium">{c.page_name}</span>
+                <span>{c.platform === 'facebook' ? '📘' : '📷'}</span>
+                <span className="font-medium text-sm">{c.page_name}</span>
                 <span className="text-xs text-gray-400">{c.platform}</span>
               </div>
             ))}
             {userId && (
-              <a
-                href={`/api/auth/facebook?userId=${userId}`}
-                className="inline-block mt-2 text-sm text-blue-600 hover:underline"
-              >
+              <a href={`/api/auth/facebook?userId=${userId}`} className="inline-block mt-2 text-sm text-blue-600 hover:underline">
                 + Koble til flere kontoer
               </a>
             )}
