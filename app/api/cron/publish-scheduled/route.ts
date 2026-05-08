@@ -23,7 +23,7 @@ async function runCron() {
 
   console.log(`[cron] Found ${due.length} post(s) due for publishing`)
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://contentforge-610.netlify.app'
+  const baseUrl = 'https://contentforge-610.netlify.app'
   const results = []
 
   for (const post of due) {
