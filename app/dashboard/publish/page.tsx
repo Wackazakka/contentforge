@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '@/lib/supabaseClient'
 
 interface SocialConnection {
   id: string
@@ -15,12 +15,7 @@ interface SocialConnection {
 function PublishPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [supabase] = useState(() =>
-    createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-  )
+  const supabase = getSupabase()
 
   const [connections, setConnections] = useState<SocialConnection[]>([])
   const [loading, setLoading] = useState(true)
