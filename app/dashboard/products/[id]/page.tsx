@@ -883,11 +883,11 @@ export default function ProductPage() {
                           <div className="flex-1 min-w-0">
                             <a
                               href={`/dashboard/products/${productId}/article/${article.id}`}
-                              className="font-semibold text-gray-900 hover:text-blue-700 transition-colors"
+                              className="block font-semibold text-gray-900 hover:text-blue-700 transition-colors mb-1"
                             >
                               {article.title}
                             </a>
-                            <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded capitalize">
+                            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded capitalize">
                               {article.platform}
                             </span>
                             <div className="text-sm text-gray-600 mt-2">
