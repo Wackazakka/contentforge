@@ -325,7 +325,7 @@ export default function DraftPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-cf-bg flex items-center justify-center">
         <div className="text-gray-600">Laster draft...</div>
       </div>
     )
@@ -333,7 +333,7 @@ export default function DraftPage() {
 
   if (error || !draft) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-cf-bg">
         <div className="max-w-6xl mx-auto px-4 py-8">
           <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
             ← Tilbake til produkt
@@ -345,7 +345,7 @@ export default function DraftPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-cf-bg">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">

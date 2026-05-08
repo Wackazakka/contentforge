@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/authContext'
 
 function HexagonIcon() {
   return (
@@ -25,35 +26,48 @@ const navLinks = [
 
 export default function NavBar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { signOut } = useAuth()
+
+  const handleLogout = async () => {
+    await signOut()
+    router.push('/login')
+  }
 
   return (
     <nav className="sticky top-0 z-50 border-b" style={{ backgroundColor: '#ffffff', borderColor: '#e5e2d9' }}>
-      <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-2">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2 flex-shrink-0">
           <HexagonIcon />
           <span className="text-base font-bold tracking-tight" style={{ color: '#0C447C' }}>
             Center<span style={{ color: '#378ADD' }}>Forge</span>
           </span>
         </Link>
-        <div className="flex items-center gap-1">
+
+        <div className="flex items-center gap-0.5 sm:gap-1">
           {navLinks.map(({ href, label }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
             return (
               <Link
                 key={href}
                 href={href}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                className="px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                 style={active
                   ? { backgroundColor: '#EBF4FF', color: '#185FA5' }
                   : { color: '#6b7280' }
                 }
-                onMouseEnter={(e: any) => { if (!active) e.currentTarget.style.backgroundColor = '#f3f4f6' }}
-                onMouseLeave={(e: any) => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
               >
                 {label}
               </Link>
             )
           })}
+          <button
+            onClick={handleLogout}
+            className="ml-1 sm:ml-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            style={{ color: '#9ca3af' }}
+          >
+            Logg ut
+          </button>
         </div>
       </div>
     </nav>
