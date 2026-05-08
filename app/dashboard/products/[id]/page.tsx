@@ -7,10 +7,8 @@ import { useAuth } from '@/lib/authContext'
 import { getSupabase } from '@/lib/supabaseClient'
 
 function renderMarkdown(text: string) {
-  const html = text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-  return <div dangerouslySetInnerHTML={{ __html: html }} />
+  const clean = text.replace(/\n/g, ' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
+  return <span dangerouslySetInnerHTML={{ __html: clean }} />
 }
 
 interface Product {

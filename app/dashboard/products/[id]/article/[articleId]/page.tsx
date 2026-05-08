@@ -15,13 +15,25 @@ interface Article {
   created_at: string
 }
 
-// Simple markdown renderer
 function renderMarkdown(text: string) {
-  const html = text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-  
-  return <div dangerouslySetInnerHTML={{ __html: html }} />
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((para) =>
+      para
+        .replace(/\n/g, ' ')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .trim()
+    )
+    .filter(Boolean)
+
+  return (
+    <div className="space-y-4">
+      {paragraphs.map((p, i) => (
+        <p key={i} dangerouslySetInnerHTML={{ __html: p }} />
+      ))}
+    </div>
+  )
 }
 
 export default function ArticleDetailPage() {
@@ -130,10 +142,8 @@ export default function ArticleDetailPage() {
           <div className="border-t border-gray-200 my-8"></div>
 
           {/* Content */}
-          <div className="prose prose-sm max-w-none mb-8">
-            <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {renderMarkdown(article.content)}
-            </div>
+          <div className="prose prose-sm max-w-none mb-8 text-gray-700 leading-relaxed">
+            {renderMarkdown(article.content)}
           </div>
 
           {/* Divider */}
