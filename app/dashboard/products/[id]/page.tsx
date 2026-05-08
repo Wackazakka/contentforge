@@ -386,7 +386,7 @@ export default function ProductPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-cf-bg flex items-center justify-center">
         <div className="text-gray-600">Laster produkt...</div>
       </div>
     )
@@ -394,7 +394,7 @@ export default function ProductPage() {
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-cf-bg">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <Link href="/dashboard" className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
             ← Tilbake til dashboard
@@ -413,7 +413,7 @@ export default function ProductPage() {
   const doneJobs = jobs.filter((j) => j.status === 'done' || j.status === 'completed')
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-cf-bg">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
