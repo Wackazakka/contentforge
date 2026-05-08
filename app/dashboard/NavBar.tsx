@@ -19,8 +19,8 @@ function HexagonIcon() {
 
 const navLinks = [
   { href: '/dashboard', label: 'Oversikt' },
-  { href: '/dashboard/products', label: 'Produkter' },
   { href: '/dashboard/publish', label: 'Publiser' },
+  { href: '/dashboard/calendar', label: 'Kalender' },
 ]
 
 export default function NavBar() {
