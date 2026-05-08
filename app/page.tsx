@@ -34,7 +34,7 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center py-24">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 text-center py-16 sm:py-24">
         <div
           className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm mb-8"
           style={{ backgroundColor: '#EBF4FF', border: '1px solid #378ADD', color: '#185FA5' }}
@@ -43,14 +43,14 @@ export default function Home() {
         </div>
 
         <h1
-          className="text-5xl font-extrabold tracking-tight max-w-2xl leading-tight mb-6"
+          className="text-3xl sm:text-5xl font-extrabold tracking-tight max-w-2xl leading-tight mb-6"
           style={{ color: '#0C447C' }}
         >
           Profesjonelt annonsemateriell på{' '}
           <span style={{ color: '#185FA5' }}>sekunder</span>
         </h1>
 
-        <p className="text-lg max-w-xl mb-10" style={{ color: '#6b7280' }}>
+        <p className="text-base sm:text-lg max-w-xl mb-10" style={{ color: '#6b7280' }}>
           Gi en brief — få ferdige videoannonser og artikler i alle social
           media-formater. Ingen designkompetanse nødvendig.
         </p>
@@ -85,7 +85,7 @@ export default function Home() {
       </main>
 
       {/* Features */}
-      <section id="features" className="border-t py-20 px-6 bg-white" style={{ borderColor: '#e5e2d9' }}>
+      <section id="features" className="border-t py-16 sm:py-20 px-4 sm:px-6 bg-white" style={{ borderColor: '#e5e2d9' }}>
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-12" style={{ color: '#2C2C2A' }}>
             Alt du trenger for innholdsproduksjon
