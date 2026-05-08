@@ -3,6 +3,9 @@
   publish = ".next"
   ignore = "/bin/false"
 
+[functions]
+  directory = "netlify/functions"
+
 [build.environment]
   NEXT_PUBLIC_BASE_URL = "https://contentforge.netlify.app"
   NEXT_PUBLIC_SUPABASE_URL = "https://jvnavubholyvihvytqkn.supabase.co"
@@ -12,3 +15,5 @@
   R2_SECRET_ACCESS_KEY = "4b6d02ed74d5bc3030aa378ea9860f99031c14da0953fdc7c4f72d908bfe471e"
   R2_ENDPOINT = "https://c2fde28004c6c81dfe77184575d12d96.r2.cloudflarestorage.com"
   R2_BUCKET_NAME = "contentforge-assets"
+  NEXT_PUBLIC_R2_URL = "https://pub-c2fde28004c6c81dfe77184575d12d96.r2.dev"
+  CRON_SECRET = "cf-cron-2026"
