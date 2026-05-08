@@ -3,9 +3,6 @@
   publish = ".next"
   ignore = "/bin/false"
 
-[functions]
-  directory = "netlify/functions"
-
 [build.environment]
   NEXT_PUBLIC_BASE_URL = "https://contentforge.netlify.app"
   NEXT_PUBLIC_SUPABASE_URL = "https://jvnavubholyvihvytqkn.supabase.co"
