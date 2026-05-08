@@ -115,6 +115,7 @@ export default function ProductPage() {
     videos: false,
     images: false,
     articles: false,
+    brandProfile: false,
   })
   const toggleSection = (key: keyof typeof openSections) =>
     setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -414,51 +415,41 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen bg-cf-bg">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-          <div>
-            <Link
-              href="/dashboard"
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-2 inline-block"
-            >
-              ← Tilbake til dashboard
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-            {product.description && (
-              <p className="text-gray-600 mt-2">{product.description}</p>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Header */}
+        <div className="mb-6">
+          <Link href="/dashboard" className="text-sm font-medium mb-3 inline-block" style={{ color: '#185FA5' }}>
+            ← Tilbake til dashboard
+          </Link>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{product.name}</h1>
+              <div className="flex flex-wrap items-center gap-3 mt-1">
+                {product.description && (
+                  <p className="text-gray-500 text-sm">{product.description}</p>
+                )}
+                {product.category && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 capitalize">{product.category}</span>
+                )}
+                <span className="text-xs text-gray-400">{formatDate(product.created_at)}</span>
+              </div>
+            </div>
+            {profile?.logo_url && (
+              <img src={profile.logo_url} alt={product.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
             )}
           </div>
-          {profile?.logo_url && (
-            <img
-              src={profile.logo_url}
-              alt={product.name}
-              className="w-24 h-24 rounded-lg object-cover"
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Product Info */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Produktinformasjon</h2>
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Type</label>
-              <p className="text-gray-900 capitalize mt-1">{product.category || 'Ikke angitt'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Opprettet</label>
-              <p className="text-gray-900 mt-1">{formatDate(product.created_at)}</p>
-            </div>
-          </div>
         </div>
 
-        {/* Brand Profile */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Merkevareprofil</h2>
+        {/* Brand Profile — collapsible */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          <SectionHeader
+            title="Merkevareprofil"
+            open={openSections.brandProfile}
+            onToggle={() => toggleSection('brandProfile')}
+          />
 
+          {openSections.brandProfile && (
+          <div>
           {profileMessage && (
             <div className="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm">
               {profileMessage}
@@ -602,12 +593,14 @@ export default function ProductPage() {
               {profileSaving ? 'Lagrer...' : 'Lagre profil'}
             </button>
           </div>
+          </div>
+          )}
         </div>
 
         {/* Content Production */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Innholdsproduksjon</h2>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-3">
             <button
               onClick={() => router.push(`/dashboard/new?productId=${productId}`)}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
@@ -946,3 +939,4 @@ export default function ProductPage() {
     </div>
   )
 }
+
