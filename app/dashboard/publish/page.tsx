@@ -223,7 +223,6 @@ function PublishPage() {
             platform: publishPlatform,
             content_type: contentType,
             publish_at: publishTime.toISOString(),
-            product_id: selectedProduct || null,
           })
           .select()
 
