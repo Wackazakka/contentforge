@@ -9,8 +9,8 @@
   --cf-dark: #2C2C2A;
   --cf-bg: #F1EFE8;
 
-  --background: #F1EFE8;
-  --foreground: #2C2C2A;
+  --background: #ffffff;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -28,7 +28,7 @@
 }
 
 body {
-  background-color: #F1EFE8;
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
