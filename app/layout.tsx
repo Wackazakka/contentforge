@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ContentForge — AI-drevet innholdsproduksjon",
-  description: "Lag profesjonelt annonse­materiell i alle social media-formater automatisk.",
+  title: "CenterForge — AI-drevet innholdsproduksjon",
+  description: "Lag profesjonelt annonsemateriell i alle social media-formater automatisk.",
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
       lang="no"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900">
+      <body className="min-h-full flex flex-col" style={{ backgroundColor: '#F1EFE8', color: '#2C2C2A' }}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
