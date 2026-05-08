@@ -197,7 +197,7 @@ function PublishPage() {
       const row: Record<string, any> = {
         platform: publishPlatform,
         content_type: contentType,
-        publish_at: publishTime.toISOString(),
+        scheduled_at: publishTime.toISOString(),
         production_id: selectedProduct || null,
         page_id: selectedPages[0] || null,
         caption,
