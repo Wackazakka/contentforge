@@ -40,6 +40,9 @@ function PublishPage() {
   const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram'>('facebook')
   const [prefillJobId, setPrefillJobId] = useState<string | null>(null)
   const [prefillContentId, setPrefillContentId] = useState<string | null>(null)
+  const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now')
+  const [scheduledAt, setScheduledAt] = useState<string>('')
+  const [scheduling, setScheduling] = useState(false)
 
   useEffect(() => {
     // Get current user
@@ -179,6 +182,55 @@ function PublishPage() {
     } catch (err) {
       console.error('[publish] Disconnect error:', err)
       setMessage('❌ Error disconnecting')
+    }
+  }
+
+  const handleSchedule = async () => {
+    if (!selectedContent || selectedPages.length === 0 || !caption || !scheduledAt) {
+      setMessage('❌ Velg innhold, sider, skriv en bildeskrift og velg tidspunkt')
+      return
+    }
+    const publishTime = new Date(scheduledAt)
+    if (publishTime <= new Date()) {
+      setMessage('❌ Tidspunktet må være i fremtiden')
+      return
+    }
+
+    setScheduling(true)
+    try {
+      const { error } = await supabase.from('scheduled_publications').insert({
+        platform: publishPlatform,
+        content_type: contentType,
+        publish_at: publishTime.toISOString(),
+        product_id: selectedProduct || null,
+        page_ids: selectedPages,
+        caption,
+        draft_id: selectedContent.id,
+        job_id: selectedContent.job_id || null,
+        user_id: userId,
+      })
+
+      if (error) {
+        console.error('[publish] Schedule error:', error)
+        setMessage(`❌ Kunne ikke planlegge: ${error.message}`)
+        return
+      }
+
+      setMessage(
+        `✅ Planlagt til ${publishTime.toLocaleString('nb-NO', {
+          day: 'numeric',
+          month: 'long',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}`
+      )
+      setScheduledAt('')
+      setPublishMode('now')
+    } catch (err) {
+      console.error('[publish] Schedule error:', err)
+      setMessage('❌ Feil ved planlegging')
+    } finally {
+      setScheduling(false)
     }
   }
 
@@ -483,13 +535,65 @@ function PublishPage() {
             placeholder="Skriv en caption til innlegget..."
             className="w-full border rounded-lg px-3 py-2 text-sm"
           />
-          <button
-            onClick={handlePublish}
-            disabled={publishing || !caption}
-            className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
-          >
-            {publishing ? '⏳ Publiserer...' : '🚀 Publiser nå'}
-          </button>
+
+          {/* Publiser nå / Planlegg toggle */}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => setPublishMode('now')}
+              className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+                publishMode === 'now'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🚀 Publiser nå
+            </button>
+            <button
+              onClick={() => setPublishMode('schedule')}
+              className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+                publishMode === 'schedule'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🗓 Planlegg
+            </button>
+          </div>
+
+          {publishMode === 'now' && (
+            <button
+              onClick={handlePublish}
+              disabled={publishing || !caption}
+              className="mt-3 w-full bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
+            >
+              {publishing ? '⏳ Publiserer...' : '🚀 Publiser nå'}
+            </button>
+          )}
+
+          {publishMode === 'schedule' && (
+            <div className="mt-3 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tidspunkt for publisering
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <button
+                onClick={handleSchedule}
+                disabled={scheduling || !caption || !scheduledAt}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
+              >
+                {scheduling ? '⏳ Planlegger...' : '🗓 Bekreft planlegging'}
+              </button>
+            </div>
+          )}
+
           {publishResult && (
             <p className="mt-3 text-sm text-green-600">✅ Publisert!</p>
           )}
