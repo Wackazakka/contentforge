@@ -66,6 +66,7 @@ export default function PrivacyPage() {
               <li><strong>Supabase:</strong> Databasetjeneste for lagring av data</li>
               <li><strong>Cloudflare:</strong> CDN og fillagring</li>
               <li><strong>Facebook/Meta:</strong> For sosial mediepublisering (via OAuth)</li>
+              <li><strong>TikTok:</strong> For videopublisering til TikTok (via OAuth)</li>
               <li><strong>OpenAI:</strong> For AI-drevet innholdsgenerering</li>
               <li><strong>ElevenLabs:</strong> For voiceover-generering</li>
             </ul>
