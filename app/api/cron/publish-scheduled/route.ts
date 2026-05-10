@@ -58,24 +58,40 @@ async function runCron() {
           continue
         }
 
-        const endpoint = platform === 'instagram'
-          ? `${baseUrl}/api/publish/instagram`
-          : `${baseUrl}/api/publish/facebook`
+        if (platform === 'tiktok') {
+          const res = await fetch(`${baseUrl}/api/publish/tiktok`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tiktokAccountId: page_id,
+              videoUrl,
+              caption,
+              draftId: draft_id,
+              productId: production_id,
+              userId: user_id,
+            }),
+          })
+          publishResult = await res.json()
+        } else {
+          const endpoint = platform === 'instagram'
+            ? `${baseUrl}/api/publish/instagram`
+            : `${baseUrl}/api/publish/facebook`
 
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pageIds: [page_id],
-            videoUrl,
-            caption,
-            draftId: draft_id,
-            productId: production_id,
-            userId: user_id,
-            pages: {},
-          }),
-        })
-        publishResult = await res.json()
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              pageIds: [page_id],
+              videoUrl,
+              caption,
+              draftId: draft_id,
+              productId: production_id,
+              userId: user_id,
+              pages: {},
+            }),
+          })
+          publishResult = await res.json()
+        }
 
       } else if (content_type === 'article') {
         if (!draft_id) {

@@ -32,7 +32,7 @@ function PublishPage() {
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<any>(null)
   const [publications, setPublications] = useState<any[]>([])
-  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram'>('facebook')
+  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram' | 'tiktok'>('facebook')
   const [prefillJobId, setPrefillJobId] = useState<string | null>(null)
   const [prefillContentId, setPrefillContentId] = useState<string | null>(null)
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now')
@@ -266,7 +266,12 @@ function PublishPage() {
       if (contentType === 'video') {
         body.videoUrl = `${process.env.NEXT_PUBLIC_R2_URL}/videos/${selectedContent.job_id}/output.mp4`
         body.caption = caption
-        endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
+        if (publishPlatform === 'tiktok') {
+          endpoint = '/api/publish/tiktok'
+          body.tiktokAccountId = selectedPages[0]
+        } else {
+          endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
+        }
       } else {
         body.articleContent = selectedContent.content
         body.articleTitle = selectedContent.title
@@ -511,13 +516,29 @@ function PublishPage() {
                 📷 Instagram
               </button>
             )}
+            {contentType === 'video' && (
+              <button
+                onClick={() => setPublishPlatform('tiktok')}
+                className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                  publishPlatform === 'tiktok' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🎵 TikTok
+              </button>
+            )}
           </div>
           {contentType === 'article' && (
             <p className="text-xs text-gray-400 mb-3">Artikler kan kun publiseres til Facebook</p>
           )}
 
           <div className="space-y-2">
-            {connections.map((c) => (
+            {connections
+              .filter((c) =>
+                publishPlatform === 'tiktok'
+                  ? c.platform === 'tiktok'
+                  : c.platform === 'facebook'
+              )
+              .map((c) => (
               <label key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
                 <input
                   type="checkbox"
@@ -527,7 +548,7 @@ function PublishPage() {
                     else setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
                   }}
                 />
-                <span>{c.platform === 'facebook' ? '📘' : '📷'} {c.page_name}</span>
+                <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : '📷'} {c.page_name}</span>
               </label>
             ))}
           </div>
@@ -564,9 +585,14 @@ function PublishPage() {
           <div>
             <p className="text-gray-500 mb-4 text-sm">Ingen kontoer koblet ennå.</p>
             {userId ? (
-              <a href={`/api/auth/facebook?userId=${userId}`} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
-                Koble til Facebook/Instagram
-              </a>
+              <div className="flex flex-wrap gap-2">
+                <a href={`/api/auth/facebook?userId=${userId}`} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                  Koble til Facebook/Instagram
+                </a>
+                <a href={`/api/auth/tiktok?userId=${userId}`} className="bg-black text-white px-4 py-2 rounded-lg text-sm">
+                  Koble til TikTok
+                </a>
+              </div>
             ) : (
               <p className="text-gray-400 text-sm">Laster bruker...</p>
             )}
@@ -575,15 +601,20 @@ function PublishPage() {
           <div className="space-y-2">
             {connections.map((c) => (
               <div key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <span>{c.platform === 'facebook' ? '📘' : '📷'}</span>
+                <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : '📷'}</span>
                 <span className="font-medium text-sm">{c.page_name}</span>
                 <span className="text-xs text-gray-400">{c.platform}</span>
               </div>
             ))}
             {userId && (
-              <a href={`/api/auth/facebook?userId=${userId}`} className="inline-block mt-2 text-sm text-blue-600 hover:underline">
-                + Koble til flere kontoer
-              </a>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <a href={`/api/auth/facebook?userId=${userId}`} className="text-sm text-blue-600 hover:underline">
+                  + Facebook/Instagram
+                </a>
+                <a href={`/api/auth/tiktok?userId=${userId}`} className="text-sm text-gray-800 hover:underline">
+                  + TikTok
+                </a>
+              </div>
             )}
           </div>
         )}
