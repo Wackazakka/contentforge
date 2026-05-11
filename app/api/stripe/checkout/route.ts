@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { stripe, PLANS, PlanKey } from '@/lib/stripe'
+import { getStripe, PLANS, PlanKey } from '@/lib/stripe'
 
 const BASE_URL = 'https://contentforge-610.netlify.app'
 
@@ -32,14 +32,14 @@ export async function POST(request: Request) {
     let customerId = existing?.stripe_customer_id
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: userEmail,
         metadata: { user_id: userId },
       })
       customerId = customer.id
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],

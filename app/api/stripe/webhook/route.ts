@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { stripe, PLANS, PlanKey } from '@/lib/stripe'
+import { getStripe, PLANS, PlanKey } from '@/lib/stripe'
 import Stripe from 'stripe'
 
 export async function POST(request: Request) {
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch (err: any) {
     console.error('[stripe/webhook] Invalid signature:', err.message)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   switch (event.type) {
     case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.CheckoutSession
+      const session = event.data.object as Stripe.Checkout.Session
       const userId = session.metadata?.user_id
       const plan = session.metadata?.plan as PlanKey
 
@@ -32,8 +32,9 @@ export async function POST(request: Request) {
       const subscriptionId = session.subscription as string
 
       // Fetch subscription to get period end
-      const sub = await stripe.subscriptions.retrieve(subscriptionId)
+      const sub = await getStripe().subscriptions.retrieve(subscriptionId) as unknown as Stripe.Subscription
 
+      const periodEnd = (sub as any).items?.data?.[0]?.current_period_end ?? (sub as any).current_period_end
       await supabase.from('stripe_subscriptions').upsert(
         {
           user_id: userId,
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
           stripe_price_id: planConfig.priceId,
           plan,
           status: 'active',
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+          current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
         },
         { onConflict: 'user_id' }
       )
@@ -63,7 +64,8 @@ export async function POST(request: Request) {
     case 'invoice.paid': {
       // Monthly renewal — add credits again
       const invoice = event.data.object as Stripe.Invoice
-      const sub = await stripe.subscriptions.retrieve(invoice.subscription as string)
+      const subscriptionId2 = (invoice as any).subscription ?? invoice.parent?.subscription_details?.subscription
+      const sub = await getStripe().subscriptions.retrieve(subscriptionId2 as string) as unknown as Stripe.Subscription
       const userId = sub.metadata?.user_id
       const plan = sub.metadata?.plan as PlanKey
 
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
           p_amount: planConfig.credits,
           p_type: 'purchase',
           p_description: `${planConfig.name} fornyelse — ${planConfig.credits} kreditter`,
-          p_stripe_payment_intent_id: invoice.payment_intent as string,
+          p_stripe_payment_intent_id: (invoice as any).payment_intent as string,
         })
         console.log(`[stripe/webhook] ✅ Credits renewed: ${plan} for ${userId}`)
       }
@@ -89,10 +91,11 @@ export async function POST(request: Request) {
       const userId = sub.metadata?.user_id
       if (!userId) break
 
+      const updatedPeriodEnd = (sub as any).items?.data?.[0]?.current_period_end ?? (sub as any).current_period_end
       await supabase.from('stripe_subscriptions')
         .update({
           status: sub.status,
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+          current_period_end: updatedPeriodEnd ? new Date(updatedPeriodEnd * 1000).toISOString() : null,
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
