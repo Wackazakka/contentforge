@@ -4,7 +4,7 @@
   ignore = "/bin/false"
 
 [build.environment]
-  NEXT_PUBLIC_BASE_URL = "https://contentforge.netlify.app"
+  NEXT_PUBLIC_BASE_URL = "https://contentforge-610.netlify.app"
   NEXT_PUBLIC_SUPABASE_URL = "https://jvnavubholyvihvytqkn.supabase.co"
   NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2bmF2dWJob2x5dmlodnl0cWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MzQ1NDIsImV4cCI6MjA5MzMxMDU0Mn0.Po9ptw57yyu7VaeVVhQ_yhwP1NA9DRMV_KcYBstpt04"
   CF_ACCOUNT_ID = "c2fde28004c6c81dfe77184575d12d96"
@@ -12,3 +12,9 @@
   R2_SECRET_ACCESS_KEY = "4b6d02ed74d5bc3030aa378ea9860f99031c14da0953fdc7c4f72d908bfe471e"
   R2_ENDPOINT = "https://c2fde28004c6c81dfe77184575d12d96.r2.cloudflarestorage.com"
   R2_BUCKET_NAME = "contentforge-assets"
+  NEXT_PUBLIC_R2_URL = "https://pub-c2fde28004c6c81dfe77184575d12d96.r2.dev"
+  CRON_SECRET = "cf-cron-2026"
+  ADMIN_EMAILS = "kilevold@online.no"
+  RESEND_API_KEY = "re_bUudsDTD_KyYqmyGU7Py9Cf4DRdS5hKzy"
+  TIKTOK_CLIENT_KEY = "awt6ad34dk4meat8"
+  TIKTOK_CLIENT_SECRET = "JoQ9CwAtA4t6PviqdRylJQ0CtJHaCnAC"

@@ -11,16 +11,29 @@ interface Article {
   title: string
   platform: string
   content: string
+  image_urls: string[] | null
   created_at: string
 }
 
-// Simple markdown renderer
 function renderMarkdown(text: string) {
-  const html = text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-  
-  return <div dangerouslySetInnerHTML={{ __html: html }} />
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((para) =>
+      para
+        .replace(/\n/g, ' ')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .trim()
+    )
+    .filter(Boolean)
+
+  return (
+    <div className="space-y-4">
+      {paragraphs.map((p, i) => (
+        <p key={i} dangerouslySetInnerHTML={{ __html: p }} />
+      ))}
+    </div>
+  )
 }
 
 export default function ArticleDetailPage() {
@@ -69,7 +82,7 @@ export default function ArticleDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-cf-bg flex items-center justify-center">
         <div className="text-gray-600">Laster artikkel...</div>
       </div>
     )
@@ -77,7 +90,7 @@ export default function ArticleDetailPage() {
 
   if (error || !article) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-cf-bg">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
             ← Tilbake til produkt
@@ -91,7 +104,7 @@ export default function ArticleDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-cf-bg">
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* Header */}
         <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-6 inline-block">
@@ -115,14 +128,22 @@ export default function ArticleDetailPage() {
             Opprettet: {new Date(article.created_at).toLocaleDateString('no-NO')}
           </p>
 
+          {/* Illustration */}
+          {article.image_urls?.[0] && (
+            <img
+              src={article.image_urls[0]}
+              alt={article.title}
+              className="w-full rounded-xl object-cover mb-8"
+              style={{ maxHeight: '400px' }}
+            />
+          )}
+
           {/* Divider */}
           <div className="border-t border-gray-200 my-8"></div>
 
           {/* Content */}
-          <div className="prose prose-sm max-w-none mb-8">
-            <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {renderMarkdown(article.content)}
-            </div>
+          <div className="prose prose-sm max-w-none mb-8 text-gray-700 leading-relaxed">
+            {renderMarkdown(article.content)}
           </div>
 
           {/* Divider */}

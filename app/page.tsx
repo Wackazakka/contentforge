@@ -1,91 +1,121 @@
-import Link from "next/link";
+'use client'
+
+import Link from 'next/link'
+
+function HexagonIcon({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <polygon
+        points="12,2.5 20.8,7.75 20.8,16.25 12,21.5 3.2,16.25 3.2,7.75"
+        stroke="#378ADD"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  )
+}
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-cf-bg">
+
       {/* Nav */}
-      <nav className="border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
-        <span className="text-xl font-bold tracking-tight text-gray-900">
-          Content<span className="text-green-600">Forge</span>
-        </span>
-        <Link
-          href="/login"
-          className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          Logg inn →
+      <nav className="border-b bg-white px-6 py-4 flex items-center justify-between" style={{ borderColor: '#e5e2d9' }}>
+        <div className="flex items-center gap-2">
+          <HexagonIcon />
+          <span className="text-xl font-bold tracking-tight" style={{ color: '#0C447C' }}>
+            Center<span style={{ color: '#378ADD' }}>Forge</span>
+          </span>
+        </div>
+        <Link href="/login" className="text-sm font-medium transition-colors" style={{ color: '#185FA5' }}>
+          Log in →
         </Link>
       </nav>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center py-24">
-        <div className="inline-flex items-center gap-2 rounded-full bg-green-50 border border-green-200 px-4 py-1.5 text-sm text-green-700 mb-8">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 text-center py-16 sm:py-24">
+        <div
+          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm mb-8"
+          style={{ backgroundColor: '#EBF4FF', border: '1px solid #378ADD', color: '#185FA5' }}
+        >
           MVP — Beta
         </div>
-        <h1 className="text-5xl font-extrabold tracking-tight text-gray-900 max-w-2xl leading-tight mb-6">
-          Profesjonelt annonse­materiell på{" "}
-          <span className="text-green-600">sekunder</span>
+
+        <h1
+          className="text-3xl sm:text-5xl font-extrabold tracking-tight max-w-2xl leading-tight mb-6"
+          style={{ color: '#0C447C' }}
+        >
+          Professional ad content in{' '}
+          <span style={{ color: '#185FA5' }}>seconds</span>
         </h1>
-        <p className="text-lg text-gray-600 max-w-xl mb-10">
-          Gi en brief — få ferdige video­annonser og artikler i alle social
-          media-formater. Ingen designkompetanse nødvendig.
+
+        <p className="text-base sm:text-lg max-w-xl mb-10" style={{ color: '#6b7280' }}>
+          Give a brief — get finished video ads and articles in all social
+          media formats. No design skills required.
         </p>
+
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <Link
             href="/login"
-            className="rounded-full bg-green-600 hover:bg-green-500 text-white font-semibold px-8 py-3 text-base transition-colors"
+            className="rounded-full text-white font-semibold px-8 py-3 text-base transition-colors"
+            style={{ backgroundColor: '#185FA5' }}
+            onMouseEnter={(e: any) => (e.currentTarget.style.backgroundColor = '#0C447C')}
+            onMouseLeave={(e: any) => (e.currentTarget.style.backgroundColor = '#185FA5')}
           >
-            Kom i gang
+            Get started
           </Link>
           <a
             href="#features"
-            className="rounded-full border border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 font-medium px-8 py-3 text-base transition-colors"
+            className="rounded-full border font-medium px-8 py-3 text-base transition-colors"
+            style={{ borderColor: '#d1cec7', color: '#2C2C2A' }}
           >
-            Se funksjoner
+            See features
           </a>
         </div>
 
-        {/* Services */}
-        <p className="mt-12 text-xs text-gray-400 uppercase tracking-widest">
-          Tjenester som bruker ContentForge
+        <p className="mt-12 text-xs uppercase tracking-widest" style={{ color: '#9ca3af' }}>
+          Services using CenterForge
         </p>
-        <div className="mt-4 flex gap-6 items-center text-gray-600 font-semibold text-sm">
+        <div className="mt-4 flex gap-6 items-center font-semibold text-sm" style={{ color: '#6b7280' }}>
           <span>Reforhandle</span>
-          <span className="text-gray-300">·</span>
+          <span style={{ color: '#d1cec7' }}>·</span>
           <span>SinglePicker</span>
         </div>
       </main>
 
       {/* Features */}
-      <section id="features" className="border-t border-gray-200 py-20 px-6">
+      <section id="features" className="border-t py-16 sm:py-20 px-4 sm:px-6 bg-white" style={{ borderColor: '#e5e2d9' }}>
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-12">
-            Alt du trenger for innholdsproduksjon
+          <h2 className="text-2xl font-bold text-center mb-12" style={{ color: '#2C2C2A' }}>
+            Everything you need for content production
           </h2>
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               {
-                icon: "🎬",
-                title: "Video-annonser",
-                desc: "DALL-E 3 bilder + ffmpeg Ken Burns animasjoner. Produserer 16:9, 9:16 og 1:1.",
+                icon: '🎬',
+                title: 'Video ads',
+                desc: 'DALL-E 3 images + ffmpeg Ken Burns animations. Produces 16:9, 9:16 and 1:1.',
               },
               {
-                icon: "📝",
-                title: "Artikler & copy",
-                desc: "AI-generert tekst tilpasset tone og målgruppe. Klar til publisering.",
+                icon: '📝',
+                title: 'Articles & copy',
+                desc: 'AI-generated text tailored to tone and audience. Ready to publish.',
               },
               {
-                icon: "✅",
-                title: "Godkjennings­flyt",
-                desc: "Innebygd Paperclip-workflow. Gjennomgå og godkjenn innhold før publisering.",
+                icon: '✅',
+                title: 'Approval workflow',
+                desc: 'Built-in review workflow. Review and approve content before publishing.',
               },
             ].map((f) => (
               <div
                 key={f.title}
-                className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+                className="rounded-2xl p-6 shadow-sm"
+                style={{ border: '1px solid #e5e2d9', backgroundColor: '#F1EFE8' }}
               >
                 <div className="text-3xl mb-4">{f.icon}</div>
-                <h3 className="font-semibold text-gray-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{f.desc}</p>
+                <h3 className="font-semibold mb-2" style={{ color: '#2C2C2A' }}>{f.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#6b7280' }}>{f.desc}</p>
               </div>
             ))}
           </div>
@@ -93,9 +123,9 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 py-6 px-6 text-center text-xs text-gray-400">
-        ContentForge © {new Date().getFullYear()} — Wackazakka
+      <footer className="border-t py-6 px-6 text-center text-xs bg-white" style={{ borderColor: '#e5e2d9', color: '#9ca3af' }}>
+        CenterForge © {new Date().getFullYear()} — Wackazakka
       </footer>
     </div>
-  );
+  )
 }

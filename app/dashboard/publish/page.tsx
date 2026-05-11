@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '@/lib/supabaseClient'
 
 interface SocialConnection {
   id: string
@@ -15,12 +15,7 @@ interface SocialConnection {
 function PublishPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [supabase] = useState(() =>
-    createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-  )
+  const supabase = getSupabase()
 
   const [connections, setConnections] = useState<SocialConnection[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,7 +32,13 @@ function PublishPage() {
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<any>(null)
   const [publications, setPublications] = useState<any[]>([])
-  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram'>('facebook')
+  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram' | 'tiktok' | 'linkedin' | 'x' | 'reddit'>('facebook')
+  const [subreddit, setSubreddit] = useState('')
+  const [prefillJobId, setPrefillJobId] = useState<string | null>(null)
+  const [prefillContentId, setPrefillContentId] = useState<string | null>(null)
+  const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now')
+  const [scheduledAt, setScheduledAt] = useState<string>('')
+  const [scheduling, setScheduling] = useState(false)
 
   useEffect(() => {
     // Get current user
@@ -85,6 +86,10 @@ function PublishPage() {
           console.log('[publish] videos for product', selectedProduct, ':', data, 'error:', error)
           setVideos(data || [])
           setArticles([])
+          if (prefillJobId && data) {
+            const match = data.find((v: any) => v.job_id === prefillJobId)
+            if (match) setSelectedContent(match)
+          }
         } else {
           const { data, error } = await supabase
             .from('articles')
@@ -93,13 +98,17 @@ function PublishPage() {
           console.log('[publish] articles for product', selectedProduct, ':', data, 'error:', error)
           setArticles(data || [])
           setVideos([])
+          if (prefillContentId && data) {
+            const match = data.find((a: any) => a.id === prefillContentId)
+            if (match) setSelectedContent(match)
+          }
         }
       } catch (err) {
         console.error('[publish] Failed to fetch content:', err)
       }
     }
     fetchContent()
-  }, [selectedProduct, contentType, supabase])
+  }, [selectedProduct, contentType, supabase, prefillJobId, prefillContentId])
 
   useEffect(() => {
     const connected = searchParams.get('connected')
@@ -112,6 +121,17 @@ function PublishPage() {
     if (error) {
       setMessage(`❌ Error: ${error}`)
     }
+
+    // Pre-fill from product page links
+    const type = searchParams.get('type') as 'video' | 'article' | null
+    const productId = searchParams.get('product_id')
+    const jobId = searchParams.get('job_id')
+    const contentId = searchParams.get('content_id')
+
+    if (type) setContentType(type)
+    if (productId) setSelectedProduct(productId)
+    if (jobId) setPrefillJobId(jobId)
+    if (contentId) setPrefillContentId(contentId)
   }, [searchParams])
 
   useEffect(() => {
@@ -161,9 +181,66 @@ function PublishPage() {
     }
   }
 
+  const handleSchedule = async () => {
+    if (!selectedContent || selectedPages.length === 0 || !caption || !scheduledAt) {
+      setMessage('❌ Select content, pages, write a caption and choose a time')
+      return
+    }
+    const publishTime = new Date(scheduledAt)
+    if (publishTime <= new Date()) {
+      setMessage('❌ The scheduled time must be in the future')
+      return
+    }
+
+    setScheduling(true)
+    setMessage(null)
+    try {
+      const row: Record<string, any> = {
+        platform: publishPlatform,
+        content_type: contentType,
+        scheduled_at: publishTime.toISOString(),
+        production_id: selectedProduct || null,
+        page_id: selectedPages[0] || null,
+        caption,
+        draft_id: selectedContent.id,
+        job_id: selectedContent.job_id || null,
+        user_id: userId,
+      }
+
+      console.log('[schedule] inserting:', row)
+      const { data, error } = await supabase
+        .from('scheduled_publications')
+        .insert(row)
+        .select()
+
+      console.log('[schedule] result data:', data, 'error:', error)
+
+      if (error) {
+        setMessage(`❌ Kunne ikke planlegge: ${error.message}`)
+        return
+      }
+
+      setMessage(
+        `✅ Planlagt til ${publishTime.toLocaleString('en-GB', {
+          day: 'numeric',
+          month: 'long',
+          hour: '2-digit',
+          minute: '2-digit',
+        })}`
+      )
+      setScheduledAt('')
+      setPublishMode('now')
+    } catch (err) {
+      console.error('[publish] Schedule error:', err)
+      setMessage(`❌ Feil ved planlegging: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setScheduling(false)
+    }
+  }
+
   const handlePublish = async () => {
     if (!selectedContent || selectedPages.length === 0 || !caption) {
-      setMessage('❌ Velg innhold, sider og skriv en bildeskrift')
+      setMessage('❌ Select content, pages and write a caption')
       return
     }
 
@@ -190,12 +267,45 @@ function PublishPage() {
       if (contentType === 'video') {
         body.videoUrl = `${process.env.NEXT_PUBLIC_R2_URL}/videos/${selectedContent.job_id}/output.mp4`
         body.caption = caption
-        endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
+        if (publishPlatform === 'tiktok') {
+          endpoint = '/api/publish/tiktok'
+          body.tiktokAccountId = selectedPages[0]
+        } else if (publishPlatform === 'linkedin') {
+          endpoint = '/api/publish/linkedin'
+          body.linkedinAccountId = selectedPages[0]
+          body.contentType = 'video'
+        } else if (publishPlatform === 'x') {
+          endpoint = '/api/publish/x'
+          body.xAccountId = selectedPages[0]
+          body.contentType = 'video'
+        } else if (publishPlatform === 'reddit') {
+          endpoint = '/api/publish/reddit'
+          body.redditAccountId = selectedPages[0]
+          body.subreddit = subreddit
+          body.contentType = 'video'
+        } else {
+          endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
+        }
       } else {
         body.articleContent = selectedContent.content
         body.articleTitle = selectedContent.title
         body.articleId = selectedContent.id
-        endpoint = '/api/publish/facebook-article'
+        if (publishPlatform === 'linkedin') {
+          endpoint = '/api/publish/linkedin'
+          body.linkedinAccountId = selectedPages[0]
+          body.contentType = 'article'
+        } else if (publishPlatform === 'x') {
+          endpoint = '/api/publish/x'
+          body.xAccountId = selectedPages[0]
+          body.contentType = 'article'
+        } else if (publishPlatform === 'reddit') {
+          endpoint = '/api/publish/reddit'
+          body.redditAccountId = selectedPages[0]
+          body.subreddit = subreddit
+          body.contentType = 'article'
+        } else {
+          endpoint = '/api/publish/facebook-article'
+        }
       }
 
       const res = await fetch(endpoint, {
@@ -240,165 +350,187 @@ function PublishPage() {
   }, [publishResult, supabase])
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">Publiser innhold</h1>
+    <div className="max-w-3xl mx-auto p-8">
+      <h1 className="text-2xl font-bold mb-6">Publish content</h1>
 
       {message && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className={`mb-4 p-4 rounded-lg border text-sm ${
+          message.startsWith('✅')
+            ? 'bg-green-50 border-green-200 text-green-800'
+            : message.startsWith('❌')
+            ? 'bg-red-50 border-red-200 text-red-700'
+            : 'bg-blue-50 border-blue-200'
+        }`}>
           {message}
         </div>
       )}
 
-      {/* Velg innhold */}
-      {connections.length > 0 && (
-        <div className="bg-white rounded-xl border p-6 mb-6">
-          <h2 className="font-semibold mb-4">Velg innhold</h2>
-          
-          {/* Content Type Toggle */}
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => {
-                setContentType('video')
-                setSelectedContent(null)
-              }}
-              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                contentType === 'video'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+      {/* ── Steg 1: Innhold ── */}
+      <div className="bg-white rounded-xl border p-6 mb-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Step 1 — Select content</p>
+
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => { setContentType('video'); setSelectedContent(null) }}
+            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+              contentType === 'video' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            📹 Video
+          </button>
+          <button
+            onClick={() => { setContentType('article'); setSelectedContent(null) }}
+            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+              contentType === 'article' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            📄 Article
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Product</label>
+            <select
+              value={selectedProduct}
+              onChange={(e) => setSelectedProduct(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2"
             >
-              📹 Video
-            </button>
-            <button
-              onClick={() => {
-                setContentType('article')
-                setSelectedContent(null)
-              }}
-              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                contentType === 'article'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📄 Artikkel
-            </button>
+              <option value="">Select product...</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           </div>
 
-          <div className="space-y-4">
+          {contentType === 'video' && videos.length > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-1">Produkt</label>
-              <select
-                value={selectedProduct}
-                onChange={(e) => setSelectedProduct(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2"
-              >
-                <option value="">Velg produkt...</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {contentType === 'video' && videos.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-1">Video</label>
-                <div className="space-y-2">
-                  {videos.map((v) => (
+              <label className="block text-sm font-medium mb-2">Select video</label>
+              <div className="grid grid-cols-2 gap-3">
+                {videos.map((v) => {
+                  const videoUrl = v.job_id
+                    ? `${process.env.NEXT_PUBLIC_R2_URL}/videos/${v.job_id}/output.mp4`
+                    : null
+                  const isSelected = selectedContent?.id === v.id
+                  return (
                     <div
                       key={v.id}
                       onClick={() => setSelectedContent(v)}
-                      className={`p-3 border rounded-lg cursor-pointer ${
-                        selectedContent?.id === v.id ? 'border-blue-500 bg-blue-50' : ''
+                      className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
+                        isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-blue-300'
                       }`}
                     >
-                      <p className="text-sm font-medium">
-                        {v.campaign_name || v.title || v.segments?.[0]?.text?.slice(0, 50) || 'Uten navn'}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(v.created_at).toLocaleDateString('nb-NO', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                        })}
-                      </p>
-                      {v.job_id && <span className="text-xs text-green-600">✅ Video klar</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {contentType === 'article' && articles.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium mb-1">Artikkel</label>
-                <div className="space-y-2">
-                  {articles.map((a) => (
-                    <div
-                      key={a.id}
-                      onClick={() => setSelectedContent(a)}
-                      className={`p-3 border rounded-lg cursor-pointer ${
-                        selectedContent?.id === a.id ? 'border-blue-500 bg-blue-50' : ''
-                      }`}
-                    >
-                      <p className="text-sm font-medium">{a.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                          {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {new Date(a.created_at).toLocaleDateString('nb-NO', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </span>
+                      {videoUrl ? (
+                        <video src={videoUrl} muted preload="metadata" className="w-full object-cover bg-black" style={{ maxHeight: '140px' }} />
+                      ) : (
+                        <div className="w-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl" style={{ height: '100px' }}>🎬</div>
+                      )}
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">✔ Selected</div>
+                      )}
+                      <div className="p-2">
+                        <p className="text-xs font-medium truncate text-gray-800">
+                          {v.campaign_name || v.title || v.segments?.[0]?.text?.slice(0, 40) || 'Uten navn'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(v.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
+            </div>
+          )}
+
+          {contentType === 'article' && articles.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Select article</label>
+              <div className="space-y-2">
+                {articles.map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={() => setSelectedContent(a)}
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                      selectedContent?.id === a.id ? 'border-blue-500 bg-blue-50' : 'hover:border-blue-300'
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{a.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                        {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Steg 2: Caption + Tidspunkt ── alltid synlig når innhold er valgt */}
+      {selectedContent && (
+        <div className="bg-white rounded-xl border p-6 mb-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Step 2 — Caption and timing</p>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Caption</label>
+            <textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              rows={4}
+              placeholder="Write a caption for the post..."
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">When should it be published?</label>
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setPublishMode('now')}
+                className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  publishMode === 'now' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🚀 Publish now
+              </button>
+              <button
+                onClick={() => setPublishMode('schedule')}
+                className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  publishMode === 'schedule' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🗓 Schedule
+              </button>
+            </div>
+            {publishMode === 'schedule' && (
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             )}
           </div>
         </div>
       )}
 
-      {/* Kanal-velger */}
-      {selectedContent && (
-        <div className="bg-white rounded-xl border p-6 mb-6">
-          <h2 className="font-semibold mb-4">Velg sider</h2>
-          <div className="space-y-2">
-            {connections.map((c) => (
-              <label key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
-                <input
-                  type="checkbox"
-                  checked={selectedPages.includes(c.page_id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedPages((prev) => [...prev, c.page_id])
-                    } else {
-                      setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
-                    }
-                  }}
-                />
-                <span>📘 {c.page_name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* ── Steg 3: Kanal ── */}
+      {selectedContent && connections.length > 0 && (
+        <div className="bg-white rounded-xl border p-6 mb-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Step 3 — Select channel</p>
 
-      {/* Platform selection */}
-      {selectedContent && (
-        <div className="bg-white rounded-xl border p-6 mb-6">
-          <h2 className="font-semibold mb-4">Velg plattform</h2>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 mb-4">
             <button
               onClick={() => setPublishPlatform('facebook')}
               className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                publishPlatform === 'facebook'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                publishPlatform === 'facebook' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               📘 Facebook
@@ -407,78 +539,164 @@ function PublishPage() {
               <button
                 onClick={() => setPublishPlatform('instagram')}
                 className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                  publishPlatform === 'instagram'
-                    ? 'bg-pink-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  publishPlatform === 'instagram' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 📷 Instagram
               </button>
             )}
+            {contentType === 'video' && (
+              <button
+                onClick={() => setPublishPlatform('tiktok')}
+                className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                  publishPlatform === 'tiktok' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🎵 TikTok
+              </button>
+            )}
+            <button
+              onClick={() => setPublishPlatform('linkedin')}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                publishPlatform === 'linkedin' ? 'bg-[#0077B5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              💼 LinkedIn
+            </button>
+            <button
+              onClick={() => setPublishPlatform('x')}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                publishPlatform === 'x' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              𝕏 X
+            </button>
+            <button
+              onClick={() => setPublishPlatform('reddit')}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                publishPlatform === 'reddit' ? 'bg-[#FF4500] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🤖 Reddit
+            </button>
           </div>
-          {contentType === 'article' && (
-            <p className="text-xs text-gray-500 mt-2">📄 Artikler kan kun publiseres til Facebook</p>
+
+          {publishPlatform === 'reddit' && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subreddit</label>
+
+              <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                <span className="px-3 py-2 bg-gray-50 text-gray-500 border-r text-sm">r/</span>
+                <input
+                  type="text"
+                  value={subreddit}
+                  onChange={(e) => setSubreddit(e.target.value.replace(/^r\//, ''))}
+                  placeholder="norge"
+                  className="flex-1 px-3 py-2 text-sm focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {connections
+              .filter((c) => c.platform === publishPlatform || (publishPlatform === 'instagram' && c.platform === 'facebook') || (publishPlatform === 'x' && c.platform === 'x'))
+              .map((c) => (
+              <label key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                <input
+                  type="checkbox"
+                  checked={selectedPages.includes(c.page_id)}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedPages((prev) => [...prev, c.page_id])
+                    else setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
+                  }}
+                />
+                <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : c.platform === 'reddit' ? '🤖' : '📷'} {c.page_name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Send-knapp ── */}
+      {selectedContent && caption && selectedPages.length > 0 && (
+        <div className="mb-6">
+          {publishMode === 'now' ? (
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
+            >
+              {publishing ? '⏳ Publishing...' : '🚀 Publish now'}
+            </button>
+          ) : (
+            <button
+              onClick={handleSchedule}
+              disabled={scheduling || !scheduledAt}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
+            >
+              {scheduling ? '⏳ Scheduling...' : `🗓 Schedule${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}`}
+            </button>
           )}
         </div>
       )}
 
-      {/* Caption og publiser */}
-      {selectedPages.length > 0 && (
-        <div className="bg-white rounded-xl border p-6 mb-6">
-          <h2 className="font-semibold mb-4">Caption</h2>
-          <textarea
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            rows={4}
-            placeholder="Skriv en caption til innlegget..."
-            className="w-full border rounded-lg px-3 py-2 text-sm"
-          />
-          <button
-            onClick={handlePublish}
-            disabled={publishing || !caption}
-            className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
-          >
-            {publishing ? '⏳ Publiserer...' : '🚀 Publiser nå'}
-          </button>
-          {publishResult && (
-            <p className="mt-3 text-sm text-green-600">✅ Publisert!</p>
-          )}
-        </div>
-      )}
-
-      {/* Koblede kontoer */}
+      {/* ── Koblede kontoer ── */}
       <div className="bg-white rounded-xl border p-6 mb-6">
-        <h2 className="font-semibold mb-4">Koblede kontoer</h2>
+        <h2 className="font-semibold mb-3">Connected accounts</h2>
         {connections.length === 0 ? (
           <div>
-            <p className="text-gray-500 mb-4">Ingen kontoer koblet ennå.</p>
+            <p className="text-gray-500 mb-4 text-sm">No accounts connected yet.</p>
             {userId ? (
-              <a
-                href={`/api/auth/facebook?userId=${userId}`}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
-              >
-                Koble til Facebook/Instagram
-              </a>
+              <div className="flex flex-wrap gap-2">
+                <a href={`/api/auth/facebook?userId=${userId}`} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                  Connect Facebook/Instagram
+                </a>
+                <a href={`/api/auth/tiktok?userId=${userId}`} className="bg-black text-white px-4 py-2 rounded-lg text-sm">
+                  Connect TikTok
+                </a>
+                <a href={`/api/auth/linkedin?userId=${userId}`} className="bg-[#0077B5] text-white px-4 py-2 rounded-lg text-sm">
+                  Connect LinkedIn
+                </a>
+                <a href={`/api/auth/x?userId=${userId}`} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm">
+                  Connect X
+                </a>
+                <a href={`/api/auth/reddit?userId=${userId}`} className="bg-[#FF4500] text-white px-4 py-2 rounded-lg text-sm">
+                  Connect Reddit
+                </a>
+              </div>
             ) : (
-              <p className="text-gray-400 text-sm">Laster bruker...</p>
+              <p className="text-gray-400 text-sm">Loading user...</p>
             )}
           </div>
         ) : (
           <div className="space-y-2">
             {connections.map((c) => (
               <div key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <span>{c.platform === 'facebook' ? '📘' : '📸'}</span>
-                <span className="font-medium">{c.page_name}</span>
+                <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : '📷'}</span>
+                <span className="font-medium text-sm">{c.page_name}</span>
                 <span className="text-xs text-gray-400">{c.platform}</span>
               </div>
             ))}
             {userId && (
-              <a
-                href={`/api/auth/facebook?userId=${userId}`}
-                className="inline-block mt-2 text-sm text-blue-600 hover:underline"
-              >
-                + Koble til flere kontoer
-              </a>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <a href={`/api/auth/facebook?userId=${userId}`} className="text-sm text-blue-600 hover:underline">
+                  + Facebook/Instagram
+                </a>
+                <a href={`/api/auth/tiktok?userId=${userId}`} className="text-sm text-gray-800 hover:underline">
+                  + TikTok
+                </a>
+                <a href={`/api/auth/linkedin?userId=${userId}`} className="text-sm text-[#0077B5] hover:underline">
+                  + LinkedIn
+                </a>
+                <a href={`/api/auth/x?userId=${userId}`} className="text-sm text-gray-900 hover:underline">
+                  + X
+                </a>
+                <a href={`/api/auth/reddit?userId=${userId}`} className="text-sm text-[#FF4500] hover:underline">
+                  + Reddit
+                </a>
+
+              </div>
             )}
           </div>
         )}
@@ -487,18 +705,20 @@ function PublishPage() {
       {/* Publiseringshistorikk */}
       {publications.length > 0 && (
         <div className="bg-white rounded-xl border p-6 mt-6">
-          <h2 className="font-semibold mb-4">Publiseringshistorikk</h2>
+          <h2 className="font-semibold mb-4">Publishing history</h2>
           <div className="space-y-3">
             {publications.map((p) => (
               <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="text-sm font-medium">📘 {p.page_name}</p>
+                  <p className="text-sm font-medium">
+                    {p.platform === 'facebook' ? '📘' : p.platform === 'tiktok' ? '🎵' : p.platform === 'linkedin' ? '💼' : p.platform === 'instagram' ? '📷' : p.platform === 'x' ? '𝕏' : p.platform === 'reddit' ? '🤖' : '🌐'} {p.page_name}
+                  </p>
                   <p className="text-xs text-gray-400 mt-1">{p.caption?.slice(0, 60)}...</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs text-green-600 font-medium">✅ Publisert</span>
+                  <span className="text-xs text-green-600 font-medium">✅ Published</span>
                   <p className="text-xs text-gray-400 mt-1">
-                    {new Date(p.created_at).toLocaleDateString('nb-NO', {
+                    {new Date(p.created_at).toLocaleDateString('en-GB', {
                       day: 'numeric',
                       month: 'short',
                       hour: '2-digit',

@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
+/* CenterForge brand palette */
 :root {
-  --background: #ffffff;
-  --foreground: #111827;
+  --cf-dark-blue: #0C447C;
+  --cf-blue: #185FA5;
+  --cf-light-blue: #378ADD;
+  --cf-teal: #1D9E75;
+  --cf-dark: #2C2C2A;
+  --cf-bg: #F1EFE8;
+
+  --background: #F1EFE8;
+  --foreground: #2C2C2A;
 }
 
 @theme inline {
@@ -10,10 +18,17 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-cf-dark-blue: #0C447C;
+  --color-cf-blue: #185FA5;
+  --color-cf-light-blue: #378ADD;
+  --color-cf-teal: #1D9E75;
+  --color-cf-dark: #2C2C2A;
+  --color-cf-bg: #F1EFE8;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }

@@ -33,25 +33,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const prompt = `Du er en kreativ manusforfatter for sosiale medier-videoer.
-Lag et manuskript med 4 segmenter for en storytelling-video på norsk.
+  const prompt = `You are a creative scriptwriter for social media videos.
+Write a script with 4 segments for a storytelling video.
 
-Produkt/tjeneste: ${productName} (${service})
-Målgruppe: ${targetAudience}
-Problem som løses: ${problem}
+Product/service: ${productName} (${service})
+Target audience: ${targetAudience}
+Problem being solved: ${problem}
 Call to action: ${cta}
 
-Skriv et JSON-array med nøyaktig 4 segmenter. Hvert segment har:
-- "text": voiceover-tekst på norsk (1-3 setninger, maks 20 ord per segment)
-- "imagePrompt": DALL-E bildeprompt på engelsk, beskrivende og filmisk
+Write in the same language as the product name and target audience above. Match the language naturally.
 
-Struktur:
-1. Hook — åpningsscene som treffer problemet
-2. Problem — viser situasjonen målgruppen kjenner seg igjen i
-3. Løsning — introduserer produktet/tjenesten naturlig
-4. CTA — avslutning med oppfordring til handling
+Write a JSON array with exactly 4 segments. Each segment has:
+- "text": voiceover text (1-3 sentences, max 20 words per segment)
+- "imagePrompt": DALL-E image prompt in English, descriptive and cinematic
 
-Svar KUN med et rent JSON-array, ingen forklaring, ingen markdown:
+Structure:
+1. Hook — opening scene that hits the problem
+2. Problem — shows the situation the audience recognises
+3. Solution — introduces the product/service naturally
+4. CTA — closing with a call to action
+
+Reply ONLY with a clean JSON array, no explanation, no markdown:
 [{"text":"...","imagePrompt":"..."},...]`;
 
   const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
