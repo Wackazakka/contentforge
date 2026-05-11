@@ -90,6 +90,13 @@ export default function RegisterPage() {
         } catch (orgErr) {
           console.error('Organization creation error:', orgErr)
         }
+
+        // Send welcome email (fire and forget)
+        fetch('/api/email/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: form.email, name: form.fullName }),
+        }).catch(() => {})
       }
 
       setRegisteredEmail(form.email)
