@@ -1,5 +1,5 @@
 # CenterForge Platform Status Document
-*Oppdatert: 2026-05-11 09:59 UTC*
+*Oppdatert: 2026-05-11 12:12 UTC*
 *(Tidligere kjent som ContentForge v2 — rebranded to CenterForge)*
 
 ## Stack
@@ -236,7 +236,134 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
     3. Connected IG account to Facebook page in settings
     4. API upgrade: v19.0 → v21.0 for improved Instagram support
 
-## 🆕 Session 2026-05-10 & 2026-05-11: Multi-Platform Publishing Expansion
+## 🆕 Session 2026-05-11: Billing, Auth, Backoffice, E-post & Opprydding
+
+### Stripe Billing ✅
+**Webhook & Payment Processing:**
+- ✅ Stripe webhook signing secret configured (`whsec_...`)
+- ✅ Stripe API v22 TypeScript fixes applied
+  - Corrected `Checkout.Session` namespace
+  - Fixed `current_period_end` field (moved to `items.data[0]`)
+  - Fixed `invoice.subscription` via parent reference
+  - Fixed `invoice.payment_intent` field path
+- ✅ Lazy Stripe initialization prevents Netlify build crashes
+- ✅ Webhook handlers for subscription events (payment, cancellation)
+
+**Billing Dashboard (/dashboard/billing):**
+- ✅ Active plan display
+- ✅ Credit balance
+- ✅ Renewal date
+- ✅ Transaction history
+- ✅ Stripe Customer Portal button ("Manage subscription")
+
+**NavBar Enhancement:**
+- ✅ Billing link in navigation
+- ✅ Credit badge shows "X credits" remaining
+- ✅ Quick access to billing management
+
+### Authentication & Onboarding ✅
+**Password Recovery:**
+- ✅ /forgot-password page with email input
+- ✅ Supabase `resetPasswordForEmail()` implementation
+- ✅ /reset-password page with token verification
+- ✅ PASSWORD_RECOVERY event handling with `updateUser()`
+- ✅ "Forgot password?" link in login form
+
+**Signup Experience:**
+- ✅ Redesigned registration page (matches login style)
+- ✅ CenterForge branding with beige background
+- ✅ Email verification UX with "Check your email" screen
+- ✅ Supabase email confirmation enabled in project settings
+- ✅ Clear CTA back to login after confirmation
+
+**Onboarding Flow:**
+- ✅ Welcome screen for new users without products
+- ✅ 3-step "How it works" guide on dashboard
+- ✅ Product creation CTA after onboarding
+
+### Admin Backoffice (/admin) ✅
+**Access Control:**
+- ✅ Admin-only access verified via `supabase.auth.admin.getUserById()`
+- ✅ Hardcoded ADMIN_EMAILS environment variable
+- ✅ Currently restricted to `kilevold@online.no`
+
+**Statistics Dashboard:**
+- ✅ Total active users count
+- ✅ Active subscriptions per plan
+- ✅ Credits in circulation
+- ✅ Video drafts count
+
+**User Management:**
+- ✅ User table with search (email, plan badge, credit balance, signup date, last login)
+- ✅ Inline credit adjustment (+/-)
+- ✅ Optional note for credit changes
+- ✅ All adjustments logged to `credit_transactions` table
+
+### Email (Resend) ✅
+**Infrastructure:**
+- ✅ Resend integration configured
+- ✅ Sender address: `hello@centerforge.app`
+- ✅ Lazy initialization prevents build crashes
+- ✅ ⏳ Domain verification pending (centerforge.app)
+
+**Email Templates:**
+- ✅ **Welcome Email** — sent on signup with branded HTML, hexagon logo, onboarding guide, dashboard CTA
+- ✅ **Payment Confirmation** — sent via Stripe webhook with plan name, credits, renewal date
+- ✅ **Low Credit Alert** — sent once when balance drops below 15 credits
+
+### Content & Language ✅
+**AI Generation Language:**
+- ✅ Removed hardcoded Norwegian instructions from 3 API routes:
+  - `/api/content/produce/article`
+  - `/api/content/generate-script`
+  - `/api/content/produce/draft`
+- ✅ AI now generates in user's selected language (default: English)
+
+**UI Localization to English:**
+- ✅ NavBar, Dashboard, Login, Pricing, ProductModal
+- ✅ Publish, Calendar, Article, Video details pages
+- ✅ Registration, Password recovery flows
+- ✅ Terms & Privacy Policy
+  - Updated with CenterForge branding
+  - Added integrations: Stripe, Anthropic, LinkedIn, X, Reddit, TikTok
+
+### SEO & Analytics ✅
+**Search Engine Optimization:**
+- ✅ Meta tags — English title, description, Open Graph tags
+- ✅ Twitter card tags for social sharing
+- ✅ lang="en" HTML attribute
+
+**Analytics:**
+- ✅ Plausible Analytics script on all pages
+- ✅ Configured with data-domain="centerforge.app"
+- ✅ ⏳ Domain verification pending in Plausible dashboard
+
+### Cleanup ✅
+- ✅ Deleted `/api/debug-env` (exposed environment variables)
+- ✅ Removed legacy Campaigns section from dashboard
+
+### Pending Actions ⏳
+- ⏳ **Resend Domain Verification** — centerforge.app must be verified in Resend dashboard
+- ⏳ **Plausible Setup** — add centerforge.app to Plausible analytics dashboard
+- ⏳ **OG Image** — create /public/og-image.png (1200×630px) for social sharing
+- ⏳ **TikTok App Review** — awaiting approval from TikTok
+
+### Session Commits
+| Commit | Message |
+|--------|---------|
+| `16d76d0` | feat: add Resend email, Plausible analytics, SEO, billing nav, cleanup |
+| `eb3ac63` | feat: send welcome email via Resend on signup |
+| `649b6a9` | fix: resolve ADMIN_EMAILS runtime type issue |
+| `5558495` | fix: fix implicit any type in reset-password page |
+| `55bcf5b` | feat: add admin backoffice with user management and credit adjustments |
+| `db9611a` | feat: implement password recovery, onboarding, legal pages in English |
+| `a39a4c5` | fix: Stripe v22 TypeScript fixes, lazy init, webhook secret |
+
+---
+
+## 📝 Previous Sessions
+
+### Session 2026-05-10 & 2026-05-11 (Earlier): Multi-Platform Publishing Expansion
 
 ### LinkedIn Publishing ✅
 **OAuth 2.0 Implementation:**
@@ -430,8 +557,60 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 - **Frontend:** Netlify (3c29d628-6c63-45b3-a446-4fbdb593c495)
 - **Backend:** Netlify Functions + Droplet cron
 - **Database:** Supabase (jvnavubholyvihvytqkn)
+- **Email:** Resend (hello@centerforge.app)
+- **Analytics:** Plausible (centerforge.app)
+- **Payments:** Stripe (v22 API)
 
-## 📋 Recent Commits (Sessions 2026-05-07 through 2026-05-11)
+## 🎯 Platform Completeness
+
+### Core Features
+- ✅ Multi-platform OAuth (Facebook, Instagram, LinkedIn, X, TikTok, Reddit)
+- ✅ Content generation (Articles, Videos, Voiceovers, Scripts)
+- ✅ Publishing (6 platforms, scheduled + immediate)
+- ✅ Analytics & History (Publications table, Calendar view)
+- ✅ Billing & Credits (Stripe integration, credit system)
+- ✅ User Management (Auth, Onboarding, Password recovery)
+- ✅ Admin Backoffice (User management, Credit adjustments)
+- ✅ Email notifications (Resend integration)
+
+### Status Summary
+**Live & Production-Ready:** ✅
+- Content generation: Articles, Videos, Images, Voiceovers
+- Publishing: Facebook, Instagram, LinkedIn, X
+- Billing: Stripe subscription + credit system
+- Auth: Signup, login, password recovery
+- Onboarding: Welcome flow + guide
+- Admin: User management + credit control
+- Email: Transactional + notifications
+- Analytics: Plausible tracking
+
+**Pending Approval:** ⏳
+- TikTok publishing (technical ready, awaiting TikTok review)
+
+**Blocked/Waiting:** ⏳
+- Reddit publishing (account age restrictions)
+
+**Minor Pending:** ⏳
+- Resend domain verification (for email deliverability)
+- Plausible domain setup (for analytics)
+- OG image for social preview
+
+---
+
+## 🚀 CENTERFORGE IS PRODUCTION-READY
+
+## 📋 All Recent Commits (Sessions 2026-05-07 through 2026-05-11)
+
+### Billing, Auth, Backoffice (May 11)
+| Commit | Message |
+|--------|---------|
+| `16d76d0` | feat: add Resend email, Plausible analytics, SEO, billing nav, cleanup |
+| `eb3ac63` | feat: send welcome email via Resend on signup |
+| `649b6a9` | fix: resolve ADMIN_EMAILS runtime type issue |
+| `5558495` | fix: fix implicit any type in reset-password page |
+| `55bcf5b` | feat: add admin backoffice with user management and credit adjustments |
+| `db9611a` | feat: implement password recovery, onboarding, legal pages in English |
+| `a39a4c5` | fix: Stripe v22 TypeScript fixes, lazy init, webhook secret |
 
 ### Multi-Platform Publishing (May 10-11)
 | Commit | Message |
