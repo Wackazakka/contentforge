@@ -32,7 +32,7 @@ function PublishPage() {
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<any>(null)
   const [publications, setPublications] = useState<any[]>([])
-  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram' | 'tiktok' | 'linkedin'>('facebook')
+  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram' | 'tiktok' | 'linkedin' | 'x'>('facebook')
   const [prefillJobId, setPrefillJobId] = useState<string | null>(null)
   const [prefillContentId, setPrefillContentId] = useState<string | null>(null)
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now')
@@ -273,6 +273,10 @@ function PublishPage() {
           endpoint = '/api/publish/linkedin'
           body.linkedinAccountId = selectedPages[0]
           body.contentType = 'video'
+        } else if (publishPlatform === 'x') {
+          endpoint = '/api/publish/x'
+          body.xAccountId = selectedPages[0]
+          body.contentType = 'video'
         } else {
           endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
         }
@@ -283,6 +287,10 @@ function PublishPage() {
         if (publishPlatform === 'linkedin') {
           endpoint = '/api/publish/linkedin'
           body.linkedinAccountId = selectedPages[0]
+          body.contentType = 'article'
+        } else if (publishPlatform === 'x') {
+          endpoint = '/api/publish/x'
+          body.xAccountId = selectedPages[0]
           body.contentType = 'article'
         } else {
           endpoint = '/api/publish/facebook-article'
@@ -544,11 +552,19 @@ function PublishPage() {
             >
               💼 LinkedIn
             </button>
+            <button
+              onClick={() => setPublishPlatform('x')}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                publishPlatform === 'x' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              𝕏 X
+            </button>
           </div>
 
           <div className="space-y-2">
             {connections
-              .filter((c) => c.platform === publishPlatform || (publishPlatform === 'instagram' && c.platform === 'facebook'))
+              .filter((c) => c.platform === publishPlatform || (publishPlatform === 'instagram' && c.platform === 'facebook') || (publishPlatform === 'x' && c.platform === 'x'))
               .map((c) => (
               <label key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
                 <input
@@ -559,7 +575,7 @@ function PublishPage() {
                     else setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
                   }}
                 />
-                <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : '📷'} {c.page_name}</span>
+                <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : '📷'} {c.page_name}</span>
               </label>
             ))}
           </div>
@@ -606,6 +622,9 @@ function PublishPage() {
                 <a href={`/api/auth/linkedin?userId=${userId}`} className="bg-[#0077B5] text-white px-4 py-2 rounded-lg text-sm">
                   Koble til LinkedIn
                 </a>
+                <a href={`/api/auth/x?userId=${userId}`} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm">
+                  Koble til X
+                </a>
               </div>
             ) : (
               <p className="text-gray-400 text-sm">Laster bruker...</p>
@@ -631,6 +650,9 @@ function PublishPage() {
                 <a href={`/api/auth/linkedin?userId=${userId}`} className="text-sm text-[#0077B5] hover:underline">
                   + LinkedIn
                 </a>
+                <a href={`/api/auth/x?userId=${userId}`} className="text-sm text-gray-900 hover:underline">
+                  + X
+                </a>
               </div>
             )}
           </div>
@@ -646,7 +668,7 @@ function PublishPage() {
               <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-sm font-medium">
-                    {p.platform === 'facebook' ? '📘' : p.platform === 'tiktok' ? '🎵' : p.platform === 'linkedin' ? '💼' : p.platform === 'instagram' ? '📷' : '🌐'} {p.page_name}
+                    {p.platform === 'facebook' ? '📘' : p.platform === 'tiktok' ? '🎵' : p.platform === 'linkedin' ? '💼' : p.platform === 'instagram' ? '📷' : p.platform === 'x' ? '𝕏' : '🌐'} {p.page_name}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">{p.caption?.slice(0, 60)}...</p>
                 </div>
