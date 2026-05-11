@@ -53,9 +53,28 @@ export async function POST(request: Request) {
         p_user_id: userId,
         p_amount: planConfig.credits,
         p_type: 'purchase',
-        p_description: `${planConfig.name}-abonnement — ${planConfig.credits} kreditter`,
+        p_description: `${planConfig.name} plan — ${planConfig.credits} credits`,
         p_stripe_payment_intent_id: session.payment_intent as string,
       })
+
+      // Send subscription confirmation email
+      const { data: userData } = await supabase.auth.admin.getUserById(userId)
+      if (userData?.user?.email) {
+        const renewsAt = periodEnd
+          ? new Date(periodEnd * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+          : null
+        fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/email/subscription`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: userData.user.email,
+            name: userData.user.user_metadata?.full_name ?? '',
+            plan: planConfig.name,
+            credits: planConfig.credits,
+            renewsAt,
+          }),
+        }).catch(() => {})
+      }
 
       console.log(`[stripe/webhook] ✅ Subscription activated: ${plan} for ${userId}`)
       break

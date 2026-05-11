@@ -23,6 +23,7 @@ const navLinks = [
   { href: '/dashboard', label: 'Overview' },
   { href: '/dashboard/publish', label: 'Publish' },
   { href: '/dashboard/calendar', label: 'Calendar' },
+  { href: '/dashboard/billing', label: 'Billing' },
 ]
 
 export default function NavBar() {
@@ -79,7 +80,7 @@ export default function NavBar() {
               style={{ color: '#185FA5', borderColor: '#378ADD', backgroundColor: '#EBF4FF' }}
               title="Credits remaining"
             >
-              {credits} kr
+              {credits} credits
             </Link>
           )}
           <button

@@ -7,7 +7,6 @@ import { useAuth } from "@/lib/authContext"
 import { getSupabase } from "@/lib/supabaseClient"
 import { useProducts } from "@/lib/useProducts"
 import { ProductModal } from "@/components/ProductModal"
-import { DEMO_CAMPAIGNS } from "@/lib/campaigns"
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -26,7 +25,6 @@ export default function DashboardPage() {
   const [showProductModal, setShowProductModal] = useState(false)
   const [creatingProduct, setCreatingProduct] = useState(false)
 
-  const campaigns = DEMO_CAMPAIGNS
   const { products, loading: productsLoading, createProduct, deleteProduct } = useProducts(organizationId)
 
   useEffect(() => {
@@ -175,32 +173,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-
-      {/* Campaigns (legacy) */}
-      {campaigns.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900">Campaigns</h2>
-            <Link
-              href="/dashboard/new"
-              className="rounded-lg bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold px-3 py-2 transition-colors"
-            >
-              + New campaign
-            </Link>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {campaigns.map((campaign) => (
-              <div key={campaign.id} className="bg-white rounded-xl border border-gray-200 p-4">
-                <h3 className="font-semibold text-gray-900 mb-2">{campaign.name}</h3>
-                <p className="text-sm text-gray-500 mb-3 line-clamp-2">{campaign.bodyCopy}</p>
-                <Link href={`/dashboard/${campaign.id}`} className="text-sm font-medium" style={{ color: '#185FA5' }}>
-                  Open →
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <ProductModal
         isOpen={showProductModal}
