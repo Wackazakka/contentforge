@@ -32,7 +32,8 @@ function PublishPage() {
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<any>(null)
   const [publications, setPublications] = useState<any[]>([])
-  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram' | 'tiktok' | 'linkedin' | 'x'>('facebook')
+  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram' | 'tiktok' | 'linkedin' | 'x' | 'reddit'>('facebook')
+  const [subreddit, setSubreddit] = useState('')
   const [prefillJobId, setPrefillJobId] = useState<string | null>(null)
   const [prefillContentId, setPrefillContentId] = useState<string | null>(null)
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now')
@@ -277,6 +278,11 @@ function PublishPage() {
           endpoint = '/api/publish/x'
           body.xAccountId = selectedPages[0]
           body.contentType = 'video'
+        } else if (publishPlatform === 'reddit') {
+          endpoint = '/api/publish/reddit'
+          body.redditAccountId = selectedPages[0]
+          body.subreddit = subreddit
+          body.contentType = 'video'
         } else {
           endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
         }
@@ -291,6 +297,11 @@ function PublishPage() {
         } else if (publishPlatform === 'x') {
           endpoint = '/api/publish/x'
           body.xAccountId = selectedPages[0]
+          body.contentType = 'article'
+        } else if (publishPlatform === 'reddit') {
+          endpoint = '/api/publish/reddit'
+          body.redditAccountId = selectedPages[0]
+          body.subreddit = subreddit
           body.contentType = 'article'
         } else {
           endpoint = '/api/publish/facebook-article'
@@ -560,7 +571,31 @@ function PublishPage() {
             >
               𝕏 X
             </button>
+            <button
+              onClick={() => setPublishPlatform('reddit')}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                publishPlatform === 'reddit' ? 'bg-[#FF4500] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🤖 Reddit
+            </button>
           </div>
+
+          {publishPlatform === 'reddit' && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subreddit</label>
+              <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                <span className="px-3 py-2 bg-gray-50 text-gray-500 border-r text-sm">r/</span>
+                <input
+                  type="text"
+                  value={subreddit}
+                  onChange={(e) => setSubreddit(e.target.value.replace(/^r\//, ''))}
+                  placeholder="norge"
+                  className="flex-1 px-3 py-2 text-sm focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             {connections
@@ -575,7 +610,7 @@ function PublishPage() {
                     else setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
                   }}
                 />
-                <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : '📷'} {c.page_name}</span>
+                <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : c.platform === 'reddit' ? '🤖' : '📷'} {c.page_name}</span>
               </label>
             ))}
           </div>
@@ -625,6 +660,9 @@ function PublishPage() {
                 <a href={`/api/auth/x?userId=${userId}`} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm">
                   Koble til X
                 </a>
+                <a href={`/api/auth/reddit?userId=${userId}`} className="bg-[#FF4500] text-white px-4 py-2 rounded-lg text-sm">
+                  Koble til Reddit
+                </a>
               </div>
             ) : (
               <p className="text-gray-400 text-sm">Laster bruker...</p>
@@ -653,6 +691,9 @@ function PublishPage() {
                 <a href={`/api/auth/x?userId=${userId}`} className="text-sm text-gray-900 hover:underline">
                   + X
                 </a>
+                <a href={`/api/auth/reddit?userId=${userId}`} className="text-sm text-[#FF4500] hover:underline">
+                  + Reddit
+                </a>
               </div>
             )}
           </div>
@@ -668,7 +709,7 @@ function PublishPage() {
               <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-sm font-medium">
-                    {p.platform === 'facebook' ? '📘' : p.platform === 'tiktok' ? '🎵' : p.platform === 'linkedin' ? '💼' : p.platform === 'instagram' ? '📷' : p.platform === 'x' ? '𝕏' : '🌐'} {p.page_name}
+                    {p.platform === 'facebook' ? '📘' : p.platform === 'tiktok' ? '🎵' : p.platform === 'linkedin' ? '💼' : p.platform === 'instagram' ? '📷' : p.platform === 'x' ? '𝕏' : p.platform === 'reddit' ? '🤖' : '🌐'} {p.page_name}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">{p.caption?.slice(0, 60)}...</p>
                 </div>
