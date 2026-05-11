@@ -59,7 +59,7 @@ interface AssetBank {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('nb-NO', {
+  return new Date(iso).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

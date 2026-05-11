@@ -46,12 +46,12 @@ export default function ArticlePage() {
 
   const generateArticles = async () => {
     if (!topic.trim()) {
-      setError('Vennligst skriv inn et tema')
+      setError('Please enter a topic')
       return
     }
 
     if (selectedPlatforms.length === 0) {
-      setError('Velg minst en plattform')
+      setError('Select at least one platform')
       return
     }
 
@@ -118,7 +118,7 @@ export default function ArticlePage() {
         setImageLoading(false)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Noe gikk galt')
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
@@ -126,7 +126,7 @@ export default function ArticlePage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    alert('Kopiert til utklippstavle!')
+    alert('Copied to clipboard!')
   }
 
   return (
@@ -135,25 +135,25 @@ export default function ArticlePage() {
         {/* Header */}
         <div className="mb-8">
           <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
-            ← Tilbake til produkt
+            ← Back to product
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Generer artikler</h1>
-          <p className="text-gray-600 mt-2">Lag AI-drevet innhold for sosiale medier og blogg</p>
+          <h1 className="text-3xl font-bold text-gray-900">Generate articles</h1>
+          <p className="text-gray-600 mt-2">Create AI-powered content for social media and blog</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Form */}
           <div className="md:col-span-1">
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Innstillinger</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
 
               {/* Topic */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tema eller emne</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Topic or subject</label>
                 <textarea
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="F.eks. 'Viktigheten av bærekraftig forretningspraksis'"
+                  placeholder="E.g. 'The importance of sustainable business practices'"
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -161,7 +161,7 @@ export default function ArticlePage() {
 
               {/* Platforms */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Plattformer</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Platforms</label>
                 <div className="space-y-2">
                   {platforms.map((platform) => (
                     <label key={platform} className="flex items-center">
@@ -186,7 +186,7 @@ export default function ArticlePage() {
                 disabled={loading}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
-                {loading ? 'Genererer...' : 'Generer artikler'}
+                {loading ? 'Generating...' : 'Generate articles'}
               </button>
             </div>
           </div>
@@ -196,7 +196,7 @@ export default function ArticlePage() {
             {loading && (
               <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="text-gray-600 mt-4">Genererer artikler...</p>
+                <p className="text-gray-600 mt-4">Generating articles...</p>
               </div>
             )}
 
@@ -207,17 +207,17 @@ export default function ArticlePage() {
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <div className="flex flex-col items-center justify-center py-12">
                       <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <p className="text-gray-600 mt-4">Genererer bilde...</p>
+                      <p className="text-gray-600 mt-4">Generating image...</p>
                     </div>
                   </div>
                 )}
 
                 {imageUrl && !imageLoading && (
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Kampanjebilde</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Campaign image</h3>
                     <img
                       src={imageUrl}
-                      alt="Kampanjebilde"
+                      alt="Campaign image"
                       className="w-full rounded-lg border border-gray-200"
                       onError={(e) => {
                         e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Image+Not+Available'
@@ -226,7 +226,7 @@ export default function ArticlePage() {
                   </div>
                 )}
 
-                <h2 className="text-lg font-semibold text-gray-900">Genererte artikler</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Generated articles</h2>
                 {articles.map((article) => (
                   <div key={article.id} className="bg-white rounded-lg border border-gray-200 p-6">
                     {/* Platform Badge */}
@@ -251,7 +251,7 @@ export default function ArticlePage() {
                       onClick={() => copyToClipboard(article.content)}
                       className="text-sm text-blue-600 hover:text-blue-700 font-medium mb-4"
                     >
-                      📋 Kopier innhold
+                      📋 Copy content
                     </button>
 
                     {/* Image */}
@@ -274,7 +274,7 @@ export default function ArticlePage() {
 
             {!loading && articles.length === 0 && !error && (
               <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                <p className="text-gray-500">Fylg inn et tema og klikk "Generer artikler" for å komme i gang</p>
+                <p className="text-gray-500">Enter a topic and click "Generate articles" to get started</p>
               </div>
             )}
           </div>

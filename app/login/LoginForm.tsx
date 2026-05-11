@@ -43,12 +43,12 @@ export function LoginForm() {
     setLoading(true)
 
     if (!form.email.includes('@')) {
-      setError('Ugyldig e-postadresse')
+      setError('Invalid email address')
       setLoading(false)
       return
     }
     if (!form.password) {
-      setError('Passord er påkrevd')
+      setError('Password is required')
       setLoading(false)
       return
     }
@@ -58,7 +58,7 @@ export function LoginForm() {
       if (signInError) { setError(signInError.message); return }
       if (data.session) router.push('/dashboard')
     } catch (err) {
-      setError('En uventet feil oppstod')
+      setError('An unexpected error occurred')
       console.error(err)
     } finally {
       setLoading(false)
@@ -74,7 +74,7 @@ export function LoginForm() {
             Center<span style={{ color: '#378ADD' }}>Forge</span>
           </span>
         </div>
-        <p className="text-sm text-gray-500">Logg inn på din konto</p>
+        <p className="text-sm text-gray-500">Sign in to your account</p>
       </div>
 
       {message && (
@@ -92,7 +92,7 @@ export function LoginForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            E-post
+            Email
           </label>
           <input
             type="email"
@@ -101,13 +101,13 @@ export function LoginForm() {
             onChange={handleChange}
             disabled={loading}
             className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-            placeholder="du@eksempel.no"
+            placeholder="you@example.com"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Passord
+            Password
           </label>
           <input
             type="password"
@@ -126,14 +126,14 @@ export function LoginForm() {
           className="w-full py-2.5 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
           style={{ backgroundColor: '#185FA5' }}
         >
-          {loading ? 'Logger inn...' : 'Logg inn'}
+          {loading ? 'Signing in...' : 'Sign in'}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-gray-400">
-        Har du ikke konto?{' '}
+        Don't have an account?{' '}
         <Link href="/register" className="font-medium hover:underline" style={{ color: '#185FA5' }}>
-          Registrer deg
+          Sign up
         </Link>
       </p>
     </div>

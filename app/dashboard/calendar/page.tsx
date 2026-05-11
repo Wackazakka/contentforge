@@ -30,8 +30,8 @@ type CalendarEntry = {
   isScheduled: boolean
 }
 
-const PLATFORMS = ['Alle', 'facebook', 'instagram']
-const STATUSES = ['Alle', 'scheduled', 'published', 'failed']
+const PLATFORMS = ['All', 'facebook', 'instagram']
+const STATUSES = ['All', 'scheduled', 'published', 'failed']
 
 const statusColor: Record<string, string> = {
   scheduled: '#185FA5',
@@ -108,8 +108,8 @@ export default function CalendarPage() {
   }
 
   const filtered = entries.filter(e => {
-    if (platformFilter !== 'Alle' && e.platform !== platformFilter) return false
-    if (statusFilter !== 'Alle' && e.status !== statusFilter) return false
+    if (platformFilter !== 'All' && e.platform !== platformFilter) return false
+    if (statusFilter !== 'All' && e.status !== statusFilter) return false
     return true
   })
 
@@ -118,7 +118,7 @@ export default function CalendarPage() {
   const month = currentMonth.getMonth()
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const monthLabel = currentMonth.toLocaleString('nb-NO', { month: 'long', year: 'numeric' })
+  const monthLabel = currentMonth.toLocaleString('en-GB', { month: 'long', year: 'numeric' })
 
   function entriesForDay(day: number) {
     return filtered.filter(e => {
@@ -130,25 +130,25 @@ export default function CalendarPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: '#0C447C' }}>Innholdskalender</h1>
+        <h1 className="text-2xl font-bold" style={{ color: '#0C447C' }}>Content Calendar</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setView('table')}
             className="px-3 py-1.5 rounded-lg text-sm font-medium"
             style={view === 'table' ? { backgroundColor: '#EBF4FF', color: '#185FA5' } : { color: '#6b7280' }}
-          >Tabell</button>
+          >Table</button>
           <button
             onClick={() => setView('calendar')}
             className="px-3 py-1.5 rounded-lg text-sm font-medium"
             style={view === 'calendar' ? { backgroundColor: '#EBF4FF', color: '#185FA5' } : { color: '#6b7280' }}
-          >Kalender</button>
+          >Calendar</button>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <div>
-          <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>Plattform</label>
+          <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>Platform</label>
           <select
             value={platformFilter}
             onChange={e => setPlatformFilter(e.target.value)}
@@ -169,22 +169,22 @@ export default function CalendarPage() {
             {STATUSES.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
-        <div className="text-xs self-end pb-1.5" style={{ color: '#9ca3af' }}>{filtered.length} innlegg</div>
+        <div className="text-xs self-end pb-1.5" style={{ color: '#9ca3af' }}>{filtered.length} posts</div>
       </div>
 
       {loading ? (
-        <p className="text-sm" style={{ color: '#9ca3af' }}>Laster...</p>
+        <p className="text-sm" style={{ color: '#9ca3af' }}>Loading...</p>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border p-10 text-center" style={{ borderColor: '#e5e2d9', backgroundColor: '#ffffff' }}>
-          <p className="text-sm" style={{ color: '#9ca3af' }}>Ingen innlegg funnet</p>
+          <p className="text-sm" style={{ color: '#9ca3af' }}>No posts found</p>
         </div>
       ) : view === 'table' ? (
         <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#e5e2d9', backgroundColor: '#ffffff' }}>
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: '1px solid #e5e2d9', backgroundColor: '#fafaf8' }}>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Dato</th>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Plattform</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Date</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Platform</th>
                 <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Type</th>
                 <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Status</th>
                 <th className="px-4 py-3" />
@@ -194,7 +194,7 @@ export default function CalendarPage() {
               {filtered.map((entry, i) => (
                 <tr key={entry.id} style={{ borderTop: i > 0 ? '1px solid #f0ede6' : undefined }}>
                   <td className="px-4 py-3" style={{ color: '#2C2C2A' }}>
-                    {new Date(entry.date).toLocaleString('nb-NO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    {new Date(entry.date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </td>
                   <td className="px-4 py-3 capitalize" style={{ color: '#2C2C2A' }}>
                     {platformLabel[entry.platform] || entry.platform}
@@ -209,7 +209,7 @@ export default function CalendarPage() {
                         className="text-xs px-2 py-1 rounded"
                         style={{ color: '#ef4444', backgroundColor: '#fef2f2' }}
                       >
-                        {deleting === entry.id ? '...' : 'Slett'}
+                        {deleting === entry.id ? '...' : 'Delete'}
                       </button>
                     )}
                   </td>
@@ -227,7 +227,7 @@ export default function CalendarPage() {
             <button onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} className="text-lg px-2" style={{ color: '#6b7280' }}>›</button>
           </div>
           <div className="grid grid-cols-7">
-            {['Man','Tir','Ons','Tor','Fre','Lør','Søn'].map(d => (
+            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
               <div key={d} className="text-center text-xs font-medium py-2" style={{ color: '#9ca3af', borderBottom: '1px solid #f0ede6' }}>{d}</div>
             ))}
             {Array.from({ length: (firstDay === 0 ? 6 : firstDay - 1) }).map((_, i) => (
@@ -250,7 +250,7 @@ export default function CalendarPage() {
                     </div>
                   ))}
                   {dayEntries.length > 3 && (
-                    <div className="text-xs" style={{ color: '#9ca3af' }}>+{dayEntries.length - 3} til</div>
+                    <div className="text-xs" style={{ color: '#9ca3af' }}>+{dayEntries.length - 3} more</div>
                   )}
                 </div>
               )

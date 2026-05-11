@@ -29,7 +29,7 @@ export default function Home() {
           </span>
         </div>
         <Link href="/login" className="text-sm font-medium transition-colors" style={{ color: '#185FA5' }}>
-          Logg inn →
+          Log in →
         </Link>
       </nav>
 
@@ -46,13 +46,13 @@ export default function Home() {
           className="text-3xl sm:text-5xl font-extrabold tracking-tight max-w-2xl leading-tight mb-6"
           style={{ color: '#0C447C' }}
         >
-          Profesjonelt annonsemateriell på{' '}
-          <span style={{ color: '#185FA5' }}>sekunder</span>
+          Professional ad content in{' '}
+          <span style={{ color: '#185FA5' }}>seconds</span>
         </h1>
 
         <p className="text-base sm:text-lg max-w-xl mb-10" style={{ color: '#6b7280' }}>
-          Gi en brief — få ferdige videoannonser og artikler i alle social
-          media-formater. Ingen designkompetanse nødvendig.
+          Give a brief — get finished video ads and articles in all social
+          media formats. No design skills required.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 items-center">
@@ -63,19 +63,19 @@ export default function Home() {
             onMouseEnter={(e: any) => (e.currentTarget.style.backgroundColor = '#0C447C')}
             onMouseLeave={(e: any) => (e.currentTarget.style.backgroundColor = '#185FA5')}
           >
-            Kom i gang
+            Get started
           </Link>
           <a
             href="#features"
             className="rounded-full border font-medium px-8 py-3 text-base transition-colors"
             style={{ borderColor: '#d1cec7', color: '#2C2C2A' }}
           >
-            Se funksjoner
+            See features
           </a>
         </div>
 
         <p className="mt-12 text-xs uppercase tracking-widest" style={{ color: '#9ca3af' }}>
-          Tjenester som bruker CenterForge
+          Services using CenterForge
         </p>
         <div className="mt-4 flex gap-6 items-center font-semibold text-sm" style={{ color: '#6b7280' }}>
           <span>Reforhandle</span>
@@ -88,24 +88,24 @@ export default function Home() {
       <section id="features" className="border-t py-16 sm:py-20 px-4 sm:px-6 bg-white" style={{ borderColor: '#e5e2d9' }}>
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-12" style={{ color: '#2C2C2A' }}>
-            Alt du trenger for innholdsproduksjon
+            Everything you need for content production
           </h2>
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               {
                 icon: '🎬',
-                title: 'Video-annonser',
-                desc: 'DALL-E 3 bilder + ffmpeg Ken Burns animasjoner. Produserer 16:9, 9:16 og 1:1.',
+                title: 'Video ads',
+                desc: 'DALL-E 3 images + ffmpeg Ken Burns animations. Produces 16:9, 9:16 and 1:1.',
               },
               {
                 icon: '📝',
-                title: 'Artikler & copy',
-                desc: 'AI-generert tekst tilpasset tone og målgruppe. Klar til publisering.',
+                title: 'Articles & copy',
+                desc: 'AI-generated text tailored to tone and audience. Ready to publish.',
               },
               {
                 icon: '✅',
-                title: 'Godkjenningsflyt',
-                desc: 'Innebygd Paperclip-workflow. Gjennomgå og godkjenn innhold før publisering.',
+                title: 'Approval workflow',
+                desc: 'Built-in review workflow. Review and approve content before publishing.',
               },
             ].map((f) => (
               <div

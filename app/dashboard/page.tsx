@@ -10,7 +10,7 @@ import { ProductModal } from "@/components/ProductModal"
 import { DEMO_CAMPAIGNS } from "@/lib/campaigns"
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("nb-NO", {
+  return new Date(iso).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -66,7 +66,7 @@ export default function DashboardPage() {
   }
 
   const handleDeleteProduct = async (productId: string) => {
-    if (confirm('Er du sikker på at du vil slette dette produktet?')) {
+    if (confirm('Are you sure you want to delete this product?')) {
       await deleteProduct(productId)
     }
   }
@@ -74,7 +74,7 @@ export default function DashboardPage() {
   if (loadingOrg) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="text-gray-500">Laster...</div>
+        <div className="text-gray-500">Loading...</div>
       </div>
     )
   }
@@ -84,7 +84,7 @@ export default function DashboardPage() {
       {organizationName && (
         <div className="mb-6 p-4 rounded-xl border" style={{ backgroundColor: '#EBF4FF', borderColor: '#378ADD' }}>
           <p className="text-sm font-medium" style={{ color: '#185FA5' }}>
-            {organizationName} · {products.length} produkt{products.length !== 1 ? 'er' : ''}
+            {organizationName} · {products.length} product{products.length !== 1 ? 's' : ''}
           </p>
         </div>
       )}
@@ -92,27 +92,27 @@ export default function DashboardPage() {
       {/* Products */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Dine produkter</h2>
+          <h2 className="text-lg font-bold text-gray-900">Your products</h2>
           <button
             onClick={() => setShowProductModal(true)}
             className="rounded-lg text-white text-sm font-semibold px-3 py-2 transition-colors"
             style={{ backgroundColor: '#185FA5' }}
           >
-            + Nytt produkt
+            + New product
           </button>
         </div>
 
         {productsLoading ? (
-          <div className="text-center text-gray-500 py-8">Laster produkter...</div>
+          <div className="text-center text-gray-500 py-8">Loading products...</div>
         ) : products.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-            <p className="text-gray-500 mb-4">Ingen produkter opprettet ennå</p>
+            <p className="text-gray-500 mb-4">No products created yet</p>
             <button
               onClick={() => setShowProductModal(true)}
               className="rounded-lg text-white text-sm font-semibold px-4 py-2 transition-colors"
               style={{ backgroundColor: '#185FA5' }}
             >
-              Opprett første produkt
+              Create first product
             </button>
           </div>
         ) : (
@@ -142,7 +142,7 @@ export default function DashboardPage() {
                 {product.description && (
                   <p className="text-sm text-gray-500 mb-3 line-clamp-2">{product.description}</p>
                 )}
-                <p className="text-xs text-gray-400">Opprettet {formatDate(product.created_at)}</p>
+                <p className="text-xs text-gray-400">Created {formatDate(product.created_at)}</p>
               </Link>
             ))}
           </div>
@@ -153,12 +153,12 @@ export default function DashboardPage() {
       {campaigns.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900">Kampanjer</h2>
+            <h2 className="text-lg font-bold text-gray-900">Campaigns</h2>
             <Link
               href="/dashboard/new"
               className="rounded-lg bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold px-3 py-2 transition-colors"
             >
-              + Ny kampanje
+              + New campaign
             </Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                 <h3 className="font-semibold text-gray-900 mb-2">{campaign.name}</h3>
                 <p className="text-sm text-gray-500 mb-3 line-clamp-2">{campaign.bodyCopy}</p>
                 <Link href={`/dashboard/${campaign.id}`} className="text-sm font-medium" style={{ color: '#185FA5' }}>
-                  Åpne →
+                  Open →
                 </Link>
               </div>
             ))}

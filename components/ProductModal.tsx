@@ -20,7 +20,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
     setError(null)
 
     if (!name.trim()) {
-      setError('Produktnavn er påkrevd')
+      setError('Product name is required')
       return
     }
 
@@ -29,10 +29,10 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
       // Reset form
       setName('')
       setDescription('')
-      setCategory('produkt')
+      setCategory('product')
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Feil ved opprettelse av produkt')
+      setError(err instanceof Error ? err.message : 'Error creating product')
     }
   }
 
@@ -41,7 +41,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Nytt produkt</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">New product</h2>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -52,7 +52,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Produktnavn *
+              Product name *
             </label>
             <input
               type="text"
@@ -60,13 +60,13 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               onChange={(e) => setName(e.target.value)}
               disabled={isLoading}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              placeholder="f.eks. iPhone 15 Pro"
+              placeholder="e.g. iPhone 15 Pro"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Beskrivelse
+              Description
             </label>
             <textarea
               value={description}
@@ -74,13 +74,13 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               disabled={isLoading}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               rows={3}
-              placeholder="Beskrivelse av produktet"
+              placeholder="Description of the product"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Type
+              Category
             </label>
             <select
               value={category}
@@ -88,9 +88,9 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               disabled={isLoading}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             >
-              <option value="produkt">Produkt</option>
-              <option value="merkevare">Merkevare</option>
-              <option value="tjeneste">Tjeneste</option>
+              <option value="product">Product</option>
+              <option value="brand">Brand</option>
+              <option value="service">Service</option>
             </select>
           </div>
 
@@ -101,14 +101,14 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               disabled={isLoading}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50"
             >
-              Avbryt
+              Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
             >
-              {isLoading ? 'Oppretter...' : 'Opprett produkt'}
+              {isLoading ? 'Creating...' : 'Create product'}
             </button>
           </div>
         </form>

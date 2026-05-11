@@ -183,12 +183,12 @@ function PublishPage() {
 
   const handleSchedule = async () => {
     if (!selectedContent || selectedPages.length === 0 || !caption || !scheduledAt) {
-      setMessage('❌ Velg innhold, sider, skriv en bildeskrift og velg tidspunkt')
+      setMessage('❌ Select content, pages, write a caption and choose a time')
       return
     }
     const publishTime = new Date(scheduledAt)
     if (publishTime <= new Date()) {
-      setMessage('❌ Tidspunktet må være i fremtiden')
+      setMessage('❌ The scheduled time must be in the future')
       return
     }
 
@@ -221,7 +221,7 @@ function PublishPage() {
       }
 
       setMessage(
-        `✅ Planlagt til ${publishTime.toLocaleString('nb-NO', {
+        `✅ Planlagt til ${publishTime.toLocaleString('en-GB', {
           day: 'numeric',
           month: 'long',
           hour: '2-digit',
@@ -240,7 +240,7 @@ function PublishPage() {
 
   const handlePublish = async () => {
     if (!selectedContent || selectedPages.length === 0 || !caption) {
-      setMessage('❌ Velg innhold, sider og skriv en bildeskrift')
+      setMessage('❌ Select content, pages and write a caption')
       return
     }
 
@@ -351,7 +351,7 @@ function PublishPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">Publiser innhold</h1>
+      <h1 className="text-2xl font-bold mb-6">Publish content</h1>
 
       {message && (
         <div className={`mb-4 p-4 rounded-lg border text-sm ${
@@ -367,7 +367,7 @@ function PublishPage() {
 
       {/* ── Steg 1: Innhold ── */}
       <div className="bg-white rounded-xl border p-6 mb-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Steg 1 — Velg innhold</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Step 1 — Select content</p>
 
         <div className="flex gap-2 mb-5">
           <button
@@ -384,19 +384,19 @@ function PublishPage() {
               contentType === 'article' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            📄 Artikkel
+            📄 Article
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Produkt</label>
+            <label className="block text-sm font-medium mb-1">Product</label>
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
               className="w-full border rounded-lg px-3 py-2"
             >
-              <option value="">Velg produkt...</option>
+              <option value="">Select product...</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -405,7 +405,7 @@ function PublishPage() {
 
           {contentType === 'video' && videos.length > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-2">Velg video</label>
+              <label className="block text-sm font-medium mb-2">Select video</label>
               <div className="grid grid-cols-2 gap-3">
                 {videos.map((v) => {
                   const videoUrl = v.job_id
@@ -426,14 +426,14 @@ function PublishPage() {
                         <div className="w-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl" style={{ height: '100px' }}>🎬</div>
                       )}
                       {isSelected && (
-                        <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">✔ Valgt</div>
+                        <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">✔ Selected</div>
                       )}
                       <div className="p-2">
                         <p className="text-xs font-medium truncate text-gray-800">
                           {v.campaign_name || v.title || v.segments?.[0]?.text?.slice(0, 40) || 'Uten navn'}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {new Date(v.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })}
+                          {new Date(v.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </p>
                       </div>
                     </div>
@@ -445,7 +445,7 @@ function PublishPage() {
 
           {contentType === 'article' && articles.length > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-1">Velg artikkel</label>
+              <label className="block text-sm font-medium mb-1">Select article</label>
               <div className="space-y-2">
                 {articles.map((a) => (
                   <div
@@ -461,7 +461,7 @@ function PublishPage() {
                         {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
                       </span>
                       <span className="text-xs text-gray-400">
-                        {new Date(a.created_at).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' })}
+                        {new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
                   </div>
@@ -475,7 +475,7 @@ function PublishPage() {
       {/* ── Steg 2: Caption + Tidspunkt ── alltid synlig når innhold er valgt */}
       {selectedContent && (
         <div className="bg-white rounded-xl border p-6 mb-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Steg 2 — Caption og tidspunkt</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Step 2 — Caption and timing</p>
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Caption</label>
@@ -483,13 +483,13 @@ function PublishPage() {
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               rows={4}
-              placeholder="Skriv en caption til innlegget..."
+              placeholder="Write a caption for the post..."
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Når skal det publiseres?</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">When should it be published?</label>
             <div className="flex gap-2 mb-3">
               <button
                 onClick={() => setPublishMode('now')}
@@ -497,7 +497,7 @@ function PublishPage() {
                   publishMode === 'now' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                🚀 Publiser nå
+                🚀 Publish now
               </button>
               <button
                 onClick={() => setPublishMode('schedule')}
@@ -505,7 +505,7 @@ function PublishPage() {
                   publishMode === 'schedule' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                🗓 Planlegg tidspunkt
+                🗓 Schedule
               </button>
             </div>
             {publishMode === 'schedule' && (
@@ -524,7 +524,7 @@ function PublishPage() {
       {/* ── Steg 3: Kanal ── */}
       {selectedContent && connections.length > 0 && (
         <div className="bg-white rounded-xl border p-6 mb-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Steg 3 — Velg kanal</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Step 3 — Select channel</p>
 
           <div className="flex flex-wrap gap-2 mb-4">
             <button
@@ -584,6 +584,7 @@ function PublishPage() {
           {publishPlatform === 'reddit' && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Subreddit</label>
+
               <div className="flex items-center border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
                 <span className="px-3 py-2 bg-gray-50 text-gray-500 border-r text-sm">r/</span>
                 <input
@@ -626,7 +627,7 @@ function PublishPage() {
               disabled={publishing}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
             >
-              {publishing ? '⏳ Publiserer...' : '🚀 Publiser nå'}
+              {publishing ? '⏳ Publishing...' : '🚀 Publish now'}
             </button>
           ) : (
             <button
@@ -634,7 +635,7 @@ function PublishPage() {
               disabled={scheduling || !scheduledAt}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
             >
-              {scheduling ? '⏳ Planlegger...' : `🗓 Planlegg${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}`}
+              {scheduling ? '⏳ Scheduling...' : `🗓 Schedule${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}`}
             </button>
           )}
         </div>
@@ -642,30 +643,30 @@ function PublishPage() {
 
       {/* ── Koblede kontoer ── */}
       <div className="bg-white rounded-xl border p-6 mb-6">
-        <h2 className="font-semibold mb-3">Koblede kontoer</h2>
+        <h2 className="font-semibold mb-3">Connected accounts</h2>
         {connections.length === 0 ? (
           <div>
-            <p className="text-gray-500 mb-4 text-sm">Ingen kontoer koblet ennå.</p>
+            <p className="text-gray-500 mb-4 text-sm">No accounts connected yet.</p>
             {userId ? (
               <div className="flex flex-wrap gap-2">
                 <a href={`/api/auth/facebook?userId=${userId}`} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
-                  Koble til Facebook/Instagram
+                  Connect Facebook/Instagram
                 </a>
                 <a href={`/api/auth/tiktok?userId=${userId}`} className="bg-black text-white px-4 py-2 rounded-lg text-sm">
-                  Koble til TikTok
+                  Connect TikTok
                 </a>
                 <a href={`/api/auth/linkedin?userId=${userId}`} className="bg-[#0077B5] text-white px-4 py-2 rounded-lg text-sm">
-                  Koble til LinkedIn
+                  Connect LinkedIn
                 </a>
                 <a href={`/api/auth/x?userId=${userId}`} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm">
-                  Koble til X
+                  Connect X
                 </a>
                 <a href={`/api/auth/reddit?userId=${userId}`} className="bg-[#FF4500] text-white px-4 py-2 rounded-lg text-sm">
-                  Koble til Reddit
+                  Connect Reddit
                 </a>
               </div>
             ) : (
-              <p className="text-gray-400 text-sm">Laster bruker...</p>
+              <p className="text-gray-400 text-sm">Loading user...</p>
             )}
           </div>
         ) : (
@@ -694,6 +695,7 @@ function PublishPage() {
                 <a href={`/api/auth/reddit?userId=${userId}`} className="text-sm text-[#FF4500] hover:underline">
                   + Reddit
                 </a>
+
               </div>
             )}
           </div>
@@ -703,7 +705,7 @@ function PublishPage() {
       {/* Publiseringshistorikk */}
       {publications.length > 0 && (
         <div className="bg-white rounded-xl border p-6 mt-6">
-          <h2 className="font-semibold mb-4">Publiseringshistorikk</h2>
+          <h2 className="font-semibold mb-4">Publishing history</h2>
           <div className="space-y-3">
             {publications.map((p) => (
               <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -714,9 +716,9 @@ function PublishPage() {
                   <p className="text-xs text-gray-400 mt-1">{p.caption?.slice(0, 60)}...</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs text-green-600 font-medium">✅ Publisert</span>
+                  <span className="text-xs text-green-600 font-medium">✅ Published</span>
                   <p className="text-xs text-gray-400 mt-1">
-                    {new Date(p.created_at).toLocaleDateString('nb-NO', {
+                    {new Date(p.created_at).toLocaleDateString('en-GB', {
                       day: 'numeric',
                       month: 'short',
                       hour: '2-digit',

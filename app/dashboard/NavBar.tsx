@@ -20,9 +20,9 @@ function HexagonIcon() {
 }
 
 const navLinks = [
-  { href: '/dashboard', label: 'Oversikt' },
-  { href: '/dashboard/publish', label: 'Publiser' },
-  { href: '/dashboard/calendar', label: 'Kalender' },
+  { href: '/dashboard', label: 'Overview' },
+  { href: '/dashboard/publish', label: 'Publish' },
+  { href: '/dashboard/calendar', label: 'Calendar' },
 ]
 
 export default function NavBar() {
@@ -77,7 +77,7 @@ export default function NavBar() {
               href="/dashboard/billing"
               className="ml-1 sm:ml-2 px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold border"
               style={{ color: '#185FA5', borderColor: '#378ADD', backgroundColor: '#EBF4FF' }}
-              title="Kreditter gjenstående"
+              title="Credits remaining"
             >
               {credits} kr
             </Link>
@@ -87,7 +87,7 @@ export default function NavBar() {
             className="ml-1 sm:ml-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors"
             style={{ color: '#9ca3af' }}
           >
-            Logg ut
+            Log out
           </button>
         </div>
       </div>
