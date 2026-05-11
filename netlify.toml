@@ -14,5 +14,6 @@
   R2_BUCKET_NAME = "contentforge-assets"
   NEXT_PUBLIC_R2_URL = "https://pub-c2fde28004c6c81dfe77184575d12d96.r2.dev"
   CRON_SECRET = "cf-cron-2026"
+  ADMIN_EMAILS = "kilevold@online.no"
   TIKTOK_CLIENT_KEY = "awt6ad34dk4meat8"
   TIKTOK_CLIENT_SECRET = "JoQ9CwAtA4t6PviqdRylJQ0CtJHaCnAC"
