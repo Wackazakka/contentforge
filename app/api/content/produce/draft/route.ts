@@ -62,10 +62,9 @@ For each segment, provide:
 2. Voiceover (what to say, max 300 chars)
 3. Image prompt (descriptive, cinematic, for DALL-E 3 — IMPORTANT: add "no text, no words, no letters" at the end)
 
-Write everything in Norwegian.
+Write in the same language as the product name, headline and body copy above. Match the language naturally.
 IMPORTANT PUNCTUATION:
 - End each line of text with proper punctuation (period, exclamation mark, or question mark)
-- Use Norwegian punctuation throughout
 - Ensure every sentence is complete and properly punctuated
 
 Return JSON with exactly this structure:

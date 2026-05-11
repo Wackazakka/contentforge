@@ -37,14 +37,14 @@ async function generateArticleContent(topic: string, platform: string): Promise<
 
   const prompt = `Generate a ${platform} article about: "${topic}"
 
-IMPORTANT: Write the entire article in Norwegian (Norsk). All text must be in Norwegian.
+Write in the same language as the topic above. If the topic is in English, write in English. If it is in Norwegian, write in Norwegian. Match the language naturally.
 
 ${platformGuides[platform] || 'Write engaging content'}
 
 Return JSON with:
 {
-  "title": "Article title in Norwegian",
-  "content": "Full article content in Norwegian, optimized for ${platform}"
+  "title": "Article title",
+  "content": "Full article content optimized for ${platform}"
 }`
 
   console.log(`[generateArticleContent] ${platform}: API key present: ${!!ANTHROPIC_API_KEY}`)
