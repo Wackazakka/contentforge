@@ -1,5 +1,5 @@
 # CenterForge Platform Status Document
-*Oppdatert: 2026-05-08 06:59 UTC*
+*Oppdatert: 2026-05-11 09:59 UTC*
 *(Tidligere kjent som ContentForge v2 — rebranded to CenterForge)*
 
 ## Stack
@@ -236,7 +236,95 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
     3. Connected IG account to Facebook page in settings
     4. API upgrade: v19.0 → v21.0 for improved Instagram support
 
-## 🆕 Session 2026-05-08: Instagram Fix, Scheduled Publishing, Calendar & Rebranding
+## 🆕 Session 2026-05-10 & 2026-05-11: Multi-Platform Publishing Expansion
+
+### LinkedIn Publishing ✅
+**OAuth 2.0 Implementation:**
+- ✅ `/api/auth/linkedin` — Initiate OAuth flow
+- ✅ `/api/auth/linkedin/callback` — Handle callback with authorization code
+- ✅ Stores LinkedIn profile data in `social_connections` table
+
+**Publishing Features:**
+- ✅ `/api/publish/linkedin` — LinkedIn UGC Posts API integration
+- ✅ Supports articles (title prepended to content)
+- ✅ Supports video posts
+- ✅ Personal profile verified (Lars Kilevold)
+- ⏳ Business pages require `w_organization_social` scope (available for later request)
+
+**Configuration:**
+- LinkedIn App created under "Abrakadabra Communication AS"
+- Client ID: `78u5it1ziaawzk`
+- Env vars in Netlify: `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`
+- Redirect URI: `https://centerforge-610.netlify.app/api/auth/linkedin/callback`
+
+### X (Twitter) Publishing ✅
+**OAuth 2.0 with PKCE:**
+- ✅ `/api/auth/x` — OAuth initiate with code challenge
+- ✅ `/api/auth/x/callback` — OAuth callback with PKCE verification
+- ✅ Secure authentication using Proof Key for Code Exchange
+
+**Publishing Features:**
+- ✅ `/api/publish/x` — Post API integration
+- ✅ 280 character limit with automatic ellipsis truncation
+- ✅ Supports articles (truncated) and video captions
+
+**Configuration:**
+- X Developer App created with OAuth 2.0 credentials
+- Client ID & Secret configured in Netlify: `X_CLIENT_ID`, `X_CLIENT_SECRET`
+- Redirect URI registered in X Developer Console
+
+### TikTok Publishing ⏳
+**OAuth 2.0 Implementation (Awaiting Approval):**
+- ✅ `/api/auth/tiktok` — OAuth flow implemented
+- ✅ `/api/auth/tiktok/callback` — Callback handler ready
+- ✅ `/api/publish/tiktok` — Content Posting API with PULL_FROM_URL
+
+**Publishing Workflow:**
+- ✅ Polls publish status (max 20 attempts × 5 seconds)
+- ✅ Supports video upload to TikTok
+- ✅ ToS & Privacy Policy updated with TikTok clauses
+- ✅ Domain verification file added (typo fixed: l vs I)
+
+**Status:** ⏳ Awaiting TikTok approval — all backend ready, no issues on our side
+
+### Reddit Publishing ⏳
+**OAuth 2.0 Implementation:**
+- ✅ `/api/auth/reddit` — OAuth flow with state parameter
+- ✅ `/api/auth/reddit/callback` — Authorization handling
+- ✅ `/api/publish/reddit` — Publish to subreddit as self-post
+
+**Publishing Features:**
+- ✅ Text/self-post submission to selected subreddit
+- ✅ Subreddit input field in publishing dashboard
+- ✅ Full OAuth integration with token storage
+
+**Status:** ⏳ Blocked — Reddit account too new to create developer app. Waiting for account maturation.
+
+### Publish Dashboard Updates ✅
+**Platform Selection:**
+- ✅ LinkedIn button (with 💼 emoji)
+- ✅ X button (with 𝕏 emoji)
+- ✅ Reddit button (with 🤖 emoji)
+- ✅ TikTok button (with 🎵 emoji)
+- ✅ Plus existing: Facebook 📘, Instagram 📷
+
+**Conditional UI:**
+- ✅ Subreddit input shows only when Reddit selected
+- ✅ Platform filtering based on content type (article/video)
+- ✅ Publications history shows platform emoji for each post
+
+### Session Summary (May 10-11)
+**Implementations:** 5 new platforms (TikTok + LinkedIn + X + Reddit + improved Instagram)
+**Status:** 3 live ✅ (LinkedIn, X, Instagram), 1 pending approval ⏳ (TikTok), 1 blocked ⏳ (Reddit)
+**OAuth Methods:** OAuth 2.0 with PKCE (X), standard OAuth 2.0 (LinkedIn, Reddit, TikTok)
+**Publishing APIs:** LinkedIn UGC, X Tweets, Reddit Self-Posts, TikTok Content Posting
+**Dashboard:** Multi-platform selector, conditional UI, unified publications history
+
+---
+
+## 📝 Previous Sessions
+
+### Session 2026-05-08: Instagram Fix, Scheduled Publishing, Calendar & Rebranding
 
 ### Instagram Publishing — FINAL FIX ✅
 **Root Cause Identified & Resolved:**
@@ -312,14 +400,28 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 
 ## 📊 Platform Statistics
 
+### Supported Social Platforms
+| Platform | Status | Type | Features |
+|----------|--------|------|----------|
+| Facebook | ✅ Live | OAuth 2.0 | Pages, video + caption |
+| Instagram | ✅ Live | OAuth 2.0 | Reels with polling |
+| LinkedIn | ✅ Live | OAuth 2.0 | Articles, video, personal profile |
+| X (Twitter) | ✅ Live | OAuth 2.0 + PKCE | Tweets (280 chars), articles (truncated) |
+| TikTok | ⏳ Pending | OAuth 2.0 | Video with polling, awaiting approval |
+| Reddit | ⏳ Blocked | OAuth 2.0 | Self-posts to subreddit, account too new |
+
 ### Databases
-- **Supabase:** 12+ tables (users, products, articles, videos, publications, scheduled_publications, etc.)
+- **Supabase:** 13+ tables (users, products, articles, videos, publications, scheduled_publications, social_connections, etc.)
 - **R2:** Image, video, and voiceover storage (pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev)
-- **Droplet:** Job queue (139.59.212.218:3002) with background processing
+- **Droplet:** Job queue (139.59.212.218:3002) with background processing + cron
 
 ### API Integrations
 - **Facebook Graph API** v21.0 (OAuth, page management, publishing)
 - **Instagram Business API** (Reels publishing, media containers, polling)
+- **LinkedIn API** (UGC Posts, personal profile publishing)
+- **X (Twitter) API** (Post API with OAuth 2.0 PKCE)
+- **TikTok API** (Content Posting API with PULL_FROM_URL)
+- **Reddit API** (Self-post submission)
 - **OpenAI** (Article generation, image generation with DALL-E 3)
 - **ElevenLabs** (Norwegian voiceover with eleven_turbo_v2_5)
 - **Cloudflare** (R2 storage, CDN)
@@ -329,23 +431,33 @@ R2_PUBLIC_URL=https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev
 - **Backend:** Netlify Functions + Droplet cron
 - **Database:** Supabase (jvnavubholyvihvytqkn)
 
-## 📋 Session 2026-05-07 & 2026-05-08 Commits
+## 📋 Recent Commits (Sessions 2026-05-07 through 2026-05-11)
 
-| Commit | Message | Status |
-|--------|---------|--------|
-| `d8e7d09` | debug: log raw token exchange response body for inspection | ✅ |
-| `f55b25f` | debug: add detailed logging for user access token handling in Facebook OAuth callback | ✅ |
-| `85b0f76` | debug: add detailed logging for Instagram media container creation request | ✅ |
-| `655f71b` | fix: upgrade Facebook Graph API from v19.0 to v21.0 for Instagram content publishing support | ✅ |
-| `096c80a` | fix: store and use user access token for Instagram content publishing | ✅ |
-| `60cc8c9` | feat: add hardcoded Instagram Business Account ID fallback for SinglePicker App | ✅ |
-| `9a27458` | fix: update SinglePicker App page_id from 61589478086870 to 1104756536056684 | ✅ |
-| `6373f8f` | feat: add SinglePicker App hardcoded fallback to OAuth callback | ✅ |
-| `084d841` | fix: set draft_id to null for articles and add error handling for publications insert | ✅ |
-| `397fb34` | docs: update status with article publishing and image generation features | ✅ |
-| `00c3652` | feat: add privacy policy page | ✅ |
-| `cd0bd54` | fix: add instruction to avoid text and typography in DALL-E image generation | ✅ |
-| `5e21482` | feat: pass articleIds to generate-image and update articles with image URLs directly in API | ✅ |
+### Multi-Platform Publishing (May 10-11)
+| Commit | Message |
+|--------|---------|
+| `d98b2ea` | feat: add LinkedIn publishing integration |
+| `da95ae5` | feat: add X (Twitter) publishing integration |
+| `8921fc2` | feat: add Reddit publishing integration |
+
+### Instagram/Article/Image Generation (May 7-8)
+| Commit | Message |
+|--------|---------|
+| `a5dac17` | docs: major status update - Instagram fix complete, scheduled publishing, calendar, rebranding to CenterForge |
+| `3835009` | docs: update status with Instagram Reels publishing fix and completion notes |
+| `d8e7d09` | debug: log raw token exchange response body for inspection |
+| `f55b25f` | debug: add detailed logging for user access token handling in Facebook OAuth callback |
+| `85b0f76` | debug: add detailed logging for Instagram media container creation request |
+| `655f71b` | fix: upgrade Facebook Graph API from v19.0 to v21.0 for Instagram content publishing support |
+| `096c80a` | fix: store and use user access token for Instagram content publishing |
+| `60cc8c9` | feat: add hardcoded Instagram Business Account ID fallback for SinglePicker App |
+| `9a27458` | fix: update SinglePicker App page_id from 61589478086870 to 1104756536056684 |
+| `6373f8f` | feat: add SinglePicker App hardcoded fallback to OAuth callback |
+| `084d841` | fix: set draft_id to null for articles and add error handling for publications insert |
+| `397fb34` | docs: update status with article publishing and image generation features |
+| `00c3652` | feat: add privacy policy page |
+| `cd0bd54` | fix: add instruction to avoid text and typography in DALL-E image generation |
+| `5e21482` | feat: pass articleIds to generate-image and update articles with image URLs directly in API |
 
 ### Previous Session Commits (2026-05-06)
 | Commit | Message |
