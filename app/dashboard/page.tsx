@@ -105,15 +105,42 @@ export default function DashboardPage() {
         {productsLoading ? (
           <div className="text-center text-gray-500 py-8">Loading products...</div>
         ) : products.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-            <p className="text-gray-500 mb-4">No products created yet</p>
-            <button
-              onClick={() => setShowProductModal(true)}
-              className="rounded-lg text-white text-sm font-semibold px-4 py-2 transition-colors"
-              style={{ backgroundColor: '#185FA5' }}
-            >
-              Create first product
-            </button>
+          <div className="bg-white rounded-xl border border-gray-200 p-8">
+            <div className="max-w-sm mx-auto text-center">
+              <div className="text-4xl mb-4">🚀</div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Welcome to CenterForge!</h3>
+              <p className="text-sm text-gray-500 mb-8">
+                Create your first product to start generating AI-powered articles and videos.
+              </p>
+              <button
+                onClick={() => setShowProductModal(true)}
+                className="rounded-lg text-white text-sm font-semibold px-5 py-2.5 transition-colors mb-8"
+                style={{ backgroundColor: '#185FA5' }}
+              >
+                + Create first product
+              </button>
+              <div className="text-left space-y-4 border-t border-gray-100 pt-6">
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">How it works</p>
+                {[
+                  { step: '1', title: 'Add a product', desc: 'Describe what you sell — name, category, and a short description.' },
+                  { step: '2', title: 'Generate content', desc: 'Create articles and short-form videos with one click using AI.' },
+                  { step: '3', title: 'Connect & publish', desc: 'Link your social media accounts and publish directly from CenterForge.' },
+                ].map(({ step, title, desc }) => (
+                  <div key={step} className="flex gap-3">
+                    <div
+                      className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5"
+                      style={{ backgroundColor: '#185FA5' }}
+                    >
+                      {step}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">{title}</p>
+                      <p className="text-xs text-gray-500">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
