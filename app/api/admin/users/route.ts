@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase())
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'kilevold@online.no').split(',').map((e) => e.trim().toLowerCase())
 
 function makeSupabase() {
   return createClient(
