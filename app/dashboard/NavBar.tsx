@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
+import { useEffect, useState } from 'react'
 
 function HexagonIcon() {
   return (
@@ -27,7 +28,17 @@ const navLinks = [
 export default function NavBar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { signOut } = useAuth()
+  const { signOut, session } = useAuth()
+  const [credits, setCredits] = useState<number | null>(null)
+
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId) return
+    fetch(`/api/credits?userId=${userId}`)
+      .then((r) => r.json())
+      .then((d) => setCredits(d.balance ?? null))
+      .catch(() => {})
+  }, [session])
 
   const handleLogout = async () => {
     await signOut()
@@ -61,6 +72,16 @@ export default function NavBar() {
               </Link>
             )
           })}
+          {credits !== null && (
+            <Link
+              href="/dashboard/billing"
+              className="ml-1 sm:ml-2 px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold border"
+              style={{ color: '#185FA5', borderColor: '#378ADD', backgroundColor: '#EBF4FF' }}
+              title="Kreditter gjenstående"
+            >
+              {credits} kr
+            </Link>
+          )}
           <button
             onClick={handleLogout}
             className="ml-1 sm:ml-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors"

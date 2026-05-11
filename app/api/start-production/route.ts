@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkAndDeductCredits } from '@/lib/credits'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -14,8 +15,15 @@ function stripEmojis(text: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { draftId } = await request.json()
+    const { draftId, userId } = await request.json()
     if (!draftId) return NextResponse.json({ error: 'Missing draftId' }, { status: 400 })
+
+    if (userId) {
+      const credit = await checkAndDeductCredits(userId, 'video_generation', `Videoproduksjon — draft ${draftId}`)
+      if (!credit.ok) {
+        return NextResponse.json({ error: credit.error }, { status: 402 })
+      }
+    }
 
     console.log('[start-production] Starting production for draft:', draftId)
 
