@@ -14,7 +14,7 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     // Supabase puts the session token in the URL hash after redirect
-    const { data: { subscription } } = getSupabase().auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = getSupabase().auth.onAuthStateChange((event: string) => {
       if (event === 'PASSWORD_RECOVERY') setReady(true)
     })
     return () => subscription.unsubscribe()
