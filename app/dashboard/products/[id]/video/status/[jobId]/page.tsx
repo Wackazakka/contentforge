@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface JobStatus {
@@ -14,6 +14,17 @@ interface JobStatus {
 export default function VideoStatusPage() {
   const { id: productId, jobId } = useParams<{ id: string; jobId: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const formatParam = searchParams?.get('format') || '9:16'
+
+  // Map the chosen video format to a CSS aspect-ratio plus a sensible max width
+  // so portrait, square and landscape videos all fit nicely inside the card.
+  const formatStyle: { aspectRatio: string; maxWidth: string } =
+    formatParam === '16:9'
+      ? { aspectRatio: '16/9', maxWidth: '560px' }
+      : formatParam === '1:1'
+        ? { aspectRatio: '1/1', maxWidth: '360px' }
+        : { aspectRatio: '9/16', maxWidth: '280px' }
   const [job, setJob] = useState<JobStatus | null>(null)
   const [dots, setDots] = useState('')
   const [videoError, setVideoError] = useState<string | null>(null)
@@ -89,8 +100,8 @@ export default function VideoStatusPage() {
         {job?.status === 'done' && job.videoUrl && (
           <div>
             <p className="text-green-600 font-semibold text-lg mb-4">✅ Videoen er klar!</p>
-            {/* Portrait container — forces 9:16 shape before metadata loads */}
-            <div className="mx-auto mb-6 rounded-xl overflow-hidden bg-black" style={{ maxWidth: '280px', aspectRatio: '9/16' }}>
+            {/* Aspect-ratio container — forces correct shape before metadata loads */}
+            <div className="mx-auto mb-6 rounded-xl overflow-hidden bg-black" style={{ maxWidth: formatStyle.maxWidth, aspectRatio: formatStyle.aspectRatio }}>
               <video
                 controls
                 playsInline

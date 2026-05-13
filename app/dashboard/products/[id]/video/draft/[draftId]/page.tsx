@@ -45,6 +45,7 @@ export default function DraftPage() {
   const [voicePreviews, setVoicePreviews] = useState<Record<number, string>>({})
   const [voiceLoading, setVoiceLoading] = useState<Record<number, boolean>>({})
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
+  const formatFromUrl = searchParams?.get('format') || ''
 
 
 
@@ -319,8 +320,10 @@ export default function DraftPage() {
 
       console.log('[startProduction] Production started with jobId:', data.jobId)
 
-      // Redirect to production status page
-      router.push(`/dashboard/products/${productId}/video/status/${data.jobId}`)
+      // Redirect to production status page — forward video format so the
+      // status page can size the player container correctly.
+      const videoFormat = draft.video_format || formatFromUrl || '9:16'
+      router.push(`/dashboard/products/${productId}/video/status/${data.jobId}?format=${encodeURIComponent(videoFormat)}`)
     } catch (err) {
       console.error('[DraftPage] Production error:', err)
       alert('Feil ved start av produksjon')
