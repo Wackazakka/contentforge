@@ -19,9 +19,10 @@ interface GenerateImageRequest {
   topic: string
   productId: string
   articleIds?: string[]
+  imageSize?: '1024x1024' | '1024x1536' | '1536x1024'
 }
 
-async function generateImageBuffer(topic: string): Promise<Buffer> {
+async function generateImageBuffer(topic: string, imageSize: string = '1024x1024'): Promise<Buffer> {
   console.log('[generateImage] Calling gpt-image-1 (low quality) for:  + topic + ')
 
   const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -40,7 +41,7 @@ async function generateImageBuffer(topic: string): Promise<Buffer> {
         'Think magazine cover art or editorial infographic style. ' +
         'No text, letters, words, or typography in the image.',
       n: 1,
-      size: '1024x1024',
+      size: imageSize,
       quality: 'low',
     }),
   })
@@ -94,7 +95,7 @@ async function uploadBufferToR2(imageBuffer: Buffer, fileName: string): Promise<
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateImageRequest = await request.json()
-    const { topic, productId, articleIds } = body
+    const { topic, productId, articleIds, imageSize = '1024x1024' } = body
 
     if (!topic || !productId) {
       return NextResponse.json({ error: 'Missing topic or productId' }, { status: 400 })
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[generateImage] ===== START:  + topic +  =====')
 
-    const imageBuffer = await generateImageBuffer(topic)
+    const imageBuffer = await generateImageBuffer(topic, imageSize)
     const fileName = randomUUID() + '.png'
     const r2Url = await uploadBufferToR2(imageBuffer, fileName)
 

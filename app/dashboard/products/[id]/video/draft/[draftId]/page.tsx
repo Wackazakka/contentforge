@@ -139,7 +139,7 @@ export default function DraftPage() {
         const response = await fetch('/api/content/generate-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic: segment.text, productId }),
+          body: JSON.stringify({ topic: segment.text, productId, imageSize: '1024x1536' }),
         })
         if (!response.ok) {
           console.error(`[DraftPage] Segment ${index}: failed (${response.status})`)
@@ -204,6 +204,7 @@ export default function DraftPage() {
         body: JSON.stringify({
           topic: segment.text,
           productId,
+          imageSize: '1024x1536',
         }),
       })
 
