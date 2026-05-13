@@ -12,7 +12,7 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740fe
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Called from after() so no CDN timeout — high quality is fine
+// maxDuration gives headroom for image generation (~25s med medium quality)
 export const maxDuration = 120
 
 interface GenerateImageRequest {
@@ -22,7 +22,7 @@ interface GenerateImageRequest {
 }
 
 async function generateImageBuffer(topic: string): Promise<Buffer> {
-  console.log('[generateImage] Calling gpt-image-1 (high quality) for:  + topic + ')
+  console.log('[generateImage] Calling gpt-image-2 (medium quality) for:  + topic + ')
 
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
@@ -41,7 +41,7 @@ async function generateImageBuffer(topic: string): Promise<Buffer> {
         'No text, letters, words, or typography in the image.',
       n: 1,
       size: '1024x1024',
-      quality: 'high',
+      quality: 'medium',
     }),
   })
 

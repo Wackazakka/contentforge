@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse, after } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 import { checkAndDeductCredits } from '@/lib/credits'
@@ -8,12 +8,11 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
 
-// Validate UUID format
 const isValidUuid = (str: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
 
-// Article generation only needs Claude time (~5-10s)
-export const maxDuration = 30
+// Claude ~10s + image ~25s in parallel = ~25s total, within Netlify's CDN window
+export const maxDuration = 60
 
 interface GenerateArticleRequest {
   productId: string
@@ -22,7 +21,6 @@ interface GenerateArticleRequest {
   platform: string
 }
 
-// Generate article content using Claude
 async function generateArticleContent(
   topic: string,
   platform: string
@@ -62,8 +60,8 @@ Return JSON with:
   })
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(`Claude API error: ${response.status} ${response.statusText} — ${JSON.stringify(errorData)}`)
+    const err = await response.json().catch(() => ({}))
+    throw new Error(`Claude API error: ${response.status} ${response.statusText} — ${JSON.stringify(err)}`)
   }
 
   const data = await response.json()
@@ -101,11 +99,21 @@ export async function POST(request: NextRequest) {
 
     console.log(`[article-produce] Starting ${platform} article for: "${topic}"`)
 
-    // Step 1: Generate article content with Claude (~5-10s)
-    const { title, content } = await generateArticleContent(topic, platform)
-    console.log(`[article-produce] ✅ Content ready: "${title.substring(0, 60)}..."`)
+    // Generate article text (Claude) + image in parallel
+    const [{ title, content }, imageResult] = await Promise.all([
+      generateArticleContent(topic, platform),
+      fetch(`${SITE_URL}/api/content/generate-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, productId }),
+      })
+        .then(r => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ])
 
-    // Step 2: Save article immediately (no image yet)
+    const imageUrl: string = imageResult?.imageUrl || ''
+    console.log(`[article-produce] ✅ Content: "${title.substring(0, 50)}" | Image: ${imageUrl ? 'OK' : 'none'}`)
+
     const articleId = randomUUID()
     const { error: insertError } = await supabase.from('articles').insert({
       id: articleId,
@@ -114,7 +122,7 @@ export async function POST(request: NextRequest) {
       title,
       platform,
       content,
-      image_urls: [],
+      image_urls: imageUrl ? [imageUrl] : [],
     })
 
     if (insertError) {
@@ -124,45 +132,6 @@ export async function POST(request: NextRequest) {
 
     console.log(`[article-produce] ✅ Article saved: ${articleId}`)
 
-    // Step 3: Schedule image generation AFTER response is sent (bypasses CDN timeout)
-    after(async () => {
-      console.log(`[article-produce] [after] Generating image for article ${articleId}`)
-      try {
-        const imageRes = await fetch(`${SITE_URL}/api/content/generate-image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic: title, productId }),
-        })
-
-        if (!imageRes.ok) {
-          const err = await imageRes.json().catch(() => ({}))
-          console.error(`[article-produce] [after] generate-image failed:`, err)
-          return
-        }
-
-        const { imageUrl } = await imageRes.json()
-        if (!imageUrl) {
-          console.error(`[article-produce] [after] No imageUrl in response`)
-          return
-        }
-
-        const supabaseAfter = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-        const { error: updateError } = await supabaseAfter
-          .from('articles')
-          .update({ image_urls: [imageUrl] })
-          .eq('id', articleId)
-
-        if (updateError) {
-          console.error(`[article-produce] [after] DB update failed:`, updateError)
-        } else {
-          console.log(`[article-produce] [after] ✅ Image set for article ${articleId}: ${imageUrl.substring(0, 60)}`)
-        }
-      } catch (err) {
-        console.error(`[article-produce] [after] Unexpected error:`, err)
-      }
-    })
-
-    // Step 4: Return article immediately — image will appear asynchronously
     return NextResponse.json({
       success: true,
       article: {
@@ -170,7 +139,7 @@ export async function POST(request: NextRequest) {
         platform,
         title,
         content,
-        image_url: '',
+        image_url: imageUrl,
       },
     })
   } catch (error) {
