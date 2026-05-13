@@ -12,14 +12,14 @@
   R2_SECRET_ACCESS_KEY = "4b6d02ed74d5bc3030aa378ea9860f99031c14da0953fdc7c4f72d908bfe471e"
   R2_ENDPOINT = "https://c2fde28004c6c81dfe77184575d12d96.r2.cloudflarestorage.com"
   R2_BUCKET_NAME = "contentforge-assets"
-  NEXT_PUBLIC_R2_URL = "https://pub-c2fde28004c6c81dfe77184575d12d96.r2.dev"
+  NEXT_PUBLIC_R2_URL = "https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev"
   CRON_SECRET = "cf-cron-2026"
   ADMIN_EMAILS = "kilevold@online.no"
   RESEND_API_KEY = "re_bUudsDTD_KyYqmyGU7Py9Cf4DRdS5hKzy"
   TIKTOK_CLIENT_KEY = "awt6ad34dk4meat8"
   TIKTOK_CLIENT_SECRET = "JoQ9CwAtA4t6PviqdRylJQ0CtJHaCnAC"
 
-  R2_PUBLIC_URL = "https://pub-c2fde28004c6c81dfe77184575d12d96.r2.dev"
+  R2_PUBLIC_URL = "https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev"
 
 
 [functions]

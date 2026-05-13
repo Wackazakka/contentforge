@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
+import SwapIllustrationModal from '@/components/SwapIllustrationModal'
 
 interface Article {
   id: string
@@ -45,6 +46,7 @@ export default function ArticleDetailPage() {
   const [article, setArticle] = useState<Article | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [swapOpen, setSwapOpen] = useState(false)
 
   useEffect(() => {
     if (!articleId) return
@@ -129,12 +131,42 @@ export default function ArticleDetailPage() {
           </p>
 
           {/* Illustration */}
-          {article.image_urls?.[0] && (
-            <img
-              src={article.image_urls[0]}
-              alt={article.title}
-              className="w-full rounded-xl object-cover mb-8"
-              style={{ maxHeight: '400px' }}
+          {article.image_urls?.[0] ? (
+            <div className="mb-8">
+              <img
+                src={article.image_urls[0]}
+                alt={article.title}
+                className="w-full rounded-xl object-cover"
+                style={{ maxHeight: '400px' }}
+              />
+              <button
+                onClick={() => setSwapOpen(true)}
+                className="mt-3 inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+              >
+                Bytt illustrasjon
+              </button>
+            </div>
+          ) : (
+            <div className="mb-8">
+              <button
+                onClick={() => setSwapOpen(true)}
+                className="inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+              >
+                Bytt illustrasjon
+              </button>
+            </div>
+          )}
+
+          {swapOpen && article && (
+            <SwapIllustrationModal
+              articleId={article.id}
+              productId={article.product_id}
+              topic={article.title}
+              currentImageUrl={article.image_urls?.[0]}
+              onClose={() => setSwapOpen(false)}
+              onImageUpdated={(newUrl) =>
+                setArticle((prev) => (prev ? { ...prev, image_urls: [newUrl] } : prev))
+              }
             />
           )}
 

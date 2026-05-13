@@ -25,6 +25,7 @@ interface GenerateArticleRequest {
   campaignId: string
   topic: string
   platform: string
+  imageStyle?: string
 }
 
 async function generateArticleContent(
@@ -171,7 +172,7 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateArticleRequest & { userId?: string } = await request.json()
-    const { productId, campaignId, topic, platform, userId } = body
+    const { productId, campaignId, topic, platform, userId, imageStyle } = body
 
     if (!productId || !campaignId || !topic || !platform) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -218,7 +219,7 @@ export async function POST(request: NextRequest) {
     fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ articleId, topic: title, productId }),
+      body: JSON.stringify({ articleId, topic: title, productId, imageStyle: imageStyle || 'tech' }),
     }).catch(() => {})
 
     // Return article immediately — image arrives in DB within ~40s
