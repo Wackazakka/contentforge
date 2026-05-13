@@ -89,8 +89,11 @@ Return JSON with:
   // Robust JSON extraction - handles markdown code blocks and raw JSON
   console.log(`[generateArticleContent] ${platform}: Parsing JSON from Claude response`)
   
-  // Remove markdown code blocks first (handles ```json\n...``` format)
-  const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+  // Remove markdown code blocks first (handles ```json
+...``` format)
+  const cleaned = content.replace(/```json
+?/g, '').replace(/```
+?/g, '').trim()
   
   // Extract JSON object
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
@@ -201,7 +204,7 @@ async function generateImageInBackground(
     }
 
     const imageData = await generateImageRes.json()
-    const imageUrl = imageData.image_url
+    const imageUrl = imageData.imageUrl
 
     if (!imageUrl) {
       console.error(
