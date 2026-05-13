@@ -85,18 +85,18 @@ export default function DraftPage() {
           segmentCount: data.segments?.length || 0,
         })
         setDraft(data)
+        setLoading(false) // Show page immediately — don't wait for images
 
-        // Auto-generate images for all segments with empty image_url
+        // Auto-generate images in background (fire and forget)
         if (data.segments && productId) {
-          console.log('[DraftPage] Starting auto image generation...')
-          await generateImagesForAllSegments(data)
+          console.log('[DraftPage] Starting auto image generation (background)...')
+          generateImagesForAllSegments(data) // intentionally not awaited
         }
       } catch (err) {
         console.error('[DraftPage] Fetch error:', err)
         const errorMsg = err instanceof Error ? err.message : String(err)
         setError(errorMsg)
         console.error('[DraftPage] Full error object:', err)
-      } finally {
         setLoading(false)
       }
     }
