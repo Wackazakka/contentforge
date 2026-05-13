@@ -168,9 +168,21 @@ export async function POST(request: NextRequest) {
     console.log(`[generateDraft] Topic: "${topic}"`)
     console.log(`[generateDraft] Segments: ${segmentCount}`)
 
+    // Fetch website_url from product profile to enrich CTA if not provided
+    const supabaseForProfile = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+    const { data: profile } = await supabaseForProfile
+      .from('product_profiles')
+      .select('website_url')
+      .eq('product_id', productId)
+      .maybeSingle()
+    const websiteUrl = profile?.website_url || null
+    // Use explicit CTA if provided, otherwise fall back to website URL
+    const effectiveCta = cta?.trim() || (websiteUrl ? `Besøk ${websiteUrl}` : '')
+    console.log(`[generateDraft] CTA: "${effectiveCta}" (websiteUrl: ${websiteUrl})`)
+
     // Step 1: Generate script with Claude (NO IMAGE GENERATION)
     console.log(`[generateDraft] Step 1: Generating script...`)
-    let segments = await generateScript(topic, segmentCount, targetAudience, problem, tone, cta, perspective)
+    let segments = await generateScript(topic, segmentCount, targetAudience, problem, tone, effectiveCta, perspective)
     console.log(`[generateDraft] Step 1: ✅ Script generated`)
 
     // Set empty image_url for each segment (images will be generated client-side)
