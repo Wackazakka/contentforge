@@ -102,9 +102,8 @@ export default function VideoStatusPage() {
             <p className="text-green-600 font-semibold text-lg mb-4">✅ Videoen er klar!</p>
             {/* Aspect-ratio container — forces correct shape before metadata loads */}
             <div className="mx-auto mb-6 rounded-xl overflow-hidden bg-black" style={{ maxWidth: formatStyle.maxWidth, aspectRatio: formatStyle.aspectRatio }}>
-              {/* Use same-origin proxy URL so browser range-request seeking works */}
               <video
-                src={`/api/video-proxy?url=${encodeURIComponent(job.videoUrl)}`}
+                src={job.videoUrl}
                 controls
                 playsInline
                 preload="auto"
