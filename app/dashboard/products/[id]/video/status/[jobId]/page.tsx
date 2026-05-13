@@ -91,6 +91,8 @@ export default function VideoStatusPage() {
             <video
               src={job.videoUrl}
               controls
+              playsInline
+              preload="metadata"
               className="rounded-xl mb-6 mx-auto"
               style={{ maxHeight: '600px', maxWidth: '340px', width: '100%' }}
             />

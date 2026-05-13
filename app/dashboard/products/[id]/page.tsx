@@ -725,6 +725,8 @@ export default function ProductPage() {
                           <video
                             src={videoUrl}
                             controls
+                            playsInline
+                            preload="metadata"
                             className="w-full rounded-lg mb-3 bg-black"
                             style={{ aspectRatio: '9/16', maxHeight: '300px' }}
                           />
