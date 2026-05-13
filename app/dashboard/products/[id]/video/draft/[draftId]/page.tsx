@@ -39,6 +39,7 @@ export default function DraftPage() {
   const [error, setError] = useState<string | null>(null)
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null)
   const [generatingImages, setGeneratingImages] = useState<Set<number>>(new Set())
+  const [imageErrors, setImageErrors] = useState<Record<number, string>>({})
   const [assets, setAssets] = useState<any[]>([])
   const [showImageBank, setShowImageBank] = useState<number | null>(null)
   const [voicePreviews, setVoicePreviews] = useState<Record<number, string>>({})
@@ -152,12 +153,15 @@ export default function DraftPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ topic: segment.text, productId, imageSize: '1024x1536', imageStyle }),
         })
+        const data = await response.json()
         if (!response.ok) {
-          console.error(`[DraftPage] Segment ${index}: failed (${response.status})`)
+          const errMsg = data?.error || `HTTP ${response.status}`
+          console.error(`[DraftPage] Segment ${index}: failed — ${errMsg}`)
+          setImageErrors(prev => ({ ...prev, [index]: errMsg }))
         } else {
-          const data = await response.json()
           const imageUrl = data.imageUrl || ''
-          console.log(`[DraftPage] Segment ${index}: done`)
+          console.log(`[DraftPage] Segment ${index}: done — ${imageUrl}`)
+          setImageErrors(prev => { const n = { ...prev }; delete n[index]; return n })
           // Update UI immediately so user sees image as soon as it's ready
           setDraft(prev => {
             if (!prev) return prev
@@ -166,8 +170,10 @@ export default function DraftPage() {
             return { ...prev, segments: segs }
           })
         }
-      } catch (err) {
-        console.error(`[DraftPage] Segment ${index}: error`, err)
+      } catch (err: any) {
+        const errMsg = err?.message || String(err)
+        console.error(`[DraftPage] Segment ${index}: error — ${errMsg}`)
+        setImageErrors(prev => ({ ...prev, [index]: errMsg }))
       } finally {
         // Mark this segment as no longer generating
         setGeneratingImages(prev => {
@@ -386,6 +392,12 @@ export default function DraftPage() {
                     <div className="w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center gap-2 animate-pulse">
                       <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
                       <span className="text-xs text-gray-500 text-center px-2">Genererer bilde…</span>
+                    </div>
+                  ) : imageErrors[index] ? (
+                    <div className="w-full h-48 bg-red-50 border border-red-200 rounded-lg flex flex-col items-center justify-center gap-1 px-3 text-center">
+                      <span className="text-red-500 text-lg">⚠️</span>
+                      <span className="text-xs text-red-600 font-medium">Bildegenerering feilet</span>
+                      <span className="text-xs text-red-400 break-all">{imageErrors[index]}</span>
                     </div>
                   ) : (
                     <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm">
