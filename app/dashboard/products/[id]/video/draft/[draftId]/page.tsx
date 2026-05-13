@@ -164,11 +164,19 @@ export default function DraftPage() {
       const segment = draftData.segments[index]
       try {
         console.log(`[DraftPage] Segment ${index}: generating...`)
-        const response = await fetch('/api/content/generate-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic: segment.text, productId, imageSize, imageStyle }),
-        })
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 50_000) // 50s client timeout
+        let response: Response
+        try {
+          response = await fetch('/api/content/generate-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic: segment.text, productId, imageSize, imageStyle }),
+            signal: controller.signal,
+          })
+        } finally {
+          clearTimeout(timeoutId)
+        }
         const data = await response.json()
         if (!response.ok) {
           const errMsg = data?.error || `HTTP ${response.status}`
@@ -187,7 +195,9 @@ export default function DraftPage() {
           })
         }
       } catch (err: any) {
-        const errMsg = err?.message || String(err)
+        const errMsg = err?.name === 'AbortError'
+          ? 'Timeout (>50s) — sjekk OpenAI-kreditter'
+          : err?.message || String(err)
         console.error(`[DraftPage] Segment ${index}: error — ${errMsg}`)
         setImageErrors(prev => ({ ...prev, [index]: errMsg }))
       } finally {
