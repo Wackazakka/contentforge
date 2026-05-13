@@ -30,6 +30,7 @@ export default function ArticlePage() {
 
   const [topic, setTopic] = useState('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['facebook'])
+  const [imageStyle, setImageStyle] = useState<string>('tech')
   const [loading, setLoading] = useState(false)
   const [articles, setArticles] = useState<Article[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -37,6 +38,14 @@ export default function ArticlePage() {
   const [imageLoading, setImageLoading] = useState(false)
 
   const platforms = ['facebook', 'linkedin', 'x']
+
+  const imageStyles = [
+    { key: 'tech', name: 'Tech', desc: 'Premium CGI, glass og krom, hi-tech mood' },
+    { key: 'editorial', name: 'Editorial', desc: 'Flat design, magasinforside-stil' },
+    { key: 'warm', name: 'Warm', desc: 'Lifestyle-foto, varme toner, naturlig lys' },
+    { key: 'minimal', name: 'Minimal', desc: 'Rene linjer, hvit bakgrunn, infografikk' },
+    { key: 'painterly', name: 'Painterly', desc: 'Malerisk, penselstrøk, kunstnerisk' },
+  ]
 
   const togglePlatform = (platform: string) => {
     setSelectedPlatforms((prev) =>
@@ -72,6 +81,7 @@ export default function ArticlePage() {
             campaignId,
             topic,
             platform,
+            imageStyle,
           }),
         }).then(async (response) => {
           if (!response.ok) {
@@ -173,6 +183,23 @@ export default function ArticlePage() {
                       />
                       <span className="ml-2 text-sm text-gray-700 capitalize">{platform}</span>
                     </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Image Style */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">Bildestil</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {imageStyles.map((style) => (
+                    <button
+                      key={style.key}
+                      onClick={() => setImageStyle(style.key)}
+                      className={`text-left px-3 py-2 rounded-lg border text-sm transition-colors ${imageStyle === style.key ? "border-blue-500 bg-blue-50 text-blue-800" : "border-gray-200 hover:border-gray-300 text-gray-700"}`}
+                    >
+                      <span className="font-medium">{style.name}</span>
+                      <span className="text-xs text-gray-500 block">{style.desc}</span>
+                    </button>
                   ))}
                 </div>
               </div>
