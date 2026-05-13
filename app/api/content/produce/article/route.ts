@@ -155,13 +155,15 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
   }
 
   // 4. Also store in asset_banks
-  await supabase.from('asset_banks').insert({
-    product_id: productId,
-    bank_type: 'image',
-    name: `Article image - ${topic.substring(0, 50)}`,
-    asset_url: imageUrl,
-    asset_type: 'image',
-  }).catch(() => {}) // non-fatal
+  try {
+    await supabase.from('asset_banks').insert({
+      product_id: productId,
+      bank_type: 'image',
+      name: `Article image - ${topic.substring(0, 50)}`,
+      asset_url: imageUrl,
+      asset_type: 'image',
+    })
+  } catch (_) {} // non-fatal
 }
 
 export async function POST(request: NextRequest) {
