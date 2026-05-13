@@ -193,7 +193,6 @@ export async function POST(request: NextRequest) {
         video_format: videoFormat || '9:16',
         music_style: musicStyle || 'Upbeat',
         music_file: musicFile || null,
-        include_outro_card: includeOutroCard ?? true,
       })
       .select('id')
       .single()

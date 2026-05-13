@@ -60,6 +60,10 @@ export default function NewDraftPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!title.trim()) {
+      setError('Vennligst skriv inn en tittel')
+      return
+    }
     if (!topic.trim()) {
       setError('Vennligst skriv inn et tema')
       return
@@ -142,7 +146,6 @@ export default function NewDraftPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    required
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="F.eks. Bruktbil-tips vår 2026"
                   />
