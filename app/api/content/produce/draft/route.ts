@@ -18,6 +18,7 @@ interface DraftRequest {
   problem?: string
   voiceId?: string
   tone?: string
+  perspective?: 'du' | 'jeg'
   cta?: string
   videoFormat?: string
   musicStyle?: string
@@ -35,12 +36,13 @@ interface Segment {
 
 // Generate script using Claude
 async function generateScript(
-  topic: string, 
-  segmentCount: number, 
+  topic: string,
+  segmentCount: number,
   targetAudience: string = '',
   problem: string = '',
   tone: string = 'Energisk',
-  cta: string = ''
+  cta: string = '',
+  perspective: 'du' | 'jeg' = 'du'
 ): Promise<Segment[]> {
   console.log(`[generateDraft] Calling Claude to generate script with ${segmentCount} segments for topic: "${topic}"`)
 
@@ -48,12 +50,16 @@ async function generateScript(
   const problemContext = problem ? `Problem to solve: ${problem}` : ''
   const toneContext = `Tone: ${tone}`
   const ctaContext = cta ? `Call-to-action: ${cta}` : ''
+  const perspectiveContext = perspective === 'jeg'
+    ? 'Perspective: First person ("jeg/I"). The narrator speaks from personal experience — "Jeg gjorde dette...", "Da jeg prøvde...", "Her er hva jeg lærte...". Avoid addressing the viewer as "du".'
+    : 'Perspective: Second person ("du"). Address the viewer directly — "Du bør...", "Har du noen gang...", "Dette gjør du...".'
 
   const prompt = `Generate a video script for a TikTok/Reels video about: "${topic}"
 
 ${audienceContext}
 ${problemContext}
 ${toneContext}
+${perspectiveContext}
 ${ctaContext}
 
 The script should have exactly ${segmentCount} segments.
@@ -144,6 +150,7 @@ export async function POST(request: NextRequest) {
       problem,
       voiceId,
       tone,
+      perspective = 'du',
       cta,
       videoFormat,
       musicStyle,
@@ -163,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     // Step 1: Generate script with Claude (NO IMAGE GENERATION)
     console.log(`[generateDraft] Step 1: Generating script...`)
-    let segments = await generateScript(topic, segmentCount, targetAudience, problem, tone, cta)
+    let segments = await generateScript(topic, segmentCount, targetAudience, problem, tone, cta, perspective)
     console.log(`[generateDraft] Step 1: ✅ Script generated`)
 
     // Set empty image_url for each segment (images will be generated client-side)
