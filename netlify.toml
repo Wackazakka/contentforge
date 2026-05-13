@@ -22,5 +22,8 @@
   R2_PUBLIC_URL = "https://pub-c2fde28004c6c81dfe77184575d12d96.r2.dev"
 
 
+[functions]
+  directory = "netlify/functions"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"

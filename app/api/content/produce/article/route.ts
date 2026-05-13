@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse, after } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
@@ -211,14 +211,13 @@ export async function POST(request: NextRequest) {
 
     console.log(`[article-produce] ✅ Article saved: ${articleId}`)
 
-    // Generate image AFTER response — calls OpenAI + R2 directly, no CDN timeout
-    after(async () => {
-      try {
-        await generateAndSaveImage(articleId, title, productId)
-      } catch (err) {
-        console.error(`[article-produce] [after] Image generation failed:`, err)
-      }
-    })
+    // Trigger Netlify Background Function — returns 202 immediately, no CDN timeout
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
+    fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ articleId, topic: title, productId }),
+    }).catch(() => {})
 
     // Return article immediately — image arrives in DB within ~40s
     return NextResponse.json({
