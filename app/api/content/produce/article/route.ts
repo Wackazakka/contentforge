@@ -100,16 +100,22 @@ export async function POST(request: NextRequest) {
     console.log(`[article-produce] Starting ${platform} article for: "${topic}"`)
 
     // Generate article text (Claude) + image in parallel
+    // Abort image fetch after 22s so we always respond before the 30s CDN timeout
+    const imageAbort = new AbortController()
+    const imageTimer = setTimeout(() => imageAbort.abort(), 22000)
+
     const [{ title, content }, imageResult] = await Promise.all([
       generateArticleContent(topic, platform),
       fetch(`${SITE_URL}/api/content/generate-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, productId }),
+        signal: imageAbort.signal,
       })
         .then(r => (r.ok ? r.json() : null))
         .catch(() => null),
     ])
+    clearTimeout(imageTimer)
 
     const imageUrl: string = imageResult?.imageUrl || ''
     console.log(`[article-produce] ✅ Content: "${title.substring(0, 50)}" | Image: ${imageUrl ? 'OK' : 'none'}`)
