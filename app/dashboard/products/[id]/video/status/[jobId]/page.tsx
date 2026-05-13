@@ -102,7 +102,9 @@ export default function VideoStatusPage() {
             <p className="text-green-600 font-semibold text-lg mb-4">✅ Videoen er klar!</p>
             {/* Aspect-ratio container — forces correct shape before metadata loads */}
             <div className="mx-auto mb-6 rounded-xl overflow-hidden bg-black" style={{ maxWidth: formatStyle.maxWidth, aspectRatio: formatStyle.aspectRatio }}>
+              {/* Use same-origin proxy URL so browser range-request seeking works */}
               <video
+                src={`/api/video-proxy?url=${encodeURIComponent(job.videoUrl)}`}
                 controls
                 playsInline
                 preload="auto"
@@ -110,18 +112,15 @@ export default function VideoStatusPage() {
                 onError={(e) => {
                   const v = e.currentTarget
                   const codeMap: Record<number, string> = { 1: 'ABORTED', 2: 'NETWORK', 3: 'DECODE', 4: 'SRC_NOT_SUPPORTED' }
-                  const msg = `Feil ${v.error?.code}: ${codeMap[v.error?.code ?? 0] ?? 'UNKNOWN'} — ${v.error?.message}`
+                  const msg = `Feil ${v.error?.code ?? '?'}: ${codeMap[v.error?.code ?? 0] ?? 'UNKNOWN'} — ${v.error?.message ?? 'ingen detaljer'}`
                   console.error('[VideoPlayer]', msg, 'src:', v.currentSrc)
                   setVideoError(msg)
                 }}
-              >
-                <source src={job.videoUrl} type="video/mp4" />
-              </video>
+              />
             </div>
             {videoError && (
               <div className="mb-4 text-xs text-red-500 bg-red-50 rounded px-3 py-2 text-left break-all">
-                ⚠️ {videoError}<br />
-                <span className="text-gray-500">URL: {job.videoUrl}</span>
+                ⚠️ {videoError}
               </div>
             )}
             <div className="flex gap-3 justify-center flex-wrap">
