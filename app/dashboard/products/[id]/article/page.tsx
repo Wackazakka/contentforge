@@ -57,7 +57,7 @@ export default function ArticlePage() {
       .select("website_url")
       .eq("product_id", productId)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         if (data && (data as any).website_url) {
           setWebsiteUrl((data as any).website_url)
         }

@@ -32,7 +32,9 @@ interface GenerateArticleRequest {
 
 async function generateArticleContent(
   topic: string,
-  platform: string
+  platform: string,
+  includeLink?: boolean,
+  websiteUrl?: string
 ): Promise<{ title: string; content: string }> {
   const platformGuides: Record<string, string> = {
     facebook:
@@ -204,7 +206,7 @@ export async function POST(request: NextRequest) {
     console.log(`[article-produce] Starting ${platform} article for: "${topic}"`)
 
     // Generate article content with Claude (~10s)
-    const { title, content } = await generateArticleContent(topic, platform)
+    const { title, content } = await generateArticleContent(topic, platform, includeLink, websiteUrl)
     console.log(`[article-produce] ✅ Content ready: "${title.substring(0, 60)}"`)
 
     // Save article immediately with no image
