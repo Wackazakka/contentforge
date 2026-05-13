@@ -29,7 +29,7 @@ export async function PATCH(
       const SITE_URL =
         process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
 
-      fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
+      await fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
