@@ -12,6 +12,10 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740fe
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+
+// Allow up to 60s for image generation (gpt-image-1 can be slow)
+export const maxDuration = 60
+
 interface GenerateImageRequest {
   topic: string
   productId: string

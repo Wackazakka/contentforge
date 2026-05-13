@@ -12,6 +12,10 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740fe
 // Validate UUID format
 const isValidUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
 
+
+// Allow up to 60s — generates both Claude content and gpt-image-1 in parallel
+export const maxDuration = 60
+
 interface GenerateArticleRequest {
   productId: string
   campaignId: string
