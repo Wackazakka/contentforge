@@ -623,16 +623,14 @@ export default function ProductPage() {
               <p className="text-sm text-gray-600 mt-1">Generer videoinnhold direkte</p>
             </button>
 
-            <button
-              onClick={() =>
-                router.push(`/dashboard/products/${productId}/video/draft/new`)
-              }
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left"
+            <Link
+              href={`/dashboard/products/${productId}/video/draft/new`}
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left block"
             >
               <div className="text-2xl mb-2">🎬</div>
               <h3 className="font-semibold text-gray-900">Lag video med godkjenning</h3>
               <p className="text-sm text-gray-600 mt-1">Generer og godkjenn før produksjon</p>
-            </button>
+            </Link>
 
             <button
               onClick={() => router.push(`/dashboard/products/${productId}/article`)}
