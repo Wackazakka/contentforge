@@ -35,6 +35,7 @@ export default function VideoStatusPage() {
         const res = await fetch(`/api/job-status/${jobId}`)
         const data = await res.json()
         setJob(data)
+        if (data.status === 'done') setVideoError(null) // clear any stale error
         if (data.status === 'done' || data.status === 'failed') return
         setTimeout(poll, 4000)
       } catch (err) {
@@ -103,6 +104,7 @@ export default function VideoStatusPage() {
             {/* Aspect-ratio container — forces correct shape before metadata loads */}
             <div className="mx-auto mb-6 rounded-xl overflow-hidden bg-black" style={{ maxWidth: formatStyle.maxWidth, aspectRatio: formatStyle.aspectRatio }}>
               <video
+                key={job.videoUrl}
                 src={job.videoUrl}
                 controls
                 playsInline
