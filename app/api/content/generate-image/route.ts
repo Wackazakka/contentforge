@@ -18,20 +18,20 @@ interface GenerateImageRequest {
   articleIds?: string[]
 }
 
-// Generate image using DALL-E 3
-async function generateImageWithDallE(topic: string): Promise<string> {
-  console.log(`[generateImage] Calling DALL-E 3 for topic: "${topic}"`)
-  console.log(`[generateImage] API key present: ${!!OPENAI_API_KEY}`)
+// Generate image using gpt-image-1 (returns base64 directly)
+async function generateImageBuffer(topic: string): Promise<Buffer> {
+  console.log('[generateImage] Calling gpt-image-1 for topic:  + topic + ')
+  console.log('[generateImage] API key present: ' + !!OPENAI_API_KEY)
 
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      Authorization: 'Bearer ' + (OPENAI_API_KEY || ''),
     },
     body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt: `Create a professional, visually appealing image for an article about: ${topic}. High quality, suitable for articles and social media. Clean, modern style. No text, letters, words, or typography in the image.`,
+      model: 'gpt-image-1',
+      prompt: 'Create a professional, visually appealing image for an article about: ' + topic + '. High quality, suitable for articles and social media. Clean, modern style. No text, letters, words, or typography in the image.',
       n: 1,
       size: '1024x1024',
     }),
@@ -39,46 +39,37 @@ async function generateImageWithDallE(topic: string): Promise<string> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
-    console.error(`[generateImage] DALL-E API error`, {
+    console.error('[generateImage] OpenAI API error', {
       status: response.status,
       statusText: response.statusText,
       error: errorData,
     })
-    throw new Error(`DALL-E API error: ${response.status} ${response.statusText} — ${JSON.stringify(errorData)}`)
+    throw new Error('OpenAI image API error: ' + response.status + ' ' + response.statusText + ' — ' + JSON.stringify(errorData))
   }
 
   const data = await response.json()
-  if (!data.data?.[0]?.url) {
-    console.error(`[generateImage] No image URL in response`, { data })
-    throw new Error('No image URL in DALL-E response')
+  const b64 = data.data?.[0]?.b64_json
+  if (!b64) {
+    console.error('[generateImage] No b64_json in response', { data })
+    throw new Error('No image data in OpenAI response')
   }
 
-  console.log(`[generateImage] Image generated: ${data.data[0].url.substring(0, 50)}...`)
-  return data.data[0].url
+  console.log('[generateImage] Image received as base64, decoding...')
+  return Buffer.from(b64, 'base64')
 }
 
-// Download image from DALL-E URL and upload to R2
-async function uploadImageToR2(imageUrl: string, fileName: string): Promise<string> {
+// Upload image buffer to R2
+async function uploadBufferToR2(imageBuffer: Buffer, fileName: string): Promise<string> {
   try {
-    console.log(`[generateImage] Downloading image from DALL-E...`)
-    const imageResponse = await fetch(imageUrl)
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to download image: ${imageResponse.statusText}`)
-    }
+    console.log('[generateImage] Image size: ' + imageBuffer.byteLength + ' bytes')
+    console.log('[generateImage] R2 configuration check:')
+    console.log('  - R2_ENDPOINT: ' + (R2_ENDPOINT ? '✓ set' : '✗ MISSING'))
+    console.log('  - R2_ACCESS_KEY_ID: ' + (R2_ACCESS_KEY_ID ? '✓ set' : '✗ MISSING'))
+    console.log('  - R2_SECRET_ACCESS_KEY: ' + (R2_SECRET_ACCESS_KEY ? '✓ set' : '✗ MISSING'))
+    console.log('  - R2_BUCKET_NAME: ' + R2_BUCKET_NAME)
+    console.log('  - R2_PUBLIC_URL: ' + R2_PUBLIC_URL)
 
-    const imageBuffer = await imageResponse.arrayBuffer()
-    console.log(`[generateImage] Image downloaded, size: ${imageBuffer.byteLength} bytes`)
-
-    // Check R2 configuration
-    console.log(`[generateImage] R2 configuration check:`)
-    console.log(`  - R2_ENDPOINT: ${R2_ENDPOINT ? '✓ set' : '✗ MISSING'}`)
-    console.log(`  - R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID ? '✓ set' : '✗ MISSING'}`)
-    console.log(`  - R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY ? '✓ set' : '✗ MISSING'}`)
-    console.log(`  - R2_BUCKET_NAME: ${R2_BUCKET_NAME}`)
-    console.log(`  - R2_PUBLIC_URL: ${R2_PUBLIC_URL}`)
-
-    // Upload to R2
-    console.log(`[generateImage] Starting R2 upload...`)
+    console.log('[generateImage] Starting R2 upload...')
     const s3Client = new S3Client({
       region: 'auto',
       endpoint: R2_ENDPOINT,
@@ -88,29 +79,28 @@ async function uploadImageToR2(imageUrl: string, fileName: string): Promise<stri
       },
     })
 
-    const key = `images/articles/${fileName}`
+    const key = 'images/articles/' + fileName
     const uploadCommand = new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
       Key: key,
-      Body: Buffer.from(imageBuffer),
+      Body: imageBuffer,
       ContentType: 'image/png',
     })
 
     await s3Client.send(uploadCommand)
-    console.log(`[generateImage] ✅ Uploaded to R2: ${key}`)
+    console.log('[generateImage] ✅ Uploaded to R2: ' + key)
 
-    const publicUrl = `${R2_PUBLIC_URL}/${key}`
-    console.log(`[generateImage] Public URL: ${publicUrl}`)
-    
+    const publicUrl = R2_PUBLIC_URL + '/' + key
+    console.log('[generateImage] Public URL: ' + publicUrl)
+
     return publicUrl
   } catch (error) {
-    console.error(`[generateImage] ❌ R2 upload FAILED:`, {
+    console.error('[generateImage] ❌ R2 upload FAILED:', {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     })
-    console.warn(`[generateImage] ⚠️  Falling back to DALL-E URL (image not cached in R2)`)
-    // Return original DALL-E URL as fallback
-    return imageUrl
+    console.warn('[generateImage] ⚠️  R2 upload failed, returning placeholder')
+    throw error
   }
 }
 
@@ -124,10 +114,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing topic or productId' }, { status: 400 })
     }
 
-    console.log(`[generateImage] ========== START IMAGE GENERATION ==========`)
-    console.log(`[generateImage] Topic: "${topic}"`)
-    console.log(`[generateImage] Product ID: ${productId}`)
-    console.log(`[generateImage] Environment variables:`, {
+    console.log('[generateImage] ========== START IMAGE GENERATION ==========')
+    console.log('[generateImage] Topic:  + topic + ')
+    console.log('[generateImage] Product ID: ' + productId)
+    console.log('[generateImage] Environment variables:', {
       OPENAI_API_KEY_set: !!OPENAI_API_KEY,
       R2_ENDPOINT_set: !!R2_ENDPOINT,
       R2_BUCKET: R2_BUCKET_NAME,
@@ -135,70 +125,68 @@ export async function POST(request: NextRequest) {
 
     if (!OPENAI_API_KEY) {
       const error = 'OPENAI_API_KEY is not set in environment variables on Netlify'
-      console.error(`[generateImage] FATAL ERROR: ${error}`)
+      console.error('[generateImage] FATAL ERROR: ' + error)
       return NextResponse.json({ error }, { status: 500 })
     }
 
-    // Generate image with DALL-E
-    console.log(`[generateImage] Step 1: Calling DALL-E...`)
-    const dallEUrl = await generateImageWithDallE(topic)
-    console.log(`[generateImage] Step 1: ✅ DALL-E returned image`)
+    // Generate image with gpt-image-1
+    console.log('[generateImage] Step 1: Calling gpt-image-1...')
+    const imageBuffer = await generateImageBuffer(topic)
+    console.log('[generateImage] Step 1: ✅ Image received as base64')
 
     // Upload to R2
-    console.log(`[generateImage] Step 2: Uploading to R2...`)
-    const fileName = `${randomUUID()}.png`
-    const r2Url = await uploadImageToR2(dallEUrl, fileName)
-    console.log(`[generateImage] Step 2: ✅ R2 upload complete`)
+    console.log('[generateImage] Step 2: Uploading to R2...')
+    const fileName = randomUUID() + '.png'
+    const r2Url = await uploadBufferToR2(imageBuffer, fileName)
+    console.log('[generateImage] Step 2: ✅ R2 upload complete')
 
     // Insert into asset_banks
-    console.log(`[generateImage] Step 3: Storing in asset_banks...`)
+    console.log('[generateImage] Step 3: Storing in asset_banks...')
     try {
       const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-      
+
       const { data, error: dbError } = await supabase
         .from('asset_banks')
         .insert({
           product_id: productId,
           bank_type: 'image',
-          name: `Article image - ${topic.substring(0, 50)}`,
+          name: 'Article image - ' + topic.substring(0, 50),
           asset_url: r2Url,
           asset_type: 'image',
         })
         .select()
 
       if (dbError) {
-        console.error(`[generateImage] asset_banks insert error:`, dbError)
+        console.error('[generateImage] asset_banks insert error:', dbError)
       } else {
-        console.log(`[generateImage] ✅ Stored in asset_banks:`, data?.[0]?.id)
+        console.log('[generateImage] ✅ Stored in asset_banks:', data?.[0]?.id)
       }
     } catch (dbErr) {
-      console.error(`[generateImage] asset_banks error:`, dbErr instanceof Error ? dbErr.message : String(dbErr))
-      // Don't fail the entire operation if asset_banks insert fails
+      console.error('[generateImage] asset_banks error:', dbErr instanceof Error ? dbErr.message : String(dbErr))
     }
 
-    console.log(`[generateImage] ========== ✅ IMAGE GENERATION SUCCESS ==========`)
-    console.log(`[generateImage] Final URL: ${r2Url}`)
+    console.log('[generateImage] ========== ✅ IMAGE GENERATION SUCCESS ==========')
+    console.log('[generateImage] Final URL: ' + r2Url)
 
     // Update articles with image URLs if articleIds provided
     if (articleIds && articleIds.length > 0) {
-      console.log(`[generateImage] Updating ${articleIds.length} articles with image URL`)
+      console.log('[generateImage] Updating ' + articleIds.length + ' articles with image URL')
       const supabaseClient = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
 
       for (const articleId of articleIds) {
         try {
-          console.log(`[generateImage] Updating article ${articleId} with image URL: ${r2Url.substring(0, 50)}...`)
           const { error: updateError } = await supabaseClient
             .from('articles')
             .update({ image_urls: [r2Url] })
             .eq('id', articleId)
 
           if (updateError) {
-            console.error(`[generateImage] Failed to update article ${articleId}:`, updateError)
+            console.error('[generateImage] Failed to update article ' + articleId + ':', updateError)
           } else {
-            console.log(`[generateImage] ✅ Article ${articleId} updated with image`)
+            console.log('[generateImage] ✅ Article ' + articleId + ' updated with image')
           }
         } catch (err) {
-          console.error(`[generateImage] Error updating article ${articleId}:`, err)
+          console.error('[generateImage] Error updating article ' + articleId + ':', err)
         }
       }
     }
