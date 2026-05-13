@@ -38,6 +38,7 @@ export default function DraftPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null)
+  const [generatingImages, setGeneratingImages] = useState<Set<number>>(new Set())
   const [assets, setAssets] = useState<any[]>([])
   const [showImageBank, setShowImageBank] = useState<number | null>(null)
   const [voicePreviews, setVoicePreviews] = useState<Record<number, string>>({})
@@ -129,13 +130,21 @@ export default function DraftPage() {
     console.log('[DraftPage] ========== START AUTO IMAGE GENERATION ==========')
     console.log(`[DraftPage] Generating images for ${draftData.segments.length} segments...`)
 
+    // Mark all segments that need images as "generating" upfront so user sees progress
+    const pendingIndices = draftData.segments
+      .map((s, i) => (!s.image_url || !s.image_url.trim() ? i : -1))
+      .filter(i => i !== -1)
+
+    if (pendingIndices.length === 0) {
+      console.log('[DraftPage] All segments already have images')
+      return
+    }
+
+    setGeneratingImages(new Set(pendingIndices))
+
     // Generate sequentially to stay within CDN timeout (one ~12s call at a time)
-    for (let index = 0; index < draftData.segments.length; index++) {
+    for (const index of pendingIndices) {
       const segment = draftData.segments[index]
-      if (segment.image_url && segment.image_url.trim()) {
-        console.log(`[DraftPage] Segment ${index}: already has image`)
-        continue
-      }
       try {
         console.log(`[DraftPage] Segment ${index}: generating...`)
         const response = await fetch('/api/content/generate-image', {
@@ -145,20 +154,27 @@ export default function DraftPage() {
         })
         if (!response.ok) {
           console.error(`[DraftPage] Segment ${index}: failed (${response.status})`)
-          continue
+        } else {
+          const data = await response.json()
+          const imageUrl = data.imageUrl || ''
+          console.log(`[DraftPage] Segment ${index}: done`)
+          // Update UI immediately so user sees image as soon as it's ready
+          setDraft(prev => {
+            if (!prev) return prev
+            const segs = [...prev.segments]
+            segs[index] = { ...segs[index], image_url: imageUrl }
+            return { ...prev, segments: segs }
+          })
         }
-        const data = await response.json()
-        const imageUrl = data.imageUrl || ''
-        console.log(`[DraftPage] Segment ${index}: done`)
-        // Update UI immediately so user sees progress
-        setDraft(prev => {
-          if (!prev) return prev
-          const segs = [...prev.segments]
-          segs[index] = { ...segs[index], image_url: imageUrl }
-          return { ...prev, segments: segs }
-        })
       } catch (err) {
         console.error(`[DraftPage] Segment ${index}: error`, err)
+      } finally {
+        // Mark this segment as no longer generating
+        setGeneratingImages(prev => {
+          const next = new Set(prev)
+          next.delete(index)
+          return next
+        })
       }
     }
     console.log('[DraftPage] All segments processed')
@@ -340,6 +356,19 @@ export default function DraftPage() {
           <p className="text-gray-600 mt-2">Gjennomgå og godkjenn hver segment før produksjon</p>
         </div>
 
+        {/* Image generation progress banner */}
+        {generatingImages.size > 0 && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg px-5 py-4 flex items-center gap-3">
+            <div className="w-5 h-5 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-blue-800">
+                Genererer bilder… {draft.segments.length - generatingImages.size}/{draft.segments.length} ferdig
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">Hvert bilde tar ca. 20 sekunder. Du kan godkjenne segmenter etter hvert som de er klare.</p>
+            </div>
+          </div>
+        )}
+
         {/* Segments */}
         <div className="space-y-6 mb-8">
           {draft.segments.map((segment, index) => (
@@ -347,15 +376,19 @@ export default function DraftPage() {
               <div className="flex gap-6">
                 {/* Image */}
                 <div className="flex-shrink-0 w-48">
-                  {segment.image_url && (
+                  {segment.image_url ? (
                     <img
                       src={segment.image_url}
                       alt={`Segment ${index + 1}`}
                       className="w-full h-48 object-cover rounded-lg border border-gray-200"
                     />
-                  )}
-                  {!segment.image_url && (
-                    <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
+                  ) : generatingImages.has(index) ? (
+                    <div className="w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center gap-2 animate-pulse">
+                      <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs text-gray-500 text-center px-2">Genererer bilde…</span>
+                    </div>
+                  ) : (
+                    <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm">
                       Ingen bilde
                     </div>
                   )}
@@ -431,7 +464,8 @@ export default function DraftPage() {
                   <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => toggleApproval(index)}
-                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                      disabled={generatingImages.has(index)}
+                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                         segment.approved
                           ? 'bg-green-600 hover:bg-green-700 text-white'
                           : 'bg-blue-600 hover:bg-blue-700 text-white'
