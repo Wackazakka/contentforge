@@ -25,6 +25,7 @@ interface Draft {
   video_format?: string
   music_style?: string
   music_file?: string | null
+  include_outro_card?: boolean
 }
 
 export default function DraftPage() {
@@ -305,6 +306,12 @@ export default function DraftPage() {
 
       console.log('[startProduction] All segments verified as approved')
 
+      // Determine outro card preference: URL param wins, else draft column, else true
+      const outroParam = searchParams?.get('outro')
+      const includeOutroCard = outroParam !== null
+        ? outroParam === '1'
+        : (draft.include_outro_card ?? true)
+
       // Call start-production API with draftId
       const response = await fetch('/api/start-production', {
         method: 'POST',
@@ -312,6 +319,7 @@ export default function DraftPage() {
         body: JSON.stringify({
           draftId: draft.id,
           imageStyle,
+          includeOutroCard,
         }),
       })
 

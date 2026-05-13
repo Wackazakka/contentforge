@@ -22,6 +22,7 @@ interface DraftRequest {
   videoFormat?: string
   musicStyle?: string
   musicFile?: string | null
+  includeOutroCard?: boolean
 }
 
 interface Segment {
@@ -147,6 +148,7 @@ export async function POST(request: NextRequest) {
       videoFormat,
       musicStyle,
       musicFile,
+      includeOutroCard,
     } = body
 
     if (!productId || !campaignId || !topic) {
@@ -191,6 +193,7 @@ export async function POST(request: NextRequest) {
         video_format: videoFormat || '9:16',
         music_style: musicStyle || 'Upbeat',
         music_file: musicFile || null,
+        include_outro_card: includeOutroCard ?? true,
       })
       .select('id')
       .single()

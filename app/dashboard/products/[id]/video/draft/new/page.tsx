@@ -39,6 +39,7 @@ export default function NewDraftPage() {
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
   const [imageStyle, setImageStyle] = useState('editorial')
+  const [includeOutroCard, setIncludeOutroCard] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -87,6 +88,7 @@ export default function NewDraftPage() {
           videoFormat,
           musicStyle,
           musicFile,
+          includeOutroCard,
         }),
       })
 
@@ -96,7 +98,7 @@ export default function NewDraftPage() {
       }
 
       const data = await response.json()
-      router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}&format=${encodeURIComponent(videoFormat)}`)
+      router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}&format=${encodeURIComponent(videoFormat)}${includeOutroCard ? '&outro=1' : ''}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Noe gikk galt')
     } finally {
@@ -445,6 +447,29 @@ export default function NewDraftPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* OUTRO Section */}
+            <div>
+              <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
+                Avslutning
+              </h2>
+              <label className="flex items-start gap-3 cursor-pointer p-4 rounded-lg border border-gray-200 hover:border-gray-300">
+                <input
+                  type="checkbox"
+                  checked={includeOutroCard}
+                  onChange={(e) => setIncludeOutroCard(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    Avslutt med produktlenke 🔗
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Legger til 3 sekunder branded sluttbilde med produktets nettside, logo og CTA.
+                  </div>
+                </div>
+              </label>
             </div>
 
             {/* Buttons */}

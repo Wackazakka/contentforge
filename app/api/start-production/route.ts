@@ -15,7 +15,7 @@ function stripEmojis(text: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { draftId, userId, imageStyle } = await request.json()
+    const { draftId, userId, imageStyle, includeOutroCard } = await request.json()
     if (!draftId) return NextResponse.json({ error: 'Missing draftId' }, { status: 400 })
 
     if (userId) {
@@ -47,11 +47,32 @@ export async function POST(request: Request) {
     // Hent produkt for logo — check product_profiles first, then products table
     console.log('[start-production] Fetching product logo...')
     const [{ data: productProfile }, { data: product }] = await Promise.all([
-      supabase.from('product_profiles').select('logo_url').eq('product_id', draft.product_id).single(),
+      supabase
+        .from('product_profiles')
+        .select('logo_url, website_url, primary_color, secondary_color')
+        .eq('product_id', draft.product_id)
+        .single(),
       supabase.from('products').select('logo_url').eq('id', draft.product_id).single(),
     ])
     const logoUrl = productProfile?.logo_url || product?.logo_url || null
-    console.log('[start-production] Logo URL:', logoUrl)
+    const websiteUrl = productProfile?.website_url || null
+    console.log('[start-production] Logo URL:', logoUrl, 'Website URL:', websiteUrl)
+
+    // Determine outro card preference: explicit body param wins, else draft column, else true
+    const outroEnabled = includeOutroCard !== undefined
+      ? !!includeOutroCard
+      : (draft.include_outro_card ?? true)
+    const outroCard = (outroEnabled && websiteUrl)
+      ? {
+          url: websiteUrl,
+          cta: draft.cta || '',
+          logoUrl: logoUrl || null,
+          primaryColor: productProfile?.primary_color || '#1a1a2e',
+          secondaryColor: productProfile?.secondary_color || '#ffffff',
+          durationSeconds: 3,
+        }
+      : null
+    console.log('[start-production] Outro card:', outroCard ? 'enabled' : 'disabled')
 
     // Sjekk at alle segmenter er godkjent
     const segments = draft.segments || []
@@ -99,6 +120,7 @@ export async function POST(request: Request) {
         musicFile: draft.music_file || null,
         logoUrl: logoUrl,
         imageStyle: imageStyle || 'editorial',
+        outroCard,
       }),
     })
 
