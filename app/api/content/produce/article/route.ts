@@ -1,20 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 import { checkAndDeductCredits } from '@/lib/credits'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
 
 // Validate UUID format
-const isValidUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+const isValidUuid = (str: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
 
-
-// Allow up to 60s — generates both Claude content and gpt-image-1 in parallel
-export const maxDuration = 60
+// Article generation only needs Claude time (~5-10s)
+export const maxDuration = 30
 
 interface GenerateArticleRequest {
   productId: string
@@ -23,19 +22,16 @@ interface GenerateArticleRequest {
   platform: string
 }
 
-interface ArticleResult {
-  id: string
-  platform: string
-  title: string
-  content: string
-  image_url: string
-}
-
 // Generate article content using Claude
-async function generateArticleContent(topic: string, platform: string): Promise<{ title: string; content: string }> {
+async function generateArticleContent(
+  topic: string,
+  platform: string
+): Promise<{ title: string; content: string }> {
   const platformGuides: Record<string, string> = {
-    facebook: 'Write for Facebook: engaging, conversational, with emojis and a call-to-action. Include hashtags.',
-    linkedin: 'Write for LinkedIn: professional, insightful, thought-leadership style. No excessive emojis. START WITH A STRONG OPENING SENTENCE that grabs attention - do not begin mid-sentence. Make the first sentence compelling and complete.',
+    facebook:
+      'Write for Facebook: engaging, conversational, with emojis and a call-to-action. Include hashtags.',
+    linkedin:
+      'Write for LinkedIn: professional, insightful, thought-leadership style. No excessive emojis. START WITH A STRONG OPENING SENTENCE that grabs attention - do not begin mid-sentence. Make the first sentence compelling and complete.',
     x: 'Write for X/Twitter: concise (under 280 chars per tweet), punchy, with relevant hashtags.',
   }
 
@@ -51,8 +47,6 @@ Return JSON with:
   "content": "Full article content optimized for ${platform}"
 }`
 
-  console.log(`[generateArticleContent] ${platform}: API key present: ${!!ANTHROPIC_API_KEY}`)
-
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -63,189 +57,24 @@ Return JSON with:
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+      messages: [{ role: 'user', content: prompt }],
     }),
   })
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
-    console.error(`[generateArticleContent] ${platform}: Claude API error`, {
-      status: response.status,
-      statusText: response.statusText,
-      error: errorData,
-    })
-    throw new Error(`Claude API error: ${response.status} ${response.statusText}`)
+    throw new Error(`Claude API error: ${response.status} ${response.statusText} — ${JSON.stringify(errorData)}`)
   }
 
   const data = await response.json()
-  const content = data.content?.[0]?.text
+  const text = data.content?.[0]?.text
+  if (!text) throw new Error('No content in Claude response')
 
-  if (!content) {
-    console.error(`[generateArticleContent] ${platform}: No content in response`, { data })
-    throw new Error('No content in Claude response')
-  }
-
-  // Robust JSON extraction - handles markdown code blocks and raw JSON
-  console.log(`[generateArticleContent] ${platform}: Parsing JSON from Claude response`)
-  
-  // Remove markdown code blocks first (handles ```json\n...``` format)
-  const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-  
-  // Extract JSON object
+  const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
-    console.error(`[generateArticleContent] ${platform}: Could not find JSON in response`, {
-      originalLength: content.length,
-      cleanedLength: cleaned.length,
-      preview: content.substring(0, 300),
-    })
-    throw new Error('No JSON found in Claude response')
-  }
+  if (!jsonMatch) throw new Error('No JSON found in Claude response')
 
-  try {
-    console.log(`[generateArticleContent] ${platform}: Found JSON, parsing...`)
-    const parsed = JSON.parse(jsonMatch[0])
-    console.log(`[generateArticleContent] ${platform}: ✅ JSON parsed successfully`)
-    return parsed
-  } catch (parseError) {
-    console.error(`[generateArticleContent] ${platform}: JSON parse error`, {
-      json: jsonMatch[0].substring(0, 150),
-      error: parseError instanceof Error ? parseError.message : String(parseError),
-      jsonLength: jsonMatch[0].length,
-    })
-    throw new Error('Failed to parse JSON from Claude response')
-  }
-}
-
-// Generate image using DALL-E
-async function generateImage(topic: string): Promise<string> {
-  console.log(`[generateImage] API key present: ${!!OPENAI_API_KEY}`)
-
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt: `Create a professional, visually appealing image for an article about: ${topic}. High quality, suitable for social media and articles.`,
-      n: 1,
-      size: '1024x1024',
-    }),
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    console.error(`[generateImage] DALL-E API error`, {
-      status: response.status,
-      statusText: response.statusText,
-      error: errorData,
-    })
-    throw new Error(`DALL-E API error: ${response.status} ${response.statusText}`)
-  }
-
-  const data = await response.json()
-  if (!data.data?.[0]?.url) {
-    console.error(`[generateImage] No image URL in response`, { data })
-    throw new Error('No image URL in DALL-E response')
-  }
-
-  return data.data[0].url
-}
-
-// Upload image to R2
-async function uploadImageToR2(imageUrl: string, campaignId: string, articleId: string): Promise<string> {
-  try {
-    // For now, just construct the URL as if it were uploaded
-    // In production, you'd download the image and upload to R2
-    return `${R2_PUBLIC_URL}/images/articles/${campaignId}/${articleId}.png`
-  } catch (error) {
-    console.error('Error uploading to R2:', error)
-    // Return a placeholder or the original image URL
-    return imageUrl
-  }
-}
-
-// Background image generation and article update
-async function generateImageInBackground(
-  articleId: string,
-  title: string,
-  topic: string,
-  campaignId: string,
-  productId: string
-): Promise<void> {
-  try {
-    console.log(`[article-produce] [background] Starting image generation for article ${articleId}`)
-
-    // Call /api/content/generate-image endpoint
-    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
-
-    const generateImageRes = await fetch(`${SITE_URL}/api/content/generate-image`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topic: title || topic, // Use article title as prompt, fallback to topic
-        productId: productId, // Pass productId for proper asset banking
-      }),
-    })
-
-    if (!generateImageRes.ok) {
-      const error = await generateImageRes.json()
-      console.error(
-        `[article-produce] [background] Image generation API failed for article ${articleId}:`,
-        error
-      )
-      return
-    }
-
-    const imageData = await generateImageRes.json()
-    const imageUrl = imageData.imageUrl
-
-    if (!imageUrl) {
-      console.error(
-        `[article-produce] [background] No image URL returned for article ${articleId}`
-      )
-      return
-    }
-
-    console.log(
-      `[article-produce] [background] Image generated for article ${articleId}, URL: ${imageUrl.substring(0, 50)}...`
-    )
-
-    // Update articles table with image URL
-    const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-
-    console.log('[article-produce] [background] Updating article', articleId, 'with image URL:', imageUrl)
-    const { error: updateError, data } = await supabase
-      .from('articles')
-      .update({ image_urls: [imageUrl] })
-      .eq('id', articleId)
-
-    console.log('[article-produce] [background] Update result:', { error: updateError, data })
-
-    if (updateError) {
-      console.error(
-        `[article-produce] [background] Failed to update image_urls for article ${articleId}:`,
-        updateError
-      )
-      return
-    }
-
-    console.log(
-      `[article-produce] [background] ✅ Article ${articleId} successfully updated with image URL`
-    )
-  } catch (err) {
-    console.error(
-      `[article-produce] [background] Unexpected error generating image for article ${articleId}:`,
-      err
-    )
-  }
+  return JSON.parse(jsonMatch[0])
 }
 
 export async function POST(request: NextRequest) {
@@ -258,7 +87,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (userId) {
-      const credit = await checkAndDeductCredits(userId, 'article_generation', `Artikkel — ${platform}: ${topic.slice(0, 50)}`)
+      const credit = await checkAndDeductCredits(
+        userId,
+        'article_generation',
+        `Artikkel — ${platform}: ${topic.slice(0, 50)}`
+      )
       if (!credit.ok) {
         return NextResponse.json({ error: credit.error }, { status: 402 })
       }
@@ -266,77 +99,84 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
 
-    {
+    console.log(`[article-produce] Starting ${platform} article for: "${topic}"`)
+
+    // Step 1: Generate article content with Claude (~5-10s)
+    const { title, content } = await generateArticleContent(topic, platform)
+    console.log(`[article-produce] ✅ Content ready: "${title.substring(0, 60)}..."`)
+
+    // Step 2: Save article immediately (no image yet)
+    const articleId = randomUUID()
+    const { error: insertError } = await supabase.from('articles').insert({
+      id: articleId,
+      product_id: productId,
+      campaign_id: isValidUuid(campaignId) ? campaignId : null,
+      title,
+      platform,
+      content,
+      image_urls: [],
+    })
+
+    if (insertError) {
+      console.error(`[article-produce] DB insert failed`, insertError)
+      throw new Error(`Database insert failed: ${(insertError as any).message}`)
+    }
+
+    console.log(`[article-produce] ✅ Article saved: ${articleId}`)
+
+    // Step 3: Schedule image generation AFTER response is sent (bypasses CDN timeout)
+    after(async () => {
+      console.log(`[article-produce] [after] Generating image for article ${articleId}`)
       try {
-        console.log(`[article-produce] Starting ${platform} article generation for topic: "${topic}"`)
-
-        // Generate article text + image in parallel (avoids serverless termination before image is ready)
-        console.log(`[article-produce] ${platform}: Calling Claude + DALL-E in parallel...`)
-        const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
-        const [{ title, content }, imageResult] = await Promise.all([
-          generateArticleContent(topic, platform),
-          fetch(`${SITE_URL}/api/content/generate-image`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic, productId }),
-          }).then(r => r.ok ? r.json() : null).catch(() => null),
-        ])
-        console.log(`[article-produce] ${platform}: Content generated - title: "${title.substring(0, 50)}..."`)
-        const r2Url: string = imageResult?.imageUrl || ''
-        console.log(`[article-produce] ${platform}: Image URL: ${r2Url ? r2Url.substring(0, 60) + '...' : '(none)'}`)
-
-        // Create article ID
-        const articleId = randomUUID()
-        console.log(`[article-produce] ${platform}: Article ID: ${articleId}`)
-
-        // Insert into database
-        console.log(`[article-produce] ${platform}: Inserting into database...`)
-        const { error: insertError, data: insertData } = await supabase.from('articles').insert({
-          id: articleId,
-          product_id: productId,
-          campaign_id: isValidUuid(campaignId) ? campaignId : null,
-          title,
-          platform,
-          content,
-          image_urls: r2Url ? [r2Url] : [],
+        const imageRes = await fetch(`${SITE_URL}/api/content/generate-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic: title, productId }),
         })
 
-        if (insertError) {
-          console.error(`[article-produce] ${platform}: Database insert failed`, {
-            error: insertError,
-            code: (insertError as any).code,
-            message: (insertError as any).message,
-            details: (insertError as any).details,
-          })
-          throw new Error(`Database insert failed: ${(insertError as any).message}`)
+        if (!imageRes.ok) {
+          const err = await imageRes.json().catch(() => ({}))
+          console.error(`[article-produce] [after] generate-image failed:`, err)
+          return
         }
 
-        console.log(`[article-produce] ✅ ${platform} article successfully created: ${articleId}`)
+        const { imageUrl } = await imageRes.json()
+        if (!imageUrl) {
+          console.error(`[article-produce] [after] No imageUrl in response`)
+          return
+        }
 
-        return NextResponse.json({
-          success: true,
-          article: {
-            id: articleId,
-            platform,
-            title,
-            content,
-            image_url: r2Url || '',
-          },
-        })
-      } catch (error) {
-        console.error(`[article-produce] ❌ Error generating ${platform} article:`, {
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          platform,
-          topic,
-        })
-        throw error
+        const supabaseAfter = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+        const { error: updateError } = await supabaseAfter
+          .from('articles')
+          .update({ image_urls: [imageUrl] })
+          .eq('id', articleId)
+
+        if (updateError) {
+          console.error(`[article-produce] [after] DB update failed:`, updateError)
+        } else {
+          console.log(`[article-produce] [after] ✅ Image set for article ${articleId}: ${imageUrl.substring(0, 60)}`)
+        }
+      } catch (err) {
+        console.error(`[article-produce] [after] Unexpected error:`, err)
       }
-    }
+    })
+
+    // Step 4: Return article immediately — image will appear asynchronously
+    return NextResponse.json({
+      success: true,
+      article: {
+        id: articleId,
+        platform,
+        title,
+        content,
+        image_url: '',
+      },
+    })
   } catch (error) {
     console.error('[article-produce] Error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate articles' },
+      { error: error instanceof Error ? error.message : 'Failed to generate article' },
       { status: 500 }
     )
   }
