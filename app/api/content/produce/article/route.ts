@@ -1,17 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
 import { checkAndDeductCredits } from '@/lib/credits'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
+const R2_ENDPOINT = process.env.R2_ENDPOINT
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'contentforge-assets'
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
 const isValidUuid = (str: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
 
-// Claude ~10s + image ~25s in parallel = ~25s total, within Netlify's CDN window
+// Only needs Claude time (~10s)
 export const maxDuration = 60
 
 interface GenerateArticleRequest {
@@ -61,7 +67,7 @@ Return JSON with:
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}))
-    throw new Error(`Claude API error: ${response.status} ${response.statusText} — ${JSON.stringify(err)}`)
+    throw new Error(`Claude API error: ${response.status} — ${JSON.stringify(err)}`)
   }
 
   const data = await response.json()
@@ -73,6 +79,89 @@ Return JSON with:
   if (!jsonMatch) throw new Error('No JSON found in Claude response')
 
   return JSON.parse(jsonMatch[0])
+}
+
+// Called directly (no CDN), so high quality is fine — takes 30-45s
+async function generateAndSaveImage(articleId: string, topic: string, productId: string): Promise<void> {
+  console.log(`[article-produce] [after] Generating image for: "${topic}"`)
+
+  // 1. Call OpenAI directly
+  const openaiRes = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-image-2',
+      prompt:
+        `Create a clean editorial illustration for an article about: ${topic}. ` +
+        'Style: modern digital illustration with bold colors and clean lines. ' +
+        'Conceptual and metaphorical — avoid photorealism. ' +
+        'Think magazine cover art or editorial infographic style. ' +
+        'No text, letters, words, or typography in the image.',
+      n: 1,
+      size: '1024x1024',
+      quality: 'high',
+    }),
+  })
+
+  if (!openaiRes.ok) {
+    const err = await openaiRes.json().catch(() => ({}))
+    throw new Error(`OpenAI error: ${openaiRes.status} — ${JSON.stringify(err)}`)
+  }
+
+  const imageData = await openaiRes.json()
+  const b64 = imageData.data?.[0]?.b64_json
+  if (!b64) throw new Error('No b64_json in OpenAI response')
+
+  const imageBuffer = Buffer.from(b64, 'base64')
+  console.log(`[article-produce] [after] Image received (${(imageBuffer.byteLength / 1024).toFixed(0)}KB)`)
+
+  // 2. Upload to R2 directly
+  const s3 = new S3Client({
+    region: 'auto',
+    endpoint: R2_ENDPOINT,
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID || '',
+      secretAccessKey: R2_SECRET_ACCESS_KEY || '',
+    },
+  })
+
+  const fileName = `${randomUUID()}.png`
+  const key = `images/articles/${fileName}`
+  await s3.send(new PutObjectCommand({
+    Bucket: R2_BUCKET_NAME,
+    Key: key,
+    Body: imageBuffer,
+    ContentType: 'image/png',
+  }))
+
+  const imageUrl = `${R2_PUBLIC_URL}/${key}`
+  console.log(`[article-produce] [after] Uploaded to R2: ${imageUrl.substring(0, 60)}`)
+
+  // 3. Update article in Supabase
+  const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+
+  const { error } = await supabase
+    .from('articles')
+    .update({ image_urls: [imageUrl] })
+    .eq('id', articleId)
+
+  if (error) {
+    console.error(`[article-produce] [after] Supabase update failed:`, error)
+  } else {
+    console.log(`[article-produce] [after] ✅ Article ${articleId} updated with image`)
+  }
+
+  // 4. Also store in asset_banks
+  await supabase.from('asset_banks').insert({
+    product_id: productId,
+    bank_type: 'image',
+    name: `Article image - ${topic.substring(0, 50)}`,
+    asset_url: imageUrl,
+    asset_type: 'image',
+  }).catch(() => {}) // non-fatal
 }
 
 export async function POST(request: NextRequest) {
@@ -96,30 +185,13 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-
     console.log(`[article-produce] Starting ${platform} article for: "${topic}"`)
 
-    // Generate article text (Claude) + image in parallel
-    // Abort image fetch after 22s so we always respond before the 30s CDN timeout
-    const imageAbort = new AbortController()
-    const imageTimer = setTimeout(() => imageAbort.abort(), 22000)
+    // Generate article content with Claude (~10s)
+    const { title, content } = await generateArticleContent(topic, platform)
+    console.log(`[article-produce] ✅ Content ready: "${title.substring(0, 60)}"`)
 
-    const [{ title, content }, imageResult] = await Promise.all([
-      generateArticleContent(topic, platform),
-      fetch(`${SITE_URL}/api/content/generate-image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, productId }),
-        signal: imageAbort.signal,
-      })
-        .then(r => (r.ok ? r.json() : null))
-        .catch(() => null),
-    ])
-    clearTimeout(imageTimer)
-
-    const imageUrl: string = imageResult?.imageUrl || ''
-    console.log(`[article-produce] ✅ Content: "${title.substring(0, 50)}" | Image: ${imageUrl ? 'OK' : 'none'}`)
-
+    // Save article immediately with no image
     const articleId = randomUUID()
     const { error: insertError } = await supabase.from('articles').insert({
       id: articleId,
@@ -128,16 +200,25 @@ export async function POST(request: NextRequest) {
       title,
       platform,
       content,
-      image_urls: imageUrl ? [imageUrl] : [],
+      image_urls: [],
     })
 
     if (insertError) {
-      console.error(`[article-produce] DB insert failed`, insertError)
       throw new Error(`Database insert failed: ${(insertError as any).message}`)
     }
 
     console.log(`[article-produce] ✅ Article saved: ${articleId}`)
 
+    // Generate image AFTER response — calls OpenAI + R2 directly, no CDN timeout
+    after(async () => {
+      try {
+        await generateAndSaveImage(articleId, title, productId)
+      } catch (err) {
+        console.error(`[article-produce] [after] Image generation failed:`, err)
+      }
+    })
+
+    // Return article immediately — image arrives in DB within ~40s
     return NextResponse.json({
       success: true,
       article: {
@@ -145,7 +226,7 @@ export async function POST(request: NextRequest) {
         platform,
         title,
         content,
-        image_url: imageUrl,
+        image_url: '',
       },
     })
   } catch (error) {
