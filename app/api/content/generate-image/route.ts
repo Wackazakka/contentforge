@@ -20,9 +20,18 @@ interface GenerateImageRequest {
   productId: string
   articleIds?: string[]
   imageSize?: '1024x1024' | '1024x1536' | '1536x1024'
+  imageStyle?: 'tech' | 'editorial' | 'warm' | 'minimal' | 'painterly'
 }
 
-async function generateImageBuffer(topic: string, imageSize: string = '1024x1024'): Promise<Buffer> {
+const VIDEO_STYLE_PROMPTS: Record<string, string> = {
+  tech:      'Premium 3D-rendered CGI scene, sleek metallic surfaces, dramatic studio lighting, deep shadows, photorealistic render.',
+  editorial: 'Bold editorial photography, high-contrast composition, strong graphic lines, magazine cover quality, professional lighting.',
+  warm:      'Warm golden-hour lifestyle photography, natural light, soft bokeh, inviting and human atmosphere, candid feel.',
+  minimal:   'Clean minimalist scene, large negative space, muted Scandinavian palette, simple shapes, calm and airy mood.',
+  painterly: 'Expressive painterly digital illustration, rich visible brushstrokes, vivid saturated colors, artistic cinematic mood.',
+}
+
+async function generateImageBuffer(topic: string, imageSize: string = '1024x1024', imageStyle?: string): Promise<Buffer> {
   console.log('[generateImage] Calling gpt-image-1 (low quality) for:  + topic + ')
 
   const response = await fetch('https://api.openai.com/v1/images/generations', {
@@ -33,13 +42,12 @@ async function generateImageBuffer(topic: string, imageSize: string = '1024x1024
     },
     body: JSON.stringify({
       model: 'gpt-image-1',
-      prompt:
-        'Create a clean editorial illustration for an article about: ' +
-        topic +
-        '. Style: modern digital illustration with bold colors and clean lines. ' +
-        'Conceptual and metaphorical — avoid photorealism. ' +
-        'Think magazine cover art or editorial infographic style. ' +
-        'No text, letters, words, or typography in the image.',
+      prompt: (() => {
+        const styleGuide = (imageStyle && VIDEO_STYLE_PROMPTS[imageStyle])
+          ? VIDEO_STYLE_PROMPTS[imageStyle]
+          : 'Bold editorial photography, high-contrast composition, magazine cover quality, professional lighting.'
+        return styleGuide + ' Visual scene representing: ' + topic + '. No text, letters, words, or typography in the image.'
+      })(),
       n: 1,
       size: imageSize,
       quality: 'low',
@@ -95,7 +103,7 @@ async function uploadBufferToR2(imageBuffer: Buffer, fileName: string): Promise<
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateImageRequest = await request.json()
-    const { topic, productId, articleIds, imageSize = '1024x1024' } = body
+    const { topic, productId, articleIds, imageSize = '1024x1024', imageStyle } = body
 
     if (!topic || !productId) {
       return NextResponse.json({ error: 'Missing topic or productId' }, { status: 400 })
@@ -107,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[generateImage] ===== START:  + topic +  =====')
 
-    const imageBuffer = await generateImageBuffer(topic, imageSize)
+    const imageBuffer = await generateImageBuffer(topic, imageSize, imageStyle)
     const fileName = randomUUID() + '.png'
     const r2Url = await uploadBufferToR2(imageBuffer, fileName)
 
