@@ -126,6 +126,7 @@ export default function ProductPage() {
     font_family: '',
     brand_voice: '',
     brand_guidelines: '',
+    website_url: '',
   })
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
@@ -180,6 +181,7 @@ export default function ProductPage() {
         font_family: profile.font_family || '',
         brand_voice: profile.brand_voice || '',
         brand_guidelines: profile.brand_guidelines ? String(profile.brand_guidelines) : '',
+        website_url: (profile as any).website_url || '',
       })
     }
   }, [profile])
@@ -204,6 +206,7 @@ export default function ProductPage() {
             font_family: profileForm.font_family || null,
             brand_voice: profileForm.brand_voice || null,
             brand_guidelines: profileForm.brand_guidelines || null,
+            website_url: (profileForm as any).website_url || null,
           },
           { onConflict: 'product_id' }
         )
@@ -581,6 +584,18 @@ export default function ProductPage() {
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nettside / produkt-URL</label>
+              <input
+                type="url"
+                value={(profileForm as any).website_url || ""}
+                onChange={(e) => setProfileForm({ ...profileForm, website_url: e.target.value } as any)}
+                placeholder="https://bildeal.ai"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">Brukes som subtil lenke i artikler</p>
             </div>
 
             <button

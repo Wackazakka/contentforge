@@ -26,6 +26,8 @@ interface GenerateArticleRequest {
   topic: string
   platform: string
   imageStyle?: string
+  includeLink?: boolean
+  websiteUrl?: string
 }
 
 async function generateArticleContent(
@@ -54,6 +56,15 @@ Return JSON with:
   "content": "Full article content optimized for ${platform}"
 }`
 
+  const ctaGuides: Record<string, string> = {
+    facebook: 'End the article with a single natural sentence that subtly references this URL: ' + (websiteUrl || '') + '. Keep it brief and unforced. No call-to-action language.',
+    linkedin: 'Close the article with one understated sentence that references this URL: ' + (websiteUrl || '') + '. Make it feel like a natural sign-off, not a sales pitch.',
+    x: 'Add the URL ' + (websiteUrl || '') + ' at the very end on its own line. Nothing else.',
+  }
+  const finalPrompt = (includeLink && websiteUrl)
+    ? prompt + '\n\n' + (ctaGuides[platform] || 'End with: ' + websiteUrl)
+    : prompt
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -64,7 +75,7 @@ Return JSON with:
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: finalPrompt }],
     }),
   })
 
@@ -172,7 +183,7 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateArticleRequest & { userId?: string } = await request.json()
-    const { productId, campaignId, topic, platform, userId, imageStyle } = body
+    const { productId, campaignId, topic, platform, userId, imageStyle, includeLink, websiteUrl } = body
 
     if (!productId || !campaignId || !topic || !platform) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })

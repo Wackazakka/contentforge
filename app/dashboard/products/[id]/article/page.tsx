@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import Link from 'next/link'
+import { getSupabase } from '@/lib/supabaseClient'
 
 // Simple markdown renderer - converts **text** to <strong> and *text* to <em>
 function renderMarkdown(text: string) {
@@ -31,6 +32,8 @@ export default function ArticlePage() {
   const [topic, setTopic] = useState('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['facebook'])
   const [imageStyle, setImageStyle] = useState<string>('tech')
+  const [includeLink, setIncludeLink] = useState(false)
+  const [websiteUrl, setWebsiteUrl] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [articles, setArticles] = useState<Article[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -46,6 +49,21 @@ export default function ArticlePage() {
     { key: 'minimal', name: 'Minimal', desc: 'Rene linjer, hvit bakgrunn, infografikk' },
     { key: 'painterly', name: 'Painterly', desc: 'Malerisk, penselstrøk, kunstnerisk' },
   ]
+  useEffect(() => {
+    if (!productId) return
+    const supabase = getSupabase()
+    supabase
+      .from("product_profiles")
+      .select("website_url")
+      .eq("product_id", productId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && (data as any).website_url) {
+          setWebsiteUrl((data as any).website_url)
+        }
+      })
+  }, [productId])
+
 
   const togglePlatform = (platform: string) => {
     setSelectedPlatforms((prev) =>
@@ -82,6 +100,8 @@ export default function ArticlePage() {
             topic,
             platform,
             imageStyle,
+            includeLink,
+            websiteUrl,
           }),
         }).then(async (response) => {
           if (!response.ok) {
@@ -203,6 +223,24 @@ export default function ArticlePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Product link */}
+              {websiteUrl && (
+                <div className="mb-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeLink}
+                      onChange={(e) => setIncludeLink(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 rounded"
+                    />
+                    <span className="text-sm text-gray-700">Avslutt med lenke til produktet</span>
+                  </label>
+                  {includeLink && (
+                    <p className="text-xs text-gray-400 mt-1 ml-6">{websiteUrl}</p>
+                  )}
+                </div>
+              )}
 
               {/* Error */}
               {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
