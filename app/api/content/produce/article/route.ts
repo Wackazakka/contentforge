@@ -43,6 +43,8 @@ async function generateArticleContent(
 
 Write in the same language as the topic above. If the topic is in English, write in English. If it is in Norwegian, write in Norwegian. Match the language naturally.
 
+IMPORTANT: If you are uncertain about specific facts (dates, names, numbers, historical events, etc.), acknowledge that uncertainty clearly in the text rather than stating them as definite facts. It is better to say "it is believed that..." or "according to some sources..." than to invent specifics. Never guess at facts you are not sure about.
+
 ${platformGuides[platform] || 'Write engaging content'}
 
 Return JSON with:
@@ -93,7 +95,7 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
       Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-image-2',
+      model: 'gpt-image-1',
       prompt:
         `Create a clean editorial illustration for an article about: ${topic}. ` +
         'Style: modern digital illustration with bold colors and clean lines. ' +
