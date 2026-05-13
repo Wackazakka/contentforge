@@ -18,3 +18,8 @@
   RESEND_API_KEY = "re_bUudsDTD_KyYqmyGU7Py9Cf4DRdS5hKzy"
   TIKTOK_CLIENT_KEY = "awt6ad34dk4meat8"
   TIKTOK_CLIENT_SECRET = "JoQ9CwAtA4t6PviqdRylJQ0CtJHaCnAC"
+
+  R2_PUBLIC_URL = "https://pub-c2fde28004c6c81dfe77184575d12d96.r2.dev"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
