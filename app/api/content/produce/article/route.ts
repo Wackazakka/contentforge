@@ -269,21 +269,20 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`[article-produce] Starting ${platform} article generation for topic: "${topic}"`)
 
-        // Generate content
-        console.log(`[article-produce] ${platform}: Calling Claude API...`)
-        const { title, content } = await generateArticleContent(topic, platform)
+        // Generate article text + image in parallel (avoids serverless termination before image is ready)
+        console.log(`[article-produce] ${platform}: Calling Claude + DALL-E in parallel...`)
+        const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
+        const [{ title, content }, imageResult] = await Promise.all([
+          generateArticleContent(topic, platform),
+          fetch(`${SITE_URL}/api/content/generate-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic, productId }),
+          }).then(r => r.ok ? r.json() : null).catch(() => null),
+        ])
         console.log(`[article-produce] ${platform}: Content generated - title: "${title.substring(0, 50)}..."`)
-
-        // Generate image (temporarily disabled - TODO: re-enable after testing)
-        // console.log(`[article-produce] ${platform}: Calling DALL-E API...`)
-        // const imageUrl = await generateImage(topic)
-        // console.log(`[article-produce] ${platform}: Image generated - URL: ${imageUrl.substring(0, 50)}...`)
-
-        // Upload to R2 (temporarily disabled)
-        // console.log(`[article-produce] ${platform}: Uploading image to R2...`)
-        // const r2Url = await uploadImageToR2(imageUrl, campaignId, platform)
-        // console.log(`[article-produce] ${platform}: R2 upload complete - URL: ${r2Url}`)
-        const r2Url = '' // Placeholder until image generation is re-enabled
+        const r2Url: string = imageResult?.imageUrl || ''
+        console.log(`[article-produce] ${platform}: Image URL: ${r2Url ? r2Url.substring(0, 60) + '...' : '(none)'}`)
 
         // Create article ID
         const articleId = randomUUID()
@@ -298,7 +297,7 @@ export async function POST(request: NextRequest) {
           title,
           platform,
           content,
-          image_urls: r2Url ? [r2Url] : [], // Empty array until image generation is re-enabled
+          image_urls: r2Url ? [r2Url] : [],
         })
 
         if (insertError) {
@@ -313,24 +312,16 @@ export async function POST(request: NextRequest) {
 
         console.log(`[article-produce] ✅ ${platform} article successfully created: ${articleId}`)
 
-        // Return article immediately to user
-        const response = NextResponse.json({
+        return NextResponse.json({
           success: true,
           article: {
             id: articleId,
             platform,
             title,
             content,
-            image_url: '', // Will be updated after background image generation
+            image_url: r2Url || '',
           },
         })
-
-        // Generate image in background (non-blocking)
-        generateImageInBackground(articleId, title, topic, campaignId, productId).catch((err) => {
-          console.error(`[article-produce] Background image generation failed for article ${articleId}:`, err)
-        })
-
-        return response
       } catch (error) {
         console.error(`[article-produce] ❌ Error generating ${platform} article:`, {
           error: error instanceof Error ? error.message : String(error),
