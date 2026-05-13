@@ -31,7 +31,7 @@ async function generateImageBuffer(topic: string): Promise<Buffer> {
       Authorization: 'Bearer ' + (OPENAI_API_KEY || ''),
     },
     body: JSON.stringify({
-      model: 'gpt-image-1',
+      model: 'gpt-image-2',
       prompt:
         'Create a clean editorial illustration for an article about: ' +
         topic +
