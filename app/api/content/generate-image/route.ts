@@ -44,7 +44,7 @@ async function generateImageWithDallE(topic: string): Promise<string> {
       statusText: response.statusText,
       error: errorData,
     })
-    throw new Error(`DALL-E API error: ${response.status} ${response.statusText}`)
+    throw new Error(`DALL-E API error: ${response.status} ${response.statusText} — ${JSON.stringify(errorData)}`)
   }
 
   const data = await response.json()
