@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 
@@ -30,6 +30,7 @@ interface Draft {
 export default function DraftPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const productId = params?.id as string
   const draftId = params?.draftId as string
 
@@ -41,7 +42,7 @@ export default function DraftPage() {
   const [showImageBank, setShowImageBank] = useState<number | null>(null)
   const [voicePreviews, setVoicePreviews] = useState<Record<number, string>>({})
   const [voiceLoading, setVoiceLoading] = useState<Record<number, boolean>>({})
-  const [imageStyle, setImageStyle] = useState<string>('editorial')
+  const imageStyle = searchParams?.get('imageStyle') || 'editorial'
 
 
 
@@ -498,39 +499,17 @@ export default function DraftPage() {
         <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex justify-between items-center">
           <div className="text-sm text-gray-600">
             {allApproved ? (
-              <span className="text-green-600 font-medium">✅ Alle segmenter godkjent - klar til produksjon</span>
+              <div className="flex items-center gap-3">
+                <span className="text-green-600 font-medium">✅ Alle segmenter godkjent - klar til produksjon</span>
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  Stil: {{'editorial':'📸 Editorial','tech':'🖥️ Tech','warm':'🌅 Varm','minimal':'⬜ Minimal','painterly':'🎨 Maleri'}[imageStyle] || imageStyle}
+                </span>
+              </div>
             ) : (
               <span className="text-yellow-600 font-medium">
                 ⏳ {draft.segments.filter((s) => !s.approved).length} segment(er) venter på godkjenning
               </span>
             )}
-          </div>
-
-          {/* Image style selector */}
-          <div className="mb-4">
-            <p className="text-sm font-semibold text-gray-700 mb-2">Bildestil</p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: 'editorial', label: '📸 Editorial', desc: 'Høykontrast foto' },
-                { id: 'tech', label: '🖥️ Tech', desc: '3D CGI render' },
-                { id: 'warm', label: '🌅 Varm', desc: 'Livsstilsfoto' },
-                { id: 'minimal', label: '⬜ Minimal', desc: 'Ryddig og stille' },
-                { id: 'painterly', label: '🎨 Maleri', desc: 'Kunstnerisk' },
-              ].map(({ id, label, desc }) => (
-                <button
-                  key={id}
-                  onClick={() => setImageStyle(id)}
-                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                    imageStyle === id
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'
-                  }`}
-                >
-                  <span>{label}</span>
-                  <span className="block text-xs font-normal text-gray-400">{desc}</span>
-                </button>
-              ))}
-            </div>
           </div>
 
           <button

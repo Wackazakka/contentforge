@@ -38,6 +38,7 @@ export default function NewDraftPage() {
   const [musicFile, setMusicFile] = useState<string | null>(null)
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
+  const [imageStyle, setImageStyle] = useState('editorial')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -95,7 +96,7 @@ export default function NewDraftPage() {
       }
 
       const data = await response.json()
-      router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}`)
+      router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Noe gikk galt')
     } finally {
@@ -413,6 +414,36 @@ export default function NewDraftPage() {
                     <p className="text-gray-500 text-sm">Laster musikk-bibliotek...</p>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* BILDESTIL Section */}
+            <div>
+              <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
+                Bildestil
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'editorial', label: '📸 Editorial', desc: 'Høykontrast foto' },
+                  { id: 'tech',      label: '🖥️ Tech',      desc: '3D CGI render' },
+                  { id: 'warm',      label: '🌅 Varm',      desc: 'Livsstilsfoto' },
+                  { id: 'minimal',   label: '⬜ Minimal',   desc: 'Ryddig og stille' },
+                  { id: 'painterly', label: '🎨 Maleri',    desc: 'Kunstnerisk' },
+                ].map(({ id, label, desc }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setImageStyle(id)}
+                    className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
+                      imageStyle === id
+                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    <span>{label}</span>
+                    <span className="block text-xs font-normal text-gray-400 mt-0.5">{desc}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
