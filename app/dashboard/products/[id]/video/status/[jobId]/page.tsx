@@ -16,6 +16,7 @@ export default function VideoStatusPage() {
   const router = useRouter()
   const [job, setJob] = useState<JobStatus | null>(null)
   const [dots, setDots] = useState('')
+  const [videoError, setVideoError] = useState<string | null>(null)
 
   useEffect(() => {
     const poll = async () => {
@@ -88,19 +89,43 @@ export default function VideoStatusPage() {
         {job?.status === 'done' && job.videoUrl && (
           <div>
             <p className="text-green-600 font-semibold text-lg mb-4">✅ Videoen er klar!</p>
-            <video
-              src={job.videoUrl}
-              controls
-              playsInline
-              preload="metadata"
-              className="rounded-xl mb-6 mx-auto"
-              style={{ maxHeight: '600px', maxWidth: '340px', width: '100%' }}
-            />
+            {/* Portrait container — forces 9:16 shape before metadata loads */}
+            <div className="mx-auto mb-6 rounded-xl overflow-hidden bg-black" style={{ maxWidth: '280px', aspectRatio: '9/16' }}>
+              <video
+                controls
+                playsInline
+                preload="auto"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  const v = e.currentTarget
+                  const codeMap: Record<number, string> = { 1: 'ABORTED', 2: 'NETWORK', 3: 'DECODE', 4: 'SRC_NOT_SUPPORTED' }
+                  const msg = `Feil ${v.error?.code}: ${codeMap[v.error?.code ?? 0] ?? 'UNKNOWN'} — ${v.error?.message}`
+                  console.error('[VideoPlayer]', msg, 'src:', v.currentSrc)
+                  setVideoError(msg)
+                }}
+              >
+                <source src={job.videoUrl} type="video/mp4" />
+              </video>
+            </div>
+            {videoError && (
+              <div className="mb-4 text-xs text-red-500 bg-red-50 rounded px-3 py-2 text-left break-all">
+                ⚠️ {videoError}<br />
+                <span className="text-gray-500">URL: {job.videoUrl}</span>
+              </div>
+            )}
             <div className="flex gap-3 justify-center flex-wrap">
               <a
                 href={job.videoUrl}
-                download={`video-${jobId}.mp4`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+              >
+                ▶️ Åpne video
+              </a>
+              <a
+                href={`/api/video-proxy?url=${encodeURIComponent(job.videoUrl)}`}
+                download={`video-${jobId}.mp4`}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
                 ⬇️ Last ned
               </a>
