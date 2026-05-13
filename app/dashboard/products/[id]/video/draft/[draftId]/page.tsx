@@ -47,6 +47,21 @@ export default function DraftPage() {
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
   const formatFromUrl = searchParams?.get('format') || ''
 
+  // Map video format → gpt-image-1 size and display aspect ratio
+  const videoFormat = (draft?.video_format || formatFromUrl || '9:16') as '9:16' | '1:1' | '16:9'
+  const IMAGE_SIZE_MAP: Record<string, '1024x1536' | '1024x1024' | '1536x1024'> = {
+    '9:16': '1024x1536',
+    '1:1':  '1024x1024',
+    '16:9': '1536x1024',
+  }
+  const IMAGE_ASPECT_MAP: Record<string, string> = {
+    '9:16': 'aspect-[9/16]',
+    '1:1':  'aspect-square',
+    '16:9': 'aspect-video',
+  }
+  const imageSize = IMAGE_SIZE_MAP[videoFormat] || '1024x1536'
+  const imageAspect = IMAGE_ASPECT_MAP[videoFormat] || 'aspect-[9/16]'
+
 
 
   useEffect(() => {
@@ -152,7 +167,7 @@ export default function DraftPage() {
         const response = await fetch('/api/content/generate-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic: segment.text, productId, imageSize: '1024x1536', imageStyle }),
+          body: JSON.stringify({ topic: segment.text, productId, imageSize, imageStyle }),
         })
         const data = await response.json()
         if (!response.ok) {
@@ -229,7 +244,7 @@ export default function DraftPage() {
         body: JSON.stringify({
           topic: segment.text,
           productId,
-          imageSize: '1024x1536',
+          imageSize,
           imageStyle,
         }),
       })
@@ -305,8 +320,8 @@ export default function DraftPage() {
 
       console.log('[startProduction] All segments verified as approved')
 
-      // Determine outro card preference from URL param (set when draft was created)
-      const includeOutroCard = searchParams?.get('outro') === '1'
+      // Determine outro card preference: default true unless explicitly disabled (?outro=0)
+      const includeOutroCard = searchParams?.get('outro') !== '0'
 
       // Call start-production API with draftId
       const response = await fetch('/api/start-production', {
@@ -387,30 +402,32 @@ export default function DraftPage() {
           {draft.segments.map((segment, index) => (
             <div key={index} className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="flex gap-6">
-                {/* Image */}
-                <div className="flex-shrink-0 w-48">
-                  {segment.image_url ? (
-                    <img
-                      src={segment.image_url}
-                      alt={`Segment ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                    />
-                  ) : generatingImages.has(index) ? (
-                    <div className="w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center gap-2 animate-pulse">
-                      <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-xs text-gray-500 text-center px-2">Genererer bilde…</span>
-                    </div>
-                  ) : imageErrors[index] ? (
-                    <div className="w-full h-48 bg-red-50 border border-red-200 rounded-lg flex flex-col items-center justify-center gap-1 px-3 text-center">
-                      <span className="text-red-500 text-lg">⚠️</span>
-                      <span className="text-xs text-red-600 font-medium">Bildegenerering feilet</span>
-                      <span className="text-xs text-red-400 break-all">{imageErrors[index]}</span>
-                    </div>
-                  ) : (
-                    <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm">
-                      Ingen bilde
-                    </div>
-                  )}
+                {/* Image — aspect ratio matches video format */}
+                <div className={`flex-shrink-0 ${videoFormat === '16:9' ? 'w-64' : 'w-36'}`}>
+                  <div className={`w-full ${imageAspect} rounded-lg overflow-hidden border border-gray-200 bg-gray-100`}>
+                    {segment.image_url ? (
+                      <img
+                        src={segment.image_url}
+                        alt={`Segment ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : generatingImages.has(index) ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2 animate-pulse">
+                        <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs text-gray-500 text-center px-2">Genererer…</span>
+                      </div>
+                    ) : imageErrors[index] ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 px-2 text-center bg-red-50">
+                        <span className="text-red-500">⚠️</span>
+                        <span className="text-xs text-red-600 font-medium">Feil</span>
+                        <span className="text-xs text-red-400 break-all">{imageErrors[index]}</span>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                        Ingen bilde
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Content */}

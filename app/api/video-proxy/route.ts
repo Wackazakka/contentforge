@@ -6,7 +6,6 @@ export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url')
   if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 })
 
-  // Only allow our own R2 bucket
   try {
     const parsed = new URL(url)
     if (parsed.hostname !== R2_HOST) {
@@ -16,7 +15,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid url' }, { status: 400 })
   }
 
-  // Pass Range header through so browser seeking works
+  // Pass Range header through for seeking support
   const upstreamHeaders: HeadersInit = {}
   const rangeHeader = request.headers.get('Range')
   if (rangeHeader) upstreamHeaders['Range'] = rangeHeader
@@ -24,23 +23,24 @@ export async function GET(request: NextRequest) {
   const upstream = await fetch(url, { headers: upstreamHeaders })
 
   if (!upstream.ok && upstream.status !== 206) {
-    return NextResponse.json({ error: 'Upstream error' }, { status: upstream.status })
+    return NextResponse.json({ error: `Upstream ${upstream.status}` }, { status: upstream.status })
   }
+
+  // Buffer entire response — streaming from Netlify functions is unreliable for video
+  const buffer = await upstream.arrayBuffer()
 
   const responseHeaders = new Headers({
     'Content-Type': 'video/mp4',
     'Accept-Ranges': 'bytes',
+    'Content-Length': String(buffer.byteLength),
     'Cache-Control': 'public, max-age=86400',
   })
 
-  // Pass through range response headers
-  for (const h of ['Content-Length', 'Content-Range', 'ETag', 'Last-Modified']) {
-    const val = upstream.headers.get(h)
-    if (val) responseHeaders.set(h, val)
-  }
+  const contentRange = upstream.headers.get('Content-Range')
+  if (contentRange) responseHeaders.set('Content-Range', contentRange)
 
-  return new NextResponse(upstream.body, {
-    status: upstream.status, // preserves 206 for range responses
+  return new NextResponse(buffer, {
+    status: upstream.status,
     headers: responseHeaders,
   })
 }
