@@ -62,8 +62,8 @@ function Badge({ status }: { status: string }) {
 export default function CalendarPage() {
   const [entries, setEntries] = useState<CalendarEntry[]>([])
   const [loading, setLoading] = useState(true)
-  const [platformFilter, setPlatformFilter] = useState('Alle')
-  const [statusFilter, setStatusFilter] = useState('Alle')
+  const [platformFilter, setPlatformFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState('All')
   const [view, setView] = useState<'table' | 'calendar'>('table')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
