@@ -127,60 +127,39 @@ export default function DraftPage() {
     console.log('[DraftPage] ========== START AUTO IMAGE GENERATION ==========')
     console.log(`[DraftPage] Generating images for ${draftData.segments.length} segments...`)
 
-    const imagePromises = draftData.segments.map(async (segment, index) => {
+    // Generate sequentially to stay within CDN timeout (one ~12s call at a time)
+    for (let index = 0; index < draftData.segments.length; index++) {
+      const segment = draftData.segments[index]
       if (segment.image_url && segment.image_url.trim()) {
-        console.log(`[DraftPage] Segment ${index}: ✅ Already has image`)
-        return { index, imageUrl: segment.image_url }
+        console.log(`[DraftPage] Segment ${index}: already has image`)
+        continue
       }
-
       try {
-        console.log(`[DraftPage] Segment ${index}: Starting generation...`)
+        console.log(`[DraftPage] Segment ${index}: generating...`)
         const response = await fetch('/api/content/generate-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: segment.text,
-            productId,
-          }),
+          body: JSON.stringify({ topic: segment.text, productId }),
         })
-
-        console.log(`[DraftPage] Segment ${index}: API response status ${response.status}`)
-
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          console.error(`[DraftPage] Segment ${index}: ❌ Image generation failed`, errorData)
-          return { index, imageUrl: '' }
+          console.error(`[DraftPage] Segment ${index}: failed (${response.status})`)
+          continue
         }
-
         const data = await response.json()
-        console.log(`[DraftPage] Segment ${index}: ✅ Image generated: ${data.imageUrl.substring(0, 60)}...`)
-        return { index, imageUrl: data.imageUrl }
+        const imageUrl = data.imageUrl || ''
+        console.log(`[DraftPage] Segment ${index}: done`)
+        // Update UI immediately so user sees progress
+        setDraft(prev => {
+          if (!prev) return prev
+          const segs = [...prev.segments]
+          segs[index] = { ...segs[index], image_url: imageUrl }
+          return { ...prev, segments: segs }
+        })
       } catch (err) {
-        console.error(`[DraftPage] Segment ${index}: ❌ Error`, err instanceof Error ? err.message : String(err))
-        return { index, imageUrl: '' }
+        console.error(`[DraftPage] Segment ${index}: error`, err)
       }
-    })
-
-    try {
-      const results = await Promise.all(imagePromises)
-      console.log('[DraftPage] All image generation requests completed')
-      console.log('[DraftPage] Results:', results.map((r) => ({ index: r.index, hasUrl: !!r.imageUrl })))
-
-      // Update draft with generated image URLs
-      const updatedSegments = draftData.segments.map((seg, idx) => {
-        const result = results.find((r) => r.index === idx)
-        return {
-          ...seg,
-          image_url: result?.imageUrl || seg.image_url || '',
-        }
-      })
-
-      setDraft({ ...draftData, segments: updatedSegments })
-      console.log('[DraftPage] ========== ✅ DRAFT UPDATED WITH IMAGES ==========')
-    } catch (err) {
-      console.error('[DraftPage] ========== ❌ ERROR DURING IMAGE GENERATION ==========')
-      console.error('[DraftPage] Error:', err)
     }
+    console.log('[DraftPage] All segments processed')
   }
 
   const toggleApproval = async (index: number) => {

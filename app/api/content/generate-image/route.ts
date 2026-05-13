@@ -22,7 +22,7 @@ interface GenerateImageRequest {
 }
 
 async function generateImageBuffer(topic: string): Promise<Buffer> {
-  console.log('[generateImage] Calling gpt-image-2 (medium quality) for:  + topic + ')
+  console.log('[generateImage] Calling gpt-image-1 (low quality) for:  + topic + ')
 
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
@@ -31,7 +31,7 @@ async function generateImageBuffer(topic: string): Promise<Buffer> {
       Authorization: 'Bearer ' + (OPENAI_API_KEY || ''),
     },
     body: JSON.stringify({
-      model: 'gpt-image-2',
+      model: 'gpt-image-1',
       prompt:
         'Create a clean editorial illustration for an article about: ' +
         topic +
@@ -41,7 +41,7 @@ async function generateImageBuffer(topic: string): Promise<Buffer> {
         'No text, letters, words, or typography in the image.',
       n: 1,
       size: '1024x1024',
-      quality: 'medium',
+      quality: 'low',
     }),
   })
 
