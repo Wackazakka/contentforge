@@ -32,3 +32,22 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Reusable spinner */
+@keyframes cf-spin {
+  to { transform: rotate(360deg); }
+}
+.cf-spinner {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid #d1cec7;
+  border-top-color: #185FA5;
+  border-radius: 50%;
+  animation: cf-spin 0.7s linear infinite;
+}
+.cf-spinner-sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+}

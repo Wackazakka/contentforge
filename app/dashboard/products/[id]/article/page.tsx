@@ -180,7 +180,7 @@ export default function ArticlePage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="hover:underline mb-4 inline-block">
             {t('backToProduct')}
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
@@ -201,7 +201,7 @@ export default function ArticlePage() {
                   onChange={(e) => setTopic(e.target.value)}
                   placeholder={t('topicPlaceholder')}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
                 />
               </div>
 
@@ -215,7 +215,7 @@ export default function ArticlePage() {
                         type="checkbox"
                         checked={selectedPlatforms.includes(platform)}
                         onChange={() => togglePlatform(platform)}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        className="w-4 h-4 text-[#185FA5] rounded focus:ring-2 focus:ring-[#185FA5]"
                       />
                       <span className="ml-2 text-sm text-gray-700 capitalize">{platform}</span>
                     </label>
@@ -231,7 +231,7 @@ export default function ArticlePage() {
                     <button
                       key={style.key}
                       onClick={() => setImageStyle(style.key)}
-                      className={`text-left px-3 py-2 rounded-lg border text-sm transition-colors ${imageStyle === style.key ? "border-blue-500 bg-blue-50 text-blue-800" : "border-gray-200 hover:border-gray-300 text-gray-700"}`}
+                      className={`text-left px-3 py-2 rounded-lg border text-sm transition-colors ${imageStyle === style.key ? "border-[#185FA5] bg-[#EBF4FF] text-[#0C447C]" : "border-gray-200 hover:border-gray-300 text-gray-700"}`}
                     >
                       <span className="font-medium">{style.name}</span>
                       <span className="text-xs text-gray-500 block">{style.desc}</span>
@@ -248,7 +248,7 @@ export default function ArticlePage() {
                       type="checkbox"
                       checked={includeLink}
                       onChange={(e) => setIncludeLink(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 rounded"
+                      className="w-4 h-4 text-[#185FA5] rounded"
                     />
                     <span className="text-sm text-gray-700">{t('endWithCTA')}</span>
                   </label>
@@ -267,7 +267,7 @@ export default function ArticlePage() {
               <button
                 onClick={generateArticles}
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="w-full bg-[#185FA5] hover:bg-[#0C447C] disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 {loading ? t('generating') : t('generate')}
               </button>
@@ -290,7 +290,7 @@ export default function ArticlePage() {
                   <div key={article.id} className="bg-white rounded-lg border border-gray-200 p-6">
                     {/* Platform Badge */}
                     <div className="mb-4">
-                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium capitalize">
+                      <span className="inline-block px-3 py-1 bg-[#EBF4FF] text-[#185FA5] rounded-full text-sm font-medium capitalize">
                         {article.platform}
                       </span>
                     </div>
@@ -305,13 +305,13 @@ export default function ArticlePage() {
                           value={editDraft}
                           onChange={(e) => setEditDraft(e.target.value)}
                           rows={12}
-                          className="w-full px-3 py-2 border border-blue-400 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                          className="w-full px-3 py-2 border border-blue-400 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#185FA5] resize-y"
                         />
                         <div className="flex gap-2 mt-2">
                           <button
                             onClick={() => saveEdit(article.id)}
                             disabled={saving}
-                            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="px-4 py-1.5 bg-[#185FA5] hover:bg-[#0C447C] disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
                           >
                             {saving ? t('saving') : t('saveEdit')}
                           </button>
@@ -342,7 +342,7 @@ export default function ArticlePage() {
                         </button>
                         <button
                           onClick={() => copyToClipboard(article.content)}
-                          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                          className="text-sm hover:underline font-medium"
                         >
                           {t('copy')}
                         </button>
@@ -366,7 +366,7 @@ export default function ArticlePage() {
                 ))}
 
                 {/* Navigation hint */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                <div className="bg-[#EBF4FF] border border-[#c3ddf7] rounded-lg p-4 flex items-start gap-3">
                   <span className="text-xl">💡</span>
                   <div>
                     <p className="text-sm font-medium text-blue-900">{t('backgroundGraphicsNote')}</p>

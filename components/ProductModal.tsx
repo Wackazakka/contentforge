@@ -61,7 +61,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
               placeholder={t('productNamePlaceholder')}
             />
           </div>
@@ -74,7 +74,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
               rows={3}
               placeholder={t('descriptionPlaceholder')}
             />
@@ -88,7 +88,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               disabled={isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
             >
               <option value="product">{t('categoryProduct')}</option>
               <option value="brand">{t('categoryBrand')}</option>
@@ -108,7 +108,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#185FA5] text-white rounded-lg font-medium hover:bg-[#0C447C] disabled:opacity-50"
             >
               {isLoading ? t('creating') : t('createProduct')}
             </button>

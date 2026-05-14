@@ -138,7 +138,7 @@ export default function VideoStatusPage() {
               <a
                 href={`/api/video-proxy?url=${encodeURIComponent(job.videoUrl)}`}
                 download={`video-${jobId}.mp4`}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="bg-[#185FA5] text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
                 {t('download')}
               </a>

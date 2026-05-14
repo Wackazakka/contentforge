@@ -118,7 +118,7 @@ export default function NewDraftPage() {
     <div className="min-h-screen bg-cf-bg">
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header */}
-        <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+        <Link href={`/dashboard/products/${productId}`} className="text-[#185FA5] hover:text-[#0C447C] mb-4 inline-block">
           {t('backToProduct')}
         </Link>
 
@@ -150,7 +150,7 @@ export default function NewDraftPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
                     placeholder={t('titlePlaceholder')}
                   />
                 </div>
@@ -162,7 +162,7 @@ export default function NewDraftPage() {
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     placeholder={t('topicPlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
                     rows={4}
                   />
                 </div>
@@ -173,7 +173,7 @@ export default function NewDraftPage() {
                   <select
                     value={segmentCount}
                     onChange={(e) => setSegmentCount(Number(e.target.value))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
                   >
                     <option value={2}>{t('seg2')}</option>
                     <option value={3}>{t('seg3')}</option>
@@ -191,7 +191,7 @@ export default function NewDraftPage() {
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
                     placeholder={t('targetAudiencePlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
                   />
                 </div>
 
@@ -203,7 +203,7 @@ export default function NewDraftPage() {
                     value={problem}
                     onChange={(e) => setProblem(e.target.value)}
                     placeholder={t('problemPlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
                   />
                 </div>
 
@@ -215,7 +215,7 @@ export default function NewDraftPage() {
                     value={cta}
                     onChange={(e) => setCta(e.target.value)}
                     placeholder={t('ctaPlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -233,7 +233,7 @@ export default function NewDraftPage() {
                   <select
                     value={voiceId}
                     onChange={(e) => setVoiceId(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
                   >
                     {NORWEGIAN_VOICES.map((v) => (
                       <option key={v.id} value={v.id}>
@@ -401,7 +401,7 @@ export default function NewDraftPage() {
                               inputElement.value = ''
                             }
                           }}
-                          className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-blue-600 file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-blue-500"
+                          className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#185FA5] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#0C447C]"
                         />
                       </label>
                     </div>
@@ -480,7 +480,7 @@ export default function NewDraftPage() {
                   type="checkbox"
                   checked={includeOutroCard}
                   onChange={(e) => setIncludeOutroCard(e.target.checked)}
-                  className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 text-[#185FA5] border-gray-300 rounded focus:ring-[#185FA5]"
                 />
                 <div>
                   <div className="text-sm font-medium text-gray-900">
@@ -499,7 +499,7 @@ export default function NewDraftPage() {
                 type="submit"
                 disabled={loading}
                 className={`flex-1 px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
-                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#185FA5] hover:bg-[#0C447C]'
                 }`}
               >
                 {loading ? t('creatingDraft') : t('createDraft')}

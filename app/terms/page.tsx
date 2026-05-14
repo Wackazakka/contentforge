@@ -5,7 +5,7 @@ export default function TermsPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="mb-12">
-          <Link href="/" className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+          <Link href="/" className="text-[#185FA5] hover:text-[#0C447C] mb-4 inline-block">
             ← Back to home
           </Link>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Terms of Service</h1>

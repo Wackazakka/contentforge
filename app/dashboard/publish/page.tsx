@@ -361,7 +361,7 @@ function PublishPage() {
             ? 'bg-green-50 border-green-200 text-green-800'
             : message.startsWith('❌')
             ? 'bg-red-50 border-red-200 text-red-700'
-            : 'bg-blue-50 border-blue-200'
+            : 'bg-[#EBF4FF] border-[#378ADD]'
         }`}>
           {message}
         </div>
@@ -375,7 +375,7 @@ function PublishPage() {
           <button
             onClick={() => { setContentType('video'); setSelectedContent(null) }}
             className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-              contentType === 'video' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              contentType === 'video' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             {t('videoButton')}
@@ -383,7 +383,7 @@ function PublishPage() {
           <button
             onClick={() => { setContentType('article'); setSelectedContent(null) }}
             className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-              contentType === 'article' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              contentType === 'article' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             {t('articleButton')}
@@ -419,7 +419,7 @@ function PublishPage() {
                       key={v.id}
                       onClick={() => setSelectedContent(v)}
                       className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
-                        isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-blue-300'
+                        isSelected ? 'border-[#185FA5] ring-2 ring-[#c3ddf7]' : 'border-gray-200 hover:border-[#378ADD]'
                       }`}
                     >
                       {videoUrl ? (
@@ -428,7 +428,7 @@ function PublishPage() {
                         <div className="w-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl" style={{ height: '100px' }}>🎬</div>
                       )}
                       {isSelected && (
-                        <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">{t('selected')}</div>
+                        <div className="absolute top-2 right-2 bg-[#185FA5] text-white text-xs px-2 py-0.5 rounded-full font-medium">{t('selected')}</div>
                       )}
                       <div className="p-2">
                         <p className="text-xs font-medium truncate text-gray-800">
@@ -454,7 +454,7 @@ function PublishPage() {
                     key={a.id}
                     onClick={() => setSelectedContent(a)}
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedContent?.id === a.id ? 'border-blue-500 bg-blue-50' : 'hover:border-blue-300'
+                      selectedContent?.id === a.id ? 'border-[#185FA5] bg-[#EBF4FF]' : 'hover:border-[#378ADD]'
                     }`}
                   >
                     <p className="text-sm font-medium">{a.title}</p>
@@ -486,7 +486,7 @@ function PublishPage() {
               onChange={(e) => setCaption(e.target.value)}
               rows={4}
               placeholder={t('captionPlaceholder')}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
             />
           </div>
 
@@ -496,7 +496,7 @@ function PublishPage() {
               <button
                 onClick={() => setPublishMode('now')}
                 className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
-                  publishMode === 'now' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  publishMode === 'now' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 {t('publishNow')}
@@ -504,7 +504,7 @@ function PublishPage() {
               <button
                 onClick={() => setPublishMode('schedule')}
                 className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
-                  publishMode === 'schedule' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  publishMode === 'schedule' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 {t('schedule')}
@@ -516,7 +516,7 @@ function PublishPage() {
                 value={scheduledAt}
                 onChange={(e) => setScheduledAt(e.target.value)}
                 min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
               />
             )}
           </div>
@@ -532,7 +532,7 @@ function PublishPage() {
             <button
               onClick={() => setPublishPlatform('facebook')}
               className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                publishPlatform === 'facebook' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                publishPlatform === 'facebook' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               📘 Facebook
@@ -627,7 +627,7 @@ function PublishPage() {
             <button
               onClick={handlePublish}
               disabled={publishing}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
+              className="w-full bg-[#185FA5] hover:bg-[#0C447C] text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
             >
               {publishing ? t('publishingButton') : t('publishNowButton')}
             </button>
@@ -635,7 +635,7 @@ function PublishPage() {
             <button
               onClick={handleSchedule}
               disabled={scheduling || !scheduledAt}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
+              className="w-full bg-[#185FA5] hover:bg-[#0C447C] text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
             >
               {scheduling ? t('schedulingButton') : `${t('scheduleButton')}${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}`}
             </button>
@@ -651,7 +651,7 @@ function PublishPage() {
             <p className="text-gray-500 mb-4 text-sm">{t('noAccounts')}</p>
             {userId ? (
               <div className="flex flex-wrap gap-2">
-                <a href={`/api/auth/facebook?userId=${userId}`} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                <a href={`/api/auth/facebook?userId=${userId}`} className="bg-[#185FA5] text-white px-4 py-2 rounded-lg text-sm">
                   {t('connectFacebook')}
                 </a>
                 <a href={`/api/auth/tiktok?userId=${userId}`} className="bg-black text-white px-4 py-2 rounded-lg text-sm">
@@ -682,7 +682,7 @@ function PublishPage() {
             ))}
             {userId && (
               <div className="flex flex-wrap gap-2 mt-3">
-                <a href={`/api/auth/facebook?userId=${userId}`} className="text-sm text-blue-600 hover:underline">
+                <a href={`/api/auth/facebook?userId=${userId}`} className="text-sm text-[#185FA5] hover:underline">
                   + {t('connectFacebook')}
                 </a>
                 <a href={`/api/auth/tiktok?userId=${userId}`} className="text-sm text-gray-800 hover:underline">

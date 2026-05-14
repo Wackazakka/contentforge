@@ -74,7 +74,7 @@ export default function DashboardPage() {
   if (loadingOrg) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="text-gray-500">{t('loading')}</div>
+        <div className="cf-spinner" />
       </div>
     )
   }
@@ -82,9 +82,11 @@ export default function DashboardPage() {
   return (
     <div>
       {organizationName && (
-        <div className="mb-6 p-4 rounded-xl border" style={{ backgroundColor: '#EBF4FF', borderColor: '#378ADD' }}>
-          <p className="text-sm font-medium" style={{ color: '#185FA5' }}>
-            {organizationName} · {products.length} {products.length !== 1 ? t('products') : t('product')}
+        <div className="mb-5 flex items-center justify-between">
+          <p className="text-sm font-medium" style={{ color: '#6b7280' }}>
+            <span style={{ color: '#2C2C2A', fontWeight: 600 }}>{organizationName}</span>
+            {' · '}
+            {products.length} {products.length !== 1 ? t('products') : t('product')}
           </p>
         </div>
       )}
@@ -103,7 +105,9 @@ export default function DashboardPage() {
         </div>
 
         {productsLoading ? (
-          <div className="text-center text-gray-500 py-8">{t('loadingProducts')}</div>
+          <div className="flex items-center justify-center py-12">
+            <div className="cf-spinner" />
+          </div>
         ) : products.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-8">
             <div className="max-w-sm mx-auto text-center">
@@ -145,32 +149,38 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((product) => (
-              <Link
-                key={product.id}
-                href={`/dashboard/products/${product.id}`}
-                className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-blue-300 transition-all group"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
-                      {product.name}
-                    </h3>
-                    {product.category && (
-                      <p className="text-xs text-gray-500 mt-0.5 capitalize">{product.category}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => { e.preventDefault(); handleDeleteProduct(product.id) }}
-                    className="text-gray-300 hover:text-red-500 text-sm ml-2 transition-colors flex-shrink-0"
-                  >
-                    🗑
-                  </button>
-                </div>
-                {product.description && (
-                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">{product.description}</p>
-                )}
-                <p className="text-xs text-gray-400">{t('created', { date: formatDate(product.created_at) })}</p>
-              </Link>
+              <div key={product.id} className="relative group">
+                <Link
+                  href={`/dashboard/products/${product.id}`}
+                  className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md hover:border-blue-200 transition-all block"
+                >
+                  <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors truncate pr-6">
+                    {product.name}
+                  </h3>
+                  {product.category && (
+                    <span
+                      className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full capitalize"
+                      style={{ backgroundColor: '#EBF4FF', color: '#185FA5' }}
+                    >
+                      {product.category}
+                    </span>
+                  )}
+                  {product.description && (
+                    <p className="text-sm text-gray-500 mt-2 mb-3 line-clamp-2 leading-relaxed">{product.description}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-3">{t('created', { date: formatDate(product.created_at) })}</p>
+                </Link>
+                {/* Delete — top-right, only visible on hover */}
+                <button
+                  onClick={() => handleDeleteProduct(product.id)}
+                  title="Slett produkt"
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50"
+                >
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                    <path d="M1 3h12M5 3V2h4v1M2 3l1 9h8l1-9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             ))}
           </div>
         )}

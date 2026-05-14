@@ -375,7 +375,7 @@ export default function DraftPage() {
     return (
       <div className="min-h-screen bg-cf-bg">
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[#185FA5] hover:text-[#0C447C] mb-4 inline-block">
             {t('backToProduct')}
           </Link>
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">{error || t('draftNotFound')}</div>
@@ -389,7 +389,7 @@ export default function DraftPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[#185FA5] hover:text-[#0C447C] mb-4 inline-block">
             {t('backToProduct')}
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
@@ -401,10 +401,10 @@ export default function DraftPage() {
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg px-5 py-4 flex items-center gap-3">
             <div className="w-5 h-5 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-blue-800">
+              <p className="text-sm font-medium text-[#0C447C]">
                 {t('generatingImages', { done: draft.segments.length - generatingImages.size, total: draft.segments.length })}
               </p>
-              <p className="text-xs text-blue-600 mt-0.5">{t('generatingImagesHint')}</p>
+              <p className="text-xs text-[#185FA5] mt-0.5">{t('generatingImagesHint')}</p>
             </div>
           </div>
         )}
@@ -457,7 +457,7 @@ export default function DraftPage() {
                           updatedSegments[index].text = e.target.value
                           setDraft({ ...draft, segments: updatedSegments })
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
                         rows={2}
                       />
                     </div>
@@ -472,7 +472,7 @@ export default function DraftPage() {
                           updatedSegments[index].voiceover = e.target.value
                           setDraft({ ...draft, segments: updatedSegments })
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
                         rows={3}
                       />
 
@@ -516,7 +516,7 @@ export default function DraftPage() {
                       className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                         segment.approved
                           ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-[#185FA5] hover:bg-[#0C447C] text-white'
                       }`}
                     >
                       {segment.approved ? t('approvedButton') : t('approveButton')}
