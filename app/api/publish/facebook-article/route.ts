@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Fetch article to get image_urls
+    // Fetch article image, fall back to product logo
     let imageUrl: string | undefined = undefined
     if (articleId) {
       console.log('[publish/facebook-article] Fetching article image_urls for:', articleId)
@@ -37,7 +37,20 @@ export async function POST(request: Request) {
         imageUrl = article.image_urls[0] as string
         console.log('[publish/facebook-article] Article has image:', imageUrl.substring(0, 50) + '...')
       } else {
-        console.log('[publish/facebook-article] Article has no image, will use text post')
+        console.log('[publish/facebook-article] Article has no image, checking product logo...')
+      }
+    }
+
+    // Fall back to product logo if no article image
+    if (!imageUrl && productId) {
+      const { data: profile } = await supabase
+        .from('product_profiles')
+        .select('logo_url')
+        .eq('product_id', productId)
+        .maybeSingle()
+      if (profile?.logo_url) {
+        imageUrl = profile.logo_url
+        console.log('[publish/facebook-article] Using product logo as image')
       }
     }
 
