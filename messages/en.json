@@ -228,7 +228,7 @@
     "contentProduction": "Content production",
     "createVideo": "Create video",
     "createVideoDesc": "Generate video content directly",
-    "createVideoApproval": "Create video with approval",
+    "createVideoApproval": "Create video",
     "createVideoApprovalDesc": "Generate and approve before production",
     "createArticle": "Create article",
     "createArticleDesc": "Generate AI-powered article content",
