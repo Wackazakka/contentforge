@@ -75,7 +75,9 @@ export async function POST(request: Request) {
 
         console.log('[publish/facebook-article] Posting article to page:', pageId)
 
-        const postContent = `${articleTitle}\n\n${articleContent}`
+        // Strip internal CTA marker and replace with a clean line break
+        const cleanedContent = articleContent.replace('\n\n---CTA---\n', '\n\n')
+        const postContent = `${articleTitle}\n\n${cleanedContent}`
         let postRes, postData, postId
 
         if (imageUrl) {
