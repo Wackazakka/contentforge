@@ -50,7 +50,7 @@ async function generateArticleContent(
 
 Write in the same language as the topic above. If the topic is in English, write in English. If it is in Norwegian, write in Norwegian. Match the language naturally.
 
-IMPORTANT: If you are uncertain about specific facts (dates, names, numbers, historical events, etc.), acknowledge that uncertainty clearly in the text rather than stating them as definite facts. It is better to say "it is believed that..." or "according to some sources..." than to invent specifics. Never guess at facts you are not sure about.
+Be specific and concrete — mention real names, models, and examples where you know them. If you are genuinely uncertain about a specific fact (an exact number, date, or technical detail), acknowledge it briefly, but do not let uncertainty stop you from writing a specific, engaging article. Vague articles that avoid all concrete details are unhelpful.
 
 ${platformGuides[platform] || 'Write engaging content'}
 

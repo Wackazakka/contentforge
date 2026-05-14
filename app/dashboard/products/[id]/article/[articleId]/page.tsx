@@ -136,8 +136,7 @@ export default function ArticleDetailPage() {
               <img
                 src={article.image_urls[0]}
                 alt={article.title}
-                className="w-full rounded-xl object-cover"
-                style={{ maxHeight: '400px' }}
+                className="w-full rounded-xl object-contain bg-gray-50"
               />
               <button
                 onClick={() => setSwapOpen(true)}
