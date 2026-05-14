@@ -60,11 +60,9 @@ Return JSON with:
   "content": "Full article content optimized for ${platform}"
 }`
 
-  // If a fixed CTA text is provided, append it verbatim — don't ask Claude to invent one
+  // If no fixed CTA, ask Claude to generate a subtle URL reference
   let finalPrompt: string
-  if (includeLink && ctaText?.trim()) {
-    finalPrompt = prompt + `\n\nEnd the article by appending this exact sentence on a new line (do not paraphrase or change it): "${ctaText.trim()}"`
-  } else if (includeLink && websiteUrl) {
+  if (includeLink && websiteUrl && !ctaText?.trim()) {
     const ctaGuides: Record<string, string> = {
       facebook: 'End the article with a single natural sentence that subtly references this URL: ' + websiteUrl + '. Keep it brief and unforced. No call-to-action language.',
       linkedin: 'Close the article with one understated sentence that references this URL: ' + websiteUrl + '. Make it feel like a natural sign-off, not a sales pitch.',
@@ -102,7 +100,14 @@ Return JSON with:
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('No JSON found in Claude response')
 
-  return JSON.parse(jsonMatch[0])
+  const parsed = JSON.parse(jsonMatch[0])
+
+  // Append fixed CTA verbatim in code — never rely on Claude to do it
+  if (includeLink && ctaText?.trim()) {
+    parsed.content = (parsed.content as string).trimEnd() + '\n\n' + ctaText.trim()
+  }
+
+  return parsed
 }
 
 // Called directly (no CDN), so high quality is fine — takes 30-45s
