@@ -25,8 +25,5 @@
 [functions]
   directory = "netlify/functions"
 
-[functions."cron-publish"]
-  schedule = "*/10 * * * *"
-
 [[plugins]]
   package = "@netlify/plugin-nextjs"

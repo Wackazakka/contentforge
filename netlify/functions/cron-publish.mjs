@@ -1,13 +1,10 @@
 /**
- * Netlify Scheduled Function — fires every 10 minutes to publish
- * any rows in scheduled_publications that are past their scheduled_at time.
- *
- * Schedule is configured in netlify.toml:
- *   [functions."cron-publish"]
- *     schedule = "*/10 * * * *"
+ * Netlify Scheduled Function (v2) — fires every 10 minutes.
+ * Calls /api/cron/publish-scheduled to publish any rows in
+ * scheduled_publications that are past their scheduled_at time.
  */
 
-export const handler = async () => {
+export default async () => {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://contentforge-610.netlify.app'
 
   try {
@@ -22,15 +19,13 @@ export const handler = async () => {
     const data = await res.json()
     console.log('[cron-publish] Result:', JSON.stringify(data))
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(data),
-    }
+    return new Response(JSON.stringify(data), { status: 200 })
   } catch (err) {
     console.error('[cron-publish] Error calling publish endpoint:', err)
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: String(err) }),
-    }
+    return new Response(JSON.stringify({ error: String(err) }), { status: 500 })
   }
+}
+
+export const config = {
+  schedule: '*/10 * * * *',
 }
