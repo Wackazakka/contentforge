@@ -243,7 +243,7 @@ export default function NewDraftPage() {
 
                 {/* Tone */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Tone</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Tekst-tone</label>
                   <div className="flex gap-2 flex-wrap">
                     {['Vennlig', 'Energisk', 'Profesjonell', 'Rolig'].map((t) => (
                       <button
