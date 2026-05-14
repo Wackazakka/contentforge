@@ -17,22 +17,42 @@ interface Article {
 }
 
 function renderMarkdown(text: string) {
-  const paragraphs = text
-    .split(/\n{2,}/)
-    .map((para) =>
-      para
-        .replace(/\n/g, ' ')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .trim()
-    )
-    .filter(Boolean)
+  const [mainContent, ctaContent] = text.split('\n\n---CTA---\n')
+
+  const renderParagraphs = (str: string) =>
+    str
+      .split(/\n{2,}/)
+      .map((para) =>
+        para
+          .replace(/\n/g, ' ')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .trim()
+      )
+      .filter(Boolean)
+
+  const mainParagraphs = renderParagraphs(mainContent)
+  const ctaParagraphs = ctaContent ? renderParagraphs(ctaContent) : []
 
   return (
     <div className="space-y-4">
-      {paragraphs.map((p, i) => (
+      {mainParagraphs.map((p, i) => (
         <p key={i} dangerouslySetInnerHTML={{ __html: p }} />
       ))}
+      {ctaParagraphs.length > 0 && (
+        <>
+          <hr className="border-gray-200 my-2" />
+          <div className="space-y-1">
+            {ctaParagraphs.map((p, i) => (
+              <p
+                key={i}
+                className="text-sm text-gray-500 italic"
+                dangerouslySetInnerHTML={{ __html: p }}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

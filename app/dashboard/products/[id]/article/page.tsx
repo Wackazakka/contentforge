@@ -6,13 +6,21 @@ import { useAuth } from '@/lib/authContext'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 
-// Simple markdown renderer - converts **text** to <strong> and *text* to <em>
 function renderMarkdown(text: string) {
-  const html = text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-  
-  return <div dangerouslySetInnerHTML={{ __html: html }} />
+  const [mainContent, ctaContent] = text.split('\n\n---CTA---\n')
+  const fmt = (s: string) =>
+    s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
+  return (
+    <div>
+      <div dangerouslySetInnerHTML={{ __html: fmt(mainContent) }} />
+      {ctaContent && (
+        <>
+          <hr className="border-gray-300 my-3" />
+          <p className="text-xs text-gray-400 italic" dangerouslySetInnerHTML={{ __html: fmt(ctaContent) }} />
+        </>
+      )}
+    </div>
+  )
 }
 
 interface Article {
