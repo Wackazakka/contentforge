@@ -40,6 +40,9 @@ export default function ArticlePage() {
   const [error, setError] = useState<string | null>(null)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [imageLoading, setImageLoading] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editDraft, setEditDraft] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const platforms = ['facebook', 'linkedin', 'x']
 
@@ -130,6 +133,36 @@ export default function ArticlePage() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     alert('Copied to clipboard!')
+  }
+
+  const startEdit = (article: Article) => {
+    setEditingId(article.id)
+    setEditDraft(article.content)
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditDraft('')
+  }
+
+  const saveEdit = async (articleId: string) => {
+    setSaving(true)
+    try {
+      const supabase = getSupabase()
+      const { error } = await supabase
+        .from('articles')
+        .update({ content: editDraft })
+        .eq('id', articleId)
+      if (error) throw error
+      setArticles((prev) =>
+        prev.map((a) => (a.id === articleId ? { ...a, content: editDraft } : a))
+      )
+      setEditingId(null)
+    } catch (err) {
+      alert('Feil ved lagring: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -256,19 +289,55 @@ export default function ArticlePage() {
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">{article.title}</h3>
 
                     {/* Content */}
-                    <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-48 overflow-y-auto">
-                      <div className="text-gray-700 whitespace-pre-wrap text-sm">
-                        {renderMarkdown(article.content)}
+                    {editingId === article.id ? (
+                      <div className="mb-4">
+                        <textarea
+                          value={editDraft}
+                          onChange={(e) => setEditDraft(e.target.value)}
+                          rows={12}
+                          className="w-full px-3 py-2 border border-blue-400 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => saveEdit(article.id)}
+                            disabled={saving}
+                            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
+                          >
+                            {saving ? 'Lagrer...' : '✅ Lagre'}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                          >
+                            Avbryt
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="bg-gray-50 rounded-lg p-4 mb-2 max-h-48 overflow-y-auto">
+                        <div className="text-gray-700 whitespace-pre-wrap text-sm">
+                          {renderMarkdown(article.content)}
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Copy Button */}
-                    <button
-                      onClick={() => copyToClipboard(article.content)}
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium mb-4"
-                    >
-                      📋 Copy content
-                    </button>
+                    {/* Action buttons */}
+                    {editingId !== article.id && (
+                      <div className="flex gap-3 mb-4">
+                        <button
+                          onClick={() => startEdit(article)}
+                          className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                        >
+                          ✏️ Rediger
+                        </button>
+                        <button
+                          onClick={() => copyToClipboard(article.content)}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          📋 Kopier
+                        </button>
+                      </div>
+                    )}
 
                     {/* Image */}
                     {article.image_url && (
