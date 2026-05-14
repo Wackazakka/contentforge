@@ -285,6 +285,24 @@ export default function ArticlePage() {
                     )}
                   </div>
                 ))}
+
+                {/* Navigation hint */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                  <span className="text-xl">💡</span>
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">Grafikk genereres i bakgrunnen</p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Ferdig artikkel med bilde og publiseringsknapp finner du under{' '}
+                      <Link
+                        href={`/dashboard/products/${productId}`}
+                        className="underline font-medium hover:text-blue-900"
+                      >
+                        Produktsiden → Artikler
+                      </Link>
+                      {' '}om ca. 30–60 sekunder.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
