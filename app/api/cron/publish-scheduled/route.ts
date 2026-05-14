@@ -1,7 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-async function runCron() {
+async function runCron(request?: NextRequest) {
+  // Allow internal Netlify scheduler (no secret) or requests with the correct secret
+  const secret = process.env.CRON_SECRET
+  if (secret && request) {
+    const provided =
+      request.headers.get('x-cron-secret') ||
+      new URL(request.url).searchParams.get('secret')
+    if (provided !== secret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -157,5 +168,5 @@ async function runCron() {
   return NextResponse.json({ published: publishedCount, results })
 }
 
-export async function POST() { return runCron() }
-export async function GET() { return runCron() }
+export async function POST(request: NextRequest) { return runCron(request) }
+export async function GET(request: NextRequest) { return runCron(request) }
