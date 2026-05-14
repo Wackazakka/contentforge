@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type AssetStatus = "pending" | "approved" | "rejected";
 
@@ -32,10 +33,10 @@ interface Props {
   videoSrc: string | null;
 }
 
-const STATUS_CONFIG: Record<AssetStatus, { label: string; classes: string }> = {
-  pending: { label: "Venter", classes: "bg-gray-100 text-gray-600" },
-  approved: { label: "Godkjent", classes: "bg-green-100 text-green-700" },
-  rejected: { label: "Avvist", classes: "bg-red-100 text-red-600" },
+const STATUS_CLASSES: Record<AssetStatus, string> = {
+  pending: "bg-gray-100 text-gray-600",
+  approved: "bg-green-100 text-green-700",
+  rejected: "bg-red-100 text-red-600",
 };
 
 export default function AssetApprovalPanel({
@@ -46,6 +47,7 @@ export default function AssetApprovalPanel({
   musicTracks,
 }: Props) {
   const router = useRouter();
+  const t = useTranslations('assetApproval');
 
   const [imageStatuses, setImageStatuses] = useState<Record<string, AssetStatus>>(
     Object.fromEntries(images.map((img) => [img.id, "pending" as AssetStatus]))
@@ -78,7 +80,7 @@ export default function AssetApprovalPanel({
       });
       if (!res.ok) {
         const err = await res.json() as { error?: string };
-        throw new Error(err.error ?? "Ukjent feil");
+        throw new Error(err.error ?? "Unknown error");
       }
       const data = await res.json() as { jobId: string };
       router.push(`/dashboard/${data.jobId}`);
@@ -104,9 +106,9 @@ export default function AssetApprovalPanel({
       {/* Approval progress bar */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-gray-700">Godkjenningsstatus</span>
+          <span className="text-sm font-semibold text-gray-700">{t('approvalStatus')}</span>
           <span className="text-sm text-gray-500">
-            {approvedCount} / {totalCount} godkjent
+            {t('approvedOf', { count: approvedCount, total: totalCount })}
           </span>
         </div>
         <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -121,11 +123,12 @@ export default function AssetApprovalPanel({
       {images.length > 0 && (
         <section>
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            Bilder
+            {t('imagesSection')}
             <SectionBadge
               allApproved={allImagesApproved}
               count={approvedImages}
               total={images.length}
+              labelAllApproved={t('allApproved')}
             />
           </h3>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -142,6 +145,16 @@ export default function AssetApprovalPanel({
                   setImageStatuses((s) => ({ ...s, [img.id]: "rejected" }))
                 }
                 onRegenerate={() => handleRegenerate(img.id, "image")}
+                labels={{
+                  approve: t('approve'),
+                  reject: t('reject'),
+                  regenerate: t('regenerate'),
+                  regenerating: t('regenerating'),
+                  preview: t('preview'),
+                  download: t('download'),
+                  statusApproved: t('statusApproved'),
+                  statusRejected: t('statusRejected'),
+                }}
               />
             ))}
           </div>
@@ -152,11 +165,12 @@ export default function AssetApprovalPanel({
       {voiceovers.length > 0 && (
         <section>
           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            Voiceover
+            {t('voiceoverSection')}
             <SectionBadge
               allApproved={allVoiceoversApproved}
               count={approvedVoiceovers}
               total={voiceovers.length}
+              labelAllApproved={t('allApproved')}
             />
           </h3>
           <div className="flex flex-col gap-3">
@@ -173,6 +187,14 @@ export default function AssetApprovalPanel({
                   setVoiceoverStatuses((s) => ({ ...s, [vo.id]: "rejected" }))
                 }
                 onRegenerate={() => handleRegenerate(vo.id, "voiceover")}
+                labels={{
+                  approve: t('approve'),
+                  reject: t('reject'),
+                  regenerate: t('regenerate'),
+                  regeneratingVoiceover: t('regeneratingVoiceover'),
+                  statusApproved: t('statusApproved'),
+                  statusRejected: t('statusRejected'),
+                }}
               />
             ))}
           </div>
@@ -182,7 +204,7 @@ export default function AssetApprovalPanel({
       {/* Musikk */}
       {musicTracks.length > 0 && (
         <section>
-          <h3 className="font-semibold text-gray-900 mb-4">Bakgrunnsmusikk</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">{t('musicSection')}</h3>
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center flex-shrink-0">
@@ -200,7 +222,7 @@ export default function AssetApprovalPanel({
                   {musicTracks[activeTrackIndex].label}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Spor {activeTrackIndex + 1} av {musicTracks.length}
+                  {t('trackOf', { current: activeTrackIndex + 1, total: musicTracks.length })}
                 </p>
               </div>
             </div>
@@ -231,7 +253,7 @@ export default function AssetApprovalPanel({
                 type="button"
                 className="text-xs rounded-full px-3 py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors"
               >
-                Bytt musikk
+                {t('changeMusic')}
               </button>
             </div>
           </div>
@@ -250,7 +272,7 @@ export default function AssetApprovalPanel({
             onClick={handleProduksjon}
             title={
               !canProduce && !isSubmitting
-                ? `Godkjenn alle assets først (${approvedCount}/${totalCount})`
+                ? t('titleTooltip', { count: approvedCount, total: totalCount })
                 : undefined
             }
             className={`rounded-full px-8 py-2.5 text-sm font-semibold transition-colors ${
@@ -260,10 +282,10 @@ export default function AssetApprovalPanel({
             }`}
           >
             {isSubmitting
-              ? "Starter..."
+              ? t('starting')
               : canProduce
-                ? "Start produksjon"
-                : `Start produksjon (${approvedCount}/${totalCount} godkjent)`}
+                ? t('startProduction')
+                : t('startProductionWithCount', { count: approvedCount, total: totalCount })}
           </button>
         </div>
       </div>
@@ -275,10 +297,12 @@ function SectionBadge({
   allApproved,
   count,
   total,
+  labelAllApproved,
 }: {
   allApproved: boolean;
   count: number;
   total: number;
+  labelAllApproved: string;
 }) {
   return (
     <span
@@ -288,7 +312,7 @@ function SectionBadge({
           : "bg-gray-100 text-gray-500"
       }`}
     >
-      {allApproved ? "Alle godkjent" : `${count}/${total}`}
+      {allApproved ? labelAllApproved : `${count}/${total}`}
     </span>
   );
 }
@@ -306,6 +330,7 @@ function ImageCard({
   onApprove,
   onReject,
   onRegenerate,
+  labels,
 }: {
   asset: ImageAsset;
   status: AssetStatus;
@@ -313,7 +338,9 @@ function ImageCard({
   onApprove: () => void;
   onReject: () => void;
   onRegenerate: () => void;
+  labels: { approve: string; reject: string; regenerate: string; regenerating: string; preview: string; download: string; statusApproved: string; statusRejected: string };
 }) {
+  const statusLabel = status === "approved" ? labels.statusApproved : labels.statusRejected;
   return (
     <div
       className={`rounded-xl border-2 bg-white overflow-hidden shadow-sm transition-colors ${
@@ -331,7 +358,7 @@ function ImageCard({
         {regenerating ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gray-50">
             <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-gray-500">Regenererer...</p>
+            <p className="text-xs text-gray-500">{labels.regenerating}</p>
           </div>
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
@@ -343,9 +370,9 @@ function ImageCard({
         )}
         {status !== "pending" && !regenerating && (
           <div
-            className={`absolute top-2 right-2 text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_CONFIG[status].classes}`}
+            className={`absolute top-2 right-2 text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_CLASSES[status]}`}
           >
-            {STATUS_CONFIG[status].label}
+            {statusLabel}
           </div>
         )}
       </div>
@@ -367,7 +394,7 @@ function ImageCard({
                 : "border-green-300 text-green-700 hover:bg-green-50 bg-white"
             }`}
           >
-            Godkjenn
+            {labels.approve}
           </button>
           <button
             type="button"
@@ -379,7 +406,7 @@ function ImageCard({
                 : "border-red-200 text-red-600 hover:bg-red-50 bg-white"
             }`}
           >
-            Avvis
+            {labels.reject}
           </button>
           <button
             type="button"
@@ -387,7 +414,7 @@ function ImageCard({
             onClick={onRegenerate}
             className="flex-1 text-xs rounded-full py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors disabled:opacity-50"
           >
-            {regenerating ? "..." : "Regenerer"}
+            {regenerating ? "..." : labels.regenerate}
           </button>
         </div>
 
@@ -398,14 +425,14 @@ function ImageCard({
             rel="noopener noreferrer"
             className="flex-1 text-center text-xs rounded-full py-1.5 font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 bg-white transition-colors"
           >
-            Forhåndsvis
+            {labels.preview}
           </a>
           <a
             href={asset.src}
             download
             className="flex-1 text-center text-xs rounded-full py-1.5 font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 bg-white transition-colors"
           >
-            Last ned
+            {labels.download}
           </a>
         </div>
       </div>
@@ -420,6 +447,7 @@ function VoiceoverCard({
   onApprove,
   onReject,
   onRegenerate,
+  labels,
 }: {
   asset: AudioAsset;
   status: AssetStatus;
@@ -427,7 +455,9 @@ function VoiceoverCard({
   onApprove: () => void;
   onReject: () => void;
   onRegenerate: () => void;
+  labels: { approve: string; reject: string; regenerate: string; regeneratingVoiceover: string; statusApproved: string; statusRejected: string };
 }) {
+  const statusLabel = status === "approved" ? labels.statusApproved : labels.statusRejected;
   return (
     <div
       className={`rounded-xl border-2 bg-white p-4 shadow-sm transition-colors ${
@@ -455,9 +485,9 @@ function VoiceoverCard({
         </div>
         {status !== "pending" && (
           <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_CONFIG[status].classes}`}
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_CLASSES[status]}`}
           >
-            {STATUS_CONFIG[status].label}
+            {statusLabel}
           </span>
         )}
       </div>
@@ -465,7 +495,7 @@ function VoiceoverCard({
       {regenerating ? (
         <div className="flex items-center gap-2 py-3 mb-3">
           <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          <p className="text-xs text-gray-500">Regenererer voiceover...</p>
+          <p className="text-xs text-gray-500">{labels.regeneratingVoiceover}</p>
         </div>
       ) : (
         <audio
@@ -486,7 +516,7 @@ function VoiceoverCard({
               : "border-green-300 text-green-700 hover:bg-green-50 bg-white"
           }`}
         >
-          Godkjenn
+          {labels.approve}
         </button>
         <button
           type="button"
@@ -498,7 +528,7 @@ function VoiceoverCard({
               : "border-red-200 text-red-600 hover:bg-red-50 bg-white"
           }`}
         >
-          Avvis
+          {labels.reject}
         </button>
         <button
           type="button"
@@ -506,7 +536,7 @@ function VoiceoverCard({
           onClick={onRegenerate}
           className="flex-1 text-xs rounded-full py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors disabled:opacity-50"
         >
-          {regenerating ? "..." : "Regenerer"}
+          {regenerating ? "..." : labels.regenerate}
         </button>
       </div>
     </div>

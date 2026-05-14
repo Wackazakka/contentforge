@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 const NORWEGIAN_VOICES = [
   { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Norsk stemme 1' },
@@ -23,6 +24,7 @@ const VIDEO_FORMATS = [
 export default function NewDraftPage() {
   const router = useRouter()
   const params = useParams()
+  const t = useTranslations('newDraft')
   const productId = params?.id as string
 
   const [topic, setTopic] = useState('')
@@ -62,11 +64,11 @@ export default function NewDraftPage() {
     e.preventDefault()
 
     if (!title.trim()) {
-      setError('Vennligst skriv inn en tittel')
+      setError(t('errorNoTitle'))
       return
     }
     if (!topic.trim()) {
-      setError('Vennligst skriv inn et tema')
+      setError(t('errorNoTopic'))
       return
     }
 
@@ -100,13 +102,13 @@ export default function NewDraftPage() {
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Feil ved opprettelse av draft')
+        throw new Error(data.error || 'Error creating draft')
       }
 
       const data = await response.json()
       router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}&format=${encodeURIComponent(videoFormat)}&outro=${includeOutroCard ? '1' : '0'}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Noe gikk galt')
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
@@ -117,12 +119,12 @@ export default function NewDraftPage() {
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header */}
         <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
-          ← Tilbake til produkt
+          {t('backToProduct')}
         </Link>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Opprett ny video-draft</h1>
-          <p className="text-gray-600 mt-2">Definer tema og innstillinger for videoen</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
         </div>
 
         {/* Form */}
@@ -138,28 +140,28 @@ export default function NewDraftPage() {
             {/* GRUNNINFO Section */}
             <div>
               <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
-                Grunninfo
+                {t('sectionBasic')}
               </h2>
               <div className="space-y-4">
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tittel på video *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('titleLabel')}</label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="F.eks. Bruktbil-tips vår 2026"
+                    placeholder={t('titlePlaceholder')}
                   />
                 </div>
 
                 {/* Topic */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tema for video *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('topicLabel')}</label>
                   <textarea
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    placeholder="F.eks. Hvordan velge riktig bil for familiebruk"
+                    placeholder={t('topicPlaceholder')}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={4}
                   />
@@ -167,52 +169,52 @@ export default function NewDraftPage() {
 
                 {/* Segment Count */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Antall segmenter</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('segmentsLabel')}</label>
                   <select
                     value={segmentCount}
                     onChange={(e) => setSegmentCount(Number(e.target.value))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value={2}>2 segmenter</option>
-                    <option value={3}>3 segmenter</option>
-                    <option value={4}>4 segmenter (anbefalt)</option>
-                    <option value={5}>5 segmenter</option>
-                    <option value={6}>6 segmenter</option>
+                    <option value={2}>{t('seg2')}</option>
+                    <option value={3}>{t('seg3')}</option>
+                    <option value={4}>{t('seg4')}</option>
+                    <option value={5}>{t('seg5')}</option>
+                    <option value={6}>{t('seg6')}</option>
                   </select>
                 </div>
 
                 {/* Target Audience */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Målgruppe</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">{t('targetAudienceLabel')}</label>
                   <input
                     type="text"
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder="F.eks. Huseiere, 35-55 år, bor i Norge"
+                    placeholder={t('targetAudiencePlaceholder')}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
                 {/* Problem */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Problem som løses</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">{t('problemLabel')}</label>
                   <input
                     type="text"
                     value={problem}
                     onChange={(e) => setProblem(e.target.value)}
-                    placeholder="F.eks. Betaler for mye på strøm og internett"
+                    placeholder={t('problemPlaceholder')}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
                 {/* CTA */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Call-to-Action (CTA)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('ctaLabel')}</label>
                   <input
                     type="text"
                     value={cta}
                     onChange={(e) => setCta(e.target.value)}
-                    placeholder="F.eks. Besøk nettstedet vårt i dag!"
+                    placeholder={t('ctaPlaceholder')}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -222,12 +224,12 @@ export default function NewDraftPage() {
             {/* INNHOLD Section */}
             <div>
               <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
-                Innhold
+                {t('sectionContent')}
               </h2>
               <div className="space-y-4">
                 {/* Voice */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Stemme</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('voiceLabel')}</label>
                   <select
                     value={voiceId}
                     onChange={(e) => setVoiceId(e.target.value)}
@@ -243,20 +245,25 @@ export default function NewDraftPage() {
 
                 {/* Tone */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Tekst-tone</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">{t('toneLabel')}</label>
                   <div className="flex gap-2 flex-wrap">
-                    {['Vennlig', 'Energisk', 'Profesjonell', 'Rolig'].map((t) => (
+                    {[
+                      { key: 'Vennlig', label: t('toneFriendly') },
+                      { key: 'Energisk', label: t('toneEnergetic') },
+                      { key: 'Profesjonell', label: t('toneProfessional') },
+                      { key: 'Rolig', label: t('toneCalm') },
+                    ].map(({ key, label }) => (
                       <button
-                        key={t}
+                        key={key}
                         type="button"
-                        onClick={() => setTone(t)}
+                        onClick={() => setTone(key)}
                         className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
-                          tone === t
+                          tone === key
                             ? 'bg-green-600 text-white border-green-600'
                             : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                         }`}
                       >
-                        {t}
+                        {label}
                       </button>
                     ))}
                   </div>
@@ -264,7 +271,7 @@ export default function NewDraftPage() {
 
                 {/* Perspective */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Fortellerperspektiv</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">{t('perspectiveLabel')}</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -275,7 +282,7 @@ export default function NewDraftPage() {
                           : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}
                     >
-                      Du-form <span className="text-xs opacity-70 ml-1">«Du gjør dette…»</span>
+                      {t('perspectiveYou')} <span className="text-xs opacity-70 ml-1">{t('perspectiveYouExample')}</span>
                     </button>
                     <button
                       type="button"
@@ -286,7 +293,7 @@ export default function NewDraftPage() {
                           : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}
                     >
-                      Jeg-form <span className="text-xs opacity-70 ml-1">«Jeg gjorde dette…»</span>
+                      {t('perspectiveI')} <span className="text-xs opacity-70 ml-1">{t('perspectiveIExample')}</span>
                     </button>
                   </div>
                 </div>
@@ -296,12 +303,12 @@ export default function NewDraftPage() {
             {/* MEDIA Section */}
             <div>
               <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
-                Media
+                {t('sectionMedia')}
               </h2>
               <div className="space-y-4">
                 {/* Video Format */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Videoformat</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">{t('videoFormatLabel')}</label>
                   <div className="flex gap-2 flex-wrap">
                     {VIDEO_FORMATS.map((fmt) => (
                       <button
@@ -322,27 +329,27 @@ export default function NewDraftPage() {
 
                 {/* Music */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Bakgrunnsmusikk</label>
-                  <p className="text-xs text-gray-500 mb-3">Last opp din egen MP3-fil (maks 4MB), eller velg fra biblioteket under.</p>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">{t('musicLabel')}</label>
+                  <p className="text-xs text-gray-500 mb-3">{t('musicHint')}</p>
 
                   {/* Upload form */}
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mb-4">
                     <div className="grid grid-cols-2 gap-3">
                       <label className="block">
-                        <span className="text-xs font-medium text-gray-700 block mb-1">Mappe</span>
+                        <span className="text-xs font-medium text-gray-700 block mb-1">{t('musicFolder')}</span>
                         <select
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                           value={selectedMusicFolder}
                           onChange={(e) => setSelectedMusicFolder(e.target.value)}
                         >
-                          <option value="global">Global (alle produkter)</option>
+                          <option value="global">{t('musicFolderGlobal')}</option>
                           <option value="bildeal">BilDeal</option>
                           <option value="reforhandle">Reforhandle</option>
                           <option value="singlepicker">SinglePicker</option>
                         </select>
                       </label>
                       <label className="block">
-                        <span className="text-xs font-medium text-gray-700 block mb-1">Last opp MP3</span>
+                        <span className="text-xs font-medium text-gray-700 block mb-1">{t('uploadMP3')}</span>
                         <input
                           type="file"
                           accept=".mp3"
@@ -357,14 +364,14 @@ export default function NewDraftPage() {
                             if (!file) return
                             
                             if (!file.name.toLowerCase().endsWith('.mp3')) {
-                              alert('Kun MP3-filer er tillatt')
+                              alert(t('alertMp3Only'))
                               inputElement.value = ''
                               return
                             }
-                            
+
                             const maxSize = 4 * 1024 * 1024
                             if (file.size > maxSize) {
-                              alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)}MB). Maksimum er 4MB.`)
+                              alert(t('alertFileTooLarge', { size: (file.size / 1024 / 1024).toFixed(1) }))
                               inputElement.value = ''
                               return
                             }
@@ -380,17 +387,17 @@ export default function NewDraftPage() {
                               if (res.ok) {
                                 const data = await fetch('/api/music').then(r => r.json())
                                 if (data.files) setMusicLibrary(data.files)
-                                alert('Musikk lastet opp!')
+                                alert(t('alertUploaded'))
                                 inputElement.value = ''
                               } else {
                                 const error = await res.text()
                                 console.error('[music upload] Server error:', error)
-                                alert(`Upload feilet: ${error}`)
+                                alert(`Upload failed: ${error}`)
                                 inputElement.value = ''
                               }
                             } catch (err) {
                               console.error('[music upload] Error:', err)
-                              alert('Upload feilet: ' + (err instanceof Error ? err.message : 'Ukjent feil'))
+                              alert('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
                               inputElement.value = ''
                             }
                           }}
@@ -427,7 +434,7 @@ export default function NewDraftPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm">Laster musikk-bibliotek...</p>
+                    <p className="text-gray-500 text-sm">{t('loadingMusic')}</p>
                   )}
                 </div>
               </div>
@@ -436,15 +443,15 @@ export default function NewDraftPage() {
             {/* BILDESTIL Section */}
             <div>
               <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
-                Bildestil
+                {t('sectionImageStyle')}
               </h2>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'editorial', label: '📸 Editorial', desc: 'Høykontrast foto' },
-                  { id: 'tech',      label: '🖥️ Tech',      desc: '3D CGI render' },
-                  { id: 'warm',      label: '🌅 Varm',      desc: 'Livsstilsfoto' },
-                  { id: 'minimal',   label: '⬜ Minimal',   desc: 'Ryddig og stille' },
-                  { id: 'painterly', label: '🎨 Maleri',    desc: 'Kunstnerisk' },
+                  { id: 'editorial', label: t('styleEditorialLabel'), desc: t('styleEditorialDesc') },
+                  { id: 'tech',      label: t('styleTechLabel'),      desc: t('styleTechDesc') },
+                  { id: 'warm',      label: t('styleWarmLabel'),      desc: t('styleWarmDesc') },
+                  { id: 'minimal',   label: t('styleMinimalLabel'),   desc: t('styleMinimalDesc') },
+                  { id: 'painterly', label: t('stylePainterlyLabel'), desc: t('stylePainterlyDesc') },
                 ].map(({ id, label, desc }) => (
                   <button
                     key={id}
@@ -466,7 +473,7 @@ export default function NewDraftPage() {
             {/* OUTRO Section */}
             <div>
               <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
-                Avslutning
+                {t('sectionOutro')}
               </h2>
               <label className="flex items-start gap-3 cursor-pointer p-4 rounded-lg border border-gray-200 hover:border-gray-300">
                 <input
@@ -477,10 +484,10 @@ export default function NewDraftPage() {
                 />
                 <div>
                   <div className="text-sm font-medium text-gray-900">
-                    Avslutt med produktlenke 🔗
+                    {t('outroLabel')}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    Legger til 3 sekunder branded sluttbilde med produktets nettside, logo og CTA.
+                    {t('outroDesc')}
                   </div>
                 </div>
               </label>
@@ -495,7 +502,7 @@ export default function NewDraftPage() {
                   loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
-                {loading ? '⏳ Genererer draft...' : '🎬 Opprett draft'}
+                {loading ? t('creatingDraft') : t('createDraft')}
               </button>
 
               <button
@@ -503,7 +510,7 @@ export default function NewDraftPage() {
                 onClick={() => router.back()}
                 className="px-6 py-3 rounded-lg font-semibold text-gray-900 bg-gray-200 hover:bg-gray-300 transition-colors"
               >
-                Avbryt
+                {t('cancel')}
               </button>
             </div>
           </form>

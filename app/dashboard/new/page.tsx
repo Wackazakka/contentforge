@@ -3,25 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-const TONES = [
-  { value: "friendly", label: "Vennlig" },
-  { value: "energetic", label: "Energisk" },
-  { value: "professional", label: "Profesjonell" },
-  { value: "calm", label: "Rolig" },
-];
-
-const MUSIC_STYLES = [
-  { value: "upbeat", label: "Upbeat" },
-  { value: "minimal", label: "Minimal" },
-  { value: "cinematic", label: "Cinematisk" },
-];
-
-const SERVICES = [
-  { value: "reforhandle", label: "Reforhandle" },
-  { value: "singlepicker", label: "SinglePicker" },
-  { value: "custom", label: "Egendefinert" },
-];
+import { useTranslations } from "next-intl";
 
 const norwegianVoices = [
   { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Norsk stemme 1' },
@@ -40,6 +22,27 @@ interface Segment {
 
 export default function NewCampaignPage() {
   const router = useRouter();
+  const t = useTranslations('newCampaign');
+
+  const TONES = [
+    { value: "friendly", label: t('toneFriendly') },
+    { value: "energetic", label: t('toneEnergetic') },
+    { value: "professional", label: t('toneProfessional') },
+    { value: "calm", label: t('toneCalm') },
+  ];
+
+  const MUSIC_STYLES = [
+    { value: "upbeat", label: t('musicUpbeat') },
+    { value: "minimal", label: t('musicMinimal') },
+    { value: "cinematic", label: t('musicCinematic') },
+  ];
+
+  const SERVICES = [
+    { value: "reforhandle", label: "Reforhandle" },
+    { value: "singlepicker", label: "SinglePicker" },
+    { value: "custom", label: t('serviceCustom') },
+  ];
+
   const [productId, setProductId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [scriptLoading, setScriptLoading] = useState(false);
@@ -117,7 +120,7 @@ export default function NewCampaignPage() {
       const { segments: generated } = await res.json();
       setSegments(generated);
     } catch (err) {
-      console.error('Script generation feilet:', err);
+      console.error('Script generation failed:', err);
     } finally {
       setScriptLoading(false);
     }
@@ -154,7 +157,7 @@ export default function NewCampaignPage() {
       const { jobId } = await res.json();
       router.push(`/dashboard/${jobId}`);
     } catch (err) {
-      console.error('Produksjon feilet:', err);
+      console.error('Production failed:', err);
       setLoading(false);
     }
   }
@@ -174,10 +177,10 @@ export default function NewCampaignPage() {
           href="/dashboard"
           className="text-gray-500 hover:text-gray-900 text-sm transition-colors"
         >
-          ← Tilbake
+          {t('back')}
         </Link>
         <span className="text-gray-300">/</span>
-        <h1 className="text-xl font-bold text-gray-900">Ny kampanje</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -192,7 +195,7 @@ export default function NewCampaignPage() {
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            📢 Reklame
+            {t('typeAd')}
           </button>
           <button
             type="button"
@@ -203,27 +206,27 @@ export default function NewCampaignPage() {
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            ✨ Storytelling
+            {t('typeStorytelling')}
           </button>
         </div>
 
         {/* Basic info */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
           <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
-            {campaignType === "reklame" ? "Grunninfo" : "Historiekampanje"}
+            {campaignType === "reklame" ? t('sectionBasic') : t('sectionStory')}
           </h2>
 
-          <Field label="Kampanjenavn">
+          <Field label={t('campaignNameLabel')}>
             <input
               required
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Reforhandle Vår 2026"
+              placeholder="Reforhandle Spring 2026"
               className={inputClass}
             />
           </Field>
 
-          <Field label="Tjeneste">
+          <Field label={t('serviceLabel')}>
             <select
               value={form.service}
               onChange={(e) =>
@@ -239,7 +242,7 @@ export default function NewCampaignPage() {
             </select>
           </Field>
 
-          <Field label="Produktnavn">
+          <Field label={t('productNameLabel')}>
             <input
               required
               value={form.productName}
@@ -255,11 +258,11 @@ export default function NewCampaignPage() {
         {/* Copy */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
           <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
-            {campaignType === "reklame" ? "Innhold" : "Historieelementer"}
+            {campaignType === "reklame" ? t('sectionContent') : t('sectionStoryElements')}
           </h2>
 
           {campaignType === "reklame" && (
-            <Field label={`Headline (maks 40 tegn) — ${form.headline.length}/40`}>
+            <Field label={t('headlineLabel', { count: form.headline.length })}>
               <input
                 required
                 maxLength={40}
@@ -267,41 +270,41 @@ export default function NewCampaignPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, headline: e.target.value }))
                 }
-                placeholder="Spar tusenvis på strøm og internett"
+                placeholder="Save thousands on electricity and internet"
                 className={inputClass}
               />
             </Field>
           )}
 
           {campaignType === "storytelling" && (
-            <Field label="Målgruppe">
+            <Field label={t('targetAudienceLabel')}>
               <input
                 required
                 value={form.targetAudience}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, targetAudience: e.target.value }))
                 }
-                placeholder="Huseiere, 35-55 år, bor i Norge"
+                placeholder={t('targetAudiencePlaceholder')}
                 className={inputClass}
               />
             </Field>
           )}
 
           {campaignType === "storytelling" && (
-            <Field label="Problem som løses">
+            <Field label={t('problemLabel')}>
               <input
                 required
                 value={form.problem}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, problem: e.target.value }))
                 }
-                placeholder="Betaler for mye på strøm og internett"
+                placeholder={t('problemPlaceholder')}
                 className={inputClass}
               />
             </Field>
           )}
 
-          <Field label="Stemme">
+          <Field label={t('voiceLabel')}>
             <select
               value={form.voiceId}
               onChange={(e) => setForm(f => ({ ...f, voiceId: e.target.value }))}
@@ -314,9 +317,7 @@ export default function NewCampaignPage() {
           </Field>
 
           {campaignType === "reklame" && (
-            <Field
-              label={`Body copy (maks 125 tegn) — ${form.bodyCopy.length}/125`}
-            >
+            <Field label={t('bodyLabel', { count: form.bodyCopy.length })}>
               <textarea
                 required
                 maxLength={125}
@@ -324,25 +325,25 @@ export default function NewCampaignPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, bodyCopy: e.target.value }))
                 }
-                placeholder="Vi forhandler abonnementene dine — du betaler bare for resultater."
+                placeholder="We negotiate your subscriptions — you only pay for results."
                 rows={3}
                 className={inputClass + " resize-none"}
               />
             </Field>
           )}
 
-          <Field label="Call to action">
+          <Field label={t('ctaLabel')}>
             <input
               required
               value={form.cta}
               onChange={(e) => setForm((f) => ({ ...f, cta: e.target.value }))}
-              placeholder="Start gratis"
+              placeholder="Start for free"
               className={inputClass}
             />
           </Field>
 
           {campaignType === "reklame" && (
-            <Field label="Tone">
+            <Field label={t('toneLabel')}>
               <div className="flex flex-wrap gap-2">
                 {TONES.map((t) => (
                   <button
@@ -366,24 +367,24 @@ export default function NewCampaignPage() {
         {/* Media options */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
           <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
-            Media
+            {t('sectionMedia')}
           </h2>
 
           <div className="flex gap-4">
             <Toggle
-              label="Voiceover"
+              label={t('voiceoverLabel')}
               checked={form.voiceover}
               onChange={(v) => setForm((f) => ({ ...f, voiceover: v }))}
             />
             <Toggle
-              label="Bakgrunnsmusikk"
+              label={t('backgroundMusicLabel')}
               checked={form.music}
               onChange={(v) => setForm((f) => ({ ...f, music: v }))}
             />
           </div>
 
           {form.music && (
-            <Field label="Musikk-stil">
+            <Field label={t('musicStyleLabel')}>
               <div className="flex flex-wrap gap-2">
                 {MUSIC_STYLES.map((m) => (
                   <button
@@ -405,7 +406,7 @@ export default function NewCampaignPage() {
             </Field>
           )}
 
-          <Field label="Formater">
+          <Field label={t('formatsLabel')}>
             <div className="flex gap-2">
               {(["16:9", "9:16", "1:1"] as const).map((fmt) => (
                 <button
@@ -424,27 +425,27 @@ export default function NewCampaignPage() {
             </div>
           </Field>
 
-          <Field label="Bakgrunnsmusikk">
+          <Field label={t('musicLibraryLabel')}>
             <div className="space-y-4">
               {/* Upload form */}
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <label className="block">
-                    <span className="text-xs font-medium text-gray-700 block mb-1">Mappe</span>
+                    <span className="text-xs font-medium text-gray-700 block mb-1">{t('folderLabel')}</span>
                     <select
                       id="musicFolder"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                       value={selectedMusicFolder}
                       onChange={(e) => setSelectedMusicFolder(e.target.value)}
                     >
-                      <option value="global">Global (alle produkter)</option>
+                      <option value="global">{t('folderGlobal')}</option>
                       <option value="bildeal">BilDeal</option>
                       <option value="reforhandle">Reforhandle</option>
                       <option value="singlepicker">SinglePicker</option>
                     </select>
                   </label>
                   <label className="block">
-                    <span className="text-xs font-medium text-gray-700 block mb-1">Fil</span>
+                    <span className="text-xs font-medium text-gray-700 block mb-1">{t('fileLabel')}</span>
                     <input
                       type="file"
                       accept=".mp3"
@@ -454,7 +455,7 @@ export default function NewCampaignPage() {
                         
                         // Validate file type
                         if (!file.name.toLowerCase().endsWith('.mp3')) {
-                          alert('Kun MP3-filer er tillatt')
+                          alert(t('alertMp3Only'))
                           e.currentTarget.value = ''
                           return
                         }
@@ -462,7 +463,7 @@ export default function NewCampaignPage() {
                         // Validate file size (4MB limit)
                         const maxSize = 4 * 1024 * 1024 // 4MB
                         if (file.size > maxSize) {
-                          alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)}MB). Maksimum er 4MB.`)
+                          alert(t('alertFileTooLarge', { size: (file.size / 1024 / 1024).toFixed(1) }))
                           e.currentTarget.value = ''
                           return
                         }
@@ -481,16 +482,16 @@ export default function NewCampaignPage() {
                             // Reload music library
                             const data = await fetch('/api/music').then(r => r.json())
                             if (data.files) setMusicLibrary(data.files)
-                            alert('Musikk lastet opp!')
+                            alert(t('alertMusicUploaded'))
                             e.currentTarget.value = ''
                           } else {
                             const error = await res.text()
                             console.error('Upload error:', error)
-                            alert(`Upload feilet: ${error}`)
+                            alert(`Upload failed: ${error}`)
                           }
                         } catch (err) {
                           console.error('Upload error:', err)
-                          alert('Upload feilet: ' + (err instanceof Error ? err.message : 'Ukjent feil'))
+                          alert('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
                         }
                       }}
                       className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-blue-600 file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-blue-500"
@@ -543,7 +544,7 @@ export default function NewCampaignPage() {
                   })()}
                 </>
               ) : (
-                <p className="text-gray-500 text-sm">Laster musikk-bibliotek...</p>
+                <p className="text-gray-500 text-sm">{t('loadingMusic')}</p>
               )}
             </div>
           </Field>
@@ -563,7 +564,7 @@ export default function NewCampaignPage() {
             }
             className="rounded-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
           >
-            {scriptLoading ? "Genererer manus..." : "Generer manus"}
+            {scriptLoading ? t('generatingScript') : t('generateScript')}
           </button>
         )}
 
@@ -572,7 +573,7 @@ export default function NewCampaignPage() {
           <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 flex flex-col gap-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-blue-800 text-sm uppercase tracking-widest">
-                Manus — rediger om nødvendig
+                {t('scriptTitle')}
               </h2>
               <button
                 type="button"
@@ -580,16 +581,16 @@ export default function NewCampaignPage() {
                 disabled={scriptLoading}
                 className="text-xs text-blue-600 hover:text-blue-800 underline disabled:opacity-50"
               >
-                {scriptLoading ? "Genererer..." : "Generer på nytt"}
+                {scriptLoading ? t('regenerating') : t('regenerate')}
               </button>
             </div>
 
             {segments.map((seg, i) => (
               <div key={i} className="flex flex-col gap-2">
                 <span className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
-                  Segment {i + 1}
+                  {t('segmentLabel', { index: i + 1 })}
                 </span>
-                <Field label="Voiceover-tekst">
+                <Field label={t('voiceoverTextLabel')}>
                   <textarea
                     value={seg.text}
                     onChange={(e) => updateSegment(i, "text", e.target.value)}
@@ -597,7 +598,7 @@ export default function NewCampaignPage() {
                     className={inputClass + " resize-none"}
                   />
                 </Field>
-                <Field label="Bildeprompt (DALL-E)">
+                <Field label={t('imagePromptLabel')}>
                   <textarea
                     value={seg.imagePrompt}
                     onChange={(e) =>
@@ -620,7 +621,7 @@ export default function NewCampaignPage() {
             disabled={loading || form.formats.length === 0}
             className="rounded-full bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
           >
-            {loading ? "Starter produksjon..." : "Start produksjon"}
+            {loading ? t('startingProduction') : t('startProduction')}
           </button>
         )}
       </form>

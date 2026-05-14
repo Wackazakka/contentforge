@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import SwapIllustrationModal from '@/components/SwapIllustrationModal'
+import { useTranslations } from 'next-intl'
 
 interface Article {
   id: string
@@ -60,6 +61,7 @@ function renderMarkdown(text: string) {
 export default function ArticleDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const t = useTranslations('articleDetail')
   const productId = params?.id as string
   const articleId = params?.articleId as string
 
@@ -88,7 +90,7 @@ export default function ArticleDetailPage() {
         if (fetchError) throw fetchError
         setArticle(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Feil ved henting av artikkel')
+        setError(err instanceof Error ? err.message : t('errorFetching'))
       } finally {
         setLoading(false)
       }
@@ -119,10 +121,10 @@ export default function ArticleDetailPage() {
       if (error) throw error
       setArticle((prev) => prev ? { ...prev, content: editDraft } : prev)
       setEditing(false)
-      setSaveMsg('✅ Lagret')
+      setSaveMsg(t('saved'))
       setTimeout(() => setSaveMsg(null), 3000)
     } catch (err) {
-      alert('Feil ved lagring: ' + (err instanceof Error ? err.message : String(err)))
+      alert('Error saving: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -131,14 +133,14 @@ export default function ArticleDetailPage() {
   const copyToClipboard = () => {
     if (article?.content) {
       navigator.clipboard.writeText(article.content)
-      alert('Kopiert til utklippstavle!')
+      alert(t('copiedAlert'))
     }
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-cf-bg flex items-center justify-center">
-        <div className="text-gray-600">Laster artikkel...</div>
+        <div className="text-gray-600">{t('loading')}</div>
       </div>
     )
   }
@@ -148,10 +150,10 @@ export default function ArticleDetailPage() {
       <div className="min-h-screen bg-cf-bg">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
-            ← Tilbake til produkt
+            {t('backToProduct')}
           </Link>
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">
-            {error || 'Artikkel ikke funnet'}
+            {error || t('notFound')}
           </div>
         </div>
       </div>
@@ -162,7 +164,7 @@ export default function ArticleDetailPage() {
     <div className="min-h-screen bg-cf-bg">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-6 inline-block">
-          ← Tilbake til produkt
+          {t('backToProduct')}
         </Link>
 
         <div className="bg-white rounded-lg border border-gray-200 p-8">
@@ -176,7 +178,7 @@ export default function ArticleDetailPage() {
           {/* Title */}
           <h1 className="text-4xl font-bold text-gray-900 mb-2">{article.title}</h1>
           <p className="text-sm text-gray-500 mb-8">
-            Opprettet: {new Date(article.created_at).toLocaleDateString('no-NO')}
+            {t('created', { date: new Date(article.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) })}
           </p>
 
           {/* Illustration */}
@@ -191,7 +193,7 @@ export default function ArticleDetailPage() {
                 onClick={() => setSwapOpen(true)}
                 className="mt-3 inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
               >
-                Bytt illustrasjon
+                {t('swapIllustration')}
               </button>
             </div>
           ) : (
@@ -200,7 +202,7 @@ export default function ArticleDetailPage() {
                 onClick={() => setSwapOpen(true)}
                 className="inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
               >
-                Legg til illustrasjon
+                {t('addIllustration')}
               </button>
             </div>
           )}
@@ -235,13 +237,13 @@ export default function ArticleDetailPage() {
                   disabled={saving}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
                 >
-                  {saving ? 'Lagrer...' : '✅ Lagre'}
+                  {saving ? t('saving') : t('save')}
                 </button>
                 <button
                   onClick={cancelEdit}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
                 >
-                  Avbryt
+                  {t('cancelEdit')}
                 </button>
               </div>
             </div>
@@ -259,21 +261,21 @@ export default function ArticleDetailPage() {
               href={`/dashboard/publish?type=article&content_id=${article.id}&product_id=${productId}`}
               className="inline-flex items-center px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
             >
-              🚀 Publiser
+              {t('publish')}
             </Link>
             {!editing && (
               <button
                 onClick={startEdit}
                 className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
               >
-                ✏️ Rediger tekst
+                {t('editText')}
               </button>
             )}
             <button
               onClick={copyToClipboard}
               className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
             >
-              📋 Kopier innhold
+              {t('copyContent')}
             </button>
             {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
           </div>

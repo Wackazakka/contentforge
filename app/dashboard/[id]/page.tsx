@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import {
   DEMO_CAMPAIGNS,
   STATUS_LABELS,
@@ -23,7 +24,7 @@ const IMAGE_BY_FORMAT: Record<string, string> = {
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("nb-NO", {
+  return new Date(iso).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -38,6 +39,7 @@ export default async function CampaignDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations('campaignDetail');
   const campaign = DEMO_CAMPAIGNS.find((c) => c.id === id);
 
   if (!campaign) {
@@ -51,10 +53,10 @@ export default async function CampaignDetailPage({
             href="/dashboard"
             className="text-gray-500 hover:text-gray-900 text-sm transition-colors"
           >
-            ← Tilbake
+            {t('back')}
           </Link>
           <span className="text-gray-300">/</span>
-          <h1 className="text-xl font-bold text-gray-900">Produksjonsjobb</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('jobTitle')}</h1>
         </div>
         <JobProgressPanel jobId={id} />
       </div>
@@ -67,7 +69,7 @@ export default async function CampaignDetailPage({
   const images: ImageAsset[] = campaign.formats.map((format, i) => ({
     id: `img-${format}-${i}`,
     format,
-    label: `Bilde variant ${i + 1}`,
+    label: t('imageVariant', { index: i + 1 }),
     src: IMAGE_BY_FORMAT[format] ?? "/demo/images/banner_social.png",
   }));
 
@@ -82,7 +84,7 @@ export default async function CampaignDetailPage({
   const musicTracks: MusicTrack[] = campaign.music
     ? [
         {
-          label: `${campaign.musicStyle.charAt(0).toUpperCase() + campaign.musicStyle.slice(1)} — Bakgrunnsmusikk`,
+          label: `${campaign.musicStyle.charAt(0).toUpperCase() + campaign.musicStyle.slice(1)} — Background music`,
           src: "/demo/music/background_music.mp3",
         },
       ]
@@ -95,7 +97,7 @@ export default async function CampaignDetailPage({
           href="/dashboard"
           className="text-gray-500 hover:text-gray-900 text-sm transition-colors"
         >
-          ← Tilbake
+          {t('back')}
         </Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-xl font-bold text-gray-900">{campaign.name}</h1>
@@ -109,21 +111,21 @@ export default async function CampaignDetailPage({
       {/* Meta */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 mb-6 shadow-sm">
         <div className="grid sm:grid-cols-2 gap-4 text-sm">
-          <MetaRow label="Produkt" value={campaign.productName} />
-          <MetaRow label="Tjeneste" value={campaign.service} />
-          <MetaRow label="Headline" value={campaign.headline} />
-          <MetaRow label="CTA" value={campaign.cta} />
-          <MetaRow label="Tone" value={campaign.tone} />
-          <MetaRow label="Formater" value={campaign.formats.join(", ")} />
+          <MetaRow label={t('metaProduct')} value={campaign.productName} />
+          <MetaRow label={t('metaService')} value={campaign.service} />
+          <MetaRow label={t('metaHeadline')} value={campaign.headline} />
+          <MetaRow label={t('metaCta')} value={campaign.cta} />
+          <MetaRow label={t('metaTone')} value={campaign.tone} />
+          <MetaRow label={t('metaFormats')} value={campaign.formats.join(", ")} />
           <MetaRow
-            label="Voiceover"
-            value={campaign.voiceover ? "Ja" : "Nei"}
+            label={t('metaVoiceover')}
+            value={campaign.voiceover ? t('metaVoiceoverYes') : t('metaVoiceoverNo')}
           />
           <MetaRow
-            label="Musikk"
-            value={campaign.music ? campaign.musicStyle : "Nei"}
+            label={t('metaMusic')}
+            value={campaign.music ? campaign.musicStyle : t('metaMusicNo')}
           />
-          <MetaRow label="Opprettet" value={formatDate(campaign.createdAt)} />
+          <MetaRow label={t('metaCreated')} value={formatDate(campaign.createdAt)} />
         </div>
         <div className="mt-4 p-3 rounded-lg bg-gray-100 text-sm text-gray-700 italic">
           &ldquo;{campaign.bodyCopy}&rdquo;
@@ -131,7 +133,7 @@ export default async function CampaignDetailPage({
       </div>
 
       {/* Assets + approval */}
-      <h2 className="font-semibold text-gray-900 mb-4">Assets</h2>
+      <h2 className="font-semibold text-gray-900 mb-4">{t('assetsTitle')}</h2>
 
       {!isCompleted ? (
         <div className="rounded-2xl border border-dashed border-gray-300 py-16 flex flex-col items-center text-center bg-white">
@@ -140,8 +142,8 @@ export default async function CampaignDetailPage({
           </div>
           <p className="text-gray-500 text-sm">
             {campaign.status === "processing"
-              ? "AI-pipeline kjører. Assets vil vises her når de er klare."
-              : "Starter produksjon..."}
+              ? t('processingMsg')
+              : t('pendingMsg')}
           </p>
         </div>
       ) : (

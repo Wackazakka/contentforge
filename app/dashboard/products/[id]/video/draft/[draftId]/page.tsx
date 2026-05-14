@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
+import { useTranslations } from 'next-intl'
 
 interface Segment {
   index: number
@@ -31,6 +32,7 @@ export default function DraftPage() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
+  const t = useTranslations('draftApproval')
   const productId = params?.id as string
   const draftId = params?.draftId as string
 
@@ -231,13 +233,13 @@ export default function DraftPage() {
 
       if (error) {
         console.error('[toggleApproval] Failed to save:', error)
-        alert('Feil ved lagring av godkjenning')
+        alert('Error saving approval')
       } else {
         console.log('[toggleApproval] Segment approval saved for index:', index)
       }
     } catch (err) {
       console.error('[toggleApproval] Error:', err)
-      alert('Feil ved lagring')
+      alert('Error saving')
     }
   }
 
@@ -267,7 +269,7 @@ export default function DraftPage() {
       setDraft({ ...draft, segments: updatedSegments })
     } catch (err) {
       console.error('[DraftPage] Regenerate error:', err)
-      alert('Feil ved regenerering av bilde')
+      alert('Error regenerating image')
     } finally {
       setRegeneratingIndex(null)
     }
@@ -324,7 +326,7 @@ export default function DraftPage() {
       const allSaved = freshDraft?.segments?.every((s: any) => s.approved === true)
       if (!allSaved) {
         console.warn('[startProduction] Not all segments saved to database yet')
-        alert('Lagring pågår, prøv igjen om et sekund')
+        alert('Saving in progress, try again in a moment')
         return
       }
 
@@ -355,7 +357,7 @@ export default function DraftPage() {
       router.push(`/dashboard/products/${productId}/video/status/${data.jobId}?format=${encodeURIComponent(videoFormat)}`)
     } catch (err) {
       console.error('[DraftPage] Production error:', err)
-      alert('Feil ved start av produksjon')
+      alert('Error starting production')
     }
   }
 
@@ -364,7 +366,7 @@ export default function DraftPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-cf-bg flex items-center justify-center">
-        <div className="text-gray-600">Laster draft...</div>
+        <div className="text-gray-600">{t('loadingDraft')}</div>
       </div>
     )
   }
@@ -374,9 +376,9 @@ export default function DraftPage() {
       <div className="min-h-screen bg-cf-bg">
         <div className="max-w-6xl mx-auto px-4 py-8">
           <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
-            ← Tilbake til produkt
+            {t('backToProduct')}
           </Link>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">{error || 'Draft ikke funnet'}</div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">{error || t('draftNotFound')}</div>
         </div>
       </div>
     )
@@ -388,10 +390,10 @@ export default function DraftPage() {
         {/* Header */}
         <div className="mb-8">
           <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
-            ← Tilbake til produkt
+            {t('backToProduct')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Godkjenn video-draft</h1>
-          <p className="text-gray-600 mt-2">Gjennomgå og godkjenn hver segment før produksjon</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
         </div>
 
         {/* Image generation progress banner */}
@@ -400,9 +402,9 @@ export default function DraftPage() {
             <div className="w-5 h-5 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
             <div>
               <p className="text-sm font-medium text-blue-800">
-                Genererer bilder… {draft.segments.length - generatingImages.size}/{draft.segments.length} ferdig
+                {t('generatingImages', { done: draft.segments.length - generatingImages.size, total: draft.segments.length })}
               </p>
-              <p className="text-xs text-blue-600 mt-0.5">Hvert bilde tar ca. 20 sekunder. Du kan godkjenne segmenter etter hvert som de er klare.</p>
+              <p className="text-xs text-blue-600 mt-0.5">{t('generatingImagesHint')}</p>
             </div>
           </div>
         )}
@@ -424,17 +426,17 @@ export default function DraftPage() {
                     ) : generatingImages.has(index) ? (
                       <div className="w-full h-full flex flex-col items-center justify-center gap-2 animate-pulse">
                         <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                        <span className="text-xs text-gray-500 text-center px-2">Genererer…</span>
+                        <span className="text-xs text-gray-500 text-center px-2">Generating…</span>
                       </div>
                     ) : imageErrors[index] ? (
                       <div className="w-full h-full flex flex-col items-center justify-center gap-1 px-2 text-center bg-red-50">
                         <span className="text-red-500">⚠️</span>
-                        <span className="text-xs text-red-600 font-medium">Feil</span>
+                        <span className="text-xs text-red-600 font-medium">{t('imageError')}</span>
                         <span className="text-xs text-red-400 break-all">{imageErrors[index]}</span>
                       </div>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                        Ingen bilde
+                        {t('noImage')}
                       </div>
                     )}
                   </div>
@@ -443,11 +445,11 @@ export default function DraftPage() {
                 {/* Content */}
                 <div className="flex-1">
                   <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Segment {index + 1}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('segmentTitle', { index: index + 1 })}</h3>
 
                     {/* Text */}
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tekst</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('textLabel')}</label>
                       <textarea
                         value={segment.text}
                         onChange={(e) => {
@@ -462,7 +464,7 @@ export default function DraftPage() {
 
                     {/* Voiceover */}
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Voiceover</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t('voiceoverLabel')}</label>
                       <textarea
                         value={segment.voiceover}
                         onChange={(e) => {
@@ -486,10 +488,10 @@ export default function DraftPage() {
                           className="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm disabled:opacity-50 whitespace-nowrap"
                         >
                           {voiceLoading[index]
-                            ? '⏳ Genererer...'
+                            ? t('generatingVoiceover')
                             : voicePreviews[index]
-                              ? '🔊 Regenerer lyd'
-                              : '🎙️ Hør stemme'}
+                              ? t('regenerateAudio')
+                              : t('previewVoice')}
                         </button>
                       </div>
                     </div>
@@ -501,7 +503,7 @@ export default function DraftPage() {
                           ? 'bg-green-100 text-green-800'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {segment.approved ? '✅ Godkjent' : '⏳ Venter på godkjenning'}
+                        {segment.approved ? t('approved') : t('waitingApproval')}
                       </span>
                     </div>
                   </div>
@@ -517,7 +519,7 @@ export default function DraftPage() {
                           : 'bg-blue-600 hover:bg-blue-700 text-white'
                       }`}
                     >
-                      {segment.approved ? '✅ Godkjent' : '✅ Godkjenn'}
+                      {segment.approved ? t('approvedButton') : t('approveButton')}
                     </button>
 
                     <button
@@ -525,21 +527,21 @@ export default function DraftPage() {
                       disabled={regeneratingIndex === index}
                       className="px-4 py-2 rounded-lg font-medium text-sm bg-gray-200 hover:bg-gray-300 text-gray-900 transition-colors disabled:opacity-50"
                     >
-                      {regeneratingIndex === index ? '🔄 Genererer...' : '🔄 Regenerer bilde'}
+                      {regeneratingIndex === index ? t('regenerating') : t('regenerateImage')}
                     </button>
 
                     <button
                       onClick={() => setShowImageBank(index)}
                       className="px-4 py-2 rounded-lg font-medium text-sm bg-purple-600 hover:bg-purple-700 text-white transition-colors"
                     >
-                      🖼️ Velg fra bank
+                      {t('selectFromBank')}
                     </button>
 
                     {/* Image Bank Modal */}
                     {showImageBank === index && (
                       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-                          <h4 className="text-lg font-semibold mb-4">Velg bilde fra bildebank</h4>
+                          <h4 className="text-lg font-semibold mb-4">{t('imageBankTitle')}</h4>
                           <div className="grid grid-cols-3 gap-4 mb-4 max-h-96 overflow-y-auto">
                             {assets.length > 0 ? (
                               assets.map((asset) => (
@@ -556,14 +558,14 @@ export default function DraftPage() {
                                 </button>
                               ))
                             ) : (
-                              <p className="col-span-3 text-gray-500 text-center py-8">Ingen bilder i banken</p>
+                              <p className="col-span-3 text-gray-500 text-center py-8">{t('noImagesInBank')}</p>
                             )}
                           </div>
                           <button
                             onClick={() => setShowImageBank(null)}
                             className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium"
                           >
-                            Lukk
+                            {t('close')}
                           </button>
                         </div>
                       </div>
@@ -580,14 +582,14 @@ export default function DraftPage() {
           <div className="text-sm text-gray-600">
             {allApproved ? (
               <div className="flex items-center gap-3">
-                <span className="text-green-600 font-medium">✅ Alle segmenter godkjent - klar til produksjon</span>
+                <span className="text-green-600 font-medium">{t('allApprovedStatus')}</span>
                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  Stil: {{'editorial':'📸 Editorial','tech':'🖥️ Tech','warm':'🌅 Varm','minimal':'⬜ Minimal','painterly':'🎨 Maleri'}[imageStyle] || imageStyle}
+                  {t('imageStyleLabel')}: {{'editorial':'📸 Editorial','tech':'🖥️ Tech','warm':'🌅 Warm','minimal':'⬜ Minimal','painterly':'🎨 Painterly'}[imageStyle] || imageStyle}
                 </span>
               </div>
             ) : (
               <span className="text-yellow-600 font-medium">
-                ⏳ {draft.segments.filter((s) => !s.approved).length} segment(er) venter på godkjenning
+                {t('waitingSegments', { count: draft.segments.filter((s) => !s.approved).length })}
               </span>
             )}
           </div>
@@ -601,7 +603,7 @@ export default function DraftPage() {
                 : 'bg-gray-400 cursor-not-allowed opacity-50'
             }`}
           >
-            🎬 Start produksjon
+            {t('startProduction')}
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
+import { useTranslations } from 'next-intl'
 
 function renderMarkdown(text: string) {
   const [mainContent, ctaContent] = text.split('\n\n---CTA---\n')
@@ -35,6 +36,7 @@ export default function ArticlePage() {
   const router = useRouter()
   const params = useParams()
   const { session } = useAuth()
+  const t = useTranslations('articles')
   const productId = params?.id as string
 
   const [topic, setTopic] = useState('')
@@ -55,11 +57,11 @@ export default function ArticlePage() {
   const platforms = ['facebook', 'linkedin', 'x']
 
   const imageStyles = [
-    { key: 'tech', name: 'Tech', desc: 'Premium CGI, glass og krom, hi-tech mood' },
-    { key: 'editorial', name: 'Editorial', desc: 'Flat design, magasinforside-stil' },
-    { key: 'warm', name: 'Warm', desc: 'Lifestyle-foto, varme toner, naturlig lys' },
-    { key: 'minimal', name: 'Minimal', desc: 'Rene linjer, hvit bakgrunn, infografikk' },
-    { key: 'painterly', name: 'Painterly', desc: 'Malerisk, penselstrøk, kunstnerisk' },
+    { key: 'tech', name: 'Tech', desc: t('styleTechDesc') },
+    { key: 'editorial', name: 'Editorial', desc: t('styleEditorialDesc') },
+    { key: 'warm', name: 'Warm', desc: t('styleWarmDesc') },
+    { key: 'minimal', name: 'Minimal', desc: t('styleMinimalDesc') },
+    { key: 'painterly', name: 'Painterly', desc: t('stylePainterlyDesc') },
   ]
   useEffect(() => {
     if (!productId) return
@@ -87,12 +89,12 @@ export default function ArticlePage() {
 
   const generateArticles = async () => {
     if (!topic.trim()) {
-      setError('Please enter a topic')
+      setError(t('errorTopic'))
       return
     }
 
     if (selectedPlatforms.length === 0) {
-      setError('Select at least one platform')
+      setError(t('errorPlatform'))
       return
     }
 
@@ -121,7 +123,7 @@ export default function ArticlePage() {
         }).then(async (response) => {
           if (!response.ok) {
             const data = await response.json()
-            throw new Error(data.error || `Feil ved generering av ${platform} artikkel`)
+            throw new Error(data.error || `Error generating ${platform} article`)
           }
           return response.json()
         })
@@ -140,7 +142,7 @@ export default function ArticlePage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    alert('Copied to clipboard!')
+    alert(t('copied'))
   }
 
   const startEdit = (article: Article) => {
@@ -167,7 +169,7 @@ export default function ArticlePage() {
       )
       setEditingId(null)
     } catch (err) {
-      alert('Feil ved lagring: ' + (err instanceof Error ? err.message : String(err)))
+      alert(t('errorSaving', { error: err instanceof Error ? err.message : String(err) }))
     } finally {
       setSaving(false)
     }
@@ -179,25 +181,25 @@ export default function ArticlePage() {
         {/* Header */}
         <div className="mb-8">
           <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
-            ← Back to product
+            {t('backToProduct')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Generate articles</h1>
-          <p className="text-gray-600 mt-2">Create AI-powered content for social media and blog</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
           {/* Form */}
           <div className="md:col-span-1">
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('settingsTitle')}</h2>
 
               {/* Topic */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Topic or subject</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t('topicLabel')}</label>
                 <textarea
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="E.g. 'The importance of sustainable business practices'"
+                  placeholder={t('topicPlaceholder')}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -205,7 +207,7 @@ export default function ArticlePage() {
 
               {/* Platforms */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Platforms</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('platformsLabel')}</label>
                 <div className="space-y-2">
                   {platforms.map((platform) => (
                     <label key={platform} className="flex items-center">
@@ -223,7 +225,7 @@ export default function ArticlePage() {
 
               {/* Image Style */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">Bildestil</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t('imageStyleLabel')}</label>
                 <div className="grid grid-cols-1 gap-2">
                   {imageStyles.map((style) => (
                     <button
@@ -248,7 +250,7 @@ export default function ArticlePage() {
                       onChange={(e) => setIncludeLink(e.target.checked)}
                       className="w-4 h-4 text-blue-600 rounded"
                     />
-                    <span className="text-sm text-gray-700">Avslutt med CTA</span>
+                    <span className="text-sm text-gray-700">{t('endWithCTA')}</span>
                   </label>
                   {includeLink && (
                     <p className="text-xs text-gray-400 mt-1 ml-6 italic">
@@ -267,7 +269,7 @@ export default function ArticlePage() {
                 disabled={loading}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
-                {loading ? 'Generating...' : 'Generate articles'}
+                {loading ? t('generating') : t('generate')}
               </button>
             </div>
           </div>
@@ -277,13 +279,13 @@ export default function ArticlePage() {
             {loading && (
               <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="text-gray-600 mt-4">Generating articles...</p>
+                <p className="text-gray-600 mt-4">{t('generating2')}</p>
               </div>
             )}
 
             {!loading && articles.length > 0 && (
               <div className="space-y-6">
-                <h2 className="text-lg font-semibold text-gray-900">Generated articles</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('generatedTitle')}</h2>
                 {articles.map((article) => (
                   <div key={article.id} className="bg-white rounded-lg border border-gray-200 p-6">
                     {/* Platform Badge */}
@@ -311,13 +313,13 @@ export default function ArticlePage() {
                             disabled={saving}
                             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
                           >
-                            {saving ? 'Lagrer...' : '✅ Lagre'}
+                            {saving ? t('saving') : t('saveEdit')}
                           </button>
                           <button
                             onClick={cancelEdit}
                             className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
                           >
-                            Avbryt
+                            {t('cancel')}
                           </button>
                         </div>
                       </div>
@@ -336,13 +338,13 @@ export default function ArticlePage() {
                           onClick={() => startEdit(article)}
                           className="text-sm text-gray-600 hover:text-gray-800 font-medium"
                         >
-                          ✏️ Rediger
+                          {t('edit')}
                         </button>
                         <button
                           onClick={() => copyToClipboard(article.content)}
                           className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                         >
-                          📋 Kopier
+                          {t('copy')}
                         </button>
                       </div>
                     )}
@@ -367,16 +369,16 @@ export default function ArticlePage() {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
                   <span className="text-xl">💡</span>
                   <div>
-                    <p className="text-sm font-medium text-blue-900">Grafikk genereres i bakgrunnen</p>
+                    <p className="text-sm font-medium text-blue-900">{t('backgroundGraphicsNote')}</p>
                     <p className="text-sm text-blue-700 mt-1">
-                      Ferdig artikkel med bilde og publiseringsknapp finner du under{' '}
+                      {t('backgroundGraphicsDesc')}{' '}
                       <Link
                         href={`/dashboard/products/${productId}`}
                         className="underline font-medium hover:text-blue-900"
                       >
-                        Produktsiden → Artikler
+                        {t('backgroundGraphicsLink')}
                       </Link>
-                      {' '}om ca. 30–60 sekunder.
+                      {' '}{t('backgroundGraphicsTime')}
                     </p>
                   </div>
                 </div>
@@ -385,7 +387,7 @@ export default function ArticlePage() {
 
             {!loading && articles.length === 0 && !error && (
               <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                <p className="text-gray-500">Enter a topic and click "Generate articles" to get started</p>
+                <p className="text-gray-500">{t('emptyPrompt')}</p>
               </div>
             )}
           </div>

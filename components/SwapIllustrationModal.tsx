@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
+import { useTranslations } from 'next-intl'
 
 interface SwapIllustrationModalProps {
   articleId: string
@@ -12,13 +13,14 @@ interface SwapIllustrationModalProps {
   onImageUpdated: (newUrl: string) => void
 }
 
-const STYLES: { key: string; name: string; desc: string }[] = [
-  { key: 'tech', name: 'Tech', desc: 'Premium CGI, glass og krom, hi-tech mood' },
-  { key: 'editorial', name: 'Editorial', desc: 'Flat design, magasinforside-stil' },
-  { key: 'warm', name: 'Warm', desc: 'Lifestyle-foto, varme toner, naturlig lys' },
-  { key: 'minimal', name: 'Minimal', desc: 'Rene linjer, hvit bakgrunn, infografikk' },
-  { key: 'painterly', name: 'Painterly', desc: 'Malerisk, penselstrøk, kunstnerisk' },
-]
+const STYLE_KEYS = ['tech', 'editorial', 'warm', 'minimal', 'painterly'] as const
+const STYLE_NAMES: Record<string, string> = {
+  tech: 'Tech',
+  editorial: 'Editorial',
+  warm: 'Warm',
+  minimal: 'Minimal',
+  painterly: 'Painterly',
+}
 
 interface AssetRow {
   id: string
@@ -33,6 +35,12 @@ export default function SwapIllustrationModal({
   onClose,
   onImageUpdated,
 }: SwapIllustrationModalProps) {
+  const t = useTranslations('swapIllustration')
+  const STYLES = STYLE_KEYS.map((key) => ({
+    key,
+    name: STYLE_NAMES[key],
+    desc: t(`style${key.charAt(0).toUpperCase() + key.slice(1)}Desc` as any),
+  }))
   const [tab, setTab] = useState<'generate' | 'bank'>('generate')
   const [selectedStyle, setSelectedStyle] = useState<string>('tech')
   const [generating, setGenerating] = useState(false)
@@ -81,14 +89,14 @@ export default function SwapIllustrationModal({
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || 'Feil ved generering')
+        throw new Error(err.error || 'Error generating image')
       }
-      setMessage('Genererer bilde... (oppdateres om ca. 40s — last siden på nytt)')
+      setMessage(t('generatingMsg'))
       setTimeout(() => {
         onClose()
       }, 1500)
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Noe gikk galt')
+      setMessage(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setGenerating(false)
     }
@@ -106,12 +114,12 @@ export default function SwapIllustrationModal({
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || 'Feil ved oppdatering')
+        throw new Error(err.error || 'Error updating image')
       }
       onImageUpdated(selectedAssetUrl)
       onClose()
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Noe gikk galt')
+      setMessage(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setApplying(false)
     }
@@ -128,11 +136,11 @@ export default function SwapIllustrationModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Bytt illustrasjon</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('title')}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-            aria-label="Lukk"
+            aria-label={t('close')}
           >
             ×
           </button>
@@ -148,7 +156,7 @@ export default function SwapIllustrationModal({
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            Generer ny
+            {t('tabGenerate')}
           </button>
           <button
             onClick={() => setTab('bank')}
@@ -158,14 +166,14 @@ export default function SwapIllustrationModal({
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            Velg fra bildebank
+            {t('tabBank')}
           </button>
         </div>
 
         <div className="p-6">
           {tab === 'generate' && (
             <>
-              <p className="text-sm text-gray-600 mb-4">Velg stil:</p>
+              <p className="text-sm text-gray-600 mb-4">{t('selectStyle')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                 {STYLES.map((s) => (
                   <button
@@ -192,7 +200,7 @@ export default function SwapIllustrationModal({
                 disabled={generating}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
               >
-                {generating ? 'Starter generering...' : 'Generer'}
+                {generating ? t('generatingButton') : t('generateButton')}
               </button>
             </>
           )}
@@ -200,15 +208,15 @@ export default function SwapIllustrationModal({
           {tab === 'bank' && (
             <>
               {assetsLoading ? (
-                <div className="text-center py-12 text-gray-500">Laster bilder...</div>
+                <div className="text-center py-12 text-gray-500">{t('loadingImages')}</div>
               ) : assets.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
-                  Ingen bilder i bildebanken for dette produktet ennå.
+                  {t('noImages')}
                 </div>
               ) : (
                 <>
                   <p className="text-sm text-gray-600 mb-4">
-                    Klikk på et bilde for å velge:
+                    {t('clickToSelect')}
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 max-h-[50vh] overflow-y-auto">
                     {assets.map((a) => (
@@ -239,7 +247,7 @@ export default function SwapIllustrationModal({
                     disabled={!selectedAssetUrl || applying}
                     className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
                   >
-                    {applying ? 'Oppdaterer...' : 'Bruk dette'}
+                    {applying ? t('applyingButton') : t('applyButton')}
                   </button>
                 </>
               )}

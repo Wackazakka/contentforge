@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { signUp, getSupabase } from '@/lib/supabaseClient'
+import { useTranslations } from 'next-intl'
 
 function HexagonIcon() {
   return (
@@ -19,6 +20,7 @@ function HexagonIcon() {
 }
 
 export default function RegisterPage() {
+  const t = useTranslations('register')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [registered, setRegistered] = useState(false)
@@ -41,22 +43,22 @@ export default function RegisterPage() {
     setLoading(true)
 
     if (!form.fullName.trim()) {
-      setError('Full name is required')
+      setError(t('errorFullNameRequired'))
       setLoading(false)
       return
     }
     if (!form.email.includes('@')) {
-      setError('Valid email is required')
+      setError(t('errorValidEmailRequired'))
       setLoading(false)
       return
     }
     if (form.password.length < 8) {
-      setError('Password must be at least 8 characters')
+      setError(t('errorPasswordTooShort'))
       setLoading(false)
       return
     }
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('errorPasswordsDoNotMatch'))
       setLoading(false)
       return
     }
@@ -102,7 +104,7 @@ export default function RegisterPage() {
       setRegisteredEmail(form.email)
       setRegistered(true)
     } catch (err) {
-      setError('An unexpected error occurred')
+      setError(t('errorUnexpected'))
       console.error(err)
     } finally {
       setLoading(false)
@@ -114,12 +116,12 @@ export default function RegisterPage() {
       <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#F1EFE8' }}>
         <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8 border border-gray-200 text-center">
           <div className="text-4xl mb-4">📬</div>
-          <h2 className="text-xl font-bold mb-2" style={{ color: '#0C447C' }}>Check your email</h2>
+          <h2 className="text-xl font-bold mb-2" style={{ color: '#0C447C' }}>{t('checkEmailTitle')}</h2>
           <p className="text-sm text-gray-500 mb-6">
-            We sent a confirmation link to <strong>{registeredEmail}</strong>. Click it to activate your account.
+            {t('checkEmailText', { email: registeredEmail })}
           </p>
           <Link href="/login" className="text-sm font-medium hover:underline" style={{ color: '#185FA5' }}>
-            ← Back to sign in
+            {t('backToSignIn')}
           </Link>
         </div>
       </div>
@@ -136,7 +138,7 @@ export default function RegisterPage() {
               Center<span style={{ color: '#378ADD' }}>Forge</span>
             </span>
           </div>
-          <p className="text-sm text-gray-500">Create your account</p>
+          <p className="text-sm text-gray-500">{t('subtitle')}</p>
         </div>
 
         {error && (
@@ -147,7 +149,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Full name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('fullNameLabel')}</label>
             <input
               type="text"
               name="fullName"
@@ -155,12 +157,12 @@ export default function RegisterPage() {
               onChange={handleChange}
               disabled={loading}
               className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-              placeholder="Jane Smith"
+              placeholder={t('fullNamePlaceholder')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('emailLabel')}</label>
             <input
               type="email"
               name="email"
@@ -168,12 +170,12 @@ export default function RegisterPage() {
               onChange={handleChange}
               disabled={loading}
               className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-              placeholder="you@example.com"
+              placeholder={t('emailPlaceholder')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('passwordLabel')}</label>
             <input
               type="password"
               name="password"
@@ -181,13 +183,13 @@ export default function RegisterPage() {
               onChange={handleChange}
               disabled={loading}
               className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-              placeholder="••••••••"
+              placeholder={t('passwordPlaceholder')}
             />
-            <p className="text-xs text-gray-400 mt-1">Min. 8 characters</p>
+            <p className="text-xs text-gray-400 mt-1">{t('passwordHint')}</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('confirmPasswordLabel')}</label>
             <input
               type="password"
               name="confirmPassword"
@@ -195,7 +197,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               disabled={loading}
               className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-              placeholder="••••••••"
+              placeholder={t('confirmPasswordPlaceholder')}
             />
           </div>
 
@@ -205,14 +207,14 @@ export default function RegisterPage() {
             className="w-full py-2.5 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             style={{ backgroundColor: '#185FA5' }}
           >
-            {loading ? 'Creating account...' : 'Create account'}
+            {loading ? t('creatingAccount') : t('createAccount')}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-400">
-          Already have an account?{' '}
+          {t('alreadyHaveAccount')}{' '}
           <Link href="/login" className="font-medium hover:underline" style={{ color: '#185FA5' }}>
-            Sign in
+            {t('signIn')}
           </Link>
         </p>
       </div>

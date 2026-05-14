@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 interface JobStatus {
   jobId: string
@@ -15,6 +16,7 @@ export default function VideoStatusPage() {
   const { id: productId, jobId } = useParams<{ id: string; jobId: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useTranslations('videoStatus')
   const formatParam = searchParams?.get('format') || '9:16'
 
   // Map the chosen video format to a CSS aspect-ratio plus a sensible max width
@@ -54,21 +56,21 @@ export default function VideoStatusPage() {
   }, [job?.status])
 
   const statusLabel: Record<string, string> = {
-    queued: '⏳ Venter i kø',
-    generating: '🎙️ Genererer voiceovers',
-    rendering: '🎬 Renderer video',
-    uploading: '☁️ Laster opp',
-    done: '✅ Ferdig!',
-    failed: '❌ Feil',
+    queued: t('statusQueued'),
+    generating: t('statusGenerating'),
+    rendering: t('statusRendering'),
+    uploading: t('statusUploading'),
+    done: t('statusDone'),
+    failed: t('statusFailed'),
   }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-50">
       <div className="bg-white rounded-2xl shadow-lg p-10 max-w-lg w-full text-center">
-        <h1 className="text-2xl font-bold mb-2">Videoproduksjon</h1>
-        <p className="text-gray-500 text-sm mb-8">Jobb-ID: {jobId}</p>
+        <h1 className="text-2xl font-bold mb-2">{t('title')}</h1>
+        <p className="text-gray-500 text-sm mb-8">{t('jobId', { jobId })}</p>
 
-        {!job && <p className="text-gray-400">Kobler til{dots}</p>}
+        {!job && <p className="text-gray-400">{t('connecting')}{dots}</p>}
 
         {job && job.status !== 'done' && job.status !== 'failed' && (
           <div>
@@ -77,7 +79,7 @@ export default function VideoStatusPage() {
               {statusLabel[job.status]}
               {dots}
             </p>
-            <p className="text-sm text-gray-400 mt-2">Dette tar vanligvis 2-4 minutter</p>
+            <p className="text-sm text-gray-400 mt-2">{t('takesTime')}</p>
             <div className="mt-6 bg-gray-100 rounded-full h-2">
               <div
                 className="bg-blue-500 h-2 rounded-full transition-all duration-1000"
@@ -100,7 +102,7 @@ export default function VideoStatusPage() {
 
         {job?.status === 'done' && job.videoUrl && (
           <div>
-            <p className="text-green-600 font-semibold text-lg mb-4">✅ Videoen er klar!</p>
+            <p className="text-green-600 font-semibold text-lg mb-4">{t('videoReady')}</p>
             {/* Aspect-ratio container — forces correct shape before metadata loads */}
             <div className="mx-auto mb-6 rounded-xl overflow-hidden bg-black" style={{ maxWidth: formatStyle.maxWidth, aspectRatio: formatStyle.aspectRatio }}>
               <video
@@ -131,20 +133,20 @@ export default function VideoStatusPage() {
                 rel="noopener noreferrer"
                 className="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
               >
-                ▶️ Åpne video
+                {t('openVideo')}
               </a>
               <a
                 href={`/api/video-proxy?url=${encodeURIComponent(job.videoUrl)}`}
                 download={`video-${jobId}.mp4`}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                ⬇️ Last ned
+                {t('download')}
               </a>
               <button
                 onClick={() => router.push(`/dashboard/products/${productId}`)}
                 className="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               >
-                Tilbake til produkt
+                {t('backToProduct')}
               </button>
             </div>
           </div>
@@ -152,13 +154,13 @@ export default function VideoStatusPage() {
 
         {job?.status === 'failed' && (
           <div>
-            <p className="text-red-600 font-semibold text-lg mb-2">❌ Produksjon feilet</p>
+            <p className="text-red-600 font-semibold text-lg mb-2">{t('productionFailed')}</p>
             <p className="text-sm text-gray-500 mb-6">{job.error}</p>
             <button
               onClick={() => router.back()}
               className="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-200"
             >
-              Prøv igjen
+              {t('tryAgain')}
             </button>
           </div>
         )}

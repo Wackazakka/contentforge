@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/authContext'
 import { PLANS, PlanKey } from '@/lib/stripe'
+import { useTranslations } from 'next-intl'
 
 interface Subscription {
   plan: PlanKey
@@ -28,6 +29,7 @@ function formatDate(iso: string) {
 
 export default function BillingPage() {
   const { session } = useAuth()
+  const t = useTranslations('billing')
   const userId = session?.user?.id
 
   const [balance, setBalance] = useState<number | null>(null)
@@ -78,7 +80,7 @@ export default function BillingPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-gray-500">{t('loading')}</div>
       </div>
     )
   }
@@ -87,24 +89,24 @@ export default function BillingPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6" style={{ color: '#0C447C' }}>Billing</h1>
+      <h1 className="text-2xl font-bold mb-6" style={{ color: '#0C447C' }}>{t('title')}</h1>
 
       {/* Current plan */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Current plan</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{t('currentPlan')}</p>
         {planConfig && subscription ? (
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xl font-bold text-gray-900">{planConfig.name}</p>
               <p className="text-sm text-gray-500 mt-1">
-                Status:{' '}
+                {t('status')}:{' '}
                 <span className={subscription.status === 'active' ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
                   {subscription.status}
                 </span>
               </p>
               {subscription.current_period_end && (
                 <p className="text-sm text-gray-500 mt-0.5">
-                  Renews {formatDate(subscription.current_period_end)}
+                  {t('renews', { date: formatDate(subscription.current_period_end) })}
                 </p>
               )}
             </div>
@@ -115,13 +117,13 @@ export default function BillingPage() {
           </div>
         ) : (
           <div>
-            <p className="text-gray-600 mb-3">You don't have an active subscription.</p>
+            <p className="text-gray-600 mb-3">{t('noSubscription')}</p>
             <a
               href="/pricing"
               className="inline-block rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors"
               style={{ backgroundColor: '#185FA5' }}
             >
-              View plans →
+              {t('viewPlans')}
             </a>
           </div>
         )}
@@ -134,7 +136,7 @@ export default function BillingPage() {
               className="w-full py-2.5 rounded-xl font-semibold text-sm border transition-colors disabled:opacity-50"
               style={{ borderColor: '#378ADD', color: '#185FA5' }}
             >
-              {portalLoading ? 'Opening...' : 'Manage subscription'}
+              {portalLoading ? t('opening') : t('manageSubscription')}
             </button>
           </div>
         )}
@@ -142,20 +144,20 @@ export default function BillingPage() {
 
       {/* Credits */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Credits</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{t('creditsTitle')}</p>
         <div className="flex items-end gap-3 mb-4">
           <p className="text-5xl font-bold" style={{ color: '#0C447C' }}>{balance ?? 0}</p>
-          <p className="text-gray-500 mb-1">credits remaining</p>
+          <p className="text-gray-500 mb-1">{t('creditsRemaining')}</p>
         </div>
         {planConfig && (
           <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: '#EBF4FF' }}>
             <div className="flex justify-between mb-1">
-              <span className="text-gray-600">📹 Video production</span>
-              <span className="font-semibold">10 credits</span>
+              <span className="text-gray-600">{t('videoProduction')}</span>
+              <span className="font-semibold">{t('creditCost10')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">📄 Article generation</span>
-              <span className="font-semibold">1 credit</span>
+              <span className="text-gray-600">{t('articleGeneration')}</span>
+              <span className="font-semibold">{t('creditCost1')}</span>
             </div>
           </div>
         )}
@@ -164,7 +166,7 @@ export default function BillingPage() {
       {/* Transaction history */}
       {transactions.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Transaction history</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{t('transactionHistory')}</p>
           <div className="space-y-3">
             {transactions.map((tx) => (
               <div key={tx.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 function HexagonIcon() {
   return (
@@ -19,18 +20,32 @@ function HexagonIcon() {
   )
 }
 
-const navLinks = [
-  { href: '/dashboard', label: 'Overview' },
-  { href: '/dashboard/publish', label: 'Publish' },
-  { href: '/dashboard/calendar', label: 'Calendar' },
-  { href: '/dashboard/billing', label: 'Billing' },
-]
-
 export default function NavBar() {
   const pathname = usePathname()
   const router = useRouter()
   const { signOut, session } = useAuth()
   const [credits, setCredits] = useState<number | null>(null)
+  const t = useTranslations('nav')
+
+  const navLinks = [
+    { href: '/dashboard', label: t('overview') },
+    { href: '/dashboard/publish', label: t('publish') },
+    { href: '/dashboard/calendar', label: t('calendar') },
+    { href: '/dashboard/billing', label: t('billing') },
+  ]
+
+  function setLocale(locale: string) {
+    document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`
+    router.refresh()
+  }
+
+  const currentLocale =
+    typeof document !== 'undefined'
+      ? document.cookie
+          .split('; ')
+          .find((row) => row.startsWith('NEXT_LOCALE='))
+          ?.split('=')[1] ?? 'en'
+      : 'en'
 
   useEffect(() => {
     const userId = session?.user?.id
@@ -80,15 +95,38 @@ export default function NavBar() {
               style={{ color: '#185FA5', borderColor: '#378ADD', backgroundColor: '#EBF4FF' }}
               title="Credits remaining"
             >
-              {credits} credits
+              {t('credits', { count: credits })}
             </Link>
           )}
+
+          {/* Language switcher */}
+          <div className="ml-1 sm:ml-2 flex items-center gap-0.5 border rounded-lg overflow-hidden text-xs font-semibold" style={{ borderColor: '#d1cec7' }}>
+            <button
+              onClick={() => setLocale('en')}
+              className="px-2 py-1.5 transition-colors"
+              style={currentLocale !== 'no'
+                ? { backgroundColor: '#185FA5', color: '#fff' }
+                : { color: '#9ca3af' }}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLocale('no')}
+              className="px-2 py-1.5 transition-colors"
+              style={currentLocale === 'no'
+                ? { backgroundColor: '#185FA5', color: '#fff' }
+                : { color: '#9ca3af' }}
+            >
+              NO
+            </button>
+          </div>
+
           <button
             onClick={handleLogout}
             className="ml-1 sm:ml-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors"
             style={{ color: '#9ca3af' }}
           >
-            Log out
+            {t('logout')}
           </button>
         </div>
       </div>

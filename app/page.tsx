@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 function HexagonIcon({ size = 28 }: { size?: number }) {
   return (
@@ -17,6 +18,8 @@ function HexagonIcon({ size = 28 }: { size?: number }) {
 }
 
 export default function Home() {
+  const t = useTranslations('home')
+
   return (
     <div className="flex flex-col min-h-screen bg-cf-bg">
 
@@ -29,7 +32,7 @@ export default function Home() {
           </span>
         </div>
         <Link href="/login" className="text-sm font-medium transition-colors" style={{ color: '#185FA5' }}>
-          Log in →
+          {t('loginLink')}
         </Link>
       </nav>
 
@@ -39,20 +42,19 @@ export default function Home() {
           className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm mb-8"
           style={{ backgroundColor: '#EBF4FF', border: '1px solid #378ADD', color: '#185FA5' }}
         >
-          MVP — Beta
+          {t('badge')}
         </div>
 
         <h1
           className="text-3xl sm:text-5xl font-extrabold tracking-tight max-w-2xl leading-tight mb-6"
           style={{ color: '#0C447C' }}
         >
-          Professional ad content in{' '}
-          <span style={{ color: '#185FA5' }}>seconds</span>
+          {t('headline')}{' '}
+          <span style={{ color: '#185FA5' }}>{t('headlineHighlight')}</span>
         </h1>
 
         <p className="text-base sm:text-lg max-w-xl mb-10" style={{ color: '#6b7280' }}>
-          Give a brief — get finished video ads and articles in all social
-          media formats. No design skills required.
+          {t('subtitle')}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 items-center">
@@ -63,19 +65,19 @@ export default function Home() {
             onMouseEnter={(e: any) => (e.currentTarget.style.backgroundColor = '#0C447C')}
             onMouseLeave={(e: any) => (e.currentTarget.style.backgroundColor = '#185FA5')}
           >
-            Get started
+            {t('ctaPrimary')}
           </Link>
           <a
             href="#features"
             className="rounded-full border font-medium px-8 py-3 text-base transition-colors"
             style={{ borderColor: '#d1cec7', color: '#2C2C2A' }}
           >
-            See features
+            {t('ctaSecondary')}
           </a>
         </div>
 
         <p className="mt-12 text-xs uppercase tracking-widest" style={{ color: '#9ca3af' }}>
-          Services using CenterForge
+          {t('usedBy')}
         </p>
         <div className="mt-4 flex gap-6 items-center font-semibold text-sm" style={{ color: '#6b7280' }}>
           <span>Reforhandle</span>
@@ -88,24 +90,24 @@ export default function Home() {
       <section id="features" className="border-t py-16 sm:py-20 px-4 sm:px-6 bg-white" style={{ borderColor: '#e5e2d9' }}>
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-12" style={{ color: '#2C2C2A' }}>
-            Everything you need for content production
+            {t('featuresTitle')}
           </h2>
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               {
                 icon: '🎬',
-                title: 'Video ads',
-                desc: 'DALL-E 3 images + ffmpeg Ken Burns animations. Produces 16:9, 9:16 and 1:1.',
+                title: t('feature1Title'),
+                desc: t('feature1Desc'),
               },
               {
                 icon: '📝',
-                title: 'Articles & copy',
-                desc: 'AI-generated text tailored to tone and audience. Ready to publish.',
+                title: t('feature2Title'),
+                desc: t('feature2Desc'),
               },
               {
                 icon: '✅',
-                title: 'Approval workflow',
-                desc: 'Built-in review workflow. Review and approve content before publishing.',
+                title: t('feature3Title'),
+                desc: t('feature3Desc'),
               },
             ].map((f) => (
               <div
@@ -124,7 +126,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t py-6 px-6 text-center text-xs bg-white" style={{ borderColor: '#e5e2d9', color: '#9ca3af' }}>
-        CenterForge © {new Date().getFullYear()} — Wackazakka
+        {t('footer', { year: new Date().getFullYear() })}
       </footer>
     </div>
   )

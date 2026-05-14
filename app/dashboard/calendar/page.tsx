@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useTranslations } from 'next-intl'
 
 type Publication = {
   id: string
@@ -60,6 +61,7 @@ function Badge({ status }: { status: string }) {
 }
 
 export default function CalendarPage() {
+  const t = useTranslations('calendar')
   const [entries, setEntries] = useState<CalendarEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [platformFilter, setPlatformFilter] = useState('All')
@@ -130,25 +132,25 @@ export default function CalendarPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: '#0C447C' }}>Content Calendar</h1>
+        <h1 className="text-2xl font-bold" style={{ color: '#0C447C' }}>{t('title')}</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setView('table')}
             className="px-3 py-1.5 rounded-lg text-sm font-medium"
             style={view === 'table' ? { backgroundColor: '#EBF4FF', color: '#185FA5' } : { color: '#6b7280' }}
-          >Table</button>
+          >{t('tableView')}</button>
           <button
             onClick={() => setView('calendar')}
             className="px-3 py-1.5 rounded-lg text-sm font-medium"
             style={view === 'calendar' ? { backgroundColor: '#EBF4FF', color: '#185FA5' } : { color: '#6b7280' }}
-          >Calendar</button>
+          >{t('calendarView')}</button>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <div>
-          <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>Platform</label>
+          <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>{t('platformFilter')}</label>
           <select
             value={platformFilter}
             onChange={e => setPlatformFilter(e.target.value)}
@@ -159,7 +161,7 @@ export default function CalendarPage() {
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>Status</label>
+          <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>{t('statusFilter')}</label>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
@@ -169,24 +171,24 @@ export default function CalendarPage() {
             {STATUSES.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
-        <div className="text-xs self-end pb-1.5" style={{ color: '#9ca3af' }}>{filtered.length} posts</div>
+        <div className="text-xs self-end pb-1.5" style={{ color: '#9ca3af' }}>{t('posts', { count: filtered.length })}</div>
       </div>
 
       {loading ? (
-        <p className="text-sm" style={{ color: '#9ca3af' }}>Loading...</p>
+        <p className="text-sm" style={{ color: '#9ca3af' }}>{t('loading')}</p>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border p-10 text-center" style={{ borderColor: '#e5e2d9', backgroundColor: '#ffffff' }}>
-          <p className="text-sm" style={{ color: '#9ca3af' }}>No posts found</p>
+          <p className="text-sm" style={{ color: '#9ca3af' }}>{t('noPostsFound')}</p>
         </div>
       ) : view === 'table' ? (
         <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#e5e2d9', backgroundColor: '#ffffff' }}>
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: '1px solid #e5e2d9', backgroundColor: '#fafaf8' }}>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Date</th>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Platform</th>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Type</th>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>Status</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>{t('dateHeader')}</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>{t('platformHeader')}</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>{t('typeHeader')}</th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>{t('statusHeader')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -209,7 +211,7 @@ export default function CalendarPage() {
                         className="text-xs px-2 py-1 rounded"
                         style={{ color: '#ef4444', backgroundColor: '#fef2f2' }}
                       >
-                        {deleting === entry.id ? '...' : 'Delete'}
+                        {deleting === entry.id ? '...' : t('deleteButton')}
                       </button>
                     )}
                   </td>
@@ -250,7 +252,7 @@ export default function CalendarPage() {
                     </div>
                   ))}
                   {dayEntries.length > 3 && (
-                    <div className="text-xs" style={{ color: '#9ca3af' }}>+{dayEntries.length - 3} more</div>
+                    <div className="text-xs" style={{ color: '#9ca3af' }}>{t('more', { count: dayEntries.length - 3 })}</div>
                   )}
                 </div>
               )

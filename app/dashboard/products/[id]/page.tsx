@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/authContext'
 import { getSupabase } from '@/lib/supabaseClient'
+import { useTranslations } from 'next-intl'
 
 function renderMarkdown(text: string) {
   const clean = text.replace(/\n/g, ' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -92,6 +93,7 @@ export default function ProductPage() {
   const router = useRouter()
   const params = useParams()
   const { session } = useAuth()
+  const t = useTranslations('product')
   const productId = params.id as string
 
   const [product, setProduct] = useState<Product | null>(null)
@@ -148,7 +150,7 @@ export default function ProductPage() {
 
         if (productError) throw productError
         if (!productData) {
-          setError('Produktet ble ikke funnet')
+          setError(t('notFound'))
           return
         }
 
@@ -163,7 +165,7 @@ export default function ProductPage() {
         if (profileData) setProfile(profileData)
       } catch (err) {
         console.error('[ProductPage] Fetch error:', err)
-        setError(err instanceof Error ? err.message : 'Feil ved henting av produkt')
+        setError(err instanceof Error ? err.message : t('loadError'))
       } finally {
         setLoading(false)
       }
@@ -216,7 +218,7 @@ export default function ProductPage() {
 
       if (error) throw error
 
-      setProfileMessage('✅ Merkevareprofil lagret!')
+      setProfileMessage(t('profileSaved'))
 
       const { data: updatedProfile } = await supabase
         .from('product_profiles')
@@ -229,7 +231,7 @@ export default function ProductPage() {
       setTimeout(() => setProfileMessage(null), 3000)
     } catch (err) {
       console.error('[ProductPage] Save profile error:', err)
-      setProfileMessage('❌ Feil ved lagring av profil')
+      setProfileMessage(t('profileSaveError'))
     } finally {
       setProfileSaving(false)
     }
@@ -268,14 +270,14 @@ export default function ProductPage() {
   }
 
   const handleDeleteVideo = async (id: string) => {
-    if (!confirm('Slett denne videoen?')) return
+    if (!confirm(t('deleteVideo'))) return
     const supabase = getSupabase()
     await supabase.from('asset_banks').delete().eq('id', id)
     setVideos((prev) => prev.filter((v) => v.id !== id))
   }
 
   const handleDeleteArticle = async (id: string) => {
-    if (!confirm('Slett denne artikkelen?')) return
+    if (!confirm(t('deleteArticle'))) return
     const supabase = getSupabase()
     await supabase.from('articles').delete().eq('id', id)
     setArticles((prev) => prev.filter((a) => a.id !== id))
@@ -392,7 +394,7 @@ export default function ProductPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-cf-bg flex items-center justify-center">
-        <div className="text-gray-600">Laster produkt...</div>
+        <div className="text-gray-600">{t('loading')}</div>
       </div>
     )
   }
@@ -402,10 +404,10 @@ export default function ProductPage() {
       <div className="min-h-screen bg-cf-bg">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <Link href="/dashboard" className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
-            ← Tilbake til dashboard
+            {t('backToDashboard')}
           </Link>
           <div className="text-center py-12">
-            <p className="text-red-600 text-lg">{error || 'Produktet ble ikke funnet'}</p>
+            <p className="text-red-600 text-lg">{error || t('notFound')}</p>
           </div>
         </div>
       </div>
@@ -423,7 +425,7 @@ export default function ProductPage() {
         {/* Header */}
         <div className="mb-6">
           <Link href="/dashboard" className="text-sm font-medium mb-3 inline-block" style={{ color: '#185FA5' }}>
-            ← Tilbake til dashboard
+            {t('backToDashboard')}
           </Link>
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -447,7 +449,7 @@ export default function ProductPage() {
         {/* Brand Profile — collapsible */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <SectionHeader
-            title="Merkevareprofil"
+            title={t('brandProfile')}
             open={openSections.brandProfile}
             onToggle={() => toggleSection('brandProfile')}
           />
@@ -462,7 +464,7 @@ export default function ProductPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Logo</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('logoLabel')}</label>
               <div className="flex gap-2 items-center">
                 <input
                   type="text"
@@ -471,9 +473,9 @@ export default function ProductPage() {
                   placeholder="https://example.com/logo.png"
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <span className="text-gray-400 text-sm">eller</span>
+                <span className="text-gray-400 text-sm">{t('or')}</span>
                 <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm border border-gray-300 transition-colors">
-                  {logoUploading ? '⏳ Laster opp...' : '📁 Last opp'}
+                  {logoUploading ? t('uploading') : t('upload')}
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/svg+xml,image/webp"
@@ -492,7 +494,7 @@ export default function ProductPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Primærfarge</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('primaryColorLabel')}</label>
               <div className="flex gap-2">
                 <input
                   type="color"
@@ -511,7 +513,7 @@ export default function ProductPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sekundærfarge</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('secondaryColorLabel')}</label>
               <div className="flex gap-2">
                 <input
                   type="color"
@@ -534,7 +536,7 @@ export default function ProductPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Aksentfarge</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('accentColorLabel')}</label>
               <div className="flex gap-2">
                 <input
                   type="color"
@@ -553,22 +555,22 @@ export default function ProductPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Skriftfamilie</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('fontFamilyLabel')}</label>
               <input
                 type="text"
                 value={profileForm.font_family}
                 onChange={(e) => setProfileForm({ ...profileForm, font_family: e.target.value })}
-                placeholder="e.g., 'Arial', 'Helvetica Neue'"
+                placeholder={t('fontFamilyPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Merkevaretone</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('brandVoiceLabel')}</label>
               <textarea
                 value={profileForm.brand_voice}
                 onChange={(e) => setProfileForm({ ...profileForm, brand_voice: e.target.value })}
-                placeholder="Beskriv hvordan merkevaren skal snakke og tonefallet..."
+                placeholder={t('brandVoicePlaceholder')}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -576,41 +578,41 @@ export default function ProductPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Merkevareveileder
+                {t('brandGuidelinesLabel')}
               </label>
               <textarea
                 value={profileForm.brand_guidelines}
                 onChange={(e) =>
                   setProfileForm({ ...profileForm, brand_guidelines: e.target.value })
                 }
-                placeholder="Beskriv merkevareveileder, stilguide, eller retningslinjer..."
+                placeholder={t('brandGuidelinesPlaceholder')}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nettside / produkt-URL</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('websiteUrlLabel')}</label>
               <input
                 type="url"
                 value={(profileForm as any).website_url || ""}
                 onChange={(e) => setProfileForm({ ...profileForm, website_url: e.target.value } as any)}
-                placeholder="https://bildeal.ai"
+                placeholder={t('websiteUrlPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-gray-400 mt-1">Brukes som subtil lenke i artikler</p>
+              <p className="text-xs text-gray-400 mt-1">{t('websiteUrlHint')}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CTA-tekst (valgfri)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('ctaTextLabel')}</label>
               <input
                 type="text"
                 value={(profileForm as any).cta_text || ''}
                 onChange={(e) => setProfileForm({ ...profileForm, cta_text: e.target.value } as any)}
-                placeholder="F.eks: Godt eller dårlig bilkjøp? Gå til bildeal.ai og finn ut!"
+                placeholder={t('ctaTextPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-gray-400 mt-1">Brukes verbatim som avslutning i artikler. Lar du feltet stå tomt, lages CTA automatisk.</p>
+              <p className="text-xs text-gray-400 mt-1">{t('ctaTextHint')}</p>
             </div>
 
             <button
@@ -618,7 +620,7 @@ export default function ProductPage() {
               disabled={profileSaving}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
-              {profileSaving ? 'Lagrer...' : 'Lagre profil'}
+              {profileSaving ? t('saving') : t('saveProfile')}
             </button>
           </div>
           </div>
@@ -627,15 +629,15 @@ export default function ProductPage() {
 
         {/* Content Production */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Innholdsproduksjon</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('contentProduction')}</h2>
           <div className="grid sm:grid-cols-3 gap-3">
             <button
               onClick={() => router.push(`/dashboard/new?productId=${productId}`)}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
             >
               <div className="text-2xl mb-2">🎬</div>
-              <h3 className="font-semibold text-gray-900">Lag video</h3>
-              <p className="text-sm text-gray-600 mt-1">Generer videoinnhold direkte</p>
+              <h3 className="font-semibold text-gray-900">{t('createVideo')}</h3>
+              <p className="text-sm text-gray-600 mt-1">{t('createVideoDesc')}</p>
             </button>
 
             <Link
@@ -643,8 +645,8 @@ export default function ProductPage() {
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left block"
             >
               <div className="text-2xl mb-2">🎬</div>
-              <h3 className="font-semibold text-gray-900">Lag video med godkjenning</h3>
-              <p className="text-sm text-gray-600 mt-1">Generer og godkjenn før produksjon</p>
+              <h3 className="font-semibold text-gray-900">{t('createVideoApproval')}</h3>
+              <p className="text-sm text-gray-600 mt-1">{t('createVideoApprovalDesc')}</p>
             </Link>
 
             <button
@@ -652,8 +654,8 @@ export default function ProductPage() {
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
             >
               <div className="text-2xl mb-2">📝</div>
-              <h3 className="font-semibold text-gray-900">Lag artikkel</h3>
-              <p className="text-sm text-gray-600 mt-1">Generer AI-drevet artikkelinnhold</p>
+              <h3 className="font-semibold text-gray-900">{t('createArticle')}</h3>
+              <p className="text-sm text-gray-600 mt-1">{t('createArticleDesc')}</p>
             </button>
           </div>
         </div>
@@ -662,7 +664,7 @@ export default function ProductPage() {
         {activeJobs.length > 0 && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
             <SectionHeader
-              title={`Pågående produksjonsjobber (${activeJobs.length})${jobsLoading ? ' …' : ''}`}
+              title={`${t('activeJobs', { count: activeJobs.length })}${jobsLoading ? ' …' : ''}`}
               open={openSections.jobs}
               onToggle={() => toggleSection('jobs')}
             />
@@ -686,10 +688,10 @@ export default function ProductPage() {
                         Status:{' '}
                         <span className="font-semibold">
                           {job.status === 'queued'
-                            ? '⏳ Venter'
+                            ? t('statusWaiting')
                             : job.status === 'generating'
-                            ? '⚙️ Genererer innhold'
-                            : '🎬 Rendrer video'}
+                            ? t('statusGenerating')
+                            : t('statusRendering')}
                         </span>
                       </span>
                       <span className="text-gray-500">
@@ -710,7 +712,7 @@ export default function ProductPage() {
         {doneJobs.length > 0 && (
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
             <SectionHeader
-              title={`Ferdigstilte videoer (${doneJobs.length})`}
+              title={t('doneJobs', { count: doneJobs.length })}
               open={openSections.doneJobs}
               onToggle={() => toggleSection('doneJobs')}
             />
@@ -729,7 +731,7 @@ export default function ProductPage() {
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900">{job.title}</h3>
-                          <p className="text-xs text-gray-500 mt-1">✅ Ferdigstilt</p>
+                          <p className="text-xs text-gray-500 mt-1">{t('completed')}</p>
                         </div>
                       </div>
 
@@ -752,14 +754,14 @@ export default function ProductPage() {
                               }
                               className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
                             >
-                              🚀 Publiser
+                              {t('publish')}
                             </button>
                             <a
                               href={videoUrl}
                               download={`${job.title.replace(/\s+/g, '_')}.mp4`}
                               className="flex-1 text-center bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
                             >
-                              ⬇️ Last ned
+                              {t('download')}
                             </a>
                           </div>
                         </>
@@ -777,14 +779,14 @@ export default function ProductPage() {
           {/* Videos */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <SectionHeader
-              title={`Videoer (${videos.length})`}
+              title={t('videos', { count: videos.length })}
               open={openSections.videos}
               onToggle={() => toggleSection('videos')}
             />
             {openSections.videos && (
               <>
                 {videosLoading ? (
-                  <div className="text-center py-8 text-gray-500">Laster videoer...</div>
+                  <div className="text-center py-8 text-gray-500">{t('loadingVideos')}</div>
                 ) : videos.length > 0 ? (
                   <div className="space-y-4">
                     {videos.map((video) => {
@@ -809,20 +811,20 @@ export default function ProductPage() {
                               }
                               className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
                             >
-                              🚀 Publiser
+                              {t('publish')}
                             </button>
                             <a
                               href={video.asset_url}
                               download={(video as any).name || 'video.mp4'}
                               className="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                             >
-                              ⬇️ Last ned
+                              {t('download')}
                             </a>
                             <button
                               onClick={() => handleDeleteVideo(video.id)}
                               className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors"
                             >
-                              🗑
+                              {t('delete')}
                             </button>
                           </div>
                         </div>
@@ -832,8 +834,8 @@ export default function ProductPage() {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
                     <div className="text-4xl mb-2">🎥</div>
-                    <p className="text-sm">Ingen videoer opprettet ennå</p>
-                    <p className="text-xs text-gray-400 mt-2">Videoer du genererer vil vises her</p>
+                    <p className="text-sm">{t('noVideos')}</p>
+                    <p className="text-xs text-gray-400 mt-2">{t('noVideosDesc')}</p>
                   </div>
                 )}
               </>
@@ -843,14 +845,14 @@ export default function ProductPage() {
           {/* Images */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <SectionHeader
-              title={`Bilder (${assets.length})`}
+              title={t('images', { count: assets.length })}
               open={openSections.images}
               onToggle={() => toggleSection('images')}
             />
             {openSections.images && (
               <>
                 {assetsLoading ? (
-                  <div className="text-center py-8 text-gray-500">Laster bilder...</div>
+                  <div className="text-center py-8 text-gray-500">{t('loadingImages')}</div>
                 ) : assets.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {assets.map((asset) => (
@@ -872,9 +874,9 @@ export default function ProductPage() {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center text-gray-500">
                     <div className="text-4xl mb-2">🖼️</div>
-                    <p className="text-sm">Ingen bilder opprettet ennå</p>
+                    <p className="text-sm">{t('noImages')}</p>
                     <p className="text-xs text-gray-400 mt-2">
-                      Bilder du genererer vil vises her
+                      {t('noImagesDesc')}
                     </p>
                   </div>
                 )}
@@ -885,14 +887,14 @@ export default function ProductPage() {
           {/* Articles */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <SectionHeader
-              title={`Artikler (${articles.length})`}
+              title={t('articles', { count: articles.length })}
               open={openSections.articles}
               onToggle={() => toggleSection('articles')}
             />
             {openSections.articles && (
               <>
                 {articlesLoading ? (
-                  <div className="text-center py-12 text-gray-500">Laster artikler...</div>
+                  <div className="text-center py-12 text-gray-500">{t('loadingArticles')}</div>
                 ) : articles.length > 0 ? (
                   <div className="space-y-4">
                     {articles.map((article) => (
@@ -937,13 +939,13 @@ export default function ProductPage() {
                                 }
                                 className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors"
                               >
-                                🚀 Publiser
+                                {t('publish')}
                               </button>
                               <button
                                 onClick={() => handleDeleteArticle(article.id)}
                                 className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors"
                               >
-                                🗑 Slett
+                                {t('delete')}
                               </button>
                             </div>
                           </div>
@@ -954,9 +956,9 @@ export default function ProductPage() {
                 ) : (
                   <div className="text-center py-12 border border-gray-200 rounded-lg">
                     <div className="text-4xl mb-2">📝</div>
-                    <p className="text-sm text-gray-500">Ingen artikler opprettet ennå</p>
+                    <p className="text-sm text-gray-500">{t('noArticles')}</p>
                     <p className="text-xs text-gray-400 mt-2">
-                      Artikler du genererer vil vises her
+                      {t('noArticlesDesc')}
                     </p>
                   </div>
                 )}

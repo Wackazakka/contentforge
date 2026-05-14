@@ -5,11 +5,13 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/authContext'
 import { getSupabase } from '@/lib/supabaseClient'
+import { useTranslations } from 'next-intl'
 
 export default function VideoProductionPage() {
   const router = useRouter()
   const params = useParams()
   const { session } = useAuth()
+  const t = useTranslations('videoProduction')
   const productId = params.id as string
 
   const [campaignName, setCampaignName] = useState('')
@@ -41,19 +43,19 @@ export default function VideoProductionPage() {
 
     // Validation
     if (!campaignName.trim()) {
-      setError('Campaign name is required')
+      setError(t('errorCampaignNameRequired'))
       return
     }
     if (!headline.trim()) {
-      setError('Headline is required')
+      setError(t('errorHeadlineRequired'))
       return
     }
     if (!bodyCopy.trim()) {
-      setError('Campaign description is required')
+      setError(t('errorDescriptionRequired'))
       return
     }
     if (formats.length === 0) {
-      setError('Select at least one format')
+      setError(t('errorSelectFormat'))
       return
     }
 
@@ -64,7 +66,7 @@ export default function VideoProductionPage() {
       const { data: { session } } = await getSupabase().auth.getSession()
       
       if (!session?.access_token) {
-        setError('Not authenticated. Please log in again.')
+        setError(t('errorNotAuthenticated'))
         setLoading(false)
         return
       }
@@ -88,11 +90,11 @@ export default function VideoProductionPage() {
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Feil ved oppstart av videogen')
+        throw new Error(data.error || 'Error starting video production')
       }
 
       const { jobId } = await response.json()
-      setSuccess(`Videogen startet! Job ID: ${jobId}`)
+      setSuccess(t('videoStarted', { jobId }))
       
       // Clear form
       setCampaignName('')
@@ -121,9 +123,9 @@ export default function VideoProductionPage() {
             href={`/dashboard/products/${productId}`}
             className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-2 inline-block"
           >
-            ← Back to product
+            {t('backToProduct')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Create video</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
         </div>
       </div>
 
@@ -144,7 +146,7 @@ export default function VideoProductionPage() {
           {/* Campaign Name */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Campaign name *
+              {t('campaignNameLabel')}
             </label>
             <input
               type="text"
@@ -152,14 +154,14 @@ export default function VideoProductionPage() {
               onChange={(e) => setCampaignName(e.target.value)}
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              placeholder="e.g. Summer campaign 2026"
+              placeholder={t('campaignNamePlaceholder')}
             />
           </div>
 
           {/* Headline */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Headline *
+              {t('headlineLabel')}
             </label>
             <input
               type="text"
@@ -167,14 +169,14 @@ export default function VideoProductionPage() {
               onChange={(e) => setHeadline(e.target.value)}
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              placeholder="Main message for the campaign"
+              placeholder={t('headlinePlaceholder')}
             />
           </div>
 
           {/* Body Copy */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Campaign description *
+              {t('descriptionLabel')}
             </label>
             <textarea
               value={bodyCopy}
@@ -182,14 +184,14 @@ export default function VideoProductionPage() {
               disabled={loading}
               rows={4}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              placeholder="Detailed description of what the campaign is about"
+              placeholder={t('descriptionPlaceholder')}
             />
           </div>
 
           {/* CTA */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Call-to-Action (optional)
+              {t('ctaLabel')}
             </label>
             <input
               type="text"
@@ -197,14 +199,14 @@ export default function VideoProductionPage() {
               onChange={(e) => setCta(e.target.value)}
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              placeholder="e.g. Visit now, Try for free, etc."
+              placeholder={t('ctaPlaceholder')}
             />
           </div>
 
           {/* Tone */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Tone
+              {t('toneLabel')}
             </label>
             <select
               value={tone}
@@ -212,17 +214,17 @@ export default function VideoProductionPage() {
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             >
-              <option value="professional">Professional</option>
-              <option value="friendly">Friendly</option>
-              <option value="energetic">Energetic</option>
-              <option value="calm">Calm</option>
+              <option value="professional">{t('toneProfessional')}</option>
+              <option value="friendly">{t('toneFriendly')}</option>
+              <option value="energetic">{t('toneEnergetic')}</option>
+              <option value="calm">{t('toneCalm')}</option>
             </select>
           </div>
 
           {/* Formats */}
           <div className="mb-8">
             <label className="block text-sm font-semibold text-gray-900 mb-3">
-              Format * (select at least one)
+              {t('formatLabel')}
             </label>
             <div className="space-y-2">
               {['9:16', '1:1', '16:9'].map((format) => (
@@ -235,9 +237,9 @@ export default function VideoProductionPage() {
                     className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                   />
                   <span className="ml-3 text-gray-700">
-                    {format === '9:16' && '📱 Mobile vertical (9:16)'}
-                    {format === '1:1' && '⬜ Square (1:1)'}
-                    {format === '16:9' && '🖥️ Desktop (16:9)'}
+                    {format === '9:16' && t('formatMobile')}
+                    {format === '1:1' && t('formatSquare')}
+                    {format === '16:9' && t('formatDesktop')}
                   </span>
                 </label>
               ))}
@@ -252,14 +254,14 @@ export default function VideoProductionPage() {
               disabled={loading}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 disabled:opacity-50"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? 'Starting...' : '🎬 Start production'}
+              {loading ? t('starting') : t('startProduction')}
             </button>
           </div>
         </form>
@@ -267,8 +269,7 @@ export default function VideoProductionPage() {
         {/* Info box */}
         <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-900">
-            <strong>ℹ️ Info:</strong> Video production automatically generates voiceover, images and music based on your input.
-            The process may take a few minutes. You will be notified when the video is ready.
+            <strong>ℹ️ Info:</strong> {t('infoText')}
           </p>
         </div>
       </div>
