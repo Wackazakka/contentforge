@@ -283,6 +283,13 @@ export default function ProductPage() {
     setArticles((prev) => prev.filter((a) => a.id !== id))
   }
 
+  const handleDeleteImage = async (id: string) => {
+    if (!confirm(t('deleteImage'))) return
+    const supabase = getSupabase()
+    await supabase.from('asset_banks').delete().eq('id', id)
+    setAssets((prev) => prev.filter((a) => a.id !== id))
+  }
+
   useEffect(() => {
     if (!productId || !session?.user?.id) return
 
@@ -857,19 +864,30 @@ export default function ProductPage() {
                 ) : assets.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {assets.map((asset) => (
-                      <a
-                        key={asset.id}
-                        href={asset.asset_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative bg-gray-100 rounded-lg overflow-hidden aspect-square block hover:opacity-90 transition-opacity"
-                      >
-                        <img
-                          src={asset.asset_url}
-                          alt="Generated image"
-                          className="w-full h-full object-cover"
-                        />
-                      </a>
+                      <div key={asset.id} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                        <a
+                          href={asset.asset_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full h-full"
+                        >
+                          <img
+                            src={asset.asset_url}
+                            alt="Generated image"
+                            className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
+                          />
+                        </a>
+                        {/* Delete button — appears on hover */}
+                        <button
+                          onClick={() => handleDeleteImage(asset.id)}
+                          title={t('deleteImage')}
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-md bg-white/90 text-gray-500 hover:text-red-500 hover:bg-red-50 shadow-sm"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                            <path d="M1 3h12M5 3V2h4v1M2 3l1 9h8l1-9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </button>
+                      </div>
                     ))}
                   </div>
                 ) : (

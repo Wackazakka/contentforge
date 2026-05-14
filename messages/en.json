@@ -240,6 +240,7 @@
     "delete": "🗑",
     "deleteVideo": "Delete this video?",
     "deleteArticle": "Delete this article?",
+    "deleteImage": "Delete this image?",
     "videos": "Videos ({count})",
     "loadingVideos": "Loading videos...",
     "noVideos": "No videos created yet",
