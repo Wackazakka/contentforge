@@ -638,19 +638,10 @@ export default function ProductPage() {
         {/* Content Production */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('contentProduction')}</h2>
-          <div className="grid sm:grid-cols-3 gap-3">
-            <button
-              onClick={() => router.push(`/dashboard/new?productId=${productId}`)}
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
-            >
-              <div className="text-2xl mb-2">🎬</div>
-              <h3 className="font-semibold text-gray-900">{t('createVideo')}</h3>
-              <p className="text-sm text-gray-600 mt-1">{t('createVideoDesc')}</p>
-            </button>
-
+          <div className="grid sm:grid-cols-2 gap-3">
             <Link
               href={`/dashboard/products/${productId}/video/draft/new`}
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left block"
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#185FA5] hover:bg-[#EBF4FF] transition-all text-left block"
             >
               <div className="text-2xl mb-2">🎬</div>
               <h3 className="font-semibold text-gray-900">{t('createVideoApproval')}</h3>
@@ -659,7 +650,7 @@ export default function ProductPage() {
 
             <button
               onClick={() => router.push(`/dashboard/products/${productId}/article`)}
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#1D9E75] hover:bg-[#f0fdf8] transition-all text-left"
             >
               <div className="text-2xl mb-2">📝</div>
               <h3 className="font-semibold text-gray-900">{t('createArticle')}</h3>
