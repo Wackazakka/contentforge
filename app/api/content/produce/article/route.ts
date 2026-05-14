@@ -104,7 +104,13 @@ Return JSON with:
 
   // Append fixed CTA verbatim in code — never rely on Claude to do it
   if (includeLink && ctaText?.trim()) {
-    parsed.content = (parsed.content as string).trimEnd() + '\n\n' + ctaText.trim()
+    let suffix = '\n\n' + ctaText.trim()
+    // Add the URL on its own line so Facebook renders it as a clickable link
+    if (websiteUrl?.trim()) {
+      const url = websiteUrl.trim().startsWith('http') ? websiteUrl.trim() : `https://${websiteUrl.trim()}`
+      suffix += '\n' + url
+    }
+    parsed.content = (parsed.content as string).trimEnd() + suffix
   }
 
   return parsed
