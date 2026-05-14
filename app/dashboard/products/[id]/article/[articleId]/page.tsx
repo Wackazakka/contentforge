@@ -68,32 +68,65 @@ export default function ArticleDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [swapOpen, setSwapOpen] = useState(false)
 
+  // Edit state
+  const [editing, setEditing] = useState(false)
+  const [editDraft, setEditDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
+
   useEffect(() => {
     if (!articleId) return
-
     const fetchArticle = async () => {
       try {
         setLoading(true)
         const supabase = getSupabase()
-
         const { data, error: fetchError } = await supabase
           .from('articles')
           .select('*')
           .eq('id', articleId)
           .single()
-
         if (fetchError) throw fetchError
         setArticle(data)
       } catch (err) {
-        console.error('[ArticleDetail] Fetch error:', err)
         setError(err instanceof Error ? err.message : 'Feil ved henting av artikkel')
       } finally {
         setLoading(false)
       }
     }
-
     fetchArticle()
   }, [articleId])
+
+  const startEdit = () => {
+    setEditDraft(article?.content || '')
+    setEditing(true)
+    setSaveMsg(null)
+  }
+
+  const cancelEdit = () => {
+    setEditing(false)
+    setEditDraft('')
+  }
+
+  const saveEdit = async () => {
+    if (!article) return
+    setSaving(true)
+    try {
+      const supabase = getSupabase()
+      const { error } = await supabase
+        .from('articles')
+        .update({ content: editDraft })
+        .eq('id', article.id)
+      if (error) throw error
+      setArticle((prev) => prev ? { ...prev, content: editDraft } : prev)
+      setEditing(false)
+      setSaveMsg('✅ Lagret')
+      setTimeout(() => setSaveMsg(null), 3000)
+    } catch (err) {
+      alert('Feil ved lagring: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const copyToClipboard = () => {
     if (article?.content) {
@@ -128,12 +161,10 @@ export default function ArticleDetailPage() {
   return (
     <div className="min-h-screen bg-cf-bg">
       <div className="max-w-3xl mx-auto px-4 py-8">
-        {/* Header */}
         <Link href={`/dashboard/products/${productId}`} className="text-blue-600 hover:text-blue-700 mb-6 inline-block">
           ← Tilbake til produkt
         </Link>
 
-        {/* Article Card */}
         <div className="bg-white rounded-lg border border-gray-200 p-8">
           {/* Platform Badge */}
           <div className="mb-6">
@@ -144,8 +175,6 @@ export default function ArticleDetailPage() {
 
           {/* Title */}
           <h1 className="text-4xl font-bold text-gray-900 mb-2">{article.title}</h1>
-
-          {/* Date */}
           <p className="text-sm text-gray-500 mb-8">
             Opprettet: {new Date(article.created_at).toLocaleDateString('no-NO')}
           </p>
@@ -171,12 +200,12 @@ export default function ArticleDetailPage() {
                 onClick={() => setSwapOpen(true)}
                 className="inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
               >
-                Bytt illustrasjon
+                Legg til illustrasjon
               </button>
             </div>
           )}
 
-          {swapOpen && article && (
+          {swapOpen && (
             <SwapIllustrationModal
               articleId={article.id}
               productId={article.product_id}
@@ -189,24 +218,65 @@ export default function ArticleDetailPage() {
             />
           )}
 
-          {/* Divider */}
-          <div className="border-t border-gray-200 my-8"></div>
+          <div className="border-t border-gray-200 my-8" />
 
-          {/* Content */}
-          <div className="prose prose-sm max-w-none mb-8 text-gray-700 leading-relaxed">
-            {renderMarkdown(article.content)}
+          {/* Content — view or edit */}
+          {editing ? (
+            <div className="mb-6">
+              <textarea
+                value={editDraft}
+                onChange={(e) => setEditDraft(e.target.value)}
+                rows={16}
+                className="w-full px-3 py-2 border border-blue-400 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+              />
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={saveEdit}
+                  disabled={saving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {saving ? 'Lagrer...' : '✅ Lagre'}
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Avbryt
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="prose prose-sm max-w-none mb-6 text-gray-700 leading-relaxed">
+              {renderMarkdown(article.content)}
+            </div>
+          )}
+
+          <div className="border-t border-gray-200 my-6" />
+
+          {/* Action bar */}
+          <div className="flex flex-wrap gap-3 items-center">
+            <Link
+              href={`/dashboard/publish?type=article&content_id=${article.id}&product_id=${productId}`}
+              className="inline-flex items-center px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+            >
+              🚀 Publiser
+            </Link>
+            {!editing && (
+              <button
+                onClick={startEdit}
+                className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
+              >
+                ✏️ Rediger tekst
+              </button>
+            )}
+            <button
+              onClick={copyToClipboard}
+              className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
+            >
+              📋 Kopier innhold
+            </button>
+            {saveMsg && <span className="text-sm text-green-600 font-medium">{saveMsg}</span>}
           </div>
-
-          {/* Divider */}
-          <div className="border-t border-gray-200 my-8"></div>
-
-          {/* Copy Button */}
-          <button
-            onClick={copyToClipboard}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-          >
-            📋 Kopier innhold
-          </button>
         </div>
       </div>
     </div>
