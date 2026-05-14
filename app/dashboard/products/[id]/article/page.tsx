@@ -60,7 +60,10 @@ export default function ArticlePage() {
       .maybeSingle()
       .then(({ data }: { data: any }) => {
         if (data?.website_url) setWebsiteUrl(data.website_url)
-        if (data?.cta_text) setCtaText(data.cta_text)
+        if (data?.cta_text) {
+          setCtaText(data.cta_text)
+          setIncludeLink(true) // auto-enable when CTA text is configured
+        }
       })
   }, [productId])
 
@@ -225,8 +228,8 @@ export default function ArticlePage() {
                 </div>
               </div>
 
-              {/* Product link */}
-              {websiteUrl && (
+              {/* Product link / CTA */}
+              {(websiteUrl || ctaText) && (
                 <div className="mb-6">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -235,10 +238,12 @@ export default function ArticlePage() {
                       onChange={(e) => setIncludeLink(e.target.checked)}
                       className="w-4 h-4 text-blue-600 rounded"
                     />
-                    <span className="text-sm text-gray-700">Avslutt med lenke til produktet</span>
+                    <span className="text-sm text-gray-700">Avslutt med CTA</span>
                   </label>
                   {includeLink && (
-                    <p className="text-xs text-gray-400 mt-1 ml-6">{websiteUrl}</p>
+                    <p className="text-xs text-gray-400 mt-1 ml-6 italic">
+                      {ctaText || websiteUrl}
+                    </p>
                   )}
                 </div>
               )}
