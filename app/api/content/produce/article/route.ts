@@ -28,13 +28,15 @@ interface GenerateArticleRequest {
   imageStyle?: string
   includeLink?: boolean
   websiteUrl?: string
+  ctaText?: string
 }
 
 async function generateArticleContent(
   topic: string,
   platform: string,
   includeLink?: boolean,
-  websiteUrl?: string
+  websiteUrl?: string,
+  ctaText?: string
 ): Promise<{ title: string; content: string }> {
   const platformGuides: Record<string, string> = {
     facebook:
@@ -58,14 +60,20 @@ Return JSON with:
   "content": "Full article content optimized for ${platform}"
 }`
 
-  const ctaGuides: Record<string, string> = {
-    facebook: 'End the article with a single natural sentence that subtly references this URL: ' + (websiteUrl || '') + '. Keep it brief and unforced. No call-to-action language.',
-    linkedin: 'Close the article with one understated sentence that references this URL: ' + (websiteUrl || '') + '. Make it feel like a natural sign-off, not a sales pitch.',
-    x: 'Add the URL ' + (websiteUrl || '') + ' at the very end on its own line. Nothing else.',
+  // If a fixed CTA text is provided, append it verbatim — don't ask Claude to invent one
+  let finalPrompt: string
+  if (includeLink && ctaText?.trim()) {
+    finalPrompt = prompt + `\n\nEnd the article by appending this exact sentence on a new line (do not paraphrase or change it): "${ctaText.trim()}"`
+  } else if (includeLink && websiteUrl) {
+    const ctaGuides: Record<string, string> = {
+      facebook: 'End the article with a single natural sentence that subtly references this URL: ' + websiteUrl + '. Keep it brief and unforced. No call-to-action language.',
+      linkedin: 'Close the article with one understated sentence that references this URL: ' + websiteUrl + '. Make it feel like a natural sign-off, not a sales pitch.',
+      x: 'Add the URL ' + websiteUrl + ' at the very end on its own line. Nothing else.',
+    }
+    finalPrompt = prompt + '\n\n' + (ctaGuides[platform] || 'End with: ' + websiteUrl)
+  } else {
+    finalPrompt = prompt
   }
-  const finalPrompt = (includeLink && websiteUrl)
-    ? prompt + '\n\n' + (ctaGuides[platform] || 'End with: ' + websiteUrl)
-    : prompt
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -206,7 +214,8 @@ export async function POST(request: NextRequest) {
     console.log(`[article-produce] Starting ${platform} article for: "${topic}"`)
 
     // Generate article content with Claude (~10s)
-    const { title, content } = await generateArticleContent(topic, platform, includeLink, websiteUrl)
+    const { ctaText, ...rest } = body
+    const { title, content } = await generateArticleContent(topic, platform, includeLink, websiteUrl, ctaText)
     console.log(`[article-produce] ✅ Content ready: "${title.substring(0, 60)}"`)
 
     // Save article immediately with no image

@@ -127,6 +127,7 @@ export default function ProductPage() {
     brand_voice: '',
     brand_guidelines: '',
     website_url: '',
+    cta_text: '',
   })
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
@@ -182,6 +183,7 @@ export default function ProductPage() {
         brand_voice: profile.brand_voice || '',
         brand_guidelines: profile.brand_guidelines ? String(profile.brand_guidelines) : '',
         website_url: (profile as any).website_url || '',
+        cta_text: (profile as any).cta_text || '',
       })
     }
   }, [profile])
@@ -207,6 +209,7 @@ export default function ProductPage() {
             brand_voice: profileForm.brand_voice || null,
             brand_guidelines: profileForm.brand_guidelines || null,
             website_url: (profileForm as any).website_url || null,
+            cta_text: (profileForm as any).cta_text || null,
           },
           { onConflict: 'product_id' }
         )
@@ -596,6 +599,18 @@ export default function ProductPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-gray-400 mt-1">Brukes som subtil lenke i artikler</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CTA-tekst (valgfri)</label>
+              <input
+                type="text"
+                value={(profileForm as any).cta_text || ''}
+                onChange={(e) => setProfileForm({ ...profileForm, cta_text: e.target.value } as any)}
+                placeholder="F.eks: Godt eller dårlig bilkjøp? Gå til bildeal.ai og finn ut!"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">Brukes verbatim som avslutning i artikler. Lar du feltet stå tomt, lages CTA automatisk.</p>
             </div>
 
             <button

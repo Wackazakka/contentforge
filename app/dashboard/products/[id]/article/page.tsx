@@ -34,6 +34,7 @@ export default function ArticlePage() {
   const [imageStyle, setImageStyle] = useState<string>('tech')
   const [includeLink, setIncludeLink] = useState(false)
   const [websiteUrl, setWebsiteUrl] = useState<string>('')
+  const [ctaText, setCtaText] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [articles, setArticles] = useState<Article[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -54,13 +55,12 @@ export default function ArticlePage() {
     const supabase = getSupabase()
     supabase
       .from("product_profiles")
-      .select("website_url")
+      .select("website_url, cta_text")
       .eq("product_id", productId)
       .maybeSingle()
       .then(({ data }: { data: any }) => {
-        if (data && (data as any).website_url) {
-          setWebsiteUrl((data as any).website_url)
-        }
+        if (data?.website_url) setWebsiteUrl(data.website_url)
+        if (data?.cta_text) setCtaText(data.cta_text)
       })
   }, [productId])
 
@@ -102,6 +102,7 @@ export default function ArticlePage() {
             imageStyle,
             includeLink,
             websiteUrl,
+            ctaText,
           }),
         }).then(async (response) => {
           if (!response.ok) {
