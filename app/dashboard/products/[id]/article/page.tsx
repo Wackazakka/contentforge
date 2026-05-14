@@ -119,38 +119,7 @@ export default function ArticlePage() {
       const results = await Promise.all(promises)
       const generatedArticles = results.map((result) => result.article).filter(Boolean)
       setArticles(generatedArticles)
-
-      // Generate image in parallel
-      setImageLoading(true)
-      try {
-        console.log('[ArticlePage] Starting image generation for topic:', topic)
-        // Send articleIds from all generated articles
-        const articleIds = generatedArticles.map((a) => a.id)
-        const imageResponse = await fetch('/api/content/generate-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic,
-            productId,
-            articleIds,
-          }),
-        })
-
-        console.log('[ArticlePage] Image API response status:', imageResponse.status)
-
-        if (imageResponse.ok) {
-          const imageData = await imageResponse.json()
-          console.log('[ArticlePage] Image generated successfully:', imageData.imageUrl)
-          setImageUrl(imageData.imageUrl)
-        } else {
-          const errorData = await imageResponse.json().catch(() => ({}))
-          console.error('[ArticlePage] Image generation failed with status', imageResponse.status, errorData)
-        }
-      } catch (imgErr) {
-        console.error('[ArticlePage] Image generation error:', imgErr instanceof Error ? imgErr.message : String(imgErr))
-      } finally {
-        setImageLoading(false)
-      }
+      // Images are generated in the background via Netlify function — no separate call needed
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -273,30 +242,6 @@ export default function ArticlePage() {
 
             {!loading && articles.length > 0 && (
               <div className="space-y-6">
-                {/* Image Section */}
-                {imageLoading && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <p className="text-gray-600 mt-4">Generating image...</p>
-                    </div>
-                  </div>
-                )}
-
-                {imageUrl && !imageLoading && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Campaign image</h3>
-                    <img
-                      src={imageUrl}
-                      alt="Campaign image"
-                      className="w-full rounded-lg border border-gray-200"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://via.placeholder.com/600x400?text=Image+Not+Available'
-                      }}
-                    />
-                  </div>
-                )}
-
                 <h2 className="text-lg font-semibold text-gray-900">Generated articles</h2>
                 {articles.map((article) => (
                   <div key={article.id} className="bg-white rounded-lg border border-gray-200 p-6">
