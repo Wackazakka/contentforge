@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- Blue circle background -->
+  <circle cx="200" cy="200" r="200" fill="#1A5EA8"/>
+
+  <!-- Hexagon (slightly darker blue, thin border) -->
+  <polygon
+    points="200,72 308,136 308,264 200,328 92,264 92,136"
+    fill="#1E6BBF"
+    stroke="#2E7DD4"
+    stroke-width="4"
+  />
+
+  <!-- Inner hexagon (slightly lighter) -->
+  <polygon
+    points="200,95 288,147 288,253 200,305 112,253 112,147"
+    fill="#2472C8"
+    stroke="none"
+  />
+
+  <!-- White C shape (arc) -->
+  <path
+    d="M 248,142
+       A 78,78 0 1 0 248,258
+       L 230,238
+       A 54,54 0 1 1 230,162
+       Z"
+    fill="white"
+  />
+
+  <!-- Green dot top -->
+  <circle cx="248" cy="148" r="18" fill="#3BAA6E"/>
+
+  <!-- Green dot bottom -->
+  <circle cx="248" cy="252" r="18" fill="#3BAA6E"/>
+</svg>

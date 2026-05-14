@@ -21,6 +21,11 @@ export const metadata: Metadata = {
     default: "CenterForge — AI-powered content production",
     template: "%s · CenterForge",
   },
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   description:
     "Create professional video ads and articles for every social media format in seconds. No design skills required.",
   metadataBase: new URL("https://centerforge.app"),
