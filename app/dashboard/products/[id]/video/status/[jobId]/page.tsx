@@ -36,8 +36,18 @@ export default function VideoStatusPage() {
       try {
         const res = await fetch(`/api/job-status/${jobId}`)
         const data = await res.json()
+        if (data.status === 'done') {
+          // Reload once when the job first completes so the video plays with
+          // the freshest JS bundle — avoids stale-code issues during deploys.
+          const key = `done-reloaded-${jobId}`
+          if (!sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, '1')
+            window.location.reload()
+            return
+          }
+          setVideoError(null)
+        }
         setJob(data)
-        if (data.status === 'done') setVideoError(null) // clear any stale error
         if (data.status === 'done' || data.status === 'failed') return
         setTimeout(poll, 4000)
       } catch (err) {
