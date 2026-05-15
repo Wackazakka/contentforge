@@ -371,7 +371,8 @@ export default function DraftPage() {
       // Redirect to production status page — forward video format so the
       // status page can size the player container correctly.
       const videoFormat = draft.video_format || formatFromUrl || '9:16'
-      router.push(`/dashboard/products/${productId}/video/status/${data.jobId}?format=${encodeURIComponent(videoFormat)}`)
+      // Full page load ensures the status page always runs the latest JS bundle.
+      window.location.href = `/dashboard/products/${productId}/video/status/${data.jobId}?format=${encodeURIComponent(videoFormat)}`
     } catch (err) {
       console.error('[DraftPage] Production error:', err)
       alert('Error starting production')
