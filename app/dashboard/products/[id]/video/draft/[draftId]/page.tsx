@@ -12,6 +12,7 @@ interface Segment {
   voiceover: string
   image_url: string
   approved: boolean
+  voiceover_url?: string
 }
 
 interface Draft {
@@ -302,6 +303,22 @@ export default function DraftPage() {
       const data = await res.json()
       if (data.url) {
         setVoicePreviews((prev) => ({ ...prev, [index]: data.url }))
+
+        // Persist R2 URL on the segment so production can reuse the approved file
+        const updatedSegments = [...draft.segments]
+        updatedSegments[index] = { ...updatedSegments[index], voiceover_url: data.url }
+        setDraft({ ...draft, segments: updatedSegments })
+
+        const supabase = getSupabase()
+        const { error: saveErr } = await supabase
+          .from('production_drafts')
+          .update({ segments: updatedSegments })
+          .eq('id', draftId)
+        if (saveErr) {
+          console.error('[previewVoiceover] Failed to save voiceover_url:', saveErr)
+        } else {
+          console.log(`[previewVoiceover] Saved voiceover_url for segment ${index}`)
+        }
       }
     } catch (err) {
       console.error('Voiceover preview failed:', err)

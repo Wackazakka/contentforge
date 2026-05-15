@@ -93,6 +93,7 @@ export async function POST(request: Request) {
         text: stripEmojis(s.text),
         voiceover: s.voiceover,
         imageUrl: s.image_url,
+        voiceoverUrl: s.voiceover_url || null,
       }))
 
     console.log('[start-production] Prepared segments:', {
