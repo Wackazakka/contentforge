@@ -107,7 +107,7 @@ export default function VideoStatusPage() {
             <div className="mx-auto mb-6 rounded-xl overflow-hidden bg-black" style={{ maxWidth: formatStyle.maxWidth, aspectRatio: formatStyle.aspectRatio }}>
               <video
                 key={job.videoUrl}
-                src={job.videoUrl}
+                src={`/api/video-proxy?url=${encodeURIComponent(job.videoUrl)}`}
                 controls
                 playsInline
                 preload="auto"
