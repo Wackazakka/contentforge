@@ -34,6 +34,10 @@ export async function GET(request: NextRequest) {
     'Accept-Ranges': 'bytes',
     'Content-Length': String(buffer.byteLength),
     'Cache-Control': 'public, max-age=86400',
+    // Tell Netlify Edge CDN to vary cache on the `url` query param.
+    // Without this, the Next.js Netlify runtime collapses all proxy requests
+    // into one cache entry regardless of which video URL is requested.
+    'Netlify-Vary': 'query=url',
   })
 
   const contentRange = upstream.headers.get('Content-Range')
