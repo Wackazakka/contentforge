@@ -156,7 +156,9 @@
     "typeHeader": "Type",
     "statusHeader": "Status",
     "deleteButton": "Delete",
-    "more": "+{count} more"
+    "more": "+{count} more",
+    "productFilter": "Product",
+    "allProducts": "All products"
   },
   "publish": {
     "title": "Publish content",

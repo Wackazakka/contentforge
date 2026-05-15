@@ -156,7 +156,9 @@
     "typeHeader": "Type",
     "statusHeader": "Status",
     "deleteButton": "Slett",
-    "more": "+{count} flere"
+    "more": "+{count} flere",
+    "productFilter": "Produkt",
+    "allProducts": "Alle produkter"
   },
   "publish": {
     "title": "Publiser innhold",

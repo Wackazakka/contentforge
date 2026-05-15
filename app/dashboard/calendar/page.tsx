@@ -29,6 +29,12 @@ type CalendarEntry = {
   content_type: string
   date: string
   isScheduled: boolean
+  product_id?: string
+}
+
+type Product = {
+  id: string
+  name: string
 }
 
 const PLATFORMS = ['All', 'facebook', 'instagram']
@@ -63,18 +69,21 @@ function Badge({ status }: { status: string }) {
 export default function CalendarPage() {
   const t = useTranslations('calendar')
   const [entries, setEntries] = useState<CalendarEntry[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [platformFilter, setPlatformFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
+  const [productFilter, setProductFilter] = useState('All')
   const [view, setView] = useState<'table' | 'calendar'>('table')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
   async function load() {
     setLoading(true)
-    const [pubRes, schedRes] = await Promise.all([
+    const [pubRes, schedRes, prodRes] = await Promise.all([
       supabase.from('publications').select('id,platform,status,content_type,created_at,product_id').order('created_at', { ascending: false }).limit(200),
-      supabase.from('scheduled_publications').select('id,platform,content_type,scheduled_at,production_id').order('scheduled_at', { ascending: true }).limit(200),
+      supabase.from('scheduled_publications').select('id,platform,content_type,scheduled_at,product_id').order('scheduled_at', { ascending: true }).limit(200),
+      supabase.from('products').select('id,name').order('name'),
     ])
 
     const published: CalendarEntry[] = (pubRes.data || []).map((p: Publication) => ({
@@ -84,6 +93,7 @@ export default function CalendarPage() {
       content_type: p.content_type || 'video',
       date: p.created_at,
       isScheduled: false,
+      product_id: p.product_id,
     }))
 
     const scheduled: CalendarEntry[] = (schedRes.data || []).map((s: ScheduledPublication) => ({
@@ -93,8 +103,10 @@ export default function CalendarPage() {
       content_type: s.content_type || 'video',
       date: s.scheduled_at,
       isScheduled: true,
+      product_id: s.product_id,
     }))
 
+    setProducts(prodRes.data || [])
     setEntries([...scheduled, ...published])
     setLoading(false)
   }
@@ -112,6 +124,7 @@ export default function CalendarPage() {
   const filtered = entries.filter(e => {
     if (platformFilter !== 'All' && e.platform !== platformFilter) return false
     if (statusFilter !== 'All' && e.status !== statusFilter) return false
+    if (productFilter !== 'All' && e.product_id !== productFilter) return false
     return true
   })
 
@@ -171,6 +184,20 @@ export default function CalendarPage() {
             {STATUSES.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
+        {products.length > 0 && (
+          <div>
+            <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>{t('productFilter')}</label>
+            <select
+              value={productFilter}
+              onChange={e => setProductFilter(e.target.value)}
+              className="text-sm rounded-lg px-3 py-1.5 border"
+              style={{ backgroundColor: '#ffffff', borderColor: '#d1cec7', color: '#2C2C2A' }}
+            >
+              <option value="All">{t('allProducts')}</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+        )}
         <div className="text-xs self-end pb-1.5" style={{ color: '#9ca3af' }}>{t('posts', { count: filtered.length })}</div>
       </div>
 
