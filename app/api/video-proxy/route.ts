@@ -15,34 +15,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid url' }, { status: 400 })
   }
 
-  // Pass Range header through for seeking support
-  const upstreamHeaders: HeadersInit = {}
-  const rangeHeader = request.headers.get('Range')
-  if (rangeHeader) upstreamHeaders['Range'] = rangeHeader
-
-  const upstream = await fetch(url, { headers: upstreamHeaders })
-
-  if (!upstream.ok && upstream.status !== 206) {
-    return NextResponse.json({ error: `Upstream ${upstream.status}` }, { status: upstream.status })
-  }
-
-  // Buffer entire response — streaming from Netlify functions is unreliable for video
-  const buffer = await upstream.arrayBuffer()
-
-  const responseHeaders = new Headers({
-    'Content-Type': 'video/mp4',
-    'Accept-Ranges': 'bytes',
-    'Content-Length': String(buffer.byteLength),
-    // no-store: bypass all CDN layers — each request hits origin directly.
-    // Prevents Netlify Edge from collapsing requests across different ?url= values.
-    'Cache-Control': 'no-store',
-  })
-
-  const contentRange = upstream.headers.get('Content-Range')
-  if (contentRange) responseHeaders.set('Content-Range', contentRange)
-
-  return new NextResponse(buffer, {
-    status: upstream.status,
-    headers: responseHeaders,
-  })
+  // R2 public URLs handle Range, Content-Length and CORS correctly natively.
+  // A redirect avoids buffering through a serverless function and the
+  // 206-without-Content-Length problem that causes SRC_NOT_SUPPORTED in browsers.
+  return NextResponse.redirect(url, 302)
 }
