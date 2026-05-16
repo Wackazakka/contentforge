@@ -318,31 +318,37 @@ function PublishPage() {
       const data = await res.json()
 
       // Instagram uses async processing — poll status endpoint until done
-      if (publishPlatform === 'instagram' && data.processing && data.results?.length) {
-        setMessage('⏳ Instagram behandler videoen din...')
-        const jobInfo = data.results[0]
-        let attempts = 0
-        while (attempts < 60) {
-          await new Promise((r) => setTimeout(r, 5000))
-          const statusRes = await fetch('/api/publish/instagram/status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...jobInfo, videoUrl: body.videoUrl }),
-          })
-          const statusData = await statusRes.json()
-          if (statusData.status === 'published') {
-            setMessage(t('published'))
-            setPublishResult(statusData)
-            break
+      if (publishPlatform === 'instagram') {
+        if (data.processing && data.results?.length) {
+          setMessage('⏳ Instagram behandler videoen din...')
+          const jobInfo = data.results[0]
+          let attempts = 0
+          while (attempts < 60) {
+            await new Promise((r) => setTimeout(r, 5000))
+            const statusRes = await fetch('/api/publish/instagram/status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...jobInfo, videoUrl: body.videoUrl }),
+            })
+            const statusData = await statusRes.json()
+            if (statusData.status === 'published') {
+              setMessage(t('published'))
+              setPublishResult(statusData)
+              break
+            }
+            if (statusData.status === 'failed') {
+              setMessage(`❌ Instagram: ${statusData.error}`)
+              break
+            }
+            attempts++
+            if (attempts >= 60) {
+              setMessage('❌ Tidsavbrudd — Instagram brukte for lang tid på å prosessere videoen')
+            }
           }
-          if (statusData.status === 'failed') {
-            setMessage(`❌ ${statusData.error}`)
-            break
-          }
-          attempts++
-          if (attempts >= 60) {
-            setMessage('❌ Tidsavbrudd — Instagram brukte for lang tid på å prosessere videoen')
-          }
+        } else {
+          // Container creation failed — surface the actual error from results
+          const firstError = data.results?.[0]?.error || data.error || 'Ukjent feil'
+          setMessage(`❌ Instagram: ${firstError}`)
         }
       } else {
         setPublishResult(data)
