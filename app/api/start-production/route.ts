@@ -92,6 +92,7 @@ export async function POST(request: Request) {
       .map((s: any) => ({
         text: stripEmojis(s.text),
         voiceover: s.voiceover,
+        imagePrompt: s.image_prompt || s.imagePrompt || '',
         imageUrl: s.image_url,
         voiceoverUrl: s.voiceover_url || null,
       }))
