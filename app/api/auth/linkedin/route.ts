@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       client_id: process.env.LINKEDIN_CLIENT_ID!,
       redirect_uri: `${BASE_URL}/api/auth/linkedin/callback`,
       state: userId,
-      scope: 'openid profile email w_member_social',
+      scope: 'openid profile email w_member_social w_organization_social r_organization_social',
     })
 
     return NextResponse.redirect(

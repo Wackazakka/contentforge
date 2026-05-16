@@ -31,7 +31,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'LinkedIn-konto ikke funnet' }, { status: 404 })
     }
 
-    const authorUrn = `urn:li:person:${linkedinAccountId}`
+    const isOrg = /^\d+$/.test(linkedinAccountId)
+    const authorUrn = isOrg
+      ? `urn:li:organization:${linkedinAccountId}`
+      : `urn:li:person:${linkedinAccountId}`
 
     // For articles: prepend title to caption; for video: use caption as-is
     const text =
