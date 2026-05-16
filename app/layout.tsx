@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     shortcut: "/icon.svg",
     apple: "/icon.svg",
   },
+  verification: {
+    google: "Z6Bt8HoaQ2C05RcapYPZ1NmNt4Hpr-PYOuEWTdY42QU",
+  },
   description:
     "Create professional video ads and articles for every social media format in seconds. No design skills required.",
   metadataBase: new URL("https://centerforge.app"),
