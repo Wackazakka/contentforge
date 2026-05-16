@@ -20,7 +20,7 @@ export default function PrivacyPage() {
             <p className="text-gray-800 leading-relaxed mb-2">
               This privacy policy applies to <strong>CenterForge</strong> (also known as ContentForge),
               a content publishing platform developed and operated by <strong>Abrakadabra Communication AS</strong>
-              (org.nr. [FYLL INN]), based in Norway.
+              (org.nr. 976 842 790), based in Norway.
             </p>
             <p className="text-gray-800 leading-relaxed">
               CenterForge helps users create and publish content to social media platforms
