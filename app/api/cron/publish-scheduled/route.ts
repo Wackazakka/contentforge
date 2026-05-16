@@ -151,6 +151,21 @@ async function runCron(request?: NextRequest) {
             }),
           })
           publishResult = await res.json()
+        } else if (platform === 'linkedin') {
+          const res = await fetch(`${baseUrl}/api/publish/linkedin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              linkedinAccountId: page_id,
+              contentType: 'video',
+              videoUrl,
+              caption,
+              draftId: draft_id,
+              productId: production_id,
+              userId: user_id,
+            }),
+          })
+          publishResult = await res.json()
         } else {
           const res = await fetch(`${baseUrl}/api/publish/facebook`, {
             method: 'POST',
@@ -189,20 +204,38 @@ async function runCron(request?: NextRequest) {
           continue
         }
 
-        const res = await fetch(`${baseUrl}/api/publish/facebook-article`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pageIds: [page_id],
-            articleTitle: article.title,
-            articleContent: article.content,
-            articleId: draft_id,
-            productId: production_id,
-            userId: user_id,
-            pages: {},
-          }),
-        })
-        publishResult = await res.json()
+        if (platform === 'linkedin') {
+          const res = await fetch(`${baseUrl}/api/publish/linkedin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              linkedinAccountId: page_id,
+              contentType: 'article',
+              articleTitle: article.title,
+              articleContent: article.content,
+              caption,
+              draftId: draft_id,
+              productId: production_id,
+              userId: user_id,
+            }),
+          })
+          publishResult = await res.json()
+        } else {
+          const res = await fetch(`${baseUrl}/api/publish/facebook-article`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              pageIds: [page_id],
+              articleTitle: article.title,
+              articleContent: article.content,
+              articleId: draft_id,
+              productId: production_id,
+              userId: user_id,
+              pages: {},
+            }),
+          })
+          publishResult = await res.json()
+        }
       } else {
         console.error(`[cron] Post ${id}: unknown content_type "${content_type}"`)
         results.push({ id, success: false, error: `unknown content_type: ${content_type}` })

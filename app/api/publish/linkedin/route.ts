@@ -39,29 +39,70 @@ export async function POST(request: Request) {
         ? `${articleTitle}\n\n${caption || articleContent?.slice(0, 2500) || ''}`
         : caption || ''
 
+    let assetUrn: string | null = null
+
+    if (contentType === 'video' && videoUrl) {
+      // Step 1: Register upload with LinkedIn
+      const registerRes = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${conn.access_token}`,
+          'Content-Type': 'application/json',
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+        body: JSON.stringify({
+          registerUploadRequest: {
+            recipes: ['urn:li:digitalmediaRecipe:feedshare-video'],
+            owner: authorUrn,
+            serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }],
+          },
+        }),
+      })
+      const registerData = await registerRes.json()
+      console.log('[publish/linkedin] Register upload response:', JSON.stringify(registerData))
+
+      const uploadUrl = registerData.value?.uploadMechanism?.['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']?.uploadUrl
+      assetUrn = registerData.value?.asset
+
+      if (!uploadUrl || !assetUrn) {
+        return NextResponse.json({ success: false, error: 'LinkedIn video registration failed: ' + JSON.stringify(registerData) })
+      }
+
+      // Step 2: Download video from R2 and upload to LinkedIn
+      const videoRes = await fetch(videoUrl)
+      if (!videoRes.ok) {
+        return NextResponse.json({ success: false, error: `Failed to fetch video from R2: ${videoRes.status}` })
+      }
+      const videoBuffer = await videoRes.arrayBuffer()
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${conn.access_token}`,
+          'Content-Type': 'application/octet-stream',
+        },
+        body: videoBuffer,
+      })
+      console.log('[publish/linkedin] Video upload status:', uploadRes.status)
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text()
+        return NextResponse.json({ success: false, error: `LinkedIn video upload failed: ${uploadRes.status} ${errText}` })
+      }
+    }
+
     const postBody: any = {
       author: authorUrn,
       lifecycleState: 'PUBLISHED',
       specificContent: {
         'com.linkedin.ugc.ShareContent': {
           shareCommentary: { text: text.slice(0, 3000) },
-          shareMediaCategory: 'NONE',
+          shareMediaCategory: assetUrn ? 'VIDEO' : 'NONE',
+          ...(assetUrn && { media: [{ status: 'READY', media: assetUrn }] }),
         },
       },
       visibility: {
         'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
       },
-    }
-
-    // If video: attach as media (LinkedIn video share)
-    if (contentType === 'video' && videoUrl) {
-      postBody.specificContent['com.linkedin.ugc.ShareContent'].shareMediaCategory = 'VIDEO'
-      postBody.specificContent['com.linkedin.ugc.ShareContent'].media = [
-        {
-          status: 'READY',
-          media: videoUrl,
-        },
-      ]
     }
 
     console.log('[publish/linkedin] Posting as:', authorUrn)
