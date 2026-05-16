@@ -461,9 +461,20 @@ function PublishPage() {
                         <div className="absolute top-2 right-2 bg-[#185FA5] text-white text-xs px-2 py-0.5 rounded-full font-medium">{t('selected')}</div>
                       )}
                       <div className="p-2">
-                        <p className="text-xs font-medium truncate text-gray-800">
-                          {v.campaign_name || v.title || v.segments?.[0]?.text?.slice(0, 40) || t('unnamed')}
-                        </p>
+                        <div className="flex items-start gap-1 mb-0.5">
+                          <p className="text-xs font-medium text-gray-800 flex-1 min-w-0 truncate">
+                            {v.campaign_name || v.title || v.segments?.[0]?.text?.slice(0, 40) || t('unnamed')}
+                          </p>
+                          {v.video_format && (
+                            <span className="text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0"
+                              style={{
+                                backgroundColor: v.video_format === '9:16' ? '#EDE9FE' : v.video_format === '16:9' ? '#E0F2FE' : '#FEF9C3',
+                                color: v.video_format === '9:16' ? '#6D28D9' : v.video_format === '16:9' ? '#0369A1' : '#854D0E',
+                              }}>
+                              {v.video_format === '9:16' ? '↕ 9:16' : v.video_format === '16:9' ? '↔ 16:9' : '⬜ 1:1'}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-400">
                           {new Date(v.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </p>
