@@ -361,7 +361,20 @@ export default function ProductPage() {
           .order('created_at', { ascending: false })
 
         if (videosError) throw videosError
-        setVideos(videosData || [])
+
+        const jobIds = (videosData || []).map((v: any) => v.job_id).filter(Boolean)
+        let formatByJobId: Record<string, string> = {}
+        if (jobIds.length > 0) {
+          const { data: drafts } = await supabase
+            .from('production_drafts')
+            .select('job_id, video_format')
+            .in('job_id', jobIds)
+          ;(drafts || []).forEach((d: any) => {
+            if (d.job_id) formatByJobId[d.job_id] = d.video_format || ''
+          })
+        }
+
+        setVideos((videosData || []).map((v: any) => ({ ...v, video_format: formatByJobId[v.job_id] || null })))
       } catch (err) {
         console.error('[ProductPage] Videos fetch error:', err)
       } finally {
@@ -793,7 +806,18 @@ export default function ProductPage() {
                         video.metadata?.title || `Video – ${formatDate(video.created_at)}`
                       return (
                         <div key={video.id} className="border border-gray-200 rounded-lg p-3">
-                          <p className="text-sm font-medium text-gray-800 mb-2">{title}</p>
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="text-sm font-medium text-gray-800 flex-1">{title}</p>
+                            {video.video_format && (
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
+                                style={{
+                                  backgroundColor: video.video_format === '9:16' ? '#EDE9FE' : video.video_format === '16:9' ? '#E0F2FE' : '#FEF9C3',
+                                  color: video.video_format === '9:16' ? '#6D28D9' : video.video_format === '16:9' ? '#0369A1' : '#854D0E',
+                                }}>
+                                {video.video_format === '9:16' ? 'Portrett' : video.video_format === '16:9' ? 'Landskap' : 'Kvadrat'}
+                              </span>
+                            )}
+                          </div>
                           <video
                             src={video.asset_url}
                             preload="metadata"
