@@ -156,46 +156,56 @@ async function generateVoiceover(text, voiceId, outputPath, apiKey) {
   }
 }
 
-// Call DALL-E 3, download the returned image URL to outputPath
-// dalleSize format: '9:16' (1024x1792), '1:1' (1024x1024), '16:9' (1792x1024)
-const DALLE_SIZES = {
-  '9:16': '1024x1792',
+// Call gpt-image-1, decode b64_json and save to outputPath
+
+// Visual style prompts for gpt-image-1 in storytelling mode
+const STYLE_PROMPTS = {
+  tech:       'Premium 3D-rendered CGI scene, sleek metallic surfaces, dramatic studio lighting, deep shadows, photorealistic render. No text or typography.',
+  editorial:  'Bold editorial photography, high-contrast composition, strong graphic lines, magazine cover quality, professional lighting. No text or typography.',
+  warm:       'Warm golden-hour lifestyle photography, natural light, soft bokeh, inviting and human atmosphere, candid feel. No text or typography.',
+  minimal:    'Clean minimalist scene, large negative space, muted Scandinavian palette, simple shapes, calm and airy mood. No text or typography.',
+  painterly:  'Expressive painterly digital illustration, rich visible brushstrokes, vivid saturated colors, artistic cinematic mood. No text or typography.',
+}
+
+// Supported sizes: '9:16' (1024x1536 portrait), '1:1' (1024x1024), '16:9' (1536x1024)
+const GPT_IMAGE_SIZES = {
+  '9:16': '1024x1536',
   '1:1': '1024x1024',
-  '16:9': '1792x1024',
+  '16:9': '1536x1024',
 }
 
 async function generateImage(prompt, outputPath, apiKey, format = '9:16', r2UploadInfo = null) {
-  const dalleSize = DALLE_SIZES[format] || '1024x1792'
-  const bodyBuffer = Buffer.from(
-    JSON.stringify({
-      model: 'dall-e-3',
+  if (!prompt) throw new Error('generateImage: prompt is required')
+  const size = GPT_IMAGE_SIZES[format] || '1024x1536'
+  console.log(`[job-queue] gpt-image-1 (${size}): "${prompt.substring(0, 60)}..."`)
+
+  const response = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-image-1',
       prompt,
       n: 1,
-      size: dalleSize,
-      quality: 'standard',
-    })
-  )
+      size,
+      quality: 'medium',
+    }),
+  })
 
-  const { statusCode, body } = await httpsPost(
-    'api.openai.com',
-    '/v1/images/generations',
-    {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    bodyBuffer
-  )
-
-  if (statusCode !== 200) {
-    throw new Error(
-      `DALL-E 3 returned ${statusCode}: ${body.toString('utf8').slice(0, 200)}`
-    )
+  if (!response.ok) {
+    const errText = await response.text()
+    throw new Error(`gpt-image-1 returned ${response.status}: ${errText.slice(0, 200)}`)
   }
 
-  const json = JSON.parse(body.toString('utf8'))
-  const imageUrl = json.data[0].url
-  await downloadFile(imageUrl, outputPath)
-  console.log(`[job-queue] Image saved → ${outputPath}`)
+  const json = await response.json()
+  const b64 = json.data?.[0]?.b64_json
+  if (!b64) throw new Error('No b64_json in gpt-image-1 response')
+
+  const imageBuffer = Buffer.from(b64, 'base64')
+  fs.writeFileSync(outputPath, imageBuffer)
+  console.log(`[job-queue] Image saved → ${outputPath} (${imageBuffer.byteLength} bytes)`)
 
   // Upload to R2 if credentials provided
   let r2Url = null
@@ -301,6 +311,9 @@ router.post('/', async (req, res) => {
     musicFile,
     segments,
     video_format,
+    imageStyle,
+    logoUrl,
+    outroCard,
   } = req.body || {}
 
   if (!campaignId || !service) {
@@ -347,34 +360,76 @@ router.post('/', async (req, res) => {
 
       // Handle Storytelling mode (segments) vs Reklame mode (headline/bodyCopy)
       if (segments && Array.isArray(segments) && segments.length > 0) {
-        // STORYTELLING MODE: Use segments directly
-        console.log(`[job-queue] Storytelling mode: Processing ${segments.length} segments for job ${jobId}...`)
-        for (let i = 0; i < segments.length; i++) {
-          const segment = segments[i]
-          console.log(`[job-queue] Segment ${i + 1}: "${segment.text.slice(0, 50)}..."`)
+        // STORYTELLING MODE: Use segments directly.
+        //
+        // Establish ONE canonical ordered array up front and use it for BOTH
+        // voiceover generation AND config.json building. This guarantees
+        // vo_<n>.mp3 / image_<n>.png / sub all refer to the same segment.
+        // We sort by `index` when present (start-production now stamps a clean
+        // 0-based sequential index that matches the editor's array order);
+        // segments without a numeric index keep their incoming array position.
+        const orderedSegments = segments
+          .map((s, i) => ({ s, i }))
+          .sort((a, b) => {
+            const ai = typeof a.s.index === 'number' ? a.s.index : a.i
+            const bi = typeof b.s.index === 'number' ? b.s.index : b.i
+            return ai - bi
+          })
+          .map(({ s }) => s)
+
+        console.log(`[job-queue] Storytelling mode: Processing ${orderedSegments.length} segments for job ${jobId}...`)
+        for (let i = 0; i < orderedSegments.length; i++) {
+          const segment = orderedSegments[i]
+          console.log(`[job-queue] Segment ${i + 1}: text="${(segment.text || '').slice(0, 50)}..." | vo="${(segment.voiceover || segment.text || '').slice(0, 50)}..."`)
           
           // Generate voiceover from segment text
-          await generateVoiceover(segment.text, vid, `${jobDir}/vo_${i + 1}.mp3`, elevenKey)
+          await generateVoiceover(segment.voiceover || segment.text, vid, `${jobDir}/vo_${i + 1}.mp3`, elevenKey)
           
-          // Generate image from segment imagePrompt and upload to R2
-          const imageResult = await generateImage(
-            segment.imagePrompt,
-            `${jobDir}/image_${i + 1}.png`,
-            openaiKey,
-            video_format,
-            { campaignId, jobId, imageName: `image_${i + 1}.png` }
-          )
-          if (imageResult.r2Url) imageUrls.push(imageResult.r2Url)
+          const localImagePath = `${jobDir}/image_${i + 1}.png`
+
+          // Use pre-generated image from draft if available; otherwise generate a visual scene
+          if (segment.imageUrl) {
+            console.log(`[job-queue] Segment ${i + 1}: Downloading pre-generated image from ${segment.imageUrl.substring(0, 60)}...`)
+            try {
+              const imgRes = await fetch(segment.imageUrl)
+              if (!imgRes.ok) throw new Error(`HTTP ${imgRes.status}`)
+              const imgBuf = await imgRes.arrayBuffer()
+              fs.writeFileSync(localImagePath, Buffer.from(imgBuf))
+              console.log(`[job-queue] Segment ${i + 1}: Pre-generated image saved (${Buffer.from(imgBuf).byteLength} bytes)`)
+              imageUrls.push(segment.imageUrl)
+            } catch (dlErr) {
+              console.warn(`[job-queue] Segment ${i + 1}: Download failed (${dlErr.message}), generating new image...`)
+              const visualPrompt = `Cinematic photorealistic scene that visually illustrates: "${segment.text.substring(0, 200)}". No text, words, letters, or typography anywhere in the image. Professional photography, dramatic lighting.`
+              const imageResult = await generateImage(visualPrompt, localImagePath, openaiKey, video_format, { campaignId, jobId, imageName: `image_${i + 1}.png` })
+              if (imageResult.r2Url) imageUrls.push(imageResult.r2Url)
+            }
+          } else {
+            // No pre-generated image — generate a visual scene (not raw text as prompt)
+            const stylePrefix = (imageStyle && STYLE_PROMPTS[imageStyle]) ? STYLE_PROMPTS[imageStyle] + ' ' : 'Cinematic photorealistic scene. Professional photography, dramatic lighting. '
+            const visualPrompt = segment.imagePrompt || `${stylePrefix}Visual scene illustrating: "${segment.text.substring(0, 180)}". No text, words, letters, or typography anywhere in the image.`
+            console.log(`[job-queue] Segment ${i + 1}: Generating image with visual prompt...`)
+            const imageResult = await generateImage(visualPrompt, localImagePath, openaiKey, video_format, { campaignId, jobId, imageName: `image_${i + 1}.png` })
+            if (imageResult.r2Url) imageUrls.push(imageResult.r2Url)
+          }
         }
 
         // Write segments to config for Python renderer (storytelling format)
+        // lines: [] — no text overlay, the voiceover audio narrates and the image shows the scene
+        // sub: short subtitle at bottom for accessibility
         config = {
-          segments: segments.map((seg, i) => ({
-            bg: `${jobDir}/image_${i + 1}.png`,
-            vo_path: `${jobDir}/vo_${i + 1}.mp3`,
-            lines: [{ text: seg.text, size: 48, bold: true, color: '#ffffff' }],
-            sub: null,
-          })),
+          // Use the SAME canonical ordered array used for voiceover/image
+          // generation above — never the raw `segments` request order — so the
+          // on-screen subtitle (seg.text) and the voiceover audio (vo_<n>.mp3,
+          // generated from segment.voiceover) always belong to the same segment.
+          segments: orderedSegments.map((seg, i) => {
+            const subText = seg.text || ''
+            return {
+              bg: `${jobDir}/image_${i + 1}.png`,
+              vo_path: `${jobDir}/vo_${i + 1}.mp3`,
+              lines: [],
+              sub: subText.length > 80 ? subText.substring(0, 77) + '...' : subText,
+            }
+          }),
           output: `${jobDir}/output.mp4`,
           backgroundMusic: musicFile
             ? path.join(MUSIC_DIR, musicFile)
@@ -383,6 +438,7 @@ router.post('/', async (req, res) => {
           jobId,
           campaignId,
           service,
+          outroCard: outroCard || null,
         }
         configPath = `${jobDir}/config.json`
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
@@ -426,6 +482,7 @@ router.post('/', async (req, res) => {
         config = buildDynamicConfig(jobId, { headline, bodyCopy, service, cta, musicFile })
         config.campaignId = campaignId
         config.format = video_format || '9:16' // Pass format to Python script
+        config.outroCard = outroCard || null
         // DEBUG: Log background music path
         console.log('[DEBUG MUSIC] backgroundMusic path:', config?.backgroundMusic)
         configPath = `${jobDir}/config.json`
@@ -484,12 +541,25 @@ router.post('/', async (req, res) => {
                 })
               )
 
-              // Use R2 URL since we now wait for .done file (video fully written)
-              videoUrl = `${process.env.R2_PUBLIC_URL}/videos/${jobId}/output.mp4`
-              console.log(`[job-queue] Video uploaded to R2: ${videoUrl}`)
+              const r2Url = `${process.env.R2_PUBLIC_URL}/videos/${jobId}/output.mp4`
+
+              // Verify file is accessible before notifying frontend (R2 eventual consistency)
+              let r2Ready = false
+              for (let attempt = 1; attempt <= 10; attempt++) {
+                try {
+                  const check = await fetch(r2Url, { method: 'HEAD' })
+                  if (check.ok) { r2Ready = true; console.log(`[job-queue] R2 accessible after ${attempt} attempt(s)`); break }
+                } catch (_) {}
+                console.log(`[job-queue] R2 not ready yet (attempt ${attempt}/10), retrying in 2s...`)
+                await new Promise(r => setTimeout(r, 2000))
+              }
+
+              videoUrl = r2Ready ? r2Url : videoUrl
+              console.log(`[job-queue] Video URL: ${videoUrl}`)
+              // Mark job done in memory only after R2 is confirmed accessible
+              activeJobs.set(jobId, { startTime: activeJobs.get(jobId)?.startTime, status: 'done', videoUrl })
             } catch (r2Err) {
               console.error(`[job-queue] R2 upload failed for job ${jobId}:`, r2Err.message)
-              // Fallback to droplet URL if R2 fails
               console.log(`[job-queue] Falling back to droplet URL for job ${jobId}`)
             }
           }
@@ -536,22 +606,59 @@ router.post('/', async (req, res) => {
   })
 })
 
-// GET /jobs/:jobId — check job status by presence of output file
+// GET /jobs/:jobId — check job status
 router.get('/:jobId', (req, res) => {
   const { jobId } = req.params
-  const outputFile = `${OUTPUT_DIR}/${jobId}/output.mp4`
-
-  if (fs.existsSync(outputFile)) {
-    activeJobs.delete(jobId)
-    return res.json({ jobId, status: 'done', videoUrl: `http://139.59.212.218:3002/videos/${jobId}/output.mp4` })
-  }
 
   const job = activeJobs.get(jobId)
   if (job) {
+    // If done, include videoUrl so frontend gets the confirmed R2 URL
+    if (job.status === 'done') {
+      return res.json({ jobId, status: 'done', videoUrl: job.videoUrl })
+    }
     return res.json({ jobId, status: job.status, error: job.error || undefined })
+  }
+
+  // Fallback: if job not in memory (server restart), check disk
+  const outputFile = `${OUTPUT_DIR}/${jobId}/output.mp4`
+  if (fs.existsSync(outputFile)) {
+    const r2VideoUrl = (process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev') + '/videos/' + jobId + '/output.mp4'
+    return res.json({ jobId, status: 'done', videoUrl: r2VideoUrl })
   }
 
   res.json({ jobId, status: 'not_found' })
 })
 
+
+// ─── Scheduled Publishing Cron ────────────────────────────────────────────────
+
+const NETLIFY_BASE = 'https://contentforge-610.netlify.app'
+const CRON_SECRET = process.env.CRON_SECRET
+
+function runScheduledPublisher() {
+  if (!CRON_SECRET) {
+    console.warn('[scheduler] CRON_SECRET not set, skipping scheduled publishing')
+    return
+  }
+  fetch(`${NETLIFY_BASE}/api/cron/process-scheduled`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${CRON_SECRET}`,
+    },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.processed > 0) {
+        console.log(`[scheduler] Processed ${data.processed} scheduled publication(s)`)
+      }
+    })
+    .catch((err) => console.error('[scheduler] Cron error:', err.message))
+}
+
+// Run every minute
+setInterval(runScheduledPublisher, 60 * 1000)
+console.log('[scheduler] Scheduled publisher started (every 60s)')
+
 module.exports = router
+

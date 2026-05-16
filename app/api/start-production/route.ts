@@ -86,16 +86,24 @@ export async function POST(request: Request) {
       )
     }
 
-    // Bygg segments-array for job-queue (strip emojis from text)
-    const processedSegments = segments
-      .sort((a: any, b: any) => a.index - b.index)
-      .map((s: any) => ({
-        text: stripEmojis(s.text),
-        voiceover: s.voiceover,
-        imagePrompt: s.image_prompt || s.imagePrompt || '',
-        imageUrl: s.image_url,
-        voiceoverUrl: s.voiceover_url || null,
-      }))
+    // Bygg segments-array for job-queue (strip emojis from text).
+    //
+    // VIKTIG: `index`-feltet kommer fra LLM-output ved draft-generering og blir
+    // ALDRI re-synkronisert med array-rekkefølgen. Draft-editoren viser, redigerer
+    // og lagrer segmenter utelukkende etter array-posisjon (draft.segments.map),
+    // så array-rekkefølgen er den autoritative rekkefølgen brukeren faktisk ser.
+    // Tidligere sorterte vi på s.index — hvis LLM emitterte index-er ute av
+    // rekkefølge/duplisert, ble segmentene stokket om bort fra brukerens
+    // rekkefølge, slik at undertekst + voiceover kom fra feil segment.
+    // Vi bevarer derfor array-rekkefølgen og re-stamper en ren sekvensiell index.
+    const processedSegments = segments.map((s: any, i: number) => ({
+      index: i,
+      text: stripEmojis(s.text),
+      voiceover: s.voiceover,
+      imagePrompt: s.image_prompt || s.imagePrompt || '',
+      imageUrl: s.image_url,
+      voiceoverUrl: s.voiceover_url || null,
+    }))
 
     console.log('[start-production] Prepared segments:', {
       count: processedSegments.length,
