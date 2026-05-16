@@ -257,7 +257,11 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t py-6 px-6 text-center text-xs bg-white" style={{ borderColor: '#e5e2d9', color: '#9ca3af' }}>
-        {t('footer', { year: new Date().getFullYear() })}
+        <p>{t('footer', { year: new Date().getFullYear() })}</p>
+        <div className="flex justify-center gap-4 mt-2">
+          <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+          <Link href="/terms" className="hover:underline">Terms of Service</Link>
+        </div>
       </footer>
     </div>
   )
