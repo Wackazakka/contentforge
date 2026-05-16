@@ -19,7 +19,7 @@ type ScheduledPublication = {
   platform: string
   content_type: string
   scheduled_at: string
-  product_id?: string
+  production_id?: string
 }
 
 type CalendarEntry = {
@@ -82,7 +82,7 @@ export default function CalendarPage() {
     setLoading(true)
     const [pubRes, schedRes, prodRes] = await Promise.all([
       supabase.from('publications').select('id,platform,status,content_type,created_at,product_id').order('created_at', { ascending: false }).limit(200),
-      supabase.from('scheduled_publications').select('id,platform,content_type,scheduled_at,product_id').order('scheduled_at', { ascending: true }).limit(200),
+      supabase.from('scheduled_publications').select('id,platform,content_type,scheduled_at,production_id').order('scheduled_at', { ascending: true }).limit(200),
       supabase.from('products').select('id,name').order('name'),
     ])
 
@@ -103,7 +103,7 @@ export default function CalendarPage() {
       content_type: s.content_type || 'video',
       date: s.scheduled_at,
       isScheduled: true,
-      product_id: s.product_id,
+      product_id: s.production_id,
     }))
 
     setProducts(prodRes.data || [])
