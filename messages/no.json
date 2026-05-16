@@ -196,7 +196,8 @@
     "errorFutureTime": "❌ Det planlagte tidspunktet må være i fremtiden",
     "errorSelectPublish": "❌ Velg innhold, sider og skriv en bildetekst",
     "selected": "✔ Valgt",
-    "unnamed": "Uten navn"
+    "unnamed": "Uten navn",
+    "connectYouTube": "Koble til YouTube"
   },
   "product": {
     "loading": "Laster produkt...",

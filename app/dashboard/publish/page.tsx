@@ -34,7 +34,7 @@ function PublishPage() {
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<any>(null)
   const [publications, setPublications] = useState<any[]>([])
-  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram' | 'tiktok' | 'linkedin' | 'x' | 'reddit'>('facebook')
+  const [publishPlatform, setPublishPlatform] = useState<'facebook' | 'instagram' | 'tiktok' | 'linkedin' | 'x' | 'reddit' | 'youtube'>('facebook')
   const [subreddit, setSubreddit] = useState('')
   const [prefillJobId, setPrefillJobId] = useState<string | null>(null)
   const [prefillContentId, setPrefillContentId] = useState<string | null>(null)
@@ -289,6 +289,10 @@ function PublishPage() {
           endpoint = '/api/publish/linkedin'
           body.linkedinAccountId = selectedPages[0]
           body.contentType = 'video'
+        } else if (publishPlatform === 'youtube') {
+          endpoint = '/api/publish/youtube'
+          body.youtubeChannelId = selectedPages[0]
+          body.title = selectedContent.campaign_name || selectedContent.title || caption.slice(0, 100)
         } else if (publishPlatform === 'x') {
           endpoint = '/api/publish/x'
           body.xAccountId = selectedPages[0]
@@ -643,6 +647,16 @@ function PublishPage() {
             >
               🤖 Reddit
             </button>
+            {contentType === 'video' && (
+              <button
+                onClick={() => setPublishPlatform('youtube')}
+                className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                  publishPlatform === 'youtube' ? 'bg-[#FF0000] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                ▶ YouTube
+              </button>
+            )}
           </div>
 
           {publishPlatform === 'reddit' && (
@@ -664,7 +678,7 @@ function PublishPage() {
 
           <div className="space-y-2">
             {connections
-              .filter((c) => c.platform === publishPlatform || (publishPlatform === 'instagram' && c.platform === 'facebook') || (publishPlatform === 'x' && c.platform === 'x'))
+              .filter((c) => c.platform === publishPlatform || (publishPlatform === 'instagram' && c.platform === 'facebook') || (publishPlatform === 'x' && c.platform === 'x') || (publishPlatform === 'youtube' && c.platform === 'youtube'))
               .map((c) => {
                 const igLinked = publishPlatform === 'instagram' ? igPageStatus[c.page_id] : undefined
                 const igChecked = publishPlatform === 'instagram' && igPageStatus[c.page_id] !== undefined
@@ -679,7 +693,7 @@ function PublishPage() {
                         else setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
                       }}
                     />
-                    <span className="flex-1">{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : c.platform === 'reddit' ? '🤖' : '📷'} {c.page_name}</span>
+                    <span className="flex-1">{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : c.platform === 'reddit' ? '🤖' : c.platform === 'youtube' ? '▶' : '📷'} {c.page_name}</span>
                     {igChecked && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={igLinked ? { backgroundColor: '#EAF3DE', color: '#1D9E75' } : { backgroundColor: '#fef2f2', color: '#ef4444' }}>
                         {igLinked ? '✓ Instagram koblet' : '✗ Ingen Instagram'}
@@ -738,6 +752,9 @@ function PublishPage() {
                 <a href={`/api/auth/reddit?userId=${userId}`} className="bg-[#FF4500] text-white px-4 py-2 rounded-lg text-sm">
                   {t('connectReddit')}
                 </a>
+                <a href={`/api/auth/youtube?userId=${userId}`} className="bg-[#FF0000] text-white px-4 py-2 rounded-lg text-sm">
+                  {t('connectYouTube')}
+                </a>
               </div>
             ) : (
               <p className="text-gray-400 text-sm">{t('loadingUser')}</p>
@@ -769,7 +786,9 @@ function PublishPage() {
                 <a href={`/api/auth/reddit?userId=${userId}`} className="text-sm text-[#FF4500] hover:underline">
                   + {t('connectReddit')}
                 </a>
-
+                <a href={`/api/auth/youtube?userId=${userId}`} className="text-sm text-[#FF0000] hover:underline">
+                  + {t('connectYouTube')}
+                </a>
               </div>
             )}
           </div>
@@ -785,7 +804,7 @@ function PublishPage() {
               <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-sm font-medium">
-                    {p.platform === 'facebook' ? '📘' : p.platform === 'tiktok' ? '🎵' : p.platform === 'linkedin' ? '💼' : p.platform === 'instagram' ? '📷' : p.platform === 'x' ? '𝕏' : p.platform === 'reddit' ? '🤖' : '🌐'} {p.page_name}
+                    {p.platform === 'facebook' ? '📘' : p.platform === 'tiktok' ? '🎵' : p.platform === 'linkedin' ? '💼' : p.platform === 'instagram' ? '📷' : p.platform === 'x' ? '𝕏' : p.platform === 'reddit' ? '🤖' : p.platform === 'youtube' ? '▶' : '🌐'} {p.page_name}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">{p.caption?.slice(0, 60)}...</p>
                 </div>

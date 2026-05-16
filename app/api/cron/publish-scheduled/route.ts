@@ -166,6 +166,20 @@ async function runCron(request?: NextRequest) {
             }),
           })
           publishResult = await res.json()
+        } else if (platform === 'youtube') {
+          const res = await fetch(`${baseUrl}/api/publish/youtube`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              youtubeChannelId: page_id,
+              videoUrl,
+              caption,
+              draftId: draft_id,
+              productId: production_id,
+              userId: user_id,
+            }),
+          })
+          publishResult = await res.json()
         } else {
           const res = await fetch(`${baseUrl}/api/publish/facebook`, {
             method: 'POST',

@@ -196,7 +196,8 @@
     "errorFutureTime": "❌ The scheduled time must be in the future",
     "errorSelectPublish": "❌ Select content, pages and write a caption",
     "selected": "✔ Selected",
-    "unnamed": "Unnamed"
+    "unnamed": "Unnamed",
+    "connectYouTube": "Connect YouTube"
   },
   "product": {
     "loading": "Loading product...",
