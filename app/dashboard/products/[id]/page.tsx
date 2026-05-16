@@ -57,6 +57,7 @@ interface AssetBank {
   asset_url: string
   metadata: Record<string, any> | null
   created_at: string
+  video_format?: string | null
 }
 
 function formatDate(iso: string) {
