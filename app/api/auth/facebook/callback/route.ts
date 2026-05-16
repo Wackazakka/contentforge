@@ -56,11 +56,19 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=token_failed`)
     }
 
+    // Exchange short-lived user token for long-lived token (60 days)
+    const llRes = await fetch(
+      `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${process.env.META_APP_ID}&client_secret=${process.env.META_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`
+    )
+    const llData = await llRes.json()
+    const longLivedToken = llData.access_token || tokenData.access_token
+    console.log('[facebook/callback] Long-lived token obtained, expires_in:', llData.expires_in)
+
     console.log('[facebook/callback] Token obtained, fetching pages...')
 
     // Get user's pages
     const pagesRes = await fetch(
-      `https://graph.facebook.com/v21.0/me/accounts?access_token=${tokenData.access_token}`
+      `https://graph.facebook.com/v21.0/me/accounts?access_token=${longLivedToken}`
     )
     const pagesData = await pagesRes.json()
 
@@ -73,13 +81,12 @@ export async function GET(request: Request) {
 
     // Alternative endpoint: also fetch from /me with accounts field (catches New Page Experience pages)
     const meRes = await fetch(
-      `https://graph.facebook.com/v21.0/me?fields=id,name,accounts{id,name,access_token,instagram_business_account}&access_token=${tokenData.access_token}`
+      `https://graph.facebook.com/v21.0/me?fields=id,name,accounts{id,name,access_token,instagram_business_account}&access_token=${longLivedToken}`
     )
     const meData = await meRes.json()
-    
+
     if (meData.accounts && meData.accounts.data && meData.accounts.data.length > 0) {
       console.log('[facebook/callback] Found', meData.accounts.data.length, 'pages from /me endpoint (alternative)')
-      // Merge with existing pages (avoid duplicates)
       const existingPageIds = new Set(pagesData.data.map((p: any) => p.id))
       const newPages = meData.accounts.data.filter((p: any) => !existingPageIds.has(p.id))
       console.log('[facebook/callback] Adding', newPages.length, 'new pages from /me endpoint')
@@ -91,7 +98,7 @@ export async function GET(request: Request) {
     // Hardkodet fallback for SinglePicker App (New Page Experience)
     console.log('[facebook/callback] Fetching SinglePicker App page as fallback...')
     const singlePickerAppRes = await fetch(
-      `https://graph.facebook.com/v21.0/1104756536056684?fields=id,name,access_token&access_token=${tokenData.access_token}`
+      `https://graph.facebook.com/v21.0/1104756536056684?fields=id,name,access_token&access_token=${longLivedToken}`
     )
     const singlePickerAppData = await singlePickerAppRes.json()
     if (singlePickerAppData.id && !pagesData.data.find((p: any) => p.id === singlePickerAppData.id)) {
@@ -120,7 +127,7 @@ export async function GET(request: Request) {
           page_id: page.id,
           page_name: page.name,
           access_token: page.access_token,
-          user_access_token: tokenData.access_token, // Store user token for Instagram publishing
+          user_access_token: longLivedToken, // Long-lived token (60 days) for Instagram publishing
         },
         { onConflict: 'user_id,platform,page_id' }
       )
