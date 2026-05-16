@@ -123,6 +123,7 @@ function PublishPage() {
     const error = searchParams.get('error')
     if (error) {
       setMessage(`❌ Error: ${error}`)
+      window.history.replaceState({}, '', '/dashboard/publish')
     }
 
     // Pre-fill from product page links
