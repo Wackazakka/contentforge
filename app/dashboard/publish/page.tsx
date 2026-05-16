@@ -41,6 +41,7 @@ function PublishPage() {
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now')
   const [scheduledAt, setScheduledAt] = useState<string>('')
   const [scheduling, setScheduling] = useState(false)
+  const [igPageStatus, setIgPageStatus] = useState<Record<string, string | null>>({})
 
   useEffect(() => {
     // Get current user
@@ -162,6 +163,17 @@ function PublishPage() {
 
     fetchConnections()
   }, [supabase])
+
+  useEffect(() => {
+    if (publishPlatform !== 'instagram') return
+    const fbPageIds = connections.filter((c) => c.platform === 'facebook').map((c) => c.page_id)
+    if (fbPageIds.length === 0) return
+    fetch('/api/publish/instagram/check-pages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageIds: fbPageIds }),
+    }).then((r) => r.json()).then((d) => { if (d.results) setIgPageStatus(d.results) })
+  }, [publishPlatform, connections])
 
   const handleDisconnect = async (id: string) => {
     if (!confirm(t('disconnectConfirm'))) return
@@ -652,19 +664,29 @@ function PublishPage() {
           <div className="space-y-2">
             {connections
               .filter((c) => c.platform === publishPlatform || (publishPlatform === 'instagram' && c.platform === 'facebook') || (publishPlatform === 'x' && c.platform === 'x'))
-              .map((c) => (
-              <label key={c.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
-                <input
-                  type="checkbox"
-                  checked={selectedPages.includes(c.page_id)}
-                  onChange={(e) => {
-                    if (e.target.checked) setSelectedPages((prev) => [...prev, c.page_id])
-                    else setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
-                  }}
-                />
-                <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : c.platform === 'reddit' ? '🤖' : '📷'} {c.page_name}</span>
-              </label>
-            ))}
+              .map((c) => {
+                const igLinked = publishPlatform === 'instagram' ? igPageStatus[c.page_id] : undefined
+                const igChecked = publishPlatform === 'instagram' && igPageStatus[c.page_id] !== undefined
+                return (
+                  <label key={c.id} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${igChecked && !igLinked ? 'bg-red-50 opacity-60' : 'bg-gray-50 hover:bg-gray-100'}`}>
+                    <input
+                      type="checkbox"
+                      checked={selectedPages.includes(c.page_id)}
+                      disabled={igChecked && !igLinked}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedPages((prev) => [...prev, c.page_id])
+                        else setSelectedPages((prev) => prev.filter((id) => id !== c.page_id))
+                      }}
+                    />
+                    <span className="flex-1">{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : c.platform === 'reddit' ? '🤖' : '📷'} {c.page_name}</span>
+                    {igChecked && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={igLinked ? { backgroundColor: '#EAF3DE', color: '#1D9E75' } : { backgroundColor: '#fef2f2', color: '#ef4444' }}>
+                        {igLinked ? '✓ Instagram koblet' : '✗ Ingen Instagram'}
+                      </span>
+                    )}
+                  </label>
+                )
+              })}
           </div>
         </div>
       )}
