@@ -38,7 +38,7 @@ async function runCron(request?: NextRequest) {
   const results = []
 
   for (const post of due) {
-    const { id, platform, content_type, page_id, caption, draft_id, job_id, user_id, production_id } = post
+    const { id, platform, content_type, page_id, caption, draft_id, job_id, user_id, production_id, container_id, ig_account_id } = post
 
     // Guard: skip posts with missing critical data
     if (!page_id) {
@@ -51,6 +51,74 @@ async function runCron(request?: NextRequest) {
       console.error(`[cron] Post ${id}: missing caption, skipping`)
       await supabase.from('scheduled_publications').delete().eq('id', id)
       results.push({ id, success: false, error: 'missing caption' })
+      continue
+    }
+
+    // Instagram: two-phase flow to handle slow video processing
+    if (platform === 'instagram' && content_type === 'video') {
+      const videoUrl = job_id ? `${process.env.NEXT_PUBLIC_R2_URL}/videos/${job_id}/output.mp4` : null
+      if (!videoUrl) {
+        console.error(`[cron] Post ${id}: instagram video has no job_id`)
+        await supabase.from('scheduled_publications').delete().eq('id', id)
+        results.push({ id, success: false, error: 'missing job_id' })
+        continue
+      }
+
+      try {
+        let activeContainerId = container_id
+        let activeIgAccountId = ig_account_id
+
+        // Phase 1: create container if we don't have one yet
+        if (!activeContainerId) {
+          console.log(`[cron] Instagram post ${id}: creating container`)
+          const startRes = await fetch(`${baseUrl}/api/publish/instagram`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pageIds: [page_id], videoUrl, caption, draftId: draft_id, productId: production_id, userId: user_id }),
+          })
+          const startData = await startRes.json()
+          const jobInfo = startData.results?.[0]
+          if (!jobInfo?.containerId) {
+            const err = jobInfo?.error || startData.error || 'Failed to create container'
+            console.error(`[cron] Instagram post ${id}: container creation failed:`, err)
+            await supabase.from('scheduled_publications').delete().eq('id', id)
+            results.push({ id, success: false, error: err })
+            continue
+          }
+          activeContainerId = jobInfo.containerId
+          activeIgAccountId = jobInfo.igAccountId
+          // Save container state — cron will finalize on next run
+          await supabase.from('scheduled_publications').update({ container_id: activeContainerId, ig_account_id: activeIgAccountId }).eq('id', id)
+          console.log(`[cron] Instagram post ${id}: container ${activeContainerId} created, will finalize next run`)
+          results.push({ id, success: false, pending: true, containerId: activeContainerId })
+          continue
+        }
+
+        // Phase 2: container already exists — check status and finalize
+        console.log(`[cron] Instagram post ${id}: checking container ${activeContainerId}`)
+        const statusRes = await fetch(`${baseUrl}/api/publish/instagram/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ containerId: activeContainerId, igAccountId: activeIgAccountId, pageId: page_id, caption, draftId: draft_id, productId: production_id, userId: user_id, videoUrl }),
+        })
+        const statusData = await statusRes.json()
+        console.log(`[cron] Instagram post ${id}: status =`, statusData.status)
+
+        if (statusData.status === 'published') {
+          await supabase.from('scheduled_publications').delete().eq('id', id)
+          results.push({ id, success: true })
+        } else if (statusData.status === 'processing') {
+          // Still processing — leave the record, retry next cron run
+          results.push({ id, success: false, pending: true })
+        } else {
+          // Failed
+          await supabase.from('scheduled_publications').delete().eq('id', id)
+          results.push({ id, success: false, error: statusData.error })
+        }
+      } catch (err) {
+        console.error(`[cron] Instagram post ${id} error:`, err)
+        results.push({ id, success: false, error: String(err) })
+      }
       continue
     }
 
@@ -84,11 +152,7 @@ async function runCron(request?: NextRequest) {
           })
           publishResult = await res.json()
         } else {
-          const endpoint = platform === 'instagram'
-            ? `${baseUrl}/api/publish/instagram`
-            : `${baseUrl}/api/publish/facebook`
-
-          const res = await fetch(endpoint, {
+          const res = await fetch(`${baseUrl}/api/publish/facebook`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
