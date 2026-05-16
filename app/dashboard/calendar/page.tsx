@@ -37,7 +37,7 @@ type Product = {
   name: string
 }
 
-const PLATFORMS = ['All', 'facebook', 'instagram']
+const PLATFORMS = ['All', 'facebook', 'instagram', 'linkedin', 'tiktok']
 const STATUSES = ['All', 'scheduled', 'published', 'failed']
 
 const statusColor: Record<string, string> = {
@@ -55,6 +55,8 @@ const statusBg: Record<string, string> = {
 const platformLabel: Record<string, string> = {
   facebook: 'Facebook',
   instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  tiktok: 'TikTok',
 }
 
 function Badge({ status }: { status: string }) {
