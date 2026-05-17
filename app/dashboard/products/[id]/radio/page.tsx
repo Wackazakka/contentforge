@@ -325,7 +325,7 @@ export default function RadioAdPage() {
                     formData.append('file', file)
                     try {
                       const res = await fetch('/api/music/upload?folder=jingles', { method: 'POST', body: formData })
-                      if (res.ok) { await refreshJingleLibrary(); alert('Lastet opp!') }
+                      if (res.ok) { await refreshMusicLibrary(); alert('Lastet opp!') }
                       else alert('Opplasting feilet: ' + await res.text())
                     } catch { alert('Opplasting feilet.') }
                     input.value = ''
