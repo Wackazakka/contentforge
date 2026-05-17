@@ -129,7 +129,7 @@ export async function GET(request: Request) {
       bodyParams.client_id = clientId
     }
 
-    const tokenRes = await fetch('https://api.twitter.com/2/oauth2/token', {
+    const tokenRes = await fetch('https://api.x.com/2/oauth2/token', {
       method: 'POST',
       headers: tokenHeaders,
       body: new URLSearchParams(bodyParams).toString(),
