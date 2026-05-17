@@ -106,10 +106,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'X-konto ikke funnet' }, { status: 404 })
     }
 
-    // Build tweet text
-    let text = caption || ''
-    if (contentType === 'article' && articleTitle && !text.startsWith(articleTitle)) {
-      text = `${articleTitle}\n\n${text}`
+    // Build tweet text — for articles use the generated content, for video use caption
+    let text: string
+    if (contentType === 'article' && articleContent) {
+      text = articleContent
+    } else {
+      text = caption || ''
     }
     if (text.length > MAX_TWEET_LENGTH) {
       text = text.slice(0, MAX_TWEET_LENGTH - 1) + '…'
