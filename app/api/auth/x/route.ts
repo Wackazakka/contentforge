@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       response_type: 'code',
       client_id: process.env.X_CLIENT_ID!,
       redirect_uri: `${BASE_URL}/api/auth/x/callback`,
-      scope: 'tweet.read tweet.write users.read media.write offline.access',
+      scope: 'tweet.read tweet.write users.read offline.access',
       state: userId,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
