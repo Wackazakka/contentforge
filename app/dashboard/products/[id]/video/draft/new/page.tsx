@@ -231,16 +231,32 @@ export default function NewDraftPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('voiceLabel')}</label>
                   <select
-                    value={voiceId}
-                    onChange={(e) => setVoiceId(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
+                    value={NORWEGIAN_VOICES.some(v => v.id === voiceId) ? voiceId : 'custom'}
+                    onChange={(e) => { if (e.target.value !== 'custom') setVoiceId(e.target.value) }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent mb-2"
                   >
                     {NORWEGIAN_VOICES.map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.name}
                       </option>
                     ))}
+                    {!NORWEGIAN_VOICES.some(v => v.id === voiceId) && (
+                      <option value="custom">Egendefinert ID</option>
+                    )}
                   </select>
+                  <input
+                    type="text"
+                    value={voiceId}
+                    onChange={(e) => setVoiceId(e.target.value)}
+                    placeholder="Lim inn Voice ID fra ElevenLabs…"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Velg en forhåndsdefinert stemme, eller lim inn ID direkte fra{' '}
+                    <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#185FA5] hover:underline">
+                      ElevenLabs voice library →
+                    </a>
+                  </p>
                 </div>
 
                 {/* Tone */}
