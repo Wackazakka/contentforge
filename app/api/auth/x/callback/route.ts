@@ -81,17 +81,20 @@ export async function GET(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    await supabase.from('social_connections').upsert(
-      {
-        user_id: userId,
-        platform: 'x',
-        page_id: xUserId,
-        page_name: displayName,
-        access_token: tokenData.access_token,
-        user_access_token: tokenData.refresh_token || null,
-      },
-      { onConflict: 'user_id,platform,page_id' }
-    )
+    await supabase.from('social_connections')
+      .delete()
+      .eq('user_id', userId)
+      .eq('platform', 'x')
+      .eq('page_id', xUserId)
+
+    await supabase.from('social_connections').insert({
+      user_id: userId,
+      platform: 'x',
+      page_id: xUserId,
+      page_name: displayName,
+      access_token: tokenData.access_token,
+      user_access_token: tokenData.refresh_token || null,
+    })
 
     console.log('[x/callback] ✅ Connected:', displayName, '(', xUserId, ')')
 
