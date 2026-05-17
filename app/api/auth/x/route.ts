@@ -28,7 +28,6 @@ export async function GET(request: Request) {
       state: userId,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
-      force_login: 'true',
     })
 
     const response = NextResponse.redirect(

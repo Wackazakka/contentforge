@@ -58,7 +58,8 @@ export async function GET(request: Request) {
 
     if (!tokenData.access_token) {
       console.error('[x/callback] No access token:', tokenData)
-      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=token_failed`)
+      const xError = encodeURIComponent(tokenData.error_description || tokenData.error || 'token_failed')
+      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=token_failed&detail=${xError}`)
     }
 
     // Fetch user info
