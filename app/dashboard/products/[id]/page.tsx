@@ -662,6 +662,15 @@ export default function ProductPage() {
               <p className="text-sm text-gray-600 mt-1">{t('createVideoApprovalDesc')}</p>
             </Link>
 
+            <Link
+              href={`/dashboard/products/${productId}/avatar`}
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#7C3AED] hover:bg-[#F5F3FF] transition-all text-left block"
+            >
+              <div className="text-2xl mb-2">🧑‍💼</div>
+              <h3 className="font-semibold text-gray-900">Avatar Video</h3>
+              <p className="text-sm text-gray-600 mt-1">Lip-sync avatar-video fra manus og bilde via AI</p>
+            </Link>
+
             <button
               onClick={() => router.push(`/dashboard/products/${productId}/article`)}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#1D9E75] hover:bg-[#f0fdf8] transition-all text-left"
