@@ -35,9 +35,11 @@ export async function GET(request: Request) {
     const userId = state
 
     // Exchange code for access token
-    const credentials = Buffer.from(
-      `${process.env.X_CLIENT_ID}:${process.env.X_CLIENT_SECRET}`
-    ).toString('base64')
+    const clientId = process.env.X_CLIENT_ID
+    const clientSecret = process.env.X_CLIENT_SECRET
+    console.log('[x/callback] CLIENT_ID set:', !!clientId, 'len:', clientId?.length, 'SECRET set:', !!clientSecret, 'len:', clientSecret?.length)
+
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
 
     const tokenRes = await fetch('https://api.twitter.com/2/oauth2/token', {
       method: 'POST',
@@ -50,6 +52,7 @@ export async function GET(request: Request) {
         code,
         redirect_uri: `${BASE_URL}/api/auth/x/callback`,
         code_verifier: codeVerifier,
+        client_id: clientId!,
       }).toString(),
     })
 
