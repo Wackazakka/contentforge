@@ -34,10 +34,12 @@ export default function AvatarVideoPage() {
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID)
   const [musicFile, setMusicFile] = useState<string | null>(null)
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
+  const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
 
-  useEffect(() => {
+  const refreshMusicLibrary = () =>
     fetch('/api/music').then(r => r.json()).then(d => setMusicLibrary(d.files || [])).catch(() => {})
-  }, [])
+
+  useEffect(() => { refreshMusicLibrary() }, [])
 
   // UI state
   const [generating, setGenerating] = useState(false)
@@ -370,6 +372,66 @@ export default function AvatarVideoPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Bakgrunnsmusikk (valgfritt)</h2>
             <p className="text-xs text-gray-500">Musikken mikses inn på 12% volum bak voiceover-lyden.</p>
+
+            {/* Upload */}
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-xs font-medium text-gray-700 block mb-1">Mappe</span>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    value={selectedMusicFolder}
+                    onChange={(e) => setSelectedMusicFolder(e.target.value)}
+                  >
+                    <option value="global">Global</option>
+                    <option value="bildeal">BilDeal</option>
+                    <option value="reforhandle">Reforhandle</option>
+                    <option value="singlepicker">SinglePicker</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium text-gray-700 block mb-1">Last opp MP3</span>
+                  <input
+                    type="file"
+                    accept=".mp3"
+                    onChange={async (e) => {
+                      const input = e.currentTarget
+                      const file = input.files?.[0]
+                      if (!file) return
+                      if (!file.name.toLowerCase().endsWith('.mp3')) {
+                        alert('Kun MP3-filer støttes.')
+                        input.value = ''
+                        return
+                      }
+                      if (file.size > 4 * 1024 * 1024) {
+                        alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)} MB). Maks 4 MB.`)
+                        input.value = ''
+                        return
+                      }
+                      const formData = new FormData()
+                      formData.append('file', file)
+                      try {
+                        const res = await fetch(`/api/music/upload?folder=${selectedMusicFolder}`, {
+                          method: 'POST',
+                          body: formData,
+                        })
+                        if (res.ok) {
+                          await refreshMusicLibrary()
+                          alert('Lastet opp!')
+                        } else {
+                          alert('Opplasting feilet: ' + await res.text())
+                        }
+                      } catch (err) {
+                        alert('Opplasting feilet.')
+                      }
+                      input.value = ''
+                    }}
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#185FA5] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#0C447C]"
+                  />
+                </label>
+              </div>
+            </div>
+
             {musicLibrary.length === 0 ? (
               <p className="text-sm text-gray-400">Laster musikk-bibliotek…</p>
             ) : (
