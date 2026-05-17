@@ -426,11 +426,10 @@ export default function NewDraftPage() {
                   {musicLibrary.length > 0 ? (
                     <div className="grid gap-2">
                       {musicLibrary.map((music) => (
-                        <button
+                        <div
                           key={music.filename}
-                          type="button"
                           onClick={() => setMusicFile(music.filename)}
-                          className={`text-left p-3 border-2 rounded-lg transition-colors ${
+                          className={`text-left p-3 border-2 rounded-lg transition-colors cursor-pointer ${
                             musicFile === music.filename
                               ? 'border-green-500 bg-green-50'
                               : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
@@ -438,15 +437,32 @@ export default function NewDraftPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="font-medium text-gray-900">{music.name}</div>
-                            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                              {music.folder || 'global'}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                                {music.folder || 'global'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={async (e) => {
+                                  e.stopPropagation()
+                                  if (!confirm(`Slett «${music.name}»?`)) return
+                                  await fetch(`/api/music/${encodeURIComponent(music.filename)}`, { method: 'DELETE' })
+                                  if (musicFile === music.filename) setMusicFile(null)
+                                  const data = await fetch('/api/music').then(r => r.json())
+                                  if (data.files) setMusicLibrary(data.files)
+                                }}
+                                className="text-gray-300 hover:text-red-500 transition-colors text-xs px-1"
+                                title="Slett fil"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
                             {(music.size / 1024 / 1024).toFixed(1)}MB
                           </div>
-                          <audio controls className="mt-2 w-full h-6" src={`/api/music/${encodeURIComponent(music.filename)}`} />
-                        </button>
+                          <audio controls className="mt-2 w-full h-6" src={`/api/music/${encodeURIComponent(music.filename)}`} onClick={(e) => e.stopPropagation()} />
+                        </div>
                       ))}
                     </div>
                   ) : (
