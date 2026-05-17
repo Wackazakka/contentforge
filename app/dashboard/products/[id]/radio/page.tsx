@@ -32,6 +32,7 @@ export default function RadioAdPage() {
   const [musicFile, setMusicFile] = useState<string | null>(null)
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
+  const [jingleFile, setJingleFile] = useState<string | null>(null)
 
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -81,6 +82,7 @@ export default function RadioAdPage() {
           script,
           voiceId: voiceId || DEFAULT_VOICE_ID,
           musicFile: musicFile || null,
+          jingleFile: jingleFile || null,
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error || 'Feil ved oppstart')
@@ -302,6 +304,64 @@ export default function RadioAdPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Section 5: Jingle */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Jingle (valgfritt)</h2>
+            <p className="text-xs text-gray-500">En kort lydlogo som spilles av på slutten av spoten.</p>
+
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4">
+              <label className="block">
+                <span className="text-xs font-medium text-gray-700 block mb-1">Last opp jingle (MP3)</span>
+                <input type="file" accept=".mp3"
+                  onChange={async (e) => {
+                    const input = e.currentTarget
+                    const file = input.files?.[0]
+                    if (!file) return
+                    if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer støttes.'); input.value = ''; return }
+                    if (file.size > 4 * 1024 * 1024) { alert('Filen er for stor. Maks 4 MB.'); input.value = ''; return }
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    try {
+                      const res = await fetch('/api/music/upload?folder=jingles', { method: 'POST', body: formData })
+                      if (res.ok) { await refreshJingleLibrary(); alert('Lastet opp!') }
+                      else alert('Opplasting feilet: ' + await res.text())
+                    } catch { alert('Opplasting feilet.') }
+                    input.value = ''
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-amber-600 file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-amber-700"
+                />
+              </label>
+            </div>
+
+            {(() => {
+              const jingles = musicLibrary.filter(m => m.folder === 'jingles')
+              return jingles.length === 0 ? (
+              <p className="text-sm text-gray-400">Ingen jingles lastet opp ennå.</p>
+            ) : (
+              <div className="space-y-2">
+                <button type="button" onClick={() => setJingleFile(null)}
+                  className={`w-full text-left p-3 border-2 rounded-lg text-sm transition-colors ${
+                    jingleFile === null ? 'border-[#185FA5] bg-[#EBF4FF] text-[#185FA5] font-medium' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}>
+                  Ingen jingle
+                </button>
+                {jingles.map((j) => (
+                  <button key={j.filename} type="button" onClick={() => setJingleFile(j.filename)}
+                    className={`w-full text-left p-3 border-2 rounded-lg transition-colors ${
+                      jingleFile === j.filename ? 'border-amber-500 bg-amber-50' : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-900">{j.name}</span>
+                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">jingle</span>
+                    </div>
+                    <audio controls className="w-full h-6" src={`/api/music/${encodeURIComponent(j.filename)}`} onClick={(e) => e.stopPropagation()} />
+                  </button>
+                ))}
+              </div>
+            )
+            })()}
           </div>
 
           {error && (
