@@ -25,9 +25,10 @@ function PublishPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [products, setProducts] = useState<any[]>([])
   const [selectedProduct, setSelectedProduct] = useState<string>('')
-  const [contentType, setContentType] = useState<'video' | 'article'>('video')
+  const [contentType, setContentType] = useState<'video' | 'article' | 'avatar'>('video')
   const [videos, setVideos] = useState<any[]>([])
   const [articles, setArticles] = useState<any[]>([])
+  const [avatarJobs, setAvatarJobs] = useState<any[]>([])
   const [selectedContent, setSelectedContent] = useState<any>(null)
   const [selectedPages, setSelectedPages] = useState<string[]>([])
   const [caption, setCaption] = useState('')
@@ -89,10 +90,23 @@ function PublishPage() {
           console.log('[publish] videos for product', selectedProduct, ':', data, 'error:', error)
           setVideos(data || [])
           setArticles([])
+          setAvatarJobs([])
           if (prefillJobId && data) {
             const match = data.find((v: any) => v.job_id === prefillJobId)
             if (match) setSelectedContent(match)
           }
+        } else if (contentType === 'avatar') {
+          const { data, error } = await supabase
+            .from('production_jobs')
+            .select('*')
+            .eq('product_id', selectedProduct)
+            .eq('content_type', 'avatar')
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+          console.log('[publish] avatar jobs for product', selectedProduct, ':', data, 'error:', error)
+          setAvatarJobs(data || [])
+          setVideos([])
+          setArticles([])
         } else {
           const { data, error } = await supabase
             .from('articles')
@@ -101,6 +115,7 @@ function PublishPage() {
           console.log('[publish] articles for product', selectedProduct, ':', data, 'error:', error)
           setArticles(data || [])
           setVideos([])
+          setAvatarJobs([])
           if (prefillContentId && data) {
             const match = data.find((a: any) => a.id === prefillContentId)
             if (match) setSelectedContent(match)
@@ -128,7 +143,7 @@ function PublishPage() {
     }
 
     // Pre-fill from product page links
-    const type = searchParams.get('type') as 'video' | 'article' | null
+    const type = searchParams.get('type') as 'video' | 'article' | 'avatar' | null
     const productId = searchParams.get('product_id')
     const jobId = searchParams.get('job_id')
     const contentId = searchParams.get('content_id')
@@ -280,8 +295,10 @@ function PublishPage() {
         pages: pagesMap,
       }
 
-      if (contentType === 'video') {
-        body.videoUrl = `${process.env.NEXT_PUBLIC_R2_URL}/videos/${selectedContent.job_id}/output.mp4`
+      if (contentType === 'video' || contentType === 'avatar') {
+        body.videoUrl = contentType === 'avatar'
+          ? `${process.env.NEXT_PUBLIC_R2_URL}/avatars/${selectedContent.id}/output.mp4`
+          : `${process.env.NEXT_PUBLIC_R2_URL}/videos/${selectedContent.job_id}/output.mp4`
         body.caption = caption
         if (publishPlatform === 'tiktok') {
           endpoint = '/api/publish/tiktok'
@@ -435,6 +452,14 @@ function PublishPage() {
             {t('videoButton')}
           </button>
           <button
+            onClick={() => { setContentType('avatar'); setSelectedContent(null) }}
+            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+              contentType === 'avatar' ? 'bg-purple-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🧑‍💼 Avatar
+          </button>
+          <button
             onClick={() => { setContentType('article'); setSelectedContent(null) }}
             className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
               contentType === 'article' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -503,6 +528,38 @@ function PublishPage() {
                         </div>
                         <p className="text-xs text-gray-400">
                           {new Date(v.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {contentType === 'avatar' && avatarJobs.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Velg avatar-video</label>
+              <div className="grid grid-cols-2 gap-3">
+                {avatarJobs.map((j) => {
+                  const videoUrl = `${process.env.NEXT_PUBLIC_R2_URL}/avatars/${j.id}/output.mp4`
+                  const isSelected = selectedContent?.id === j.id
+                  return (
+                    <div
+                      key={j.id}
+                      onClick={() => setSelectedContent(j)}
+                      className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
+                        isSelected ? 'border-purple-600 ring-2 ring-purple-200' : 'border-gray-200 hover:border-purple-400'
+                      }`}
+                    >
+                      <video src={videoUrl} muted preload="metadata" className="w-full object-cover bg-black" style={{ maxHeight: '140px' }} />
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 bg-purple-700 text-white text-xs px-2 py-0.5 rounded-full font-medium">{t('selected')}</div>
+                      )}
+                      <div className="p-2">
+                        <p className="text-xs font-medium text-gray-800 truncate">{j.title || 'Avatar video'}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(j.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </p>
                       </div>
                     </div>
@@ -604,7 +661,7 @@ function PublishPage() {
             >
               📘 Facebook
             </button>
-            {contentType === 'video' && (
+            {(contentType === 'video' || contentType === 'avatar') && (
               <button
                 onClick={() => setPublishPlatform('instagram')}
                 className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
@@ -614,7 +671,7 @@ function PublishPage() {
                 📷 Instagram
               </button>
             )}
-            {contentType === 'video' && (
+            {(contentType === 'video' || contentType === 'avatar') && (
               <button
                 onClick={() => setPublishPlatform('tiktok')}
                 className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
@@ -648,7 +705,7 @@ function PublishPage() {
             >
               🤖 Reddit
             </button>
-            {contentType === 'video' && (
+            {(contentType === 'video' || contentType === 'avatar') && (
               <button
                 onClick={() => setPublishPlatform('youtube')}
                 className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
