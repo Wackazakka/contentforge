@@ -39,20 +39,16 @@ export async function GET(request: Request) {
     const clientSecret = process.env.X_CLIENT_SECRET
     console.log('[x/callback] CLIENT_ID set:', !!clientId, 'len:', clientId?.length, 'SECRET set:', !!clientSecret, 'len:', clientSecret?.length)
 
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-
     const tokenRes = await fetch('https://api.twitter.com/2/oauth2/token', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Basic ${credentials}`,
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
         redirect_uri: `${BASE_URL}/api/auth/x/callback`,
         code_verifier: codeVerifier,
         client_id: clientId!,
+        ...(clientSecret ? { client_secret: clientSecret } : {}),
       }).toString(),
     })
 
