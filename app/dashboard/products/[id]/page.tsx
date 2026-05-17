@@ -663,6 +663,15 @@ export default function ProductPage() {
             </Link>
 
             <Link
+              href={`/dashboard/products/${productId}/radio`}
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#D97706] hover:bg-[#FFFBEB] transition-all text-left block"
+            >
+              <div className="text-2xl mb-2">🎙️</div>
+              <h3 className="font-semibold text-gray-900">Radioreklame</h3>
+              <p className="text-sm text-gray-600 mt-1">Manus + ElevenLabs voiceover → MP3 klar til nedlasting</p>
+            </Link>
+
+            <Link
               href={`/dashboard/products/${productId}/avatar`}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#7C3AED] hover:bg-[#F5F3FF] transition-all text-left block"
             >
