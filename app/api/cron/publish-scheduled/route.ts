@@ -180,6 +180,20 @@ async function runCron(request?: NextRequest) {
             }),
           })
           publishResult = await res.json()
+        } else if (platform === 'x') {
+          const res = await fetch(`${baseUrl}/api/publish/x`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              xAccountId: page_id,
+              caption,
+              contentType: 'video',
+              draftId: draft_id,
+              productId: production_id,
+              userId: user_id,
+            }),
+          })
+          publishResult = await res.json()
         } else {
           const res = await fetch(`${baseUrl}/api/publish/facebook`, {
             method: 'POST',
@@ -228,6 +242,22 @@ async function runCron(request?: NextRequest) {
               articleTitle: article.title,
               articleContent: article.content,
               caption,
+              draftId: draft_id,
+              productId: production_id,
+              userId: user_id,
+            }),
+          })
+          publishResult = await res.json()
+        } else if (platform === 'x') {
+          const res = await fetch(`${baseUrl}/api/publish/x`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              xAccountId: page_id,
+              caption,
+              articleTitle: article.title,
+              articleContent: article.content,
+              contentType: 'article',
               draftId: draft_id,
               productId: production_id,
               userId: user_id,

@@ -37,7 +37,7 @@ type Product = {
   name: string
 }
 
-const PLATFORMS = ['All', 'facebook', 'instagram', 'linkedin', 'tiktok', 'youtube']
+const PLATFORMS = ['All', 'facebook', 'instagram', 'linkedin', 'tiktok', 'x', 'youtube']
 const STATUSES = ['All', 'scheduled', 'published', 'failed']
 
 const statusColor: Record<string, string> = {
@@ -57,6 +57,7 @@ const platformLabel: Record<string, string> = {
   instagram: 'Instagram',
   linkedin: 'LinkedIn',
   tiktok: 'TikTok',
+  x: 'X',
   youtube: 'YouTube',
 }
 
