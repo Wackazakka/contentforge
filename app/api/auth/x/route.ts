@@ -34,7 +34,13 @@ export async function GET(request: Request) {
       createHash('sha256').update(codeVerifier).digest()
     )
 
-    const params = new URLSearchParams({
+    // Build the authorize URL manually. URLSearchParams encodes spaces as
+    // "+", which X's /authorize endpoint accepts inconsistently — its own
+    // docs use %20-separated scopes. We encode each value with
+    // encodeURIComponent so scope spaces become %20 and redirect_uri is
+    // byte-exact, removing it as a possible cause of the pre-consent
+    // "Something went wrong" rejection.
+    const authParams: Record<string, string> = {
       response_type: 'code',
       client_id: clientId,
       redirect_uri: `${BASE_URL}/api/auth/x/callback`,
@@ -42,13 +48,16 @@ export async function GET(request: Request) {
       state: userId,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
-    })
+    }
+    const query = Object.entries(authParams)
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .join('&')
 
+    const authorizeUrl = `https://x.com/i/oauth2/authorize?${query}`
     console.log('[x] Starting OAuth for user:', userId)
+    console.log('[x] Authorize URL:', authorizeUrl)
 
-    const response = NextResponse.redirect(
-      `https://x.com/i/oauth2/authorize?${params.toString()}`
-    )
+    const response = NextResponse.redirect(authorizeUrl)
 
     // Persist code_verifier for the callback (PKCE).
     response.cookies.set('x_code_verifier', codeVerifier, {
