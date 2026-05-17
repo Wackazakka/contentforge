@@ -5,7 +5,17 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 
-const DEFAULT_VOICE_ID = 'nPczCjzI2devNBz1zQrb'
+const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
+
+const NORWEGIAN_VOICES = [
+  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Norsk stemme 1' },
+  { id: 's2xtA7B2CTXPlJzch1v', name: 'Norsk stemme 2' },
+  { id: '2dhHLsmg0MVma2t041qT', name: 'Norsk stemme 3' },
+  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Norsk stemme 4' },
+  { id: 'CMbvLbbccSd611KtwxV3', name: 'Norsk stemme 5' },
+  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Norsk stemme 6' },
+  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Norsk stemme 7' },
+]
 
 const TONES = ['Vennlig', 'Energisk', 'Profesjonell', 'Rolig']
 const DURATIONS = [
@@ -352,17 +362,30 @@ export default function AvatarVideoPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Voice ID (ElevenLabs)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Stemme</label>
+              <select
+                value={NORWEGIAN_VOICES.some(v => v.id === voiceId) ? voiceId : 'custom'}
+                onChange={(e) => { if (e.target.value !== 'custom') setVoiceId(e.target.value) }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5] mb-2"
+              >
+                {NORWEGIAN_VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+                {!NORWEGIAN_VOICES.some(v => v.id === voiceId) && (
+                  <option value="custom">Egendefinert ID</option>
+                )}
+              </select>
               <input
                 type="text"
                 value={voiceId}
                 onChange={(e) => setVoiceId(e.target.value)}
+                placeholder="Lim inn Voice ID fra ElevenLabs…"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Standard: norsk stemme (Brian).{' '}
+                Velg en forhåndsdefinert stemme, eller lim inn ID direkte fra{' '}
                 <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#185FA5] hover:underline">
-                  Finn andre stemmer →
+                  ElevenLabs voice library →
                 </a>
               </p>
             </div>
