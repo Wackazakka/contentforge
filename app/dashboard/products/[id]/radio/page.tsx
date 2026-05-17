@@ -291,16 +291,32 @@ export default function RadioAdPage() {
                   Ingen musikk
                 </button>
                 {musicLibrary.map((m) => (
-                  <button key={m.filename} type="button" onClick={() => setMusicFile(m.filename)}
-                    className={`w-full text-left p-3 border-2 rounded-lg transition-colors ${
+                  <div key={m.filename} onClick={() => setMusicFile(m.filename)}
+                    className={`w-full text-left p-3 border-2 rounded-lg transition-colors cursor-pointer ${
                       musicFile === m.filename ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
                     }`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-900">{m.name}</span>
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{m.folder || 'global'}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{m.folder || 'global'}</span>
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (!confirm(`Slett «${m.name}»?`)) return
+                            await fetch(`/api/music/${encodeURIComponent(m.filename)}`, { method: 'DELETE' })
+                            if (musicFile === m.filename) setMusicFile(null)
+                            await refreshMusicLibrary()
+                          }}
+                          className="text-gray-300 hover:text-red-500 transition-colors text-xs px-1"
+                          title="Slett fil"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                     <audio controls className="w-full h-6" src={`/api/music/${encodeURIComponent(m.filename)}`} onClick={(e) => e.stopPropagation()} />
-                  </button>
+                  </div>
                 ))}
               </div>
             )}

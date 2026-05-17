@@ -26,3 +26,22 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to load music file' }, { status: 500 })
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ filename: string }> }
+) {
+  try {
+    const resolvedParams = await params
+    const filename = decodeURIComponent(resolvedParams.filename)
+    const res = await fetch(`${DROPLET_URL}/music/${encodeURIComponent(filename)}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      return NextResponse.json({ error: err.error || 'Failed to delete' }, { status: res.status })
+    }
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('[api/music/[filename]] Delete error:', err)
+    return NextResponse.json({ error: 'Failed to delete music file' }, { status: 500 })
+  }
+}
