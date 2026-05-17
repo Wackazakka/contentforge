@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       console.log('[publish/x] Video uploaded, media_id:', mediaId)
     }
 
-    console.log('[publish/x] Posting tweet for account:', xAccountId)
+    console.log('[publish/x] Posting tweet for account:', xAccountId, 'token prefix:', conn.access_token.slice(0, 20))
 
     const tweetRes = await fetch('https://api.twitter.com/2/tweets', {
       method: 'POST',
