@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
@@ -32,6 +32,12 @@ export default function AvatarVideoPage() {
   const [script, setScript] = useState('')
   const [avatarImageUrl, setAvatarImageUrl] = useState('')
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID)
+  const [musicFile, setMusicFile] = useState<string | null>(null)
+  const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
+
+  useEffect(() => {
+    fetch('/api/music').then(r => r.json()).then(d => setMusicLibrary(d.files || [])).catch(() => {})
+  }, [])
 
   // UI state
   const [generating, setGenerating] = useState(false)
@@ -100,6 +106,7 @@ export default function AvatarVideoPage() {
           script,
           avatarImageUrl,
           voiceId: voiceId || DEFAULT_VOICE_ID,
+          musicFile: musicFile || null,
         }),
       })
 
@@ -357,6 +364,47 @@ export default function AvatarVideoPage() {
                 </a>
               </p>
             </div>
+          </div>
+
+          {/* Section 4: Music */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Bakgrunnsmusikk (valgfritt)</h2>
+            <p className="text-xs text-gray-500">Musikken mikses inn på 12% volum bak voiceover-lyden.</p>
+            {musicLibrary.length === 0 ? (
+              <p className="text-sm text-gray-400">Laster musikk-bibliotek…</p>
+            ) : (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setMusicFile(null)}
+                  className={`w-full text-left p-3 border-2 rounded-lg text-sm transition-colors ${
+                    musicFile === null
+                      ? 'border-[#185FA5] bg-[#EBF4FF] text-[#185FA5] font-medium'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  Ingen musikk
+                </button>
+                {musicLibrary.map((m) => (
+                  <button
+                    key={m.filename}
+                    type="button"
+                    onClick={() => setMusicFile(m.filename)}
+                    className={`w-full text-left p-3 border-2 rounded-lg transition-colors ${
+                      musicFile === m.filename
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-900">{m.name}</span>
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{m.folder || 'global'}</span>
+                    </div>
+                    <audio controls className="w-full h-6" src={`/api/music/${encodeURIComponent(m.filename)}`} onClick={(e) => e.stopPropagation()} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {error && (
