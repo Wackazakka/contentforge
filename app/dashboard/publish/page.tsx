@@ -122,7 +122,8 @@ function PublishPage() {
 
     const error = searchParams.get('error')
     if (error) {
-      setMessage(`❌ Error: ${error}`)
+      const detail = searchParams.get('detail')
+      setMessage(`❌ Error: ${error}${detail ? ` — ${detail}` : ''}`)
       window.history.replaceState({}, '', '/dashboard/publish')
     }
 
