@@ -9,7 +9,7 @@ export default function PrivacyPage() {
             ← Back to home
           </Link>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
-          <p className="text-gray-600">Last updated: 16 May 2026</p>
+          <p className="text-gray-600">Last updated: 17 May 2026</p>
         </div>
 
         <div className="bg-white rounded-lg border border-gray-200 p-8 space-y-8">
@@ -17,12 +17,12 @@ export default function PrivacyPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
             <p className="text-gray-800 leading-relaxed mb-2">
               This privacy policy applies to <strong>CenterForge</strong> (also known as ContentForge),
-              a content publishing platform developed and operated by <strong>Abrakadabra Communication AS</strong>
+              a content publishing and scheduling platform developed and operated by <strong>Abrakadabra Communication AS</strong>
               (org.nr. 976 842 790), based in Norway.
             </p>
             <p className="text-gray-800 leading-relaxed">
-              CenterForge helps users create and publish content to social media platforms
-              including TikTok, Instagram, Facebook, and LinkedIn.
+              CenterForge enables users to create, schedule, and publish content to social media platforms
+              including TikTok, Instagram, Facebook, LinkedIn, YouTube, and X (Twitter).
             </p>
           </div>
 
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">4. Third-Party Platforms</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              CenterForge integrates with TikTok, Meta (Instagram/Facebook), and LinkedIn APIs.
+              CenterForge integrates with TikTok, Meta (Instagram/Facebook), LinkedIn, YouTube, and X (Twitter) APIs.
               Your use of these platforms is also subject to their respective privacy policies.
             </p>
             <p className="text-gray-700 leading-relaxed mb-4">We also use the following services to operate the platform:</p>
