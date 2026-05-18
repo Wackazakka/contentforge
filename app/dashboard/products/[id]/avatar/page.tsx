@@ -47,7 +47,41 @@ export default function AvatarVideoPage() {
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
   const [includeOutroCard, setIncludeOutroCard] = useState(false)
   const [includeUrlBanner, setIncludeUrlBanner] = useState(false)
+
+  type Segment = { text: string; audioUrl: string | null; audioBlob: Blob | null; generating: boolean }
+  const [segments, setSegments] = useState<Segment[]>([])
+  const [segmentMode, setSegmentMode] = useState(false)
+  const [uploadingSegments, setUploadingSegments] = useState(false)
   const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string; avatar_image_url?: string } | null>(null)
+
+  const splitToSegments = (text: string): Segment[] => {
+    const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
+    const pairs: Segment[] = []
+    for (let i = 0; i < sentences.length; i += 2) {
+      const seg = [sentences[i], sentences[i + 1]].filter(Boolean).join(' ').trim()
+      if (seg) pairs.push({ text: seg, audioUrl: null, audioBlob: null, generating: false })
+    }
+    return pairs
+  }
+
+  const generateSegmentAudio = async (index: number) => {
+    const seg = segments[index]
+    if (!seg || seg.generating) return
+    setSegments(prev => prev.map((s, i) => i === index ? { ...s, generating: true } : s))
+    try {
+      const res = await fetch('/api/avatar/preview-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script: seg.text, voiceId }),
+      })
+      if (!res.ok) throw new Error('Feilet')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      setSegments(prev => prev.map((s, i) => i === index ? { ...s, generating: false, audioBlob: blob, audioUrl: url } : s))
+    } catch {
+      setSegments(prev => prev.map((s, i) => i === index ? { ...s, generating: false } : s))
+    }
+  }
 
   const saveAvatarImageUrl = async (url: string) => {
     if (!productId || !url) return
@@ -184,6 +218,28 @@ export default function AvatarVideoPage() {
         return
       }
 
+      // Upload pre-generated segment audio if in segment mode
+      let audioSegmentUrls: string[] | null = null
+      if (segmentMode && segments.length > 0 && segments.every(s => s.audioBlob)) {
+        setUploadingSegments(true)
+        try {
+          const tempId = crypto.randomUUID()
+          audioSegmentUrls = []
+          for (let i = 0; i < segments.length; i++) {
+            const fd = new FormData()
+            fd.append('file', segments[i].audioBlob!, `seg_${i}.mp3`)
+            fd.append('jobId', tempId)
+            fd.append('segmentIndex', String(i))
+            const r = await fetch('/api/avatar/upload-audio', { method: 'POST', body: fd })
+            const d = await r.json()
+            if (!r.ok) throw new Error(d.error || 'Segment-opplasting feilet')
+            audioSegmentUrls.push(d.url)
+          }
+        } finally {
+          setUploadingSegments(false)
+        }
+      }
+
       const res = await fetch('/api/productions/avatar', {
         method: 'POST',
         headers: {
@@ -197,6 +253,7 @@ export default function AvatarVideoPage() {
           avatarImageUrl,
           voiceId: voiceId || DEFAULT_VOICE_ID,
           musicFile: musicFile || null,
+          audioSegmentUrls,
           outroCard: (includeOutroCard || includeUrlBanner) && productProfile ? {
             logoUrl: includeOutroCard ? (productProfile.logo_url || null) : null,
             primaryColor: productProfile.primary_color || '#1a1a2e',
@@ -438,6 +495,65 @@ export default function AvatarVideoPage() {
               )}
             </div>
           </div>
+
+          {/* Section: Lysjekk per segment */}
+          {script.trim() && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Lysjekk per segment</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">Generer og godkjenn tale per setningspar — regenerer de som ikke er optimale</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!segmentMode) setSegments(splitToSegments(script))
+                    setSegmentMode(v => !v)
+                  }}
+                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${segmentMode ? 'bg-[#185FA5]' : 'bg-gray-200'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${segmentMode ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+              {segmentMode && (
+                <div className="space-y-2">
+                  {segments.map((seg, i) => (
+                    <div key={i} className="border border-gray-100 rounded-lg p-3 bg-gray-50 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs text-gray-400 font-mono mt-1.5 w-5 flex-shrink-0">{i + 1}.</span>
+                        <textarea
+                          value={seg.text}
+                          onChange={e => setSegments(prev => prev.map((s, j) => j === i ? { ...s, text: e.target.value, audioUrl: null, audioBlob: null } : s))}
+                          rows={2}
+                          className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none bg-white focus:outline-none focus:ring-1 focus:ring-[#185FA5]"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pl-7">
+                        <button
+                          type="button"
+                          onClick={() => generateSegmentAudio(i)}
+                          disabled={seg.generating || !seg.text.trim()}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[#185FA5] text-white hover:bg-[#0C447C] disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                        >
+                          {seg.generating ? '⏳ Genererer…' : seg.audioBlob ? '↻ Regenerer' : '▶ Generer tale'}
+                        </button>
+                        {seg.audioUrl && (
+                          <>
+                            <audio src={seg.audioUrl} controls className="h-7 flex-1 min-w-0" />
+                            <span className="text-green-600 text-sm font-medium flex-shrink-0">✓</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-400 pt-1">
+                    {segments.filter(s => s.audioBlob).length}/{segments.length} segmenter godkjent
+                    {segments.length > 0 && segments.every(s => s.audioBlob) ? ' — klar til innsending ✓' : ''}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Section 3: Avatar + Voice */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
@@ -759,10 +875,10 @@ export default function AvatarVideoPage() {
 
           <button
             type="submit"
-            disabled={loading || !script.trim() || !avatarImageUrl.trim()}
+            disabled={loading || uploadingSegments || !script.trim() || !avatarImageUrl.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
             className="w-full bg-[#185FA5] hover:bg-[#0C447C] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
           >
-            {loading ? 'Starter produksjon…' : 'Generer avatar-video'}
+            {uploadingSegments ? 'Laster opp segmenter…' : loading ? 'Starter produksjon…' : 'Generer avatar-video'}
           </button>
 
           <p className="text-xs text-gray-400 text-center">
