@@ -20,11 +20,17 @@ export async function POST(request: NextRequest) {
     console.log('[webhook] - productId:', productId)
     console.log('[webhook] =====================================')
 
-    if (!jobId || !videoUrl) {
-      return NextResponse.json(
-        { error: 'Missing jobId or videoUrl' },
-        { status: 400 }
-      )
+    if (!jobId) {
+      return NextResponse.json({ error: 'Missing jobId' }, { status: 400 })
+    }
+
+    // Handle failure callbacks (videoUrl is null when job failed on droplet)
+    if (!videoUrl) {
+      const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY
+      const supabase = createClient(SUPABASE_URL!, supabaseKey!, { auth: { persistSession: false } })
+      await supabase.from('production_jobs').update({ status: 'failed' }).eq('id', jobId)
+      console.log(`[api/productions/complete] Job ${jobId} marked as failed`)
+      return NextResponse.json({ jobId, status: 'failed' })
     }
 
     // Use service_role_key if available (for UPDATE permissions), otherwise fall back to ANON_KEY

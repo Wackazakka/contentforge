@@ -746,23 +746,40 @@ export default function ProductPage() {
                   >
                     <h3 className="font-semibold text-gray-900">{job.title}</h3>
                     <p className="text-sm text-gray-600 mt-1">{job.description}</p>
-                    <div className="mt-2 flex items-center gap-4 text-xs">
-                      <span className="text-gray-500">
-                        Status:{' '}
-                        <span className="font-semibold">
-                          {job.status === 'queued'
-                            ? t('statusWaiting')
-                            : job.status === 'generating'
-                            ? t('statusGenerating')
-                            : t('statusRendering')}
+                    <div className="mt-2 flex items-center justify-between gap-4 text-xs">
+                      <div className="flex items-center gap-4">
+                        <span className="text-gray-500">
+                          Status:{' '}
+                          <span className="font-semibold">
+                            {job.status === 'queued'
+                              ? t('statusWaiting')
+                              : job.status === 'generating'
+                              ? t('statusGenerating')
+                              : t('statusRendering')}
+                          </span>
                         </span>
-                      </span>
-                      <span className="text-gray-500">
-                        Format:{' '}
-                        <span className="font-semibold">
-                          {job.video_format?.split(',').join(', ') || 'N/A'}
+                        <span className="text-gray-500">
+                          Format:{' '}
+                          <span className="font-semibold">
+                            {job.video_format?.split(',').join(', ') || 'N/A'}
+                          </span>
                         </span>
-                      </span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Fjern denne jobben?')) return
+                          const { data: { session } } = await getSupabase().auth.getSession()
+                          await fetch(`/api/productions/${job.id}`, {
+                            method: 'DELETE',
+                            headers: { Authorization: `Bearer ${session?.access_token}` },
+                          })
+                          setJobs((prev) => prev.filter((j) => j.id !== job.id))
+                        }}
+                        className="text-gray-400 hover:text-red-500 transition-colors px-1"
+                        title="Fjern jobb"
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
                 ))}
