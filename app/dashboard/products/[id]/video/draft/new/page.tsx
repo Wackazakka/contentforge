@@ -6,13 +6,13 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
 const NORWEGIAN_VOICES = [
-  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Norsk stemme 1' },
-  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Norsk stemme 2' },
-  { id: '2dhHLsmg0MVma2t041qT', name: 'Norsk stemme 3' },
-  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Norsk stemme 4' },
-  { id: 'CMbvLbbccSd611KtwxV3', name: 'Norsk stemme 5' },
-  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Norsk stemme 6' },
-  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Norsk stemme 7' },
+  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind – dyp og rolig' },
+  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis – klar og behagelig' },
+  { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes – selvsikker' },
+  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Maja – nordisk, dramatisk' },
+  { id: 'CMbvLbbccSd611KtwxV3', name: 'Robert – Oslo' },
+  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Helge' },
+  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Mia – norsk kvinne' },
 ]
 
 const VIDEO_FORMATS = [

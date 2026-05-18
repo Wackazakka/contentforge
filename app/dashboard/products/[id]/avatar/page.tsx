@@ -8,13 +8,13 @@ import { getSupabase } from '@/lib/supabaseClient'
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
 const NORWEGIAN_VOICES = [
-  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Norsk stemme 1' },
-  { id: 's2xtA7B2CTXPlJzch1v', name: 'Norsk stemme 2' },
-  { id: '2dhHLsmg0MVma2t041qT', name: 'Norsk stemme 3' },
-  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Norsk stemme 4' },
-  { id: 'CMbvLbbccSd611KtwxV3', name: 'Norsk stemme 5' },
-  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Norsk stemme 6' },
-  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Norsk stemme 7' },
+  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind – dyp og rolig' },
+  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis – klar og behagelig' },
+  { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes – selvsikker' },
+  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Maja – nordisk, dramatisk' },
+  { id: 'CMbvLbbccSd611KtwxV3', name: 'Robert – Oslo' },
+  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Helge' },
+  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Mia – norsk kvinne' },
 ]
 
 const TONES = ['Vennlig', 'Energisk', 'Profesjonell', 'Rolig']
@@ -94,7 +94,11 @@ export default function AvatarVideoPage() {
       return
     }
     if (!avatarImageUrl.trim()) {
-      setError('Avatar-bilde URL er påkrevd.')
+      setError('Avatar-bilde er påkrevd. Last opp et bilde eller lim inn en URL.')
+      return
+    }
+    if (!/\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(avatarImageUrl.trim())) {
+      setError('Avatar-bilde URL må peke til et bilde (jpg, png eller webp).')
       return
     }
 
