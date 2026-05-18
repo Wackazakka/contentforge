@@ -123,7 +123,9 @@ export default function AvatarVideoPage() {
           }
           if (data) {
             setProductProfile(data)
-            if (data.avatar_image_url) setAvatarImageUrl(data.avatar_image_url)
+            if (data.avatar_image_url && /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(data.avatar_image_url)) {
+              setAvatarImageUrl(data.avatar_image_url)
+            }
           }
         })
     })
