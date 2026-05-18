@@ -47,6 +47,8 @@ export default function AvatarVideoPage() {
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
   const [includeOutroCard, setIncludeOutroCard] = useState(false)
   const [includeUrlBanner, setIncludeUrlBanner] = useState(false)
+  const [outroDuration, setOutroDuration] = useState(3)
+  const [outroJingleFile, setOutroJingleFile] = useState<string | null>(null)
 
   type Segment = { text: string; audioUrl: string | null; audioBlob: Blob | null; generating: boolean }
   const [segments, setSegments] = useState<Segment[]>([])
@@ -260,8 +262,9 @@ export default function AvatarVideoPage() {
             secondaryColor: productProfile.secondary_color || '#ffffff',
             url: (productProfile as any).website_url || '',
             cta: includeOutroCard ? ((productProfile as any).cta_text || '') : '',
-            durationSeconds: includeOutroCard ? 3 : 0,
+            durationSeconds: includeOutroCard ? outroDuration : 0,
             urlBanner: includeUrlBanner,
+            jingleFile: includeOutroCard ? (outroJingleFile || null) : null,
           } : null,
         }),
       })
@@ -816,13 +819,13 @@ export default function AvatarVideoPage() {
           </div>
 
           {/* Outro card */}
-          <div className="border border-gray-200 rounded-lg p-4">
+          <div className="border border-gray-200 rounded-lg p-4 space-y-3">
             <label className="flex items-center justify-between cursor-pointer">
               <div>
                 <span className="text-sm font-medium text-gray-900">Avslutt med logo-plakat</span>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {productProfile?.logo_url
-                    ? 'Legger til 3 sek. brandingplakat fra produktprofilen'
+                    ? 'Brandingplakat fra produktprofilen'
                     : 'Sett logo i produktprofilen for å aktivere dette'}
                 </p>
               </div>
@@ -839,6 +842,68 @@ export default function AvatarVideoPage() {
                 }`} />
               </button>
             </label>
+
+            {includeOutroCard && productProfile?.logo_url && (
+              <div className="space-y-3 pt-1 border-t border-gray-100">
+                {/* Duration */}
+                <div>
+                  <label className="text-xs font-medium text-gray-600 block mb-1.5">Varighet</label>
+                  <div className="flex gap-2">
+                    {[3, 5, 8].map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setOutroDuration(s)}
+                        className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                          outroDuration === s
+                            ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                        }`}
+                      >
+                        {s} sek
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Jingle */}
+                <div>
+                  <label className="text-xs font-medium text-gray-600 block mb-1.5">
+                    Jingle (valgfritt) — de første {outroDuration} sekundene brukes
+                  </label>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    <button
+                      type="button"
+                      onClick={() => setOutroJingleFile(null)}
+                      className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
+                        outroJingleFile === null
+                          ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED] font-medium'
+                          : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                      }`}
+                    >
+                      Ingen jingle
+                    </button>
+                    {musicLibrary.map(m => (
+                      <button
+                        key={m.filename}
+                        type="button"
+                        onClick={() => setOutroJingleFile(m.filename)}
+                        className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
+                          outroJingleFile === m.filename
+                            ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED] font-medium'
+                            : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        {m.name}
+                        {m.folder && m.folder !== 'global' && (
+                          <span className="ml-2 text-xs text-gray-400">{m.folder}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* URL banner overlay */}
