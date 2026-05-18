@@ -46,7 +46,16 @@ export default function AvatarVideoPage() {
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
   const [includeOutroCard, setIncludeOutroCard] = useState(false)
-  const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string } | null>(null)
+  const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string; avatar_image_url?: string } | null>(null)
+
+  const saveAvatarImageUrl = async (url: string) => {
+    if (!productId || !url) return
+    const { getSupabase } = await import('@/lib/supabaseClient')
+    getSupabase()
+      .from('product_profiles')
+      .upsert({ product_id: productId, avatar_image_url: url }, { onConflict: 'product_id' })
+      .then(() => {})
+  }
 
   const refreshMusicLibrary = () =>
     fetch('/api/music').then(r => r.json()).then(d => setMusicLibrary(d.files || [])).catch(() => {})
@@ -58,10 +67,15 @@ export default function AvatarVideoPage() {
     import('@/lib/supabaseClient').then(({ getSupabase }) => {
       getSupabase()
         .from('product_profiles')
-        .select('logo_url, primary_color, secondary_color, website_url, cta_text')
+        .select('logo_url, primary_color, secondary_color, website_url, cta_text, avatar_image_url')
         .eq('product_id', productId)
         .maybeSingle()
-        .then(({ data }: { data: any }) => { if (data) setProductProfile(data) })
+        .then(({ data }: { data: any }) => {
+          if (data) {
+            setProductProfile(data)
+            if (data.avatar_image_url) setAvatarImageUrl(data.avatar_image_url)
+          }
+        })
     })
   }, [productId])
 
@@ -387,6 +401,7 @@ export default function AvatarVideoPage() {
                         const data = await res.json()
                         if (!res.ok) throw new Error(data.error || 'Opplasting feilet')
                         setAvatarImageUrl(data.url)
+                        saveAvatarImageUrl(data.url)
                       } catch (err) {
                         setError(err instanceof Error ? err.message : 'Opplasting feilet')
                       } finally {
@@ -397,15 +412,27 @@ export default function AvatarVideoPage() {
                   />
                 </label>
               </div>
-              <input
-                type="url"
-                value={avatarImageUrl}
-                onChange={(e) => setAvatarImageUrl(e.target.value)}
-                placeholder="https://eksempel.com/mitt-avatar-bilde.jpg"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={avatarImageUrl}
+                  onChange={(e) => setAvatarImageUrl(e.target.value)}
+                  onBlur={(e) => { if (e.target.value) saveAvatarImageUrl(e.target.value) }}
+                  placeholder="https://eksempel.com/mitt-avatar-bilde.jpg"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                />
+                {avatarImageUrl && avatarImageUrl !== productProfile?.avatar_image_url && (
+                  <button
+                    type="button"
+                    onClick={() => saveAvatarImageUrl(avatarImageUrl)}
+                    className="px-3 py-2 text-xs bg-[#185FA5] text-white rounded-lg hover:bg-[#1450a0]"
+                  >
+                    Lagre
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-gray-400 mt-1">
-                Last opp eller lim inn URL. Anbefalt: god belysning, nøytral bakgrunn, ansiktet tydelig synlig.
+                Last opp eller lim inn URL — bildet huskes til neste gang. Anbefalt: god belysning, nøytral bakgrunn, ansiktet tydelig synlig.
               </p>
             </div>
 
