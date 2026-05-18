@@ -10,7 +10,7 @@ const DEFAULT_VOICE_ID = 'nPczCjzI2devNBz1zQrb'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { productId, campaignName, script, avatarImageUrl, voiceId, musicFile } = body
+    const { productId, campaignName, script, avatarImageUrl, voiceId, musicFile, outroCard } = body
 
     if (!productId || !script || !avatarImageUrl) {
       return NextResponse.json(
@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
           avatarImageUrl,
           voiceId: voiceId || DEFAULT_VOICE_ID,
           musicFile: musicFile || null,
+          outroCard: outroCard || null,
           productId,
           campaignId: productId,
         }),

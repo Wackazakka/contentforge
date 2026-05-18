@@ -45,11 +45,25 @@ export default function AvatarVideoPage() {
   const [musicFile, setMusicFile] = useState<string | null>(null)
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
+  const [includeOutroCard, setIncludeOutroCard] = useState(false)
+  const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string } | null>(null)
 
   const refreshMusicLibrary = () =>
     fetch('/api/music').then(r => r.json()).then(d => setMusicLibrary(d.files || [])).catch(() => {})
 
   useEffect(() => { refreshMusicLibrary() }, [])
+
+  useEffect(() => {
+    if (!productId) return
+    import('@/lib/supabaseClient').then(({ getSupabase }) => {
+      getSupabase()
+        .from('product_profiles')
+        .select('logo_url, primary_color, secondary_color, website_url, cta_text')
+        .eq('product_id', productId)
+        .maybeSingle()
+        .then(({ data }: { data: any }) => { if (data) setProductProfile(data) })
+    })
+  }, [productId])
 
   // UI state
   const [generating, setGenerating] = useState(false)
@@ -126,6 +140,14 @@ export default function AvatarVideoPage() {
           avatarImageUrl,
           voiceId: voiceId || DEFAULT_VOICE_ID,
           musicFile: musicFile || null,
+          outroCard: includeOutroCard && productProfile ? {
+            logoUrl: productProfile.logo_url || null,
+            primaryColor: productProfile.primary_color || '#1a1a2e',
+            secondaryColor: productProfile.secondary_color || '#ffffff',
+            url: (productProfile as any).website_url || '',
+            cta: (productProfile as any).cta_text || '',
+            durationSeconds: 3,
+          } : null,
         }),
       })
 
@@ -582,6 +604,32 @@ export default function AvatarVideoPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Outro card */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="text-sm font-medium text-gray-900">Avslutt med logo-plakat</span>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {productProfile?.logo_url
+                    ? 'Legger til 3 sek. brandingplakat fra produktprofilen'
+                    : 'Sett logo i produktprofilen for å aktivere dette'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIncludeOutroCard((v) => !v)}
+                disabled={!productProfile?.logo_url}
+                className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                  includeOutroCard && productProfile?.logo_url ? 'bg-[#7C3AED]' : 'bg-gray-200'
+                } disabled:opacity-40`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                  includeOutroCard && productProfile?.logo_url ? 'translate-x-4' : ''
+                }`} />
+              </button>
+            </label>
           </div>
 
           {error && (
