@@ -65,12 +65,25 @@ export default function AvatarVideoPage() {
   useEffect(() => {
     if (!productId) return
     import('@/lib/supabaseClient').then(({ getSupabase }) => {
-      getSupabase()
+      const supabase = getSupabase()
+      // Fetch with avatar_image_url; fall back without it if column doesn't exist yet
+      supabase
         .from('product_profiles')
         .select('logo_url, primary_color, secondary_color, website_url, cta_text, avatar_image_url')
         .eq('product_id', productId)
         .maybeSingle()
-        .then(({ data }: { data: any }) => {
+        .then(({ data, error }: { data: any; error: any }) => {
+          if (error) {
+            // Column may not exist yet — retry without avatar_image_url
+            return supabase
+              .from('product_profiles')
+              .select('logo_url, primary_color, secondary_color, website_url, cta_text')
+              .eq('product_id', productId)
+              .maybeSingle()
+              .then(({ data: fallbackData }: { data: any }) => {
+                if (fallbackData) setProductProfile(fallbackData)
+              })
+          }
           if (data) {
             setProductProfile(data)
             if (data.avatar_image_url) setAvatarImageUrl(data.avatar_image_url)
@@ -85,8 +98,37 @@ export default function AvatarVideoPage() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [previewingVoice, setPreviewingVoice] = useState(false)
+  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null)
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
+
+  const handlePreviewVoice = async () => {
+    if (!script.trim()) { setError('Skriv manus først.'); return }
+    setPreviewingVoice(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/avatar/preview-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script, voiceId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Forhåndsvisning feilet')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      if (previewAudioUrl) URL.revokeObjectURL(previewAudioUrl)
+      setPreviewAudioUrl(url)
+      setTimeout(() => previewAudioRef.current?.play(), 100)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Forhåndsvisning feilet')
+    } finally {
+      setPreviewingVoice(false)
+    }
+  }
 
   const handleGenerateScript = async () => {
     if (!topic.trim()) {
@@ -366,11 +408,33 @@ export default function AvatarVideoPage() {
             </div>
             <textarea
               value={script}
-              onChange={(e) => setScript(e.target.value)}
+              onChange={(e) => { setScript(e.target.value); setPreviewAudioUrl(null) }}
               placeholder="Klikk «Generer manus» ovenfor, eller skriv manus direkte her…"
               rows={10}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5] resize-none"
             />
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handlePreviewVoice}
+                disabled={previewingVoice || !script.trim()}
+                className="flex items-center gap-2 px-4 py-2 text-sm border border-[#185FA5] text-[#185FA5] rounded-lg hover:bg-[#EBF4FF] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {previewingVoice ? (
+                  <><span className="animate-spin">⏳</span> Genererer tale…</>
+                ) : (
+                  <><span>🔊</span> Forhør tale</>
+                )}
+              </button>
+              {previewAudioUrl && (
+                <audio
+                  ref={previewAudioRef}
+                  src={previewAudioUrl}
+                  controls
+                  className="flex-1 h-9"
+                />
+              )}
+            </div>
           </div>
 
           {/* Section 3: Avatar + Voice */}
