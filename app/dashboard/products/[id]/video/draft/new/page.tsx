@@ -1,18 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
 const NORWEGIAN_VOICES = [
-  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind – dyp og rolig' },
-  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis – klar og behagelig' },
-  { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes – selvsikker' },
-  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Maja – nordisk, dramatisk' },
-  { id: 'CMbvLbbccSd611KtwxV3', name: 'Robert – Oslo' },
-  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Helge' },
-  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Mia – norsk kvinne' },
+  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind', desc: 'Dyp og rolig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/7dc5c03caf8f40daa575fa9eacbf3de8/voices/nhvaqgRyAq6BmFs3WcdX/Z8yVliHOyn9eSmt4YEVw.mp3' },
+  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis', desc: 'Klar og behagelig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/15af1c0d0dcd479cb8376a767ab07b4c/voices/s2xtA7B2CTXPPlJzch1v/YB9DE4weRg6BTei8hVZ5.mp3' },
+  { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes', desc: 'Selvsikker', preview: 'https://storage.googleapis.com/eleven-public-prod/custom/voices/2dhHLsmg0MVma2t041qT/fX3l7ljt7bx6zRPz8VdC.mp3' },
+  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Maja', desc: 'Nordisk, dramatisk', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/ed9b05e6324c457685490352e9a1ec90/voices/BGEU6wFi2uNm6Kje1Yhk/gCIHS9pPkrtwiAjN4VgG.mp3' },
+  { id: 'CMbvLbbccSd611KtwxV3', name: 'Robert', desc: 'Oslo', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/2461cf568dc042a3bbfbf75522203b35/voices/CMbvLbbccSd611KtwxV3/fabf86a6-90db-42c2-9993-47fff3f73a80.mp3' },
+  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Helge', desc: '', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/3690d7df74c84d8880e0e0d0641de7f2/voices/vUmLiNBm6MDcy1NUHaVr/6JBvRVvXcssLtXlaqLg1.mp3' },
+  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Mia', desc: 'Norsk kvinne', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/a2175a4ce5a74c88868dd9d4a000c9a6/voices/uNsWM1StCcpydKYOjKyu/868f87d5-7724-4786-a7fa-a48e01b2ba54.mp3' },
 ]
 
 const VIDEO_FORMATS = [
@@ -45,6 +45,8 @@ export default function NewDraftPage() {
   const [includeOutroCard, setIncludeOutroCard] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [playingVoice, setPlayingVoice] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     const fetchMusic = async () => {
@@ -230,29 +232,67 @@ export default function NewDraftPage() {
                 {/* Voice */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('voiceLabel')}</label>
-                  <select
-                    value={NORWEGIAN_VOICES.some(v => v.id === voiceId) ? voiceId : 'custom'}
-                    onChange={(e) => { if (e.target.value !== 'custom') setVoiceId(e.target.value) }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent mb-2"
-                  >
-                    {NORWEGIAN_VOICES.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
-                      </option>
-                    ))}
-                    {!NORWEGIAN_VOICES.some(v => v.id === voiceId) && (
-                      <option value="custom">Egendefinert ID</option>
-                    )}
-                  </select>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {NORWEGIAN_VOICES.map((v) => {
+                      const isSelected = voiceId === v.id
+                      const isPlaying = playingVoice === v.id
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => setVoiceId(v.id)}
+                          className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${
+                            isSelected
+                              ? 'border-[#185FA5] bg-[#EBF4FF]'
+                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (isPlaying) {
+                                audioRef.current?.pause()
+                                setPlayingVoice(null)
+                              } else {
+                                if (audioRef.current) {
+                                  audioRef.current.pause()
+                                }
+                                const audio = new Audio(v.preview)
+                                audioRef.current = audio
+                                audio.play()
+                                setPlayingVoice(v.id)
+                                audio.onended = () => setPlayingVoice(null)
+                              }
+                            }}
+                            className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                              isPlaying ? 'bg-[#185FA5] text-white' : 'bg-gray-100 hover:bg-[#EBF4FF] text-gray-600'
+                            }`}
+                            title={isPlaying ? 'Stopp' : 'Hør stemmen'}
+                          >
+                            {isPlaying ? (
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8"/><rect x="6" y="1" width="3" height="8"/></svg>
+                            ) : (
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9"/></svg>
+                            )}
+                          </button>
+                          <div className="min-w-0">
+                            <div className={`text-sm font-medium leading-tight ${isSelected ? 'text-[#185FA5]' : 'text-gray-900'}`}>{v.name}</div>
+                            {v.desc && <div className="text-xs text-gray-400 leading-tight truncate">{v.desc}</div>}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
                   <input
                     type="text"
                     value={voiceId}
                     onChange={(e) => setVoiceId(e.target.value)}
-                    placeholder="Lim inn Voice ID fra ElevenLabs…"
+                    placeholder="Eller lim inn Voice ID fra ElevenLabs…"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
                   />
                   <p className="text-xs text-gray-400 mt-1">
-                    Velg en forhåndsdefinert stemme, eller lim inn ID direkte fra{' '}
+                    Velg stemme ovenfor, eller lim inn ID direkte fra{' '}
                     <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#185FA5] hover:underline">
                       ElevenLabs voice library →
                     </a>
