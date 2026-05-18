@@ -330,7 +330,7 @@ export default function ProductPage() {
           }
         }
 
-        prevJobStatusesRef.current = Object.fromEntries(newJobs.map((j) => [j.id, j.status]))
+        prevJobStatusesRef.current = Object.fromEntries(newJobs.map((j: ProductionJob) => [j.id, j.status]))
         setJobs(newJobs)
       } catch (err) {
         console.error('[ProductPage] Jobs fetch error:', err)
