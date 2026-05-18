@@ -46,6 +46,7 @@ export default function AvatarVideoPage() {
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
   const [includeOutroCard, setIncludeOutroCard] = useState(false)
+  const [includeUrlBanner, setIncludeUrlBanner] = useState(false)
   const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string; avatar_image_url?: string } | null>(null)
 
   const saveAvatarImageUrl = async (url: string) => {
@@ -196,13 +197,14 @@ export default function AvatarVideoPage() {
           avatarImageUrl,
           voiceId: voiceId || DEFAULT_VOICE_ID,
           musicFile: musicFile || null,
-          outroCard: includeOutroCard && productProfile ? {
-            logoUrl: productProfile.logo_url || null,
+          outroCard: (includeOutroCard || includeUrlBanner) && productProfile ? {
+            logoUrl: includeOutroCard ? (productProfile.logo_url || null) : null,
             primaryColor: productProfile.primary_color || '#1a1a2e',
             secondaryColor: productProfile.secondary_color || '#ffffff',
             url: (productProfile as any).website_url || '',
-            cta: (productProfile as any).cta_text || '',
-            durationSeconds: 3,
+            cta: includeOutroCard ? ((productProfile as any).cta_text || '') : '',
+            durationSeconds: includeOutroCard ? 3 : 0,
+            urlBanner: includeUrlBanner,
           } : null,
         }),
       })
@@ -718,6 +720,32 @@ export default function AvatarVideoPage() {
               >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
                   includeOutroCard && productProfile?.logo_url ? 'translate-x-4' : ''
+                }`} />
+              </button>
+            </label>
+          </div>
+
+          {/* URL banner overlay */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="text-sm font-medium text-gray-900">Vis nettside-URL i videoen</span>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {(productProfile as any)?.website_url
+                    ? `Viser «${((productProfile as any).website_url || '').replace(/^https?:\/\//, '').replace(/\/$/, '')}» nederst i hele videoen`
+                    : 'Sett nettside-URL i produktprofilen for å aktivere dette'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIncludeUrlBanner((v) => !v)}
+                disabled={!(productProfile as any)?.website_url}
+                className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                  includeUrlBanner && (productProfile as any)?.website_url ? 'bg-[#185FA5]' : 'bg-gray-200'
+                } disabled:opacity-40`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                  includeUrlBanner && (productProfile as any)?.website_url ? 'translate-x-4' : ''
                 }`} />
               </button>
             </label>
