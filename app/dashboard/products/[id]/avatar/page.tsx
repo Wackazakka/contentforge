@@ -868,39 +868,67 @@ export default function AvatarVideoPage() {
 
                 {/* Jingle */}
                 <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-1.5">
-                    Jingle (valgfritt) — de første {outroDuration} sekundene brukes
-                  </label>
-                  <div className="space-y-1 max-h-40 overflow-y-auto">
-                    <button
-                      type="button"
-                      onClick={() => setOutroJingleFile(null)}
-                      className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
-                        outroJingleFile === null
-                          ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED] font-medium'
-                          : 'border-gray-200 text-gray-500 hover:border-gray-300'
-                      }`}
-                    >
-                      Ingen jingle
-                    </button>
-                    {musicLibrary.map(m => (
-                      <button
-                        key={m.filename}
-                        type="button"
-                        onClick={() => setOutroJingleFile(m.filename)}
-                        className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
-                          outroJingleFile === m.filename
-                            ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED] font-medium'
-                            : 'border-gray-200 text-gray-700 hover:border-gray-300'
-                        }`}
-                      >
-                        {m.name}
-                        {m.folder && m.folder !== 'global' && (
-                          <span className="ml-2 text-xs text-gray-400">{m.folder}</span>
-                        )}
-                      </button>
-                    ))}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium text-gray-600">
+                      Jingle (valgfritt) — de første {outroDuration} sekundene brukes
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs text-[#7C3AED] hover:text-[#6D28D9] font-medium">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 1v10M1 6h10"/></svg>
+                      Last opp jingle
+                      <input
+                        type="file"
+                        accept=".mp3"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.currentTarget.files?.[0]
+                          if (!file) return
+                          if (file.size > 4 * 1024 * 1024) { alert('Maks 4 MB'); e.currentTarget.value = ''; return }
+                          const fd = new FormData()
+                          fd.append('file', file)
+                          const res = await fetch('/api/music/upload?folder=jingles', { method: 'POST', body: fd })
+                          if (res.ok) { await refreshMusicLibrary(); alert('Jingle lastet opp!') }
+                          else alert('Opplasting feilet')
+                          e.currentTarget.value = ''
+                        }}
+                      />
+                    </label>
                   </div>
+                  {(() => {
+                    const jingles = musicLibrary.filter(m => m.folder === 'jingles')
+                    return (
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                        <button
+                          type="button"
+                          onClick={() => setOutroJingleFile(null)}
+                          className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
+                            outroJingleFile === null
+                              ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED] font-medium'
+                              : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                          }`}
+                        >
+                          Ingen jingle
+                        </button>
+                        {jingles.length === 0 ? (
+                          <p className="text-xs text-gray-400 px-1 py-2">Ingen jingler lastet opp ennå — bruk knappen ovenfor.</p>
+                        ) : (
+                          jingles.map(m => (
+                            <button
+                              key={m.filename}
+                              type="button"
+                              onClick={() => setOutroJingleFile(m.filename)}
+                              className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
+                                outroJingleFile === m.filename
+                                  ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED] font-medium'
+                                  : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                              }`}
+                            >
+                              {m.name}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             )}
