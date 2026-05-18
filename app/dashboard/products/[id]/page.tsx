@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/authContext'
@@ -101,6 +101,7 @@ export default function ProductPage() {
   const [profile, setProfile] = useState<ProductProfile | null>(null)
   const [jobs, setJobs] = useState<ProductionJob[]>([])
   const [jobsLoading, setJobsLoading] = useState(false)
+  const prevJobStatusesRef = useRef<Record<string, string>>({})
   const [assets, setAssets] = useState<AssetBank[]>([])
   const [assetsLoading, setAssetsLoading] = useState(false)
   const [videos, setVideos] = useState<AssetBank[]>([])
@@ -295,6 +296,10 @@ export default function ProductPage() {
   useEffect(() => {
     if (!productId || !session?.user?.id) return
 
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+
     const fetchJobs = async () => {
       try {
         setJobsLoading(true)
@@ -307,7 +312,26 @@ export default function ProductPage() {
           .order('created_at', { ascending: false })
 
         if (jobsError) throw jobsError
-        setJobs(jobsData || [])
+
+        const newJobs = jobsData || []
+        const prev = prevJobStatusesRef.current
+
+        // Detect jobs that just completed
+        if (Object.keys(prev).length > 0) {
+          for (const job of newJobs) {
+            const wasActive = prev[job.id] && !['done', 'completed', 'failed'].includes(prev[job.id])
+            const isNowDone = job.status === 'done' || job.status === 'completed'
+            if (wasActive && isNowDone && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+              new Notification('Produksjon ferdig! 🎉', {
+                body: job.title,
+                icon: '/favicon.ico',
+              })
+            }
+          }
+        }
+
+        prevJobStatusesRef.current = Object.fromEntries(newJobs.map((j) => [j.id, j.status]))
+        setJobs(newJobs)
       } catch (err) {
         console.error('[ProductPage] Jobs fetch error:', err)
       } finally {
