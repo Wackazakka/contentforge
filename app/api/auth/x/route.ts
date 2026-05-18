@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createHash, randomBytes } from 'crypto'
+import { randomBytes } from 'crypto'
 
 const BASE_URL = 'https://contentforge-610.netlify.app'
 
@@ -28,11 +28,16 @@ export async function GET(request: Request) {
       )
     }
 
-    // PKCE: generate code_verifier and code_challenge (S256)
-    const codeVerifier = base64url(randomBytes(32))
-    const codeChallenge = base64url(
-      createHash('sha256').update(codeVerifier).digest()
-    )
+    // The CenterForge X app is a CONFIDENTIAL client ("Web App, Automated
+    // App or Bot"). Per X's OAuth 2.0 spec, PKCE (code_challenge /
+    // code_verifier) is ONLY for public clients (Native App). Sending PKCE
+    // parameters for a confidential client makes X immediately reject the
+    // request with "Something went wrong" before the consent screen.
+    //
+    // Instead we use a random `state` value for CSRF protection and persist
+    // the userId in an httpOnly cookie keyed nothing-fancy, tying it to the
+    // state value so the callback can recover both and verify them.
+    const state = base64url(randomBytes(16))
 
     // Build the authorize URL manually. URLSearchParams encodes spaces as
     // "+", which X's /authorize endpoint accepts inconsistently — its own
@@ -45,9 +50,7 @@ export async function GET(request: Request) {
       client_id: clientId,
       redirect_uri: `${BASE_URL}/api/auth/x/callback`,
       scope: 'tweet.read tweet.write users.read',
-      state: userId,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
+      state,
     }
     const query = Object.entries(authParams)
       .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
@@ -59,8 +62,9 @@ export async function GET(request: Request) {
 
     const response = NextResponse.redirect(authorizeUrl)
 
-    // Persist code_verifier for the callback (PKCE).
-    response.cookies.set('x_code_verifier', codeVerifier, {
+    // Persist state + userId for the callback. The callback verifies the
+    // returned `state` matches and recovers the userId from this cookie.
+    response.cookies.set('x_state_user', `${state}:${userId}`, {
       httpOnly: true,
       secure: true,
       maxAge: 600,

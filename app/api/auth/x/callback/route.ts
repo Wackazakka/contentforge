@@ -21,20 +21,37 @@ export async function GET(request: Request) {
       )
     }
 
-    const userId = state
-
-    // Retrieve PKCE code_verifier from the cookie set by the auth route.
+    // Recover state + userId from the cookie set by the auth route and
+    // verify the returned `state` matches (CSRF protection). The X app is a
+    // confidential client, so there is NO PKCE code_verifier — the userId is
+    // carried in this httpOnly cookie instead.
     const cookieHeader = request.headers.get('cookie') || ''
-    const codeVerifier = cookieHeader
+    const stateUser = cookieHeader
       .split(';')
       .map((c) => c.trim())
-      .find((c) => c.startsWith('x_code_verifier='))
-      ?.slice('x_code_verifier='.length)
+      .find((c) => c.startsWith('x_state_user='))
+      ?.slice('x_state_user='.length)
 
-    if (!codeVerifier) {
-      console.error('[x/callback] Missing code_verifier cookie')
+    if (!stateUser) {
+      console.error('[x/callback] Missing x_state_user cookie')
       return NextResponse.redirect(
-        `${BASE_URL}/dashboard/publish?error=missing_verifier`
+        `${BASE_URL}/dashboard/publish?error=missing_state`
+      )
+    }
+
+    const sep = stateUser.indexOf(':')
+    const cookieState = sep === -1 ? stateUser : stateUser.slice(0, sep)
+    const userId = sep === -1 ? '' : stateUser.slice(sep + 1)
+
+    if (!userId || cookieState !== state) {
+      console.error(
+        '[x/callback] State mismatch. cookieState set:',
+        !!cookieState,
+        'matches:',
+        cookieState === state
+      )
+      return NextResponse.redirect(
+        `${BASE_URL}/dashboard/publish?error=state_mismatch`
       )
     }
 
@@ -76,7 +93,6 @@ export async function GET(request: Request) {
         grant_type: 'authorization_code',
         code,
         redirect_uri: `${BASE_URL}/api/auth/x/callback`,
-        code_verifier: codeVerifier,
       }).toString(),
     })
 
@@ -157,7 +173,7 @@ export async function GET(request: Request) {
     const response = NextResponse.redirect(
       `${BASE_URL}/dashboard/publish?connected=x`
     )
-    response.cookies.delete('x_code_verifier')
+    response.cookies.delete('x_state_user')
     return response
   } catch (err) {
     console.error('[x/callback] Error:', err)
