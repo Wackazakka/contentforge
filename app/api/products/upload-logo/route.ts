@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     const url = `${R2_PUBLIC_URL}/${key}`
     console.log(`[upload-logo] Uploaded to R2: ${url}`)
 
-    // Update product in Supabase
+    // Update product and product_profiles in Supabase
     const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
     const { error } = await supabase.from('products').update({ logo_url: url }).eq('id', productId)
 
@@ -55,6 +55,11 @@ export async function POST(request: Request) {
       console.error(`[upload-logo] Database update error:`, error)
       throw error
     }
+
+    // Also upsert into product_profiles so avatar/video pages can pick it up immediately
+    await supabase
+      .from('product_profiles')
+      .upsert({ product_id: productId, logo_url: url }, { onConflict: 'product_id' })
 
     return NextResponse.json({ url })
   } catch (err: any) {
