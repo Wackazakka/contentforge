@@ -6,9 +6,10 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
+    const { jobId } = await params
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -19,11 +20,11 @@ export async function DELETE(
     const { error } = await supabase
       .from('production_jobs')
       .delete()
-      .eq('id', params.jobId)
+      .eq('id', jobId)
 
     if (error) throw error
 
-    return NextResponse.json({ deleted: params.jobId })
+    return NextResponse.json({ deleted: jobId })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Error' }, { status: 500 })
   }
