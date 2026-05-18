@@ -113,6 +113,7 @@ export default function ProductPage() {
   const [openSections, setOpenSections] = useState({
     jobs: true,
     doneJobs: true,
+    avatarJobs: true,
     videos: false,
     images: false,
     articles: false,
@@ -435,10 +436,17 @@ export default function ProductPage() {
     )
   }
 
+  const R2_PUBLIC_URL = 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
+
   const activeJobs = jobs.filter(
     (j) => !['done', 'completed', 'failed'].includes(j.status)
   )
-  const doneJobs = jobs.filter((j) => j.status === 'done' || j.status === 'completed')
+  const doneJobs = jobs.filter(
+    (j) => (j.status === 'done' || j.status === 'completed') && j.content_type !== 'avatar'
+  )
+  const avatarDoneJobs = jobs.filter(
+    (j) => (j.status === 'done' || j.status === 'completed') && j.content_type === 'avatar'
+  )
 
   return (
     <div className="min-h-screen bg-cf-bg">
@@ -797,6 +805,67 @@ export default function ProductPage() {
                           </div>
                         </>
                       )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Avatar jobs */}
+        {avatarDoneJobs.length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+            <SectionHeader
+              title={`Avatar-videoer (${avatarDoneJobs.length})`}
+              open={openSections.avatarJobs}
+              onToggle={() => toggleSection('avatarJobs')}
+            />
+            {openSections.avatarJobs && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {avatarDoneJobs.map((job) => {
+                  const videoUrl = `${R2_PUBLIC_URL}/avatars/${job.id}/output.mp4`
+                  return (
+                    <div
+                      key={job.id}
+                      className="p-4 rounded-lg border border-purple-200 bg-purple-50 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {job.completed_at ? formatDate(job.completed_at) : formatDate(job.updated_at)}
+                          </p>
+                        </div>
+                      </div>
+                      <video
+                        src={videoUrl}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full rounded-lg mb-3 bg-black"
+                        style={{ aspectRatio: '9/16', maxHeight: '300px' }}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            router.push(
+                              `/dashboard/publish?type=avatar&job_id=${job.id}&product_id=${productId}`
+                            )
+                          }
+                          className="flex-1 text-center text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                          style={{ backgroundColor: '#7C3AED' }}
+                        >
+                          Publiser
+                        </button>
+                        <a
+                          href={videoUrl}
+                          download={`${job.title.replace(/\s+/g, '_')}_avatar.mp4`}
+                          className="flex-1 text-center bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                        >
+                          Last ned
+                        </a>
+                      </div>
                     </div>
                   )
                 })}
