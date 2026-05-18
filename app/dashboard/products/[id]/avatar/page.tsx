@@ -54,6 +54,7 @@ export default function AvatarVideoPage() {
   // UI state
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
 
@@ -336,8 +337,38 @@ export default function AvatarVideoPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Avatar-bilde URL <span className="text-red-500">*</span>
+                Avatar-bilde <span className="text-red-500">*</span>
               </label>
+              <div className="flex gap-2 mb-2">
+                <label className={`flex-1 flex items-center justify-center gap-2 border-2 border-dashed rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${uploadingImage ? 'border-gray-200 text-gray-400' : 'border-[#185FA5] text-[#185FA5] hover:bg-[#EBF4FF]'}`}>
+                  {uploadingImage ? 'Laster opp…' : '📁 Last opp fra datamaskin'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploadingImage}
+                    onChange={async (e) => {
+                      const file = e.currentTarget.files?.[0]
+                      if (!file) return
+                      setUploadingImage(true)
+                      setError(null)
+                      try {
+                        const formData = new FormData()
+                        formData.append('file', file)
+                        const res = await fetch('/api/avatar/upload-image', { method: 'POST', body: formData })
+                        const data = await res.json()
+                        if (!res.ok) throw new Error(data.error || 'Opplasting feilet')
+                        setAvatarImageUrl(data.url)
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Opplasting feilet')
+                      } finally {
+                        setUploadingImage(false)
+                        e.currentTarget.value = ''
+                      }
+                    }}
+                  />
+                </label>
+              </div>
               <input
                 type="url"
                 value={avatarImageUrl}
@@ -346,7 +377,7 @@ export default function AvatarVideoPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Offentlig URL til portrettbilde. Anbefalt: god belysning, nøytral bakgrunn, ansiktet tydelig synlig.
+                Last opp eller lim inn URL. Anbefalt: god belysning, nøytral bakgrunn, ansiktet tydelig synlig.
               </p>
             </div>
 
