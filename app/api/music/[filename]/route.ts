@@ -17,9 +17,14 @@ export async function GET(
 
     const buffer = await res.arrayBuffer()
     const contentType = res.headers.get('content-type') || 'audio/mpeg'
-    
+
     return new NextResponse(buffer, {
-      headers: { 'Content-Type': contentType }
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': String(buffer.byteLength),
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'public, max-age=3600',
+      }
     })
   } catch (err) {
     console.error('[api/music/[filename]] Error proxying music file:', err)
