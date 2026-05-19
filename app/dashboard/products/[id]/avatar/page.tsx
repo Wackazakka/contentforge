@@ -92,7 +92,6 @@ export default function AvatarVideoPage() {
     const supabase = getSupabase()
 
     if (addToGallery) {
-      // Append to gallery array if not already present
       const updated = savedAvatarImages.includes(url) ? savedAvatarImages : [...savedAvatarImages, url]
       setSavedAvatarImages(updated)
       await supabase
@@ -103,6 +102,9 @@ export default function AvatarVideoPage() {
         .from('product_profiles')
         .upsert({ product_id: productId, avatar_image_url: url }, { onConflict: 'product_id' })
     }
+
+    setSavedFeedback(true)
+    setTimeout(() => setSavedFeedback(false), 2000)
   }
 
   const refreshMusicLibrary = () =>
@@ -150,6 +152,7 @@ export default function AvatarVideoPage() {
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [savedFeedback, setSavedFeedback] = useState(false)
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [previewingVoice, setPreviewingVoice] = useState(false)
@@ -623,13 +626,13 @@ export default function AvatarVideoPage() {
                   placeholder="https://eksempel.com/mitt-avatar-bilde.jpg"
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
                 />
-                {avatarImageUrl && avatarImageUrl !== productProfile?.avatar_image_url && (
+                {avatarImageUrl && (
                   <button
                     type="button"
                     onClick={() => saveAvatarImageUrl(avatarImageUrl)}
-                    className="px-3 py-2 text-xs bg-[#185FA5] text-white rounded-lg hover:bg-[#1450a0]"
+                    className={`px-3 py-2 text-xs rounded-lg transition-colors ${savedFeedback ? 'bg-green-500 text-white' : 'bg-[#185FA5] text-white hover:bg-[#1450a0]'}`}
                   >
-                    Lagre
+                    {savedFeedback ? 'Lagret ✓' : 'Lagre'}
                   </button>
                 )}
               </div>
