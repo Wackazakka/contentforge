@@ -646,24 +646,42 @@ export default function AvatarVideoPage() {
                 <p className="text-xs text-gray-500 mb-2">Lagrede bilder — klikk for å velge:</p>
                 <div className="flex flex-wrap gap-2">
                   {savedAvatarImages.map((url) => (
-                    <button
-                      key={url}
-                      type="button"
-                      onClick={() => { setAvatarImageUrl(url); saveAvatarImageUrl(url) }}
-                      className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === url ? 'border-[#185FA5] ring-2 ring-[#185FA5]' : 'border-gray-200 hover:border-gray-400'}`}
-                    >
-                      <img
-                        src={url}
-                        alt="Avatar"
-                        className="w-20 h-20 object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
-                      />
-                      {avatarImageUrl === url && (
-                        <div className="absolute inset-0 bg-[#185FA5]/10 flex items-center justify-center">
-                          <span className="text-[#185FA5] text-lg">✓</span>
-                        </div>
-                      )}
-                    </button>
+                    <div key={url} className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => { setAvatarImageUrl(url); saveAvatarImageUrl(url) }}
+                        className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === url ? 'border-[#185FA5] ring-2 ring-[#185FA5]' : 'border-gray-200 hover:border-gray-400'}`}
+                      >
+                        <img
+                          src={url}
+                          alt="Avatar"
+                          className="w-20 h-20 object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).closest('.group')!.remove() }}
+                        />
+                        {avatarImageUrl === url && (
+                          <div className="absolute inset-0 bg-[#185FA5]/10 flex items-center justify-center">
+                            <span className="text-[#185FA5] text-lg">✓</span>
+                          </div>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const updated = savedAvatarImages.filter(u => u !== url)
+                          setSavedAvatarImages(updated)
+                          if (avatarImageUrl === url) setAvatarImageUrl(updated[0] ?? '')
+                          const { getSupabase } = await import('@/lib/supabaseClient')
+                          await getSupabase().from('product_profiles').upsert(
+                            { product_id: productId, avatar_image_urls: updated, avatar_image_url: updated[0] ?? null },
+                            { onConflict: 'product_id' }
+                          )
+                        }}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs leading-none hidden group-hover:flex items-center justify-center hover:bg-red-600"
+                        title="Fjern bilde"
+                      >
+                        ×
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
