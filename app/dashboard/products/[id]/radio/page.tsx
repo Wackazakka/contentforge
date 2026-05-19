@@ -68,24 +68,13 @@ export default function RadioAdPage() {
   const [uploadingSegments, setUploadingSegments] = useState(false)
 
   const splitToSegments = (text: string, defaultEmotion: string): Segment[] => {
-    const results: Segment[] = []
-    const tagRe = /<([a-zA-ZæøåÆØÅ]+)>([\s\S]*?)<\/\1>/g
-    let lastIndex = 0
-    let match: RegExpExecArray | null
-    const addPlain = (chunk: string, em: string) => {
-      const sents = chunk.match(/[^.!?]+[.!?]+(?:\s|$)/g) || (chunk.trim() ? [chunk.trim()] : [])
-      for (let i = 0; i < sents.length; i += 2) {
-        const seg = [sents[i], sents[i + 1]].filter(Boolean).join(' ').trim()
-        if (seg) results.push({ text: seg, emotion: em, audioUrl: null, audioBlob: null, generating: false })
-      }
+    const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
+    const pairs: Segment[] = []
+    for (let i = 0; i < sentences.length; i += 2) {
+      const seg = [sentences[i], sentences[i + 1]].filter(Boolean).join(' ').trim()
+      if (seg) pairs.push({ text: seg, emotion: defaultEmotion, audioUrl: null, audioBlob: null, generating: false })
     }
-    while ((match = tagRe.exec(text)) !== null) {
-      if (text.slice(lastIndex, match.index).trim()) addPlain(text.slice(lastIndex, match.index), defaultEmotion)
-      if (match[2].trim()) results.push({ text: match[2].trim(), emotion: match[1].toLowerCase(), audioUrl: null, audioBlob: null, generating: false })
-      lastIndex = match.index + match[0].length
-    }
-    if (text.slice(lastIndex).trim()) addPlain(text.slice(lastIndex), defaultEmotion)
-    return results.length > 0 ? results : [{ text: text.trim(), emotion: defaultEmotion, audioUrl: null, audioBlob: null, generating: false }]
+    return pairs
   }
 
   const generateSegmentAudio = async (index: number) => {
@@ -312,9 +301,47 @@ export default function RadioAdPage() {
               <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">Manus <span className="text-red-500">*</span></label>
               <span className="text-xs text-gray-400">{script.length} tegn</span>
             </div>
-            <textarea value={script} onChange={(e) => setScript(e.target.value)} rows={8}
+            <textarea id="radio-script-textarea" value={script} onChange={(e) => setScript(e.target.value)} rows={8}
               placeholder="Klikk «Generer manus» ovenfor, eller skriv direkte her…"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5] resize-none" />
+            {/* ElevenLabs marker helper */}
+            <div className="flex flex-wrap gap-1 pt-1">
+              <span className="text-xs text-gray-400 self-center mr-1">Sett inn markør:</span>
+              {[
+                { label: 'excited',    display: '[excited]' },
+                { label: 'laughing',   display: '[laughing]' },
+                { label: 'sighing',    display: '[sighing]' },
+                { label: 'crying',     display: '[crying]' },
+                { label: 'whispering', display: '[whispering]' },
+                { label: 'shouting',   display: '[shouting]' },
+                { label: 'sad',        display: '[sad]' },
+                { label: 'angry',      display: '[angry]' },
+              ].map(({ label, display }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    const ta = document.getElementById('radio-script-textarea') as HTMLTextAreaElement
+                    if (!ta) return
+                    const start = ta.selectionStart
+                    const end = ta.selectionEnd
+                    const before = script.slice(0, start)
+                    const selected = script.slice(start, end)
+                    const after = script.slice(end)
+                    const inserted = selected ? `${display} ${selected} ` : `${display} `
+                    const newScript = before + inserted + after
+                    setScript(newScript)
+                    setTimeout(() => {
+                      ta.focus()
+                      ta.setSelectionRange(before.length + inserted.length, before.length + inserted.length)
+                    }, 0)
+                  }}
+                  className="px-2 py-0.5 text-xs bg-gray-100 hover:bg-amber-50 hover:text-[#D97706] border border-gray-200 rounded font-mono transition-colors"
+                >
+                  {display}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Section: Lysjekk per segment */}
