@@ -272,6 +272,13 @@ export default function ProductPage() {
     setProfile((prev) => (prev ? { ...prev, logo_url: null } : null))
   }
 
+  const handleDeleteJob = async (id: string) => {
+    if (!confirm('Slette denne produksjonen?')) return
+    const supabase = getSupabase()
+    await supabase.from('production_jobs').delete().eq('id', id)
+    setJobs((prev) => prev.filter((j) => j.id !== id))
+  }
+
   const handleDeleteVideo = async (id: string) => {
     if (!confirm(t('deleteVideo'))) return
     const supabase = getSupabase()
@@ -879,6 +886,13 @@ export default function ProductPage() {
                           <h3 className="font-semibold text-gray-900">{job.title}</h3>
                           <p className="text-xs text-gray-500 mt-1">✅ Ferdigstilt</p>
                         </div>
+                        <button
+                          onClick={() => handleDeleteJob(job.id)}
+                          className="ml-2 text-gray-400 hover:text-red-500 transition-colors text-lg leading-none"
+                          title="Slett"
+                        >
+                          ×
+                        </button>
                       </div>
                       {audioUrl && (
                         <>
