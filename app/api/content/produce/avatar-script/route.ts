@@ -15,11 +15,12 @@ export async function POST(request: NextRequest) {
     }
 
     const durationMap: Record<string, string> = {
+      '15': 'ca. 15 sekunder (30–40 ord)',
       '30': 'ca. 30 sekunder (60–80 ord)',
       '60': 'ca. 60 sekunder (120–150 ord)',
       '90': 'ca. 90 sekunder (180–220 ord)',
     }
-    const durationHint = durationMap[duration] || durationMap['60']
+    const durationHint = durationMap[duration] || durationMap['30']
 
     const perspectiveHint = perspective === 'jeg'
       ? 'Første person ("jeg"). Snakk fra eget perspektiv — "Da jeg prøvde...", "Jeg anbefaler...", "Her er hva jeg lærte...".'
