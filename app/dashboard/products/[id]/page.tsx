@@ -466,7 +466,10 @@ export default function ProductPage() {
     (j) => !['done', 'completed', 'failed'].includes(j.status)
   )
   const doneJobs = jobs.filter(
-    (j) => (j.status === 'done' || j.status === 'completed') && j.content_type !== 'avatar'
+    (j) => (j.status === 'done' || j.status === 'completed') && j.content_type !== 'avatar' && j.content_type !== 'radio'
+  )
+  const radioDoneJobs = jobs.filter(
+    (j) => (j.status === 'done' || j.status === 'completed') && j.content_type === 'radio'
   )
   const avatarDoneJobs = jobs.filter(
     (j) => (j.status === 'done' || j.status === 'completed') && j.content_type === 'avatar'
@@ -844,6 +847,49 @@ export default function ProductPage() {
                               {t('download')}
                             </a>
                           </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Radio jobs */}
+        {radioDoneJobs.length > 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+            <SectionHeader
+              title={`Ferdigstilte radioreklamer (${radioDoneJobs.length})`}
+              open={openSections.doneJobs}
+              onToggle={() => toggleSection('doneJobs')}
+            />
+            {openSections.doneJobs && (
+              <div className="grid gap-4 md:grid-cols-2">
+                {radioDoneJobs.map((job) => {
+                  const audioUrl =
+                    (job.ai_parameters as any)?.video_url ||
+                    (job.ai_parameters as any)?.r2_url ||
+                    null
+                  return (
+                    <div key={job.id} className="p-4 rounded-lg border border-amber-200 bg-amber-50 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                          <p className="text-xs text-gray-500 mt-1">✅ Ferdigstilt</p>
+                        </div>
+                      </div>
+                      {audioUrl && (
+                        <>
+                          <audio src={audioUrl} controls className="w-full mb-3" />
+                          <a
+                            href={audioUrl}
+                            download={`${job.title.replace(/\s+/g, '_')}.mp3`}
+                            className="block text-center bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+                          >
+                            ⬇️ Last ned
+                          </a>
                         </>
                       )}
                     </div>
