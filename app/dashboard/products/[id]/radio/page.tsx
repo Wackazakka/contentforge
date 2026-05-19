@@ -308,14 +308,14 @@ export default function RadioAdPage() {
             <div className="flex flex-wrap gap-1 pt-1">
               <span className="text-xs text-gray-400 self-center mr-1">Sett inn markør:</span>
               {[
-                { label: 'excited',    display: '[excited]' },
-                { label: 'laughing',   display: '[laughing]' },
-                { label: 'sighing',    display: '[sighing]' },
-                { label: 'crying',     display: '[crying]' },
-                { label: 'whispering', display: '[whispering]' },
-                { label: 'shouting',   display: '[shouting]' },
-                { label: 'sad',        display: '[sad]' },
-                { label: 'angry',      display: '[angry]' },
+                { label: 'excited',    display: '<excited>' },
+                { label: 'laughing',   display: '<laughing>' },
+                { label: 'sighing',    display: '<sighing>' },
+                { label: 'crying',     display: '<crying>' },
+                { label: 'whispering', display: '<whispering>' },
+                { label: 'shouting',   display: '<shouting>' },
+                { label: 'sad',        display: '<sad>' },
+                { label: 'angry',      display: '<angry>' },
               ].map(({ label, display }) => (
                 <button
                   key={label}
