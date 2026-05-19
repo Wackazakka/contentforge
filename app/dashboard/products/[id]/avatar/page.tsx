@@ -54,7 +54,8 @@ export default function AvatarVideoPage() {
   const [segments, setSegments] = useState<Segment[]>([])
   const [segmentMode, setSegmentMode] = useState(false)
   const [uploadingSegments, setUploadingSegments] = useState(false)
-  const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string; avatar_image_url?: string } | null>(null)
+  const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string; avatar_image_url?: string; avatar_image_urls?: string[] } | null>(null)
+  const [savedAvatarImages, setSavedAvatarImages] = useState<string[]>([])
 
   const splitToSegments = (text: string): Segment[] => {
     const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
@@ -85,13 +86,23 @@ export default function AvatarVideoPage() {
     }
   }
 
-  const saveAvatarImageUrl = async (url: string) => {
+  const saveAvatarImageUrl = async (url: string, addToGallery = false) => {
     if (!productId || !url) return
     const { getSupabase } = await import('@/lib/supabaseClient')
-    getSupabase()
-      .from('product_profiles')
-      .upsert({ product_id: productId, avatar_image_url: url }, { onConflict: 'product_id' })
-      .then(() => {})
+    const supabase = getSupabase()
+
+    if (addToGallery) {
+      // Append to gallery array if not already present
+      const updated = savedAvatarImages.includes(url) ? savedAvatarImages : [...savedAvatarImages, url]
+      setSavedAvatarImages(updated)
+      await supabase
+        .from('product_profiles')
+        .upsert({ product_id: productId, avatar_image_url: url, avatar_image_urls: updated }, { onConflict: 'product_id' })
+    } else {
+      await supabase
+        .from('product_profiles')
+        .upsert({ product_id: productId, avatar_image_url: url }, { onConflict: 'product_id' })
+    }
   }
 
   const refreshMusicLibrary = () =>
@@ -106,12 +117,11 @@ export default function AvatarVideoPage() {
       // Fetch with avatar_image_url; fall back without it if column doesn't exist yet
       supabase
         .from('product_profiles')
-        .select('logo_url, primary_color, secondary_color, website_url, cta_text, avatar_image_url')
+        .select('logo_url, primary_color, secondary_color, website_url, cta_text, avatar_image_url, avatar_image_urls')
         .eq('product_id', productId)
         .maybeSingle()
         .then(({ data, error }: { data: any; error: any }) => {
           if (error) {
-            // Column may not exist yet — retry without avatar_image_url
             return supabase
               .from('product_profiles')
               .select('logo_url, primary_color, secondary_color, website_url, cta_text')
@@ -125,6 +135,11 @@ export default function AvatarVideoPage() {
             setProductProfile(data)
             if (data.avatar_image_url && /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(data.avatar_image_url)) {
               setAvatarImageUrl(data.avatar_image_url)
+            }
+            if (Array.isArray(data.avatar_image_urls) && data.avatar_image_urls.length > 0) {
+              setSavedAvatarImages(data.avatar_image_urls)
+            } else if (data.avatar_image_url && /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(data.avatar_image_url)) {
+              setSavedAvatarImages([data.avatar_image_url])
             }
           }
         })
@@ -588,7 +603,7 @@ export default function AvatarVideoPage() {
                         const data = await res.json()
                         if (!res.ok) throw new Error(data.error || 'Opplasting feilet')
                         setAvatarImageUrl(data.url)
-                        saveAvatarImageUrl(data.url)
+                        saveAvatarImageUrl(data.url, true)
                       } catch (err) {
                         setError(err instanceof Error ? err.message : 'Opplasting feilet')
                       } finally {
@@ -623,14 +638,31 @@ export default function AvatarVideoPage() {
               </p>
             </div>
 
-            {avatarImageUrl && (
-              <div className="flex justify-center">
-                <img
-                  src={avatarImageUrl}
-                  alt="Avatar preview"
-                  className="w-28 h-28 object-cover rounded-full border-2 border-gray-200 shadow"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
+            {savedAvatarImages.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Lagrede bilder — klikk for å velge:</p>
+                <div className="flex flex-wrap gap-2">
+                  {savedAvatarImages.map((url) => (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => { setAvatarImageUrl(url); saveAvatarImageUrl(url) }}
+                      className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === url ? 'border-[#185FA5] ring-2 ring-[#185FA5]' : 'border-gray-200 hover:border-gray-400'}`}
+                    >
+                      <img
+                        src={url}
+                        alt="Avatar"
+                        className="w-20 h-20 object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+                      />
+                      {avatarImageUrl === url && (
+                        <div className="absolute inset-0 bg-[#185FA5]/10 flex items-center justify-center">
+                          <span className="text-[#185FA5] text-lg">✓</span>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
