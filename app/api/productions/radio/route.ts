@@ -10,7 +10,7 @@ const DEFAULT_VOICE_ID = 'nPczCjzI2devNBz1zQrb'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { productId, campaignName, script, voiceId, musicFile, jingleFile } = body
+    const { productId, campaignName, script, voiceId, musicFile, jingleFile, audioSegmentUrls } = body
 
     if (!productId || !script) {
       return NextResponse.json({ error: 'Missing required fields: productId, script' }, { status: 400 })
@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
           voiceId: voiceId || DEFAULT_VOICE_ID,
           musicFile: musicFile || null,
           jingleFile: jingleFile || null,
+          audioSegmentUrls: audioSegmentUrls || null,
           productId,
           campaignId: productId,
         }),

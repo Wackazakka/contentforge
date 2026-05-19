@@ -51,6 +51,40 @@ export default function RadioAdPage() {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  type Segment = { text: string; audioUrl: string | null; audioBlob: Blob | null; generating: boolean }
+  const [segments, setSegments] = useState<Segment[]>([])
+  const [segmentMode, setSegmentMode] = useState(false)
+  const [uploadingSegments, setUploadingSegments] = useState(false)
+
+  const splitToSegments = (text: string): Segment[] => {
+    const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
+    const pairs: Segment[] = []
+    for (let i = 0; i < sentences.length; i += 2) {
+      const seg = [sentences[i], sentences[i + 1]].filter(Boolean).join(' ').trim()
+      if (seg) pairs.push({ text: seg, audioUrl: null, audioBlob: null, generating: false })
+    }
+    return pairs
+  }
+
+  const generateSegmentAudio = async (index: number) => {
+    const seg = segments[index]
+    if (!seg || seg.generating) return
+    setSegments(prev => prev.map((s, i) => i === index ? { ...s, generating: true } : s))
+    try {
+      const res = await fetch('/api/avatar/preview-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script: seg.text, voiceId }),
+      })
+      if (!res.ok) throw new Error('Feilet')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      setSegments(prev => prev.map((s, i) => i === index ? { ...s, generating: false, audioBlob: blob, audioUrl: url } : s))
+    } catch {
+      setSegments(prev => prev.map((s, i) => i === index ? { ...s, generating: false } : s))
+    }
+  }
+
   const refreshMusicLibrary = () =>
     fetch('/api/music').then(r => r.json()).then(d => setMusicLibrary(d.files || [])).catch(() => {})
 
@@ -85,6 +119,27 @@ export default function RadioAdPage() {
       const { data: { session } } = await getSupabase().auth.getSession()
       if (!session?.access_token) { setError('Du er ikke innlogget.'); setLoading(false); return }
 
+      let audioSegmentUrls: string[] | null = null
+      if (segmentMode && segments.length > 0 && segments.every(s => s.audioBlob)) {
+        setUploadingSegments(true)
+        try {
+          const tempId = crypto.randomUUID()
+          audioSegmentUrls = []
+          for (let i = 0; i < segments.length; i++) {
+            const fd = new FormData()
+            fd.append('file', segments[i].audioBlob!, `seg_${i}.mp3`)
+            fd.append('jobId', tempId)
+            fd.append('segmentIndex', String(i))
+            const r = await fetch('/api/avatar/upload-audio', { method: 'POST', body: fd })
+            const d = await r.json()
+            if (!r.ok) throw new Error(d.error || 'Segment-opplasting feilet')
+            audioSegmentUrls.push(d.url)
+          }
+        } finally {
+          setUploadingSegments(false)
+        }
+      }
+
       const res = await fetch('/api/productions/radio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
@@ -95,6 +150,7 @@ export default function RadioAdPage() {
           voiceId: voiceId || DEFAULT_VOICE_ID,
           musicFile: musicFile || null,
           jingleFile: jingleFile || null,
+          audioSegmentUrls,
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error || 'Feil ved oppstart')
@@ -234,6 +290,65 @@ export default function RadioAdPage() {
               placeholder="Klikk «Generer manus» ovenfor, eller skriv direkte her…"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5] resize-none" />
           </div>
+
+          {/* Section: Lysjekk per segment */}
+          {script.trim() && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Lysjekk per segment</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">Generer og godkjenn tale per setningspar — regenerer de som ikke er optimale</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!segmentMode) setSegments(splitToSegments(script))
+                    setSegmentMode(v => !v)
+                  }}
+                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${segmentMode ? 'bg-[#D97706]' : 'bg-gray-200'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${segmentMode ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+              {segmentMode && (
+                <div className="space-y-2">
+                  {segments.map((seg, i) => (
+                    <div key={i} className="border border-gray-100 rounded-lg p-3 bg-gray-50 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs text-gray-400 font-mono mt-1.5 w-5 flex-shrink-0">{i + 1}.</span>
+                        <textarea
+                          value={seg.text}
+                          onChange={e => setSegments(prev => prev.map((s, j) => j === i ? { ...s, text: e.target.value, audioUrl: null, audioBlob: null } : s))}
+                          rows={2}
+                          className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none bg-white focus:outline-none focus:ring-1 focus:ring-[#D97706]"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pl-7">
+                        <button
+                          type="button"
+                          onClick={() => generateSegmentAudio(i)}
+                          disabled={seg.generating || !seg.text.trim()}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[#D97706] text-white hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                        >
+                          {seg.generating ? '⏳ Genererer…' : seg.audioBlob ? '↻ Regenerer' : '▶ Generer tale'}
+                        </button>
+                        {seg.audioUrl && (
+                          <>
+                            <audio src={seg.audioUrl} controls className="h-7 flex-1 min-w-0" />
+                            <span className="text-green-600 text-sm font-medium flex-shrink-0">✓</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-400 pt-1">
+                    {segments.filter(s => s.audioBlob).length}/{segments.length} segmenter godkjent
+                    {segments.length > 0 && segments.every(s => s.audioBlob) ? ' — klar til innsending ✓' : ''}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Section 3: Voice */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
@@ -442,9 +557,10 @@ export default function RadioAdPage() {
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{error}</div>
           )}
 
-          <button type="submit" disabled={loading || !script.trim()}
+          <button type="submit"
+            disabled={loading || uploadingSegments || !script.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
             className="w-full bg-[#185FA5] hover:bg-[#0C447C] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
-            {loading ? 'Starter produksjon…' : '🎙️ Produser radioreklame'}
+            {uploadingSegments ? 'Laster opp segmenter…' : loading ? 'Starter produksjon…' : '🎙️ Produser radioreklame'}
           </button>
 
           <p className="text-xs text-gray-400 text-center">
