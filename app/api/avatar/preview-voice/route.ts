@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
         text: script,
         model_id: 'eleven_turbo_v2_5',
         language_code: 'no',
+        apply_text_normalization: 'off',
         voice_settings: EMOTION_PRESETS[emotion] ?? EMOTION_PRESETS['nøytral'],
       }),
     })
