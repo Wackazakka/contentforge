@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         text: script,
         model_id: 'eleven_multilingual_v2',
+        language_code: 'no',
         voice_settings: EMOTION_PRESETS[emotion] ?? EMOTION_PRESETS['nøytral'],
       }),
     })
