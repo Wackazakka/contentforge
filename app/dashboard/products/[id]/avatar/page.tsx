@@ -169,6 +169,9 @@ export default function AvatarVideoPage() {
   const [previewingVoice, setPreviewingVoice] = useState(false)
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null)
   const previewAudioRef = useRef<HTMLAudioElement | null>(null)
+  const [previewingMinimax, setPreviewingMinimax] = useState(false)
+  const [minimaxAudioUrl, setMinimaxAudioUrl] = useState<string | null>(null)
+  const minimaxAudioRef = useRef<HTMLAudioElement | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
 
@@ -195,6 +198,32 @@ export default function AvatarVideoPage() {
       setError(err instanceof Error ? err.message : 'Forhåndsvisning feilet')
     } finally {
       setPreviewingVoice(false)
+    }
+  }
+
+  const handlePreviewMinimax = async () => {
+    if (!script.trim()) { setError('Skriv manus først.'); return }
+    setPreviewingMinimax(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/minimax/preview-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ script, voiceId: 'Friendly_Person', emotion }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'MiniMax feilet')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      if (minimaxAudioUrl) URL.revokeObjectURL(minimaxAudioUrl)
+      setMinimaxAudioUrl(url)
+      setTimeout(() => minimaxAudioRef.current?.play(), 100)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'MiniMax feilet')
+    } finally {
+      setPreviewingMinimax(false)
     }
   }
 
@@ -512,27 +541,41 @@ export default function AvatarVideoPage() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5] resize-none"
             />
 
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={handlePreviewVoice}
-                disabled={previewingVoice || !script.trim()}
-                className="flex items-center gap-2 px-4 py-2 text-sm border border-[#185FA5] text-[#185FA5] rounded-lg hover:bg-[#EBF4FF] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {previewingVoice ? (
-                  <><span className="animate-spin">⏳</span> Genererer tale…</>
-                ) : (
-                  <><span>🔊</span> Forhør tale</>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handlePreviewVoice}
+                  disabled={previewingVoice || !script.trim()}
+                  className="flex items-center gap-2 px-4 py-2 text-sm border border-[#185FA5] text-[#185FA5] rounded-lg hover:bg-[#EBF4FF] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {previewingVoice ? (
+                    <><span className="animate-spin">⏳</span> Genererer…</>
+                  ) : (
+                    <><span>🔊</span> ElevenLabs</>
+                  )}
+                </button>
+                {previewAudioUrl && (
+                  <audio ref={previewAudioRef} src={previewAudioUrl} controls className="flex-1 h-9" />
                 )}
-              </button>
-              {previewAudioUrl && (
-                <audio
-                  ref={previewAudioRef}
-                  src={previewAudioUrl}
-                  controls
-                  className="flex-1 h-9"
-                />
-              )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handlePreviewMinimax}
+                  disabled={previewingMinimax || !script.trim()}
+                  className="flex items-center gap-2 px-4 py-2 text-sm border border-purple-400 text-purple-600 rounded-lg hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {previewingMinimax ? (
+                    <><span className="animate-spin">⏳</span> Genererer…</>
+                  ) : (
+                    <><span>🔊</span> MiniMax (test)</>
+                  )}
+                </button>
+                {minimaxAudioUrl && (
+                  <audio ref={minimaxAudioRef} src={minimaxAudioUrl} controls className="flex-1 h-9" />
+                )}
+              </div>
             </div>
           </div>
 
