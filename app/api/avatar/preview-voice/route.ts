@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 
+const EMOTION_PRESETS: Record<string, { stability: number; style: number; similarity_boost: number }> = {
+  nøytral:      { stability: 0.50, style: 0.00, similarity_boost: 0.75 },
+  entusiastisk: { stability: 0.30, style: 0.75, similarity_boost: 0.75 },
+  glad:         { stability: 0.40, style: 0.50, similarity_boost: 0.75 },
+  trist:        { stability: 0.70, style: 0.20, similarity_boost: 0.75 },
+  nølende:      { stability: 0.20, style: 0.35, similarity_boost: 0.70 },
+  rolig:        { stability: 0.80, style: 0.00, similarity_boost: 0.75 },
+  dramatisk:    { stability: 0.25, style: 0.85, similarity_boost: 0.75 },
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { script, voiceId } = await request.json()
+    const { script, voiceId, emotion } = await request.json()
 
     if (!script || !voiceId) {
       return NextResponse.json({ error: 'Missing script or voiceId' }, { status: 400 })
@@ -25,7 +35,7 @@ export async function POST(request: NextRequest) {
         text: script,
         model_id: 'eleven_turbo_v2_5',
         language_code: 'no',
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+        voice_settings: EMOTION_PRESETS[emotion] ?? EMOTION_PRESETS['nøytral'],
       }),
     })
 

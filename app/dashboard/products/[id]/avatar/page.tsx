@@ -7,6 +7,16 @@ import { getSupabase } from '@/lib/supabaseClient'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
+const EMOTIONS = [
+  { id: 'nøytral',      label: 'Nøytral',      emoji: '😐' },
+  { id: 'entusiastisk', label: 'Entusiastisk',  emoji: '🔥' },
+  { id: 'glad',         label: 'Glad',          emoji: '😊' },
+  { id: 'trist',        label: 'Trist',         emoji: '😢' },
+  { id: 'nølende',      label: 'Nølende',       emoji: '🤔' },
+  { id: 'rolig',        label: 'Rolig',         emoji: '😌' },
+  { id: 'dramatisk',    label: 'Dramatisk',     emoji: '🎭' },
+]
+
 const NORWEGIAN_VOICES = [
   { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind', desc: 'Dyp og rolig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/7dc5c03caf8f40daa575fa9eacbf3de8/voices/nhvaqgRyAq6BmFs3WcdX/Z8yVliHOyn9eSmt4YEVw.mp3' },
   { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis', desc: 'Klar og behagelig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/15af1c0d0dcd479cb8376a767ab07b4c/voices/s2xtA7B2CTXPPlJzch1v/YB9DE4weRg6BTei8hVZ5.mp3' },
@@ -75,7 +85,7 @@ export default function AvatarVideoPage() {
       const res = await fetch('/api/avatar/preview-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script: seg.text, voiceId }),
+        body: JSON.stringify({ script: seg.text, voiceId, emotion }),
       })
       if (!res.ok) throw new Error('Feilet')
       const blob = await res.blob()
@@ -153,6 +163,7 @@ export default function AvatarVideoPage() {
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [savedFeedback, setSavedFeedback] = useState(false)
+  const [emotion, setEmotion] = useState('nøytral')
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [previewingVoice, setPreviewingVoice] = useState(false)
@@ -169,7 +180,7 @@ export default function AvatarVideoPage() {
       const res = await fetch('/api/avatar/preview-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script, voiceId }),
+        body: JSON.stringify({ script, voiceId, emotion }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -276,6 +287,7 @@ export default function AvatarVideoPage() {
           voiceId: voiceId || DEFAULT_VOICE_ID,
           musicFile: musicFile || null,
           audioSegmentUrls,
+          emotion,
           outroCard: (includeOutroCard || includeUrlBanner) && productProfile ? {
             logoUrl: includeOutroCard ? (productProfile.logo_url || null) : null,
             primaryColor: productProfile.primary_color || '#1a1a2e',
@@ -754,6 +766,22 @@ export default function AvatarVideoPage() {
                   ElevenLabs voice library →
                 </a>
               </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Emosjon / stemmeleie</label>
+              <div className="flex flex-wrap gap-2">
+                {EMOTIONS.map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setEmotion(e.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${emotion === e.id ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED]' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
+                  >
+                    <span>{e.emoji}</span> {e.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
