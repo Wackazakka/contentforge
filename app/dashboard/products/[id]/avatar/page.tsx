@@ -60,21 +60,32 @@ export default function AvatarVideoPage() {
   const [outroDuration, setOutroDuration] = useState(3)
   const [outroJingleFile, setOutroJingleFile] = useState<string | null>(null)
 
-  type Segment = { text: string; audioUrl: string | null; audioBlob: Blob | null; generating: boolean }
+  type Segment = { text: string; audioUrl: string | null; audioBlob: Blob | null; generating: boolean; emotion: string }
   const [segments, setSegments] = useState<Segment[]>([])
   const [segmentMode, setSegmentMode] = useState(false)
   const [uploadingSegments, setUploadingSegments] = useState(false)
   const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string; avatar_image_url?: string; avatar_image_urls?: string[] } | null>(null)
   const [savedAvatarImages, setSavedAvatarImages] = useState<string[]>([])
 
-  const splitToSegments = (text: string): Segment[] => {
-    const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
-    const pairs: Segment[] = []
-    for (let i = 0; i < sentences.length; i += 2) {
-      const seg = [sentences[i], sentences[i + 1]].filter(Boolean).join(' ').trim()
-      if (seg) pairs.push({ text: seg, audioUrl: null, audioBlob: null, generating: false })
+  const splitToSegments = (text: string, defaultEmotion: string): Segment[] => {
+    const results: Segment[] = []
+    const tagRe = /<([a-zA-ZæøåÆØÅ]+)>([\s\S]*?)<\/\1>/g
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+    const addPlain = (chunk: string, em: string) => {
+      const sents = chunk.match(/[^.!?]+[.!?]+(?:\s|$)/g) || (chunk.trim() ? [chunk.trim()] : [])
+      for (let i = 0; i < sents.length; i += 2) {
+        const seg = [sents[i], sents[i + 1]].filter(Boolean).join(' ').trim()
+        if (seg) results.push({ text: seg, emotion: em, audioUrl: null, audioBlob: null, generating: false })
+      }
     }
-    return pairs
+    while ((match = tagRe.exec(text)) !== null) {
+      if (text.slice(lastIndex, match.index).trim()) addPlain(text.slice(lastIndex, match.index), defaultEmotion)
+      if (match[2].trim()) results.push({ text: match[2].trim(), emotion: match[1].toLowerCase(), audioUrl: null, audioBlob: null, generating: false })
+      lastIndex = match.index + match[0].length
+    }
+    if (text.slice(lastIndex).trim()) addPlain(text.slice(lastIndex), defaultEmotion)
+    return results.length > 0 ? results : [{ text: text.trim(), emotion: defaultEmotion, audioUrl: null, audioBlob: null, generating: false }]
   }
 
   const generateSegmentAudio = async (index: number) => {
@@ -85,7 +96,7 @@ export default function AvatarVideoPage() {
       const res = await fetch('/api/avatar/preview-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script: seg.text, voiceId, emotion }),
+        body: JSON.stringify({ script: seg.text, voiceId, emotion: seg.emotion }),
       })
       if (!res.ok) throw new Error('Feilet')
       const blob = await res.blob()
@@ -253,11 +264,13 @@ export default function AvatarVideoPage() {
 
       // Upload pre-generated segment audio if in segment mode
       let audioSegmentUrls: string[] | null = null
+      let segmentEmotions: string[] | null = null
       if (segmentMode && segments.length > 0 && segments.every(s => s.audioBlob)) {
         setUploadingSegments(true)
         try {
           const tempId = crypto.randomUUID()
           audioSegmentUrls = []
+          segmentEmotions = segments.map(s => s.emotion)
           for (let i = 0; i < segments.length; i++) {
             const fd = new FormData()
             fd.append('file', segments[i].audioBlob!, `seg_${i}.mp3`)
@@ -287,6 +300,7 @@ export default function AvatarVideoPage() {
           voiceId: voiceId || DEFAULT_VOICE_ID,
           musicFile: musicFile || null,
           audioSegmentUrls,
+          segmentEmotions,
           emotion,
           outroCard: (includeOutroCard || includeUrlBanner) && productProfile ? {
             logoUrl: includeOutroCard ? (productProfile.logo_url || null) : null,
@@ -542,7 +556,7 @@ export default function AvatarVideoPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (!segmentMode) setSegments(splitToSegments(script))
+                    if (!segmentMode) setSegments(splitToSegments(script, emotion))
                     setSegmentMode(v => !v)
                   }}
                   className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${segmentMode ? 'bg-[#185FA5]' : 'bg-gray-200'}`}
@@ -562,6 +576,19 @@ export default function AvatarVideoPage() {
                           rows={2}
                           className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none bg-white focus:outline-none focus:ring-1 focus:ring-[#185FA5]"
                         />
+                      </div>
+                      <div className="flex flex-wrap gap-1 pl-7">
+                        {EMOTIONS.map(e => (
+                          <button
+                            key={e.id}
+                            type="button"
+                            onClick={() => setSegments(prev => prev.map((s, j) => j === i ? { ...s, audioUrl: null, audioBlob: null, emotion: e.id } : s))}
+                            className={`px-2 py-0.5 rounded-full text-xs border transition-all ${seg.emotion === e.id ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                            title={e.label}
+                          >
+                            {e.emoji} {e.label}
+                          </button>
+                        ))}
                       </div>
                       <div className="flex items-center gap-2 pl-7">
                         <button
