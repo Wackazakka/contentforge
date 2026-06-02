@@ -136,7 +136,32 @@ export default function ArticlePage() {
       const results = await Promise.all(promises)
       const generatedArticles = results.map((result) => result.article).filter(Boolean)
       setArticles(generatedArticles)
-      // Images are generated in the background via Netlify function — no separate call needed
+
+      // Trigger image generation for each article via the reliable generate-image route
+      // Use the first article's topic for the shared image
+      if (generatedArticles.length > 0) {
+        const firstArticle = generatedArticles[0]
+        setImageLoading(true)
+        fetch('/api/content/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: firstArticle.title || topic,
+            productId,
+            logoUrl: productLogoUrl,
+            articleIds: generatedArticles.map((a: Article) => a.id),
+            imageStyle,
+          }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.imageUrl) {
+              setArticles((prev) => prev.map((a) => ({ ...a, image_url: data.imageUrl })))
+            }
+          })
+          .catch((err) => console.error('[article] Image generation failed:', err))
+          .finally(() => setImageLoading(false))
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
