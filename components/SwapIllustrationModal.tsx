@@ -73,21 +73,21 @@ export default function SwapIllustrationModal({
     setGenerating(true)
     setMessage(null)
     try {
-      // Trigger background function (high quality, no timeout issues)
-      const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
-      const res = await fetch(`${SITE_URL}/.netlify/functions/generate-image-background`, {
-        method: 'POST',
+      // Trigger via API route (proxies to background function server-side)
+      const res = await fetch(`/api/content/articles/${articleId}/image`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          articleId,
+          regenerate: true,
           topic,
           productId,
           logoUrl: logoUrl || null,
           imageStyle: selectedStyle,
         }),
       })
-      if (!res.ok && res.status !== 202) {
-        throw new Error('Kunne ikke starte bildegenerering')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Kunne ikke starte bildegenerering')
       }
 
       // Poll article every 5s until image_urls updates (max 90s)
