@@ -73,30 +73,49 @@ export default function SwapIllustrationModal({
     setGenerating(true)
     setMessage(null)
     try {
-      // Call generate-image directly (reliable) instead of via background function
-      const res = await fetch('/api/content/generate-image', {
+      // Trigger background function (high quality, no timeout issues)
+      const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
+      const res = await fetch(`${SITE_URL}/.netlify/functions/generate-image-background`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          articleId,
           topic,
           productId,
           logoUrl: logoUrl || null,
-          articleIds: [articleId],
           imageStyle: selectedStyle,
         }),
       })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || 'Error generating image')
+      if (!res.ok && res.status !== 202) {
+        throw new Error('Kunne ikke starte bildegenerering')
       }
-      const data = await res.json()
-      if (data.imageUrl) {
-        onImageUpdated(data.imageUrl)
+
+      // Poll article every 5s until image_urls updates (max 90s)
+      setMessage('Genererer bilde med høy kvalitet...')
+      const supabase = getSupabase()
+      const startTime = Date.now()
+      const poll = async (): Promise<void> => {
+        if (Date.now() - startTime > 90000) {
+          setMessage('Tok for lang tid — prøv igjen')
+          setGenerating(false)
+          return
+        }
+        const { data } = await supabase
+          .from('articles')
+          .select('image_urls')
+          .eq('id', articleId)
+          .single()
+        const newUrl = data?.image_urls?.[0]
+        if (newUrl && newUrl !== currentImageUrl) {
+          onImageUpdated(newUrl)
+          onClose()
+          return
+        }
+        setTimeout(poll, 5000)
       }
-      onClose()
+      setTimeout(poll, 8000) // first check after 8s
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
       setGenerating(false)
     }
   }
