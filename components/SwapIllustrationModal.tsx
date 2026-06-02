@@ -86,8 +86,15 @@ export default function SwapIllustrationModal({
         }),
       })
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || 'Error generating image')
+        const raw = await res.text().catch(() => '')
+        let detail = raw
+        try {
+          detail = JSON.parse(raw).error || raw
+        } catch {
+          /* not JSON — keep raw text */
+        }
+        console.error('[SwapIllustration] Generate failed:', res.status, raw)
+        throw new Error(`Bildegenerering feilet (HTTP ${res.status}): ${detail || 'ukjent feil'}`)
       }
 
       // Background function is now running — poll DB every 5s for up to 90s
