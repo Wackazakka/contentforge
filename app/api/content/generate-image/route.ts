@@ -52,7 +52,7 @@ async function generateImageBuffer(topic: string, imageSize: string = '1024x1024
       })(),
       n: 1,
       size: imageSize,
-      quality: 'low',
+      quality: 'high',
     }),
   })
 
