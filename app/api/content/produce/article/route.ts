@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
 import { checkAndDeductCredits } from '@/lib/credits'
+import { getProductLogoUrl, compositeLogoOnImage } from '@/lib/image-logo'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
@@ -151,8 +152,15 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
   const b64 = imageData.data?.[0]?.b64_json
   if (!b64) throw new Error('No b64_json in OpenAI response')
 
-  const imageBuffer = Buffer.from(b64, 'base64')
+  let imageBuffer = Buffer.from(b64, 'base64')
   console.log(`[article-produce] [after] Image received (${(imageBuffer.byteLength / 1024).toFixed(0)}KB)`)
+
+  // Composite product logo if available
+  const logoUrl = await getProductLogoUrl(productId)
+  if (logoUrl) {
+    console.log(`[article-produce] [after] Compositing logo: ${logoUrl}`)
+    imageBuffer = await compositeLogoOnImage(imageBuffer, logoUrl)
+  }
 
   // 2. Upload to R2 directly
   const s3 = new S3Client({
