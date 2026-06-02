@@ -29,7 +29,12 @@ export async function PATCH(
       const SITE_URL =
         process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
 
-      await fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
+      // Fire-and-forget — DO NOT await. A Netlify Background Function holds the
+      // connection until the (slow, high-quality) image is done, which exceeds
+      // this route's maxDuration and makes it time out / error. The working
+      // produce/article route also fires without awaiting.
+      console.log(`[article-image-patch] Triggering bg function for article ${id} (style=${imageStyle || 'tech'})`)
+      fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -39,7 +44,7 @@ export async function PATCH(
           logoUrl: logoUrl || null,
           imageStyle: imageStyle || 'tech',
         }),
-      }).catch(() => {})
+      }).catch((e) => console.error('[article-image-patch] bg trigger fetch failed:', e))
 
       return NextResponse.json({
         success: true,
