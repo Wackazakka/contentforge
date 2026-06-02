@@ -18,8 +18,8 @@ const STYLES = [
   { key: 'tech',      name: 'Tech',     desc: 'Moderne og slank teknologiestetikk' },
   { key: 'cinematic', name: 'Cinematic', desc: 'Dramatisk filmestetikk, høy produksjonsverdi' },
   { key: 'warm',      name: 'Varm',     desc: 'Livsstilsfoto, mykt lys, menneskelig stemning' },
-  { key: 'vibrant',   name: 'Vibrant',  desc: 'Dristige farger, energisk, scroll-stopper' },
-  { key: 'modern',    name: 'Modern',   desc: 'Samtidsillustrasjon, ren og frisk' },
+  { key: 'surreal',   name: 'Surreal',  desc: 'Surrealistisk konsept, Magritte-inspirert' },
+  { key: 'manga',     name: 'Manga',    desc: 'Manga-inspirert, dynamisk og spenstig' },
 ]
 
 interface AssetRow {

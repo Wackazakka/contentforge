@@ -27,8 +27,8 @@ const STYLE_PROMPTS = {
   tech: 'Sleek modern technology aesthetic, clean product visualization, soft studio lighting with subtle shadows, premium materials, sophisticated color palette chosen to complement the subject, Apple / Dieter Rams / Braun design language. Subject: [TOPIC]. No text, letters, or typography.',
   cinematic: 'Cinematic wide-angle scene, dramatic natural or artificial lighting, rich color grading, strong visual narrative, high production value, feels like a movie still or premium documentary. Emotionally resonant. Subject: [TOPIC]. No text, letters, or typography.',
   warm: 'Warm lifestyle photograph style, soft natural light, organic textures, earthy tones with golden accents, shallow depth of field, inviting and human-centered composition, Instagram editorial aesthetic. Subject: [TOPIC]. No text, letters, or typography.',
-  vibrant: 'Bold and energetic digital composition, vivid saturated colors that pop on a feed, strong graphic energy, joyful and dynamic, modern social media native aesthetic, Spotify / Airbnb / Duolingo campaign style. Subject: [TOPIC]. No text, letters, or typography.',
-  modern: 'Contemporary digital illustration, clean vector-inspired aesthetic, flat perspective with subtle depth, limited but confident color palette, modern editorial feel, 2024 design trends, feels fresh and current. Subject: [TOPIC]. No text, letters, or typography.',
+  surreal: 'Sophisticated conceptual surrealism, dreamlike scene with unexpected juxtapositions, photorealistic rendering of impossible scenarios, thought-provoking and visually arresting, Magritte meets contemporary advertising. Subject: [TOPIC]. No text, letters, or typography.',
+  manga: 'Dynamic manga-inspired digital illustration, bold clean outlines, dramatic foreshortening and perspective, high-contrast cel shading, expressive visual energy, cinematic panel composition, Studio Ghibli meets modern Japanese editorial design. Sophisticated, not childish. Subject: [TOPIC]. No text, letters, or typography.',
 }
 
 export default async function handler(req) {
