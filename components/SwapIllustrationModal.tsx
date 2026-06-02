@@ -79,25 +79,27 @@ export default function SwapIllustrationModal({
     setGenerating(true)
     setMessage(null)
     try {
-      const res = await fetch(`/api/content/articles/${articleId}/image`, {
-        method: 'PATCH',
+      // Call generate-image directly (reliable) instead of via background function
+      const res = await fetch('/api/content/generate-image', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          regenerate: true,
-          imageStyle: selectedStyle,
           topic,
           productId,
           logoUrl: logoUrl || null,
+          articleIds: [articleId],
+          imageStyle: selectedStyle,
         }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error || 'Error generating image')
       }
-      setMessage(t('generatingMsg'))
-      setTimeout(() => {
-        onClose()
-      }, 1500)
+      const data = await res.json()
+      if (data.imageUrl) {
+        onImageUpdated(data.imageUrl)
+      }
+      onClose()
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
