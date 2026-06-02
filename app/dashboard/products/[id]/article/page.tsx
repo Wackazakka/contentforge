@@ -49,6 +49,7 @@ export default function ArticlePage() {
   const [articles, setArticles] = useState<Article[]>([])
   const [error, setError] = useState<string | null>(null)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [productLogoUrl, setProductLogoUrl] = useState<string | null>(null)
   const [imageLoading, setImageLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState('')
@@ -68,15 +69,16 @@ export default function ArticlePage() {
     const supabase = getSupabase()
     supabase
       .from("product_profiles")
-      .select("website_url, cta_text")
+      .select("website_url, cta_text, logo_url")
       .eq("product_id", productId)
       .maybeSingle()
       .then(({ data }: { data: any }) => {
         if (data?.website_url) setWebsiteUrl(data.website_url)
         if (data?.cta_text) {
           setCtaText(data.cta_text)
-          setIncludeLink(true) // auto-enable when CTA text is configured
+          setIncludeLink(true)
         }
+        if (data?.logo_url) setProductLogoUrl(data.logo_url)
       })
   }, [productId])
 
@@ -115,6 +117,7 @@ export default function ArticlePage() {
             campaignId,
             topic,
             platform,
+            logoUrl: productLogoUrl,
             imageStyle,
             includeLink,
             websiteUrl,

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
-import { getProductLogoUrl, compositeLogoOnImage } from '@/lib/image-logo'
+import { compositeLogoOnImage } from '@/lib/image-logo'
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const R2_ENDPOINT = process.env.R2_ENDPOINT
@@ -19,6 +19,7 @@ export const maxDuration = 120
 interface GenerateImageRequest {
   topic: string
   productId: string
+  logoUrl?: string
   articleIds?: string[]
   imageSize?: '1024x1024' | '1024x1536' | '1536x1024'
   imageStyle?: 'tech' | 'editorial' | 'warm' | 'minimal' | 'painterly'
@@ -104,7 +105,7 @@ async function uploadBufferToR2(imageBuffer: Buffer, fileName: string): Promise<
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateImageRequest = await request.json()
-    const { topic, productId, articleIds, imageSize = '1024x1024', imageStyle } = body
+    const { topic, productId, logoUrl, articleIds, imageSize = '1024x1024', imageStyle } = body
 
     if (!topic || !productId) {
       return NextResponse.json({ error: 'Missing topic or productId' }, { status: 400 })
@@ -118,8 +119,7 @@ export async function POST(request: NextRequest) {
 
     let imageBuffer = await generateImageBuffer(topic, imageSize, imageStyle)
 
-    // Composite product logo onto bottom-right if available
-    const logoUrl = await getProductLogoUrl(productId)
+    // Composite product logo onto bottom-right if provided
     if (logoUrl) {
       console.log('[generateImage] Compositing logo:', logoUrl)
       imageBuffer = await compositeLogoOnImage(imageBuffer, logoUrl)

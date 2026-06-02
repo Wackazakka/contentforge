@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
 import { checkAndDeductCredits } from '@/lib/credits'
-import { getProductLogoUrl, compositeLogoOnImage } from '@/lib/image-logo'
+import { compositeLogoOnImage } from '@/lib/image-logo'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
@@ -26,6 +26,7 @@ interface GenerateArticleRequest {
   campaignId: string
   topic: string
   platform: string
+  logoUrl?: string
   imageStyle?: string
   includeLink?: boolean
   websiteUrl?: string
@@ -119,7 +120,7 @@ Return JSON with:
 }
 
 // Called directly (no CDN), so high quality is fine — takes 30-45s
-async function generateAndSaveImage(articleId: string, topic: string, productId: string): Promise<void> {
+async function generateAndSaveImage(articleId: string, topic: string, productId: string, logoUrl?: string): Promise<void> {
   console.log(`[article-produce] [after] Generating image for: "${topic}"`)
 
   // 1. Call OpenAI directly
@@ -155,8 +156,7 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
   let imageBuffer: Buffer = Buffer.from(b64, 'base64') as Buffer
   console.log(`[article-produce] [after] Image received (${(imageBuffer.byteLength / 1024).toFixed(0)}KB)`)
 
-  // Composite product logo if available
-  const logoUrl = await getProductLogoUrl(productId)
+  // Composite product logo if provided from frontend
   if (logoUrl) {
     console.log(`[article-produce] [after] Compositing logo: ${logoUrl}`)
     imageBuffer = await compositeLogoOnImage(imageBuffer, logoUrl) as Buffer
@@ -213,7 +213,7 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateArticleRequest & { userId?: string } = await request.json()
-    const { productId, campaignId, topic, platform, userId, imageStyle, includeLink, websiteUrl } = body
+    const { productId, campaignId, topic, platform, userId, logoUrl, imageStyle, includeLink, websiteUrl } = body
 
     if (!productId || !campaignId || !topic || !platform) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
     fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ articleId, topic: title, productId, imageStyle: imageStyle || 'tech' }),
+      body: JSON.stringify({ articleId, topic: title, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'tech' }),
     }).catch(() => {})
 
     // Return article immediately — image arrives in DB within ~40s

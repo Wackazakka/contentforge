@@ -1,25 +1,7 @@
 import sharp from 'sharp'
-import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-
-export async function getProductLogoUrl(productId: string): Promise<string | null> {
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  const { data: profile } = await supabase
-    .from('product_profiles')
-    .select('logo_url')
-    .eq('product_id', productId)
-    .maybeSingle()
-  if (profile?.logo_url) return profile.logo_url
-
-  const { data: product } = await supabase
-    .from('products')
-    .select('logo_url')
-    .eq('id', productId)
-    .maybeSingle()
-  return product?.logo_url ?? null
-}
+// Logo URL is passed directly in the API request from the frontend
+// (which has authenticated Supabase access), avoiding RLS issues server-side.
 
 export async function compositeLogoOnImage(imageBuffer: Buffer, logoUrl: string): Promise<Buffer> {
   try {

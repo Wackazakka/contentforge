@@ -18,7 +18,7 @@ export async function PATCH(
 
     // Path 1: regenerate via background function
     if (body.regenerate) {
-      const { imageStyle, topic, productId } = body
+      const { imageStyle, topic, productId, logoUrl } = body
       if (!topic || !productId) {
         return NextResponse.json(
           { error: 'Missing topic or productId for regenerate' },
@@ -36,6 +36,7 @@ export async function PATCH(
           articleId: id,
           topic,
           productId,
+          logoUrl: logoUrl || null,
           imageStyle: imageStyle || 'tech',
         }),
       }).catch(() => {})

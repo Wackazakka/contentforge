@@ -1,6 +1,26 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
+import sharp from 'sharp'
+
+async function addLogoOverlay(imageBuffer, logoUrl) {
+  try {
+    const logoRes = await fetch(logoUrl)
+    if (!logoRes.ok) return imageBuffer
+    const logoRaw = Buffer.from(await logoRes.arrayBuffer())
+    const LOGO_MAX_WIDTH = 140, LOGO_MAX_HEIGHT = 60, PADDING = 12, MARGIN = 20, RADIUS = 10
+    const logoResized = await sharp(logoRaw).resize(LOGO_MAX_WIDTH, LOGO_MAX_HEIGHT, { fit: 'inside', withoutEnlargement: true }).toBuffer()
+    const { width: lw = LOGO_MAX_WIDTH, height: lh = LOGO_MAX_HEIGHT } = await sharp(logoResized).metadata()
+    const bgW = lw + PADDING * 2, bgH = lh + PADDING * 2
+    const bgSvg = Buffer.from(`<svg width="${bgW}" height="${bgH}" xmlns="http://www.w3.org/2000/svg"><rect width="${bgW}" height="${bgH}" rx="${RADIUS}" ry="${RADIUS}" fill="white" fill-opacity="0.88"/></svg>`)
+    const badge = await sharp(bgSvg).composite([{ input: logoResized, left: PADDING, top: PADDING }]).png().toBuffer()
+    const { width: imgW = 1024, height: imgH = 1024 } = await sharp(imageBuffer).metadata()
+    return await sharp(imageBuffer).composite([{ input: badge, left: imgW - bgW - MARGIN, top: imgH - bgH - MARGIN }]).png().toBuffer()
+  } catch (err) {
+    console.error('[bg-image] Logo overlay failed (skipping):', err)
+    return imageBuffer
+  }
+}
 
 const STYLE_PROMPTS = {
   tech: 'Premium 3D-rendered CGI visualization, photorealistic glass and chrome materials, holographic data overlays, iridescent neon accents in cyan and electric blue, dark deep blue-black background, volumetric god rays, ultra-sharp render, Wired magazine / Apple keynote / Nvidia GTC aesthetic. Subject: [TOPIC]. No text, letters, or typography.',
@@ -18,7 +38,7 @@ export default async function handler(req) {
     console.error('[bg-image] Invalid JSON body')
     return new Response('Bad request', { status: 400 })
   }
-  const { articleId, topic, productId, imageStyle } = body
+  const { articleId, topic, productId, logoUrl, imageStyle } = body
   const style = imageStyle && STYLE_PROMPTS[imageStyle] ? imageStyle : 'tech'
   const prompt = STYLE_PROMPTS[style].replace('[TOPIC]', topic)
 
@@ -67,8 +87,13 @@ export default async function handler(req) {
       return new Response('No image data', { status: 500 })
     }
 
-    const imageBuffer = Buffer.from(b64, 'base64')
+    let imageBuffer = Buffer.from(b64, 'base64')
     console.log(`[bg-image] Image received, size: ${imageBuffer.byteLength} bytes`)
+
+    if (logoUrl) {
+      console.log(`[bg-image] Compositing logo: ${logoUrl}`)
+      imageBuffer = await addLogoOverlay(imageBuffer, logoUrl)
+    }
 
     const s3 = new S3Client({
       region: 'auto',

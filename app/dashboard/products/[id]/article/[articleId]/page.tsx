@@ -69,6 +69,7 @@ export default function ArticleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [swapOpen, setSwapOpen] = useState(false)
+  const [productLogoUrl, setProductLogoUrl] = useState<string | null>(null)
 
   // Edit state
   const [editing, setEditing] = useState(false)
@@ -89,6 +90,12 @@ export default function ArticleDetailPage() {
           .single()
         if (fetchError) throw fetchError
         setArticle(data)
+        // Fetch logo for this product
+        if (data?.product_id) {
+          const supabase2 = getSupabase()
+          const { data: pp } = await supabase2.from('product_profiles').select('logo_url').eq('product_id', data.product_id).maybeSingle()
+          if (pp?.logo_url) setProductLogoUrl(pp.logo_url)
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : t('errorFetching'))
       } finally {
@@ -212,6 +219,7 @@ export default function ArticleDetailPage() {
               articleId={article.id}
               productId={article.product_id}
               topic={article.title}
+              logoUrl={productLogoUrl || undefined}
               currentImageUrl={article.image_urls?.[0]}
               onClose={() => setSwapOpen(false)}
               onImageUpdated={(newUrl) =>

@@ -8,6 +8,7 @@ interface SwapIllustrationModalProps {
   articleId: string
   productId: string
   topic: string
+  logoUrl?: string
   currentImageUrl?: string
   onClose: () => void
   onImageUpdated: (newUrl: string) => void
@@ -31,6 +32,7 @@ export default function SwapIllustrationModal({
   articleId,
   productId,
   topic,
+  logoUrl,
   currentImageUrl,
   onClose,
   onImageUpdated,
@@ -85,6 +87,7 @@ export default function SwapIllustrationModal({
           imageStyle: selectedStyle,
           topic,
           productId,
+          logoUrl: logoUrl || null,
         }),
       })
       if (!res.ok) {
