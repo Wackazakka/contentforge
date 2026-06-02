@@ -76,7 +76,7 @@ export default function ArticlePage() {
         if (data?.website_url) setWebsiteUrl(data.website_url)
         if (data?.cta_text) {
           setCtaText(data.cta_text)
-          setIncludeLink(true)
+          // Default off — user chooses explicitly
         }
         // Prefer article_logo_url for article images, fall back to logo_url
         setProductLogoUrl(data?.article_logo_url || data?.logo_url || null)
