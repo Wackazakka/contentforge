@@ -9,11 +9,11 @@ export async function compositeLogoOnImage(imageBuffer: Buffer, logoUrl: string)
     if (!logoRes.ok) return imageBuffer
     const logoRaw = Buffer.from(await logoRes.arrayBuffer())
 
-    const LOGO_MAX_WIDTH = 140
-    const LOGO_MAX_HEIGHT = 60
-    const PADDING = 12
-    const MARGIN = 20
-    const RADIUS = 10
+    const LOGO_MAX_WIDTH = 280
+    const LOGO_MAX_HEIGHT = 120
+    const PADDING = 16
+    const MARGIN = 24
+    const RADIUS = 14
 
     const logoResized = await sharp(logoRaw)
       .resize(LOGO_MAX_WIDTH, LOGO_MAX_HEIGHT, { fit: 'inside', withoutEnlargement: true })
