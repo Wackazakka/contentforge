@@ -58,11 +58,11 @@ export default function ArticlePage() {
   const platforms = ['facebook', 'linkedin', 'x']
 
   const imageStyles = [
-    { key: 'tech', name: 'Tech', desc: t('styleTechDesc') },
-    { key: 'editorial', name: 'Editorial', desc: t('styleEditorialDesc') },
-    { key: 'warm', name: 'Warm', desc: t('styleWarmDesc') },
-    { key: 'minimal', name: 'Minimal', desc: t('styleMinimalDesc') },
-    { key: 'painterly', name: 'Painterly', desc: t('stylePainterlyDesc') },
+    { key: 'tech',      name: 'Tech',     desc: 'Moderne og slank teknologiestestikk' },
+    { key: 'cinematic', name: 'Cinematic', desc: 'Dramatisk filmestetikk, høy produksjonsverdi' },
+    { key: 'warm',      name: 'Varm',     desc: 'Livsstilsfoto, mykt lys, menneskelig stemning' },
+    { key: 'vibrant',   name: 'Vibrant',  desc: 'Dristige farger, energisk, scroll-stopper' },
+    { key: 'modern',    name: 'Modern',   desc: 'Samtidsillustrasjon, ren og frisk' },
   ]
   useEffect(() => {
     if (!productId) return

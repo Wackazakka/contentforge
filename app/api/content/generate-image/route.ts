@@ -22,15 +22,15 @@ interface GenerateImageRequest {
   logoUrl?: string
   articleIds?: string[]
   imageSize?: '1024x1024' | '1024x1536' | '1536x1024'
-  imageStyle?: 'tech' | 'editorial' | 'warm' | 'minimal' | 'painterly'
+  imageStyle?: 'tech' | 'cinematic' | 'warm' | 'vibrant' | 'modern'
 }
 
 const VIDEO_STYLE_PROMPTS: Record<string, string> = {
-  tech:      'Premium 3D-rendered CGI scene, sleek metallic surfaces, dramatic studio lighting, deep shadows, photorealistic render.',
-  editorial: 'Bold editorial photography, high-contrast composition, strong graphic lines, magazine cover quality, professional lighting.',
-  warm:      'Warm golden-hour lifestyle photography, natural light, soft bokeh, inviting and human atmosphere, candid feel.',
-  minimal:   'Clean minimalist scene, large negative space, muted Scandinavian palette, simple shapes, calm and airy mood.',
-  painterly: 'Expressive painterly digital illustration, rich visible brushstrokes, vivid saturated colors, artistic cinematic mood.',
+  tech:      'Sleek modern technology aesthetic, clean product visualization, soft studio lighting with subtle shadows, premium materials, sophisticated color palette chosen to complement the subject, Apple / Dieter Rams / Braun design language.',
+  cinematic: 'Cinematic wide-angle scene, dramatic natural or artificial lighting, rich color grading, strong visual narrative, high production value, feels like a movie still or premium documentary. Emotionally resonant.',
+  warm:      'Warm lifestyle photograph style, soft natural light, organic textures, earthy tones with golden accents, shallow depth of field, inviting and human-centered composition, Instagram editorial aesthetic.',
+  vibrant:   'Bold and energetic digital composition, vivid saturated colors that pop on a feed, strong graphic energy, joyful and dynamic, modern social media native aesthetic, Spotify / Airbnb / Duolingo campaign style.',
+  modern:    'Contemporary digital illustration, clean vector-inspired aesthetic, flat perspective with subtle depth, limited but confident color palette, modern editorial feel, 2024 design trends, feels fresh and current.',
 }
 
 async function generateImageBuffer(topic: string, imageSize: string = '1024x1024', imageStyle?: string): Promise<Buffer> {

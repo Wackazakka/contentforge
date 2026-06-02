@@ -24,11 +24,11 @@ async function addLogoOverlay(imageBuffer, logoUrl) {
 }
 
 const STYLE_PROMPTS = {
-  tech: 'Premium 3D-rendered CGI visualization, photorealistic glass and chrome materials, holographic data overlays, iridescent neon accents in cyan and electric blue, dark deep blue-black background, volumetric god rays, ultra-sharp render, Wired magazine / Apple keynote / Nvidia GTC aesthetic. Subject: [TOPIC]. No text, letters, or typography.',
-  editorial: 'Bold editorial illustration, flat design with strong geometric shapes, saturated complementary colors, confident graphic composition, New Yorker / Vox / Bloomberg Businessweek magazine cover style. Conceptual and metaphorical. Subject: [TOPIC]. No text, letters, or typography.',
+  tech: 'Sleek modern technology aesthetic, clean product visualization, soft studio lighting with subtle shadows, premium materials, sophisticated color palette chosen to complement the subject, Apple / Dieter Rams / Braun design language. Subject: [TOPIC]. No text, letters, or typography.',
+  cinematic: 'Cinematic wide-angle scene, dramatic natural or artificial lighting, rich color grading, strong visual narrative, high production value, feels like a movie still or premium documentary. Emotionally resonant. Subject: [TOPIC]. No text, letters, or typography.',
   warm: 'Warm lifestyle photograph style, soft natural light, organic textures, earthy tones with golden accents, shallow depth of field, inviting and human-centered composition, Instagram editorial aesthetic. Subject: [TOPIC]. No text, letters, or typography.',
-  minimal: 'Clean minimalist infographic illustration, white or very light grey background, simple geometric icons, limited muted palette (2-3 colors), generous whitespace, McKinsey / LinkedIn / corporate report aesthetic. Subject: [TOPIC]. No text, letters, or typography.',
-  painterly: 'Expressive painterly illustration, visible brushstrokes, rich saturated pigments, impressionistic light, artistic book cover or editorial painting style. Emotive and textural. Subject: [TOPIC]. No text, letters, or typography.',
+  vibrant: 'Bold and energetic digital composition, vivid saturated colors that pop on a feed, strong graphic energy, joyful and dynamic, modern social media native aesthetic, Spotify / Airbnb / Duolingo campaign style. Subject: [TOPIC]. No text, letters, or typography.',
+  modern: 'Contemporary digital illustration, clean vector-inspired aesthetic, flat perspective with subtle depth, limited but confident color palette, modern editorial feel, 2024 design trends, feels fresh and current. Subject: [TOPIC]. No text, letters, or typography.',
 }
 
 export default async function handler(req) {
