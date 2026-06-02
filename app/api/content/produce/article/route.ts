@@ -152,14 +152,14 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
   const b64 = imageData.data?.[0]?.b64_json
   if (!b64) throw new Error('No b64_json in OpenAI response')
 
-  let imageBuffer = Buffer.from(b64, 'base64')
+  let imageBuffer: Buffer = Buffer.from(b64, 'base64') as Buffer
   console.log(`[article-produce] [after] Image received (${(imageBuffer.byteLength / 1024).toFixed(0)}KB)`)
 
   // Composite product logo if available
   const logoUrl = await getProductLogoUrl(productId)
   if (logoUrl) {
     console.log(`[article-produce] [after] Compositing logo: ${logoUrl}`)
-    imageBuffer = await compositeLogoOnImage(imageBuffer, logoUrl)
+    imageBuffer = await compositeLogoOnImage(imageBuffer, logoUrl) as Buffer
   }
 
   // 2. Upload to R2 directly
