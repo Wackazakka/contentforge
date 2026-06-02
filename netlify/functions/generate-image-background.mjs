@@ -1,10 +1,11 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
-import sharp from 'sharp'
 
 async function addLogoOverlay(imageBuffer, logoUrl) {
   try {
+    // Dynamic import so a missing/broken sharp doesn't crash the whole function
+    const sharp = (await import('sharp')).default
     const logoRes = await fetch(logoUrl)
     if (!logoRes.ok) return imageBuffer
     const logoRaw = Buffer.from(await logoRes.arrayBuffer())
