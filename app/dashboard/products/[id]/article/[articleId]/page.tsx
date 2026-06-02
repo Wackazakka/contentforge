@@ -93,8 +93,8 @@ export default function ArticleDetailPage() {
         // Fetch logo for this product
         if (data?.product_id) {
           const supabase2 = getSupabase()
-          const { data: pp } = await supabase2.from('product_profiles').select('logo_url').eq('product_id', data.product_id).maybeSingle()
-          if (pp?.logo_url) setProductLogoUrl(pp.logo_url)
+          const { data: pp } = await supabase2.from('product_profiles').select('logo_url, article_logo_url').eq('product_id', data.product_id).maybeSingle()
+          if (pp) setProductLogoUrl((pp as any).article_logo_url || pp.logo_url || null)
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : t('errorFetching'))

@@ -1,7 +1,7 @@
 import sharp from 'sharp'
 
-// Logo URL is passed directly in the API request from the frontend
-// (which has authenticated Supabase access), avoiding RLS issues server-side.
+// Logo URLs are passed directly from the frontend (authenticated Supabase access).
+// articleLogoUrl takes priority for article images; falls back to logoUrl.
 
 export async function compositeLogoOnImage(imageBuffer: Buffer, logoUrl: string): Promise<Buffer> {
   try {

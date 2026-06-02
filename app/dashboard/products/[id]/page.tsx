@@ -27,6 +27,7 @@ interface ProductProfile {
   id: string
   product_id: string
   logo_url: string | null
+  article_logo_url: string | null
   primary_color: string | null
   secondary_color: string | null
   accent_color: string | null
@@ -125,6 +126,7 @@ export default function ProductPage() {
 
   const [profileForm, setProfileForm] = useState({
     logo_url: '',
+    article_logo_url: '',
     primary_color: '',
     secondary_color: '',
     accent_color: '',
@@ -137,6 +139,7 @@ export default function ProductPage() {
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
+  const [articleLogoUploading, setArticleLogoUploading] = useState(false)
 
   useEffect(() => {
     if (!productId || !session?.user?.id) return
@@ -181,6 +184,7 @@ export default function ProductPage() {
     if (profile) {
       setProfileForm({
         logo_url: profile.logo_url || '',
+        article_logo_url: profile.article_logo_url || '',
         primary_color: profile.primary_color || '',
         secondary_color: profile.secondary_color || '',
         accent_color: profile.accent_color || '',
@@ -207,6 +211,7 @@ export default function ProductPage() {
           {
             product_id: productId,
             logo_url: profileForm.logo_url || null,
+            article_logo_url: profileForm.article_logo_url || null,
             primary_color: profileForm.primary_color || null,
             secondary_color: profileForm.secondary_color || null,
             accent_color: profileForm.accent_color || null,
@@ -261,6 +266,31 @@ export default function ProductPage() {
       console.error('Logo upload failed:', err)
     } finally {
       setLogoUploading(false)
+    }
+  }
+
+  const handleArticleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setArticleLogoUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('productId', productId)
+      formData.append('logoType', 'article')
+      const res = await fetch('/api/products/upload-logo', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (data.url) {
+        setProfile((prev) => (prev ? { ...prev, article_logo_url: data.url } : null))
+        setProfileForm((prev) => ({ ...prev, article_logo_url: data.url }))
+      }
+    } catch (err) {
+      console.error('Article logo upload failed:', err)
+    } finally {
+      setArticleLogoUploading(false)
     }
   }
 
@@ -554,6 +584,37 @@ export default function ProductPage() {
                   className="mt-3 h-12 w-auto object-contain"
                 />
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Artikkellogo (vises på genererte bilder)</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={profileForm.article_logo_url}
+                  onChange={(e) => setProfileForm({ ...profileForm, article_logo_url: e.target.value })}
+                  placeholder="https://example.com/article-logo.png"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                />
+                <span className="text-gray-400 text-sm">{t('or')}</span>
+                <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm border border-gray-300 transition-colors">
+                  {articleLogoUploading ? t('uploading') : t('upload')}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    onChange={handleArticleLogoUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              {profileForm.article_logo_url && (
+                <img
+                  src={profileForm.article_logo_url}
+                  alt="Artikkellogo preview"
+                  className="mt-3 h-12 w-auto object-contain"
+                />
+              )}
+              <p className="mt-1 text-xs text-gray-400">Brukes på illustrasjoner i artikler. Hvis ikke satt, brukes standard-logoen.</p>
             </div>
 
             <div>

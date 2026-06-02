@@ -15,16 +15,19 @@ export async function POST(request: Request) {
     const formData = await request.formData()
     const file = formData.get('file') as File
     const productId = formData.get('productId') as string
+    const logoType = (formData.get('logoType') as string) || 'default' // 'default' | 'article'
+    const isArticleLogo = logoType === 'article'
+    const field = isArticleLogo ? 'article_logo_url' : 'logo_url'
 
     if (!file || !productId) {
       return NextResponse.json({ error: 'Missing file or productId' }, { status: 400 })
     }
 
-    console.log(`[upload-logo] Uploading logo for product ${productId}, size: ${file.size} bytes`)
+    console.log(`[upload-logo] Uploading ${field} for product ${productId}, size: ${file.size} bytes`)
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const ext = file.name.split('.').pop()
-    const key = `logos/${productId}/logo.${ext}`
+    const key = `logos/${productId}/${isArticleLogo ? 'article-logo' : 'logo'}.${ext}`
 
     const r2 = new S3Client({
       region: 'auto',
@@ -49,17 +52,16 @@ export async function POST(request: Request) {
 
     // Update product and product_profiles in Supabase
     const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-    const { error } = await supabase.from('products').update({ logo_url: url }).eq('id', productId)
+    const { error } = await supabase.from('products').update({ [field]: url }).eq('id', productId)
 
     if (error) {
       console.error(`[upload-logo] Database update error:`, error)
       throw error
     }
 
-    // Also upsert into product_profiles so avatar/video pages can pick it up immediately
     await supabase
       .from('product_profiles')
-      .upsert({ product_id: productId, logo_url: url }, { onConflict: 'product_id' })
+      .upsert({ product_id: productId, [field]: url }, { onConflict: 'product_id' })
 
     return NextResponse.json({ url })
   } catch (err: any) {

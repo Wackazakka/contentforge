@@ -69,7 +69,7 @@ export default function ArticlePage() {
     const supabase = getSupabase()
     supabase
       .from("product_profiles")
-      .select("website_url, cta_text, logo_url")
+      .select("website_url, cta_text, logo_url, article_logo_url")
       .eq("product_id", productId)
       .maybeSingle()
       .then(({ data }: { data: any }) => {
@@ -78,7 +78,8 @@ export default function ArticlePage() {
           setCtaText(data.cta_text)
           setIncludeLink(true)
         }
-        if (data?.logo_url) setProductLogoUrl(data.logo_url)
+        // Prefer article_logo_url for article images, fall back to logo_url
+        setProductLogoUrl(data?.article_logo_url || data?.logo_url || null)
       })
   }, [productId])
 
