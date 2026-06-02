@@ -9,7 +9,7 @@ async function addLogoOverlay(imageBuffer, logoUrl) {
     const logoRes = await fetch(logoUrl)
     if (!logoRes.ok) return imageBuffer
     const logoRaw = Buffer.from(await logoRes.arrayBuffer())
-    const LOGO_MAX_WIDTH = 140, LOGO_MAX_HEIGHT = 60, PADDING = 12, MARGIN = 20, RADIUS = 10
+    const LOGO_MAX_WIDTH = 280, LOGO_MAX_HEIGHT = 120, PADDING = 16, MARGIN = 24, RADIUS = 14
     const logoResized = await sharp(logoRaw).resize(LOGO_MAX_WIDTH, LOGO_MAX_HEIGHT, { fit: 'inside', withoutEnlargement: true }).toBuffer()
     const { width: lw = LOGO_MAX_WIDTH, height: lh = LOGO_MAX_HEIGHT } = await sharp(logoResized).metadata()
     const bgW = lw + PADDING * 2, bgH = lh + PADDING * 2
