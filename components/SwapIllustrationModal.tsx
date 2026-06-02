@@ -73,7 +73,7 @@ export default function SwapIllustrationModal({
     setGenerating(true)
     setMessage(null)
     try {
-      // Trigger via API route (proxies to background function server-side)
+      // Trigger via API route (calls background function server-side = high quality)
       const res = await fetch(`/api/content/articles/${articleId}/image`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -87,16 +87,16 @@ export default function SwapIllustrationModal({
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || 'Kunne ikke starte bildegenerering')
+        throw new Error(err.error || 'Error generating image')
       }
 
-      // Poll article every 5s until image_urls updates (max 90s)
-      setMessage('Genererer bilde med høy kvalitet...')
+      // Background function is now running — poll DB every 5s for up to 90s
+      setMessage('Genererer bilde (høy kvalitet)...')
       const supabase = getSupabase()
       const startTime = Date.now()
       const poll = async (): Promise<void> => {
         if (Date.now() - startTime > 90000) {
-          setMessage('Tok for lang tid — prøv igjen')
+          setMessage('Bildet tar lenger tid enn ventet — sjekk artikkelen om 30 sekunder')
           setGenerating(false)
           return
         }
@@ -108,12 +108,13 @@ export default function SwapIllustrationModal({
         const newUrl = data?.image_urls?.[0]
         if (newUrl && newUrl !== currentImageUrl) {
           onImageUpdated(newUrl)
+          setGenerating(false)
           onClose()
           return
         }
         setTimeout(poll, 5000)
       }
-      setTimeout(poll, 8000) // first check after 8s
+      setTimeout(poll, 10000) // first check after 10s
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Something went wrong')
       setGenerating(false)
