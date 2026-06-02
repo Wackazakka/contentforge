@@ -14,14 +14,13 @@ interface SwapIllustrationModalProps {
   onImageUpdated: (newUrl: string) => void
 }
 
-const STYLE_KEYS = ['tech', 'editorial', 'warm', 'minimal', 'painterly'] as const
-const STYLE_NAMES: Record<string, string> = {
-  tech: 'Tech',
-  editorial: 'Editorial',
-  warm: 'Warm',
-  minimal: 'Minimal',
-  painterly: 'Painterly',
-}
+const STYLES = [
+  { key: 'tech',      name: 'Tech',     desc: 'Moderne og slank teknologiestetikk' },
+  { key: 'cinematic', name: 'Cinematic', desc: 'Dramatisk filmestetikk, høy produksjonsverdi' },
+  { key: 'warm',      name: 'Varm',     desc: 'Livsstilsfoto, mykt lys, menneskelig stemning' },
+  { key: 'vibrant',   name: 'Vibrant',  desc: 'Dristige farger, energisk, scroll-stopper' },
+  { key: 'modern',    name: 'Modern',   desc: 'Samtidsillustrasjon, ren og frisk' },
+]
 
 interface AssetRow {
   id: string
@@ -38,11 +37,6 @@ export default function SwapIllustrationModal({
   onImageUpdated,
 }: SwapIllustrationModalProps) {
   const t = useTranslations('swapIllustration')
-  const STYLES = STYLE_KEYS.map((key) => ({
-    key,
-    name: STYLE_NAMES[key],
-    desc: t(`style${key.charAt(0).toUpperCase() + key.slice(1)}Desc` as any),
-  }))
   const [tab, setTab] = useState<'generate' | 'bank'>('generate')
   const [selectedStyle, setSelectedStyle] = useState<string>('tech')
   const [generating, setGenerating] = useState(false)
