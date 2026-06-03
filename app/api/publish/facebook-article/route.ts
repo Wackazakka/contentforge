@@ -77,7 +77,21 @@ export async function POST(request: Request) {
 
         // Replace internal CTA marker with a visual text separator for Facebook
         const cleanedContent = articleContent.replace('\n\n---CTA---\n', '\n\n― ― ―\n\n')
-        const postContent = `${articleTitle}\n\n${cleanedContent}`
+
+        // Fetch product website URL to append as link
+        let websiteUrl: string | undefined
+        try {
+          const { data: profile } = await supabase
+            .from('product_profiles')
+            .select('website_url')
+            .eq('product_id', productId)
+            .maybeSingle()
+          websiteUrl = profile?.website_url || undefined
+        } catch (_) {}
+
+        const postContent = websiteUrl
+          ? `${articleTitle}\n\n${cleanedContent}\n\n🔗 ${websiteUrl}`
+          : `${articleTitle}\n\n${cleanedContent}`
         let postRes, postData, postId
 
         if (imageUrl) {
