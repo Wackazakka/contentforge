@@ -260,7 +260,7 @@ function PublishPage() {
         })}`
       )
       setScheduledAt('')
-      setPublishMode('now')
+      // Stay in schedule mode — don't switch to 'now' which shows confusing "Publiser nå" button
     } catch (err) {
       console.error('[publish] Schedule error:', err)
       setMessage(`❌ ${err instanceof Error ? err.message : String(err)}`)
