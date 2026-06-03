@@ -95,19 +95,22 @@ export async function GET(request: Request) {
       }
     }
 
-    // Hardkodet fallback for SinglePicker App (New Page Experience)
-    console.log('[facebook/callback] Fetching SinglePicker App page as fallback...')
-    const singlePickerAppRes = await fetch(
-      `https://graph.facebook.com/v21.0/1104756536056684?fields=id,name,access_token&access_token=${longLivedToken}`
-    )
-    const singlePickerAppData = await singlePickerAppRes.json()
-    if (singlePickerAppData.id && !pagesData.data.find((p: any) => p.id === singlePickerAppData.id)) {
-      console.log('[facebook/callback] Adding SinglePicker App from fallback fetch')
-      pagesData.data.push(singlePickerAppData)
-    } else if (singlePickerAppData.id) {
-      console.log('[facebook/callback] SinglePicker App already in pages list')
-    } else {
-      console.log('[facebook/callback] SinglePicker App fallback failed or returned error:', singlePickerAppData.error || 'No id')
+    // Hardkodet fallback for New Page Experience pages som ikke returneres av /me/accounts
+    const fallbackPageIds = [
+      '1104756536056684', // SinglePicker App
+      '1033650743168610', // Reforhandle
+    ]
+    for (const fallbackId of fallbackPageIds) {
+      const res = await fetch(
+        `https://graph.facebook.com/v21.0/${fallbackId}?fields=id,name,access_token&access_token=${longLivedToken}`
+      )
+      const data = await res.json()
+      if (data.id && !pagesData.data.find((p: any) => p.id === data.id)) {
+        console.log(`[facebook/callback] Adding page ${data.name} (${fallbackId}) from fallback fetch`)
+        pagesData.data.push(data)
+      } else if (!data.id) {
+        console.log(`[facebook/callback] Fallback fetch failed for ${fallbackId}:`, data.error || 'No id')
+      }
     }
 
     // Use service role client to save connections (bypasses RLS)
