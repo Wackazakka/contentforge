@@ -1,3 +1,8 @@
+> ## ✅ GJENNOMFØRT 2026-06-10
+> Migrasjonen er utført. ContentForge kjører på eget Supabase-prosjekt **`wxnevywhtmovangkobal`** (contentforge-prod, Frankfurt).
+> Verifisert: identiske radantall (34 tabeller, 67 RLS-policies), innlogging med gamle passord, runtime mot ny DB, ReelHome urørt.
+> Cutover-commit: `bd40a34`. Fase 5 (beskjæring) venter på stabil drift; Fase 6 utsatt på ubestemt tid.
+
 # Migrasjonsplan: Skille ContentForge ut fra ReelHomes Supabase-prosjekt
 
 *Utarbeidet: 2026-06-09 · Opus plan-agent (read-only, verifisert mot live-DB)*
