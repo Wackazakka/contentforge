@@ -8,21 +8,88 @@
     "credits": "{count} credits"
   },
   "home": {
-    "loginLink": "Log in →",
+    "nav_pricing": "Pricing",
+    "nav_login": "Log in",
     "badge": "MVP — Beta",
-    "headline": "Professional ad content in",
-    "headlineHighlight": "seconds",
-    "subtitle": "Give a brief — get finished video ads and articles in all social media formats. No design skills required.",
-    "ctaPrimary": "Get started",
-    "ctaSecondary": "See features",
-    "usedBy": "Services using CenterForge",
-    "featuresTitle": "Everything you need for content production",
-    "feature1Title": "Video ads",
-    "feature1Desc": "DALL-E 3 images + ffmpeg Ken Burns animations. Produces 16:9, 9:16 and 1:1.",
-    "feature2Title": "Articles & copy",
-    "feature2Desc": "AI-generated text tailored to tone and audience. Ready to publish.",
-    "feature3Title": "Approval workflow",
-    "feature3Desc": "Built-in review workflow. Review and approve content before publishing.",
+    "hero_a": "Professional ad content in ",
+    "hero_em": "seconds",
+    "hero_sub": "Give a brief — get finished video ads and articles in every social media format. No design skills required.",
+    "cta_primary": "Get started",
+    "cta_secondary": "See features",
+    "brief_label": "BRIEF",
+    "brief_text": "Launch our new winter collection — young, urban audience.",
+    "forge_label": "FORGING",
+    "output_label": "FINISHED CONTENT",
+    "out_article": "Article",
+    "stats": [
+      {
+        "v": "< 60s",
+        "l": "Video ready"
+      },
+      {
+        "v": "3 formats",
+        "l": "Per production"
+      },
+      {
+        "v": "4 platforms",
+        "l": "Publishing"
+      }
+    ],
+    "trust": "Services using CenterForge",
+    "feat_title": "Everything you need for content production",
+    "feat_sub": "No separate tools, no design skills required.",
+    "f1_t": "Video ads",
+    "f1_d": "DALL·E 3 images + ffmpeg Ken Burns animations. Produces 16:9, 9:16 and 1:1.",
+    "f2_t": "Articles & copy",
+    "f2_d": "AI-generated text tailored to tone and audience. Ready to publish.",
+    "f3_t": "Approval workflow",
+    "f3_d": "Built-in review workflow. Review and approve content before publishing.",
+    "mid_cta": "Try for free",
+    "price_title": "Simple, predictable pricing",
+    "price_sub": "Pay for what you use. Credits give full flexibility.",
+    "popular": "Most popular",
+    "per": "/mo",
+    "price_cta": "Get started",
+    "fine": "No lock-in. Cancel anytime. Credits do not roll over.",
+    "foot_tag": "Professional ad content in seconds.",
+    "foot_privacy": "Privacy Policy",
+    "foot_terms": "Terms of Service",
+    "tiers": [
+      {
+        "name": "Starter",
+        "price": "kr 199",
+        "popular": false,
+        "feats": [
+          "50 credits/mo",
+          "1 product",
+          "Article generation",
+          "Facebook publishing"
+        ]
+      },
+      {
+        "name": "Growth",
+        "price": "kr 499",
+        "popular": true,
+        "feats": [
+          "150 credits/mo",
+          "Unlimited products",
+          "Video + articles",
+          "All platforms",
+          "Scheduling"
+        ]
+      },
+      {
+        "name": "Pro",
+        "price": "kr 999",
+        "popular": false,
+        "feats": [
+          "400 credits/mo",
+          "Everything in Growth",
+          "Priority support",
+          "Custom branding"
+        ]
+      }
+    ],
     "footer": "CenterForge © {year} — Wackazakka"
   },
   "login": {

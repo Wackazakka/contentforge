@@ -8,21 +8,88 @@
     "credits": "{count} kreditter"
   },
   "home": {
-    "loginLink": "Logg inn →",
+    "nav_pricing": "Priser",
+    "nav_login": "Logg inn",
     "badge": "MVP — Beta",
-    "headline": "Profesjonelt annonseinnhold på",
-    "headlineHighlight": "sekunder",
-    "subtitle": "Gi en brief — få ferdige videoannonser og artikler i alle sosiale medier-formater. Ingen designferdigheter nødvendig.",
-    "ctaPrimary": "Kom i gang",
-    "ctaSecondary": "Se funksjoner",
-    "usedBy": "Tjenester som bruker CenterForge",
-    "featuresTitle": "Alt du trenger for innholdsproduksjon",
-    "feature1Title": "Videoannonser",
-    "feature1Desc": "DALL-E 3-bilder + ffmpeg Ken Burns-animasjoner. Produserer 16:9, 9:16 og 1:1.",
-    "feature2Title": "Artikler og tekst",
-    "feature2Desc": "AI-generert tekst tilpasset tone og målgruppe. Klar til publisering.",
-    "feature3Title": "Godkjenningsflyt",
-    "feature3Desc": "Innebygd gjennomgangsflyt. Gjennomgå og godkjenn innhold før publisering.",
+    "hero_a": "Profesjonelt annonseinnhold på ",
+    "hero_em": "sekunder",
+    "hero_sub": "Gi en brief — få ferdige videoannonser og artikler i alle sosiale medie-formater. Ingen designferdigheter nødvendig.",
+    "cta_primary": "Kom i gang",
+    "cta_secondary": "Se funksjoner",
+    "brief_label": "BRIEF",
+    "brief_text": "Lanser vår nye vinterkolleksjon — ung, urban målgruppe.",
+    "forge_label": "FORGER",
+    "output_label": "FERDIG INNHOLD",
+    "out_article": "Artikkel",
+    "stats": [
+      {
+        "v": "< 60s",
+        "l": "Video klar"
+      },
+      {
+        "v": "3 formater",
+        "l": "Per produksjon"
+      },
+      {
+        "v": "4 plattformer",
+        "l": "Publisering"
+      }
+    ],
+    "trust": "Tjenester som bruker CenterForge",
+    "feat_title": "Alt du trenger for innholdsproduksjon",
+    "feat_sub": "Ingen separate verktøy, ingen designkompetanse nødvendig.",
+    "f1_t": "Videoannonser",
+    "f1_d": "DALL·E 3-bilder + ffmpeg Ken Burns-animasjoner. Produserer 16:9, 9:16 og 1:1.",
+    "f2_t": "Artikler og tekst",
+    "f2_d": "AI-generert tekst tilpasset tone og målgruppe. Klar til publisering.",
+    "f3_t": "Godkjenningsflyt",
+    "f3_d": "Innebygd gjennomgangsflyt. Gjennomgå og godkjenn innhold før publisering.",
+    "mid_cta": "Prøv gratis",
+    "price_title": "Enkle, forutsigbare priser",
+    "price_sub": "Betal for det du bruker. Kreditter gir full fleksibilitet.",
+    "popular": "Mest populær",
+    "per": "/mnd",
+    "price_cta": "Kom i gang",
+    "fine": "Ingen bindingstid. Avbestill når som helst. Kreditter rulles ikke over.",
+    "foot_tag": "Profesjonelt annonseinnhold på sekunder.",
+    "foot_privacy": "Personvern",
+    "foot_terms": "Vilkår",
+    "tiers": [
+      {
+        "name": "Starter",
+        "price": "kr 199",
+        "popular": false,
+        "feats": [
+          "50 kreditter/mnd",
+          "1 produkt",
+          "Artikkel-generering",
+          "Facebook-publisering"
+        ]
+      },
+      {
+        "name": "Vekst",
+        "price": "kr 499",
+        "popular": true,
+        "feats": [
+          "150 kreditter/mnd",
+          "Ubegrenset produkter",
+          "Video + artikler",
+          "Alle plattformer",
+          "Planlegging"
+        ]
+      },
+      {
+        "name": "Pro",
+        "price": "kr 999",
+        "popular": false,
+        "feats": [
+          "400 kreditter/mnd",
+          "Alt i Vekst",
+          "Prioritert support",
+          "Egendefinert merkevare"
+        ]
+      }
+    ],
     "footer": "CenterForge © {year} — Wackazakka"
   },
   "login": {
