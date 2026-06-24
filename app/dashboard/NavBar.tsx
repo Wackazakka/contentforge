@@ -5,20 +5,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { CenterForgeLogo } from '@/components/CenterForgeLogo'
+import { LangToggle } from '@/components/LangToggle'
 
-function HexagonIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <polygon
-        points="12,2.5 20.8,7.75 20.8,16.25 12,21.5 3.2,16.25 3.2,7.75"
-        stroke="#D3D1C7"
-        strokeWidth="1"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  )
-}
+const HANKEN = 'var(--font-hanken), sans-serif'
 
 export default function NavBar() {
   const pathname = usePathname()
@@ -33,19 +23,6 @@ export default function NavBar() {
     { href: '/dashboard/calendar', label: t('calendar') },
     { href: '/dashboard/billing', label: t('billing') },
   ]
-
-  function setLocale(locale: string) {
-    document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`
-    router.refresh()
-  }
-
-  const currentLocale =
-    typeof document !== 'undefined'
-      ? document.cookie
-          .split('; ')
-          .find((row) => row.startsWith('NEXT_LOCALE='))
-          ?.split('=')[1] ?? 'en'
-      : 'en'
 
   useEffect(() => {
     const userId = session?.user?.id
@@ -62,69 +39,61 @@ export default function NavBar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 border-b" style={{ backgroundColor: '#ffffff', borderColor: '#e5e2d9' }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
-        <Link href="/dashboard" className="flex items-center gap-2 flex-shrink-0">
-          <HexagonIcon />
-          <span className="text-base font-bold tracking-tight" style={{ color: '#0C447C' }}>
-            Center<span style={{ color: '#378ADD' }}>Forge</span>
-          </span>
+    <nav
+      style={{
+        position: 'sticky', top: 0, zIndex: 50,
+        backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+        background: 'rgba(244,238,226,0.82)', borderBottom: '1px solid #E2D9C8',
+      }}
+    >
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '13px 26px', display: 'flex', alignItems: 'center', gap: 20 }}>
+        <Link href="/dashboard" style={{ textDecoration: 'none', flex: 'none' }}>
+          <CenterForgeLogo size={28} wordmarkSize={19} />
         </Link>
 
-        <div className="flex items-center gap-0.5 sm:gap-1">
+        <nav style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
           {navLinks.map(({ href, label }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
             return (
               <Link
                 key={href}
                 href={href}
-                className="px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors"
-                style={active
-                  ? { backgroundColor: '#EBF4FF', color: '#185FA5' }
-                  : { color: '#6b7280' }
-                }
+                style={{
+                  display: 'inline-flex', alignItems: 'center', fontFamily: HANKEN, fontSize: 15,
+                  fontWeight: active ? 600 : 500,
+                  color: active ? '#C5451B' : '#6B6358',
+                  background: active ? '#F8E7DB' : 'transparent',
+                  border: active ? '1px solid #EBC9B2' : '1px solid transparent',
+                  borderRadius: 999, padding: '8px 16px', textDecoration: 'none',
+                }}
               >
                 {label}
               </Link>
             )
           })}
+        </nav>
+
+        <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
           {credits !== null && (
             <Link
               href="/dashboard/billing"
-              className="ml-1 sm:ml-2 px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold border"
-              style={{ color: '#185FA5', borderColor: '#378ADD', backgroundColor: '#EBF4FF' }}
               title="Credits remaining"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: HANKEN, fontSize: 13, fontWeight: 600,
+                color: '#C5451B', background: '#F8E7DB', border: '1px solid #EBC9B2', borderRadius: 999,
+                padding: '7px 13px', textDecoration: 'none',
+              }}
             >
               {t('credits', { count: credits })}
             </Link>
           )}
 
-          {/* Language switcher */}
-          <div className="ml-1 sm:ml-2 flex items-center gap-0.5 border rounded-lg overflow-hidden text-xs font-semibold" style={{ borderColor: '#d1cec7' }}>
-            <button
-              onClick={() => setLocale('en')}
-              className="px-2 py-1.5 transition-colors"
-              style={currentLocale !== 'no'
-                ? { backgroundColor: '#185FA5', color: '#fff' }
-                : { color: '#9ca3af' }}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => setLocale('no')}
-              className="px-2 py-1.5 transition-colors"
-              style={currentLocale === 'no'
-                ? { backgroundColor: '#185FA5', color: '#fff' }
-                : { color: '#9ca3af' }}
-            >
-              NO
-            </button>
-          </div>
+          <LangToggle />
 
           <button
             onClick={handleLogout}
-            className="ml-1 sm:ml-2 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors"
-            style={{ color: '#9ca3af' }}
+            className="cf-nav-link"
+            style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 500, color: '#6B6358', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             {t('logout')}
           </button>

@@ -423,8 +423,8 @@ function PublishPage() {
   }, [publishResult, supabase])
 
   return (
-    <div className="max-w-3xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">{t('title')}</h1>
+    <div className="max-w-3xl mx-auto">
+      <h1 className="cf-h1" style={{ marginBottom: 28 }}>{t('title')}</h1>
 
       {message && (
         <div className={`mb-4 p-4 rounded-lg border text-sm ${
@@ -439,14 +439,14 @@ function PublishPage() {
       )}
 
       {/* ── Steg 1: Innhold ── */}
-      <div className="bg-white rounded-xl border p-6 mb-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{t('step1')}</p>
+      <div className="cf-panel p-6 mb-4">
+        <p className="cf-eyebrow mb-4">{t('step1')}</p>
 
         <div className="flex gap-2 mb-5">
           <button
             onClick={() => { setContentType('video'); setSelectedContent(null) }}
             className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-              contentType === 'video' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              contentType === 'video' ? 'cf-ink-btn' : 'cf-soft-btn'
             }`}
           >
             {t('videoButton')}
@@ -454,7 +454,7 @@ function PublishPage() {
           <button
             onClick={() => { setContentType('avatar'); setSelectedContent(null) }}
             className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-              contentType === 'avatar' ? 'bg-purple-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              contentType === 'avatar' ? 'bg-purple-700 text-white' : 'cf-soft-btn'
             }`}
           >
             🧑‍💼 Avatar
@@ -462,7 +462,7 @@ function PublishPage() {
           <button
             onClick={() => { setContentType('article'); setSelectedContent(null) }}
             className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-              contentType === 'article' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              contentType === 'article' ? 'cf-ink-btn' : 'cf-soft-btn'
             }`}
           >
             {t('articleButton')}
@@ -475,7 +475,7 @@ function PublishPage() {
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
+              className="cf-input"
             >
               <option value="">{t('selectProduct')}</option>
               {products.map((p) => (
@@ -507,7 +507,7 @@ function PublishPage() {
                         <div className="w-full flex items-center justify-center bg-gray-100 text-gray-400 text-2xl" style={{ height: '100px' }}>🎬</div>
                       )}
                       {isSelected && (
-                        <div className="absolute top-2 right-2 bg-[#185FA5] text-white text-xs px-2 py-0.5 rounded-full font-medium">{t('selected')}</div>
+                        <div className="absolute top-2 right-2 cf-ink-btn text-xs px-2 py-0.5 rounded-full font-medium">{t('selected')}</div>
                       )}
                       <div className="p-2">
                         <div className="flex items-start gap-1 mb-0.5">
@@ -600,8 +600,8 @@ function PublishPage() {
 
       {/* ── Steg 2: Caption + Tidspunkt ── alltid synlig når innhold er valgt */}
       {selectedContent && (
-        <div className="bg-white rounded-xl border p-6 mb-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{t('step2')}</p>
+        <div className="cf-panel p-6 mb-4">
+          <p className="cf-eyebrow mb-4">{t('step2')}</p>
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('captionLabel')}</label>
@@ -610,7 +610,7 @@ function PublishPage() {
               onChange={(e) => setCaption(e.target.value)}
               rows={4}
               placeholder={t('captionPlaceholder')}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+              className="cf-input"
             />
           </div>
 
@@ -620,7 +620,7 @@ function PublishPage() {
               <button
                 onClick={() => setPublishMode('now')}
                 className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
-                  publishMode === 'now' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  publishMode === 'now' ? 'cf-ink-btn' : 'cf-soft-btn'
                 }`}
               >
                 {t('publishNow')}
@@ -628,7 +628,7 @@ function PublishPage() {
               <button
                 onClick={() => setPublishMode('schedule')}
                 className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${
-                  publishMode === 'schedule' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  publishMode === 'schedule' ? 'cf-ink-btn' : 'cf-soft-btn'
                 }`}
               >
                 {t('schedule')}
@@ -640,7 +640,7 @@ function PublishPage() {
                 value={scheduledAt}
                 onChange={(e) => setScheduledAt(e.target.value)}
                 min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                className="cf-input"
               />
             )}
           </div>
@@ -649,14 +649,14 @@ function PublishPage() {
 
       {/* ── Steg 3: Kanal ── */}
       {selectedContent && connections.length > 0 && (
-        <div className="bg-white rounded-xl border p-6 mb-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{t('step3')}</p>
+        <div className="cf-panel p-6 mb-4">
+          <p className="cf-eyebrow mb-4">{t('step3')}</p>
 
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               onClick={() => setPublishPlatform('facebook')}
               className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                publishPlatform === 'facebook' ? 'bg-[#185FA5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                publishPlatform === 'facebook' ? 'cf-ink-btn' : 'cf-soft-btn'
               }`}
             >
               📘 Facebook
@@ -665,7 +665,7 @@ function PublishPage() {
               <button
                 onClick={() => setPublishPlatform('instagram')}
                 className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                  publishPlatform === 'instagram' ? 'bg-pink-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  publishPlatform === 'instagram' ? 'bg-pink-600 text-white' : 'cf-soft-btn'
                 }`}
               >
                 📷 Instagram
@@ -675,7 +675,7 @@ function PublishPage() {
               <button
                 onClick={() => setPublishPlatform('tiktok')}
                 className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                  publishPlatform === 'tiktok' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  publishPlatform === 'tiktok' ? 'bg-black text-white' : 'cf-soft-btn'
                 }`}
               >
                 🎵 TikTok
@@ -684,7 +684,7 @@ function PublishPage() {
             <button
               onClick={() => setPublishPlatform('linkedin')}
               className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                publishPlatform === 'linkedin' ? 'bg-[#0077B5] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                publishPlatform === 'linkedin' ? 'bg-[#0077B5] text-white' : 'cf-soft-btn'
               }`}
             >
               💼 LinkedIn
@@ -692,7 +692,7 @@ function PublishPage() {
             <button
               onClick={() => setPublishPlatform('x')}
               className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                publishPlatform === 'x' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                publishPlatform === 'x' ? 'bg-black text-white' : 'cf-soft-btn'
               }`}
             >
               𝕏 X
@@ -700,7 +700,7 @@ function PublishPage() {
             <button
               onClick={() => setPublishPlatform('reddit')}
               className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                publishPlatform === 'reddit' ? 'bg-[#FF4500] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                publishPlatform === 'reddit' ? 'bg-[#FF4500] text-white' : 'cf-soft-btn'
               }`}
             >
               🤖 Reddit
@@ -709,7 +709,7 @@ function PublishPage() {
               <button
                 onClick={() => setPublishPlatform('youtube')}
                 className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                  publishPlatform === 'youtube' ? 'bg-[#FF0000] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  publishPlatform === 'youtube' ? 'bg-[#FF0000] text-white' : 'cf-soft-btn'
                 }`}
               >
                 ▶ YouTube
@@ -771,7 +771,7 @@ function PublishPage() {
             <button
               onClick={handlePublish}
               disabled={publishing}
-              className="w-full bg-[#185FA5] hover:bg-[#0C447C] text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
+              className="w-full cf-ink-btn py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
             >
               {publishing ? t('publishingButton') : t('publishNowButton')}
             </button>
@@ -779,7 +779,7 @@ function PublishPage() {
             <button
               onClick={handleSchedule}
               disabled={scheduling || !scheduledAt}
-              className="w-full bg-[#185FA5] hover:bg-[#0C447C] text-white py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
+              className="w-full cf-ink-btn py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
             >
               {scheduling ? t('schedulingButton') : `${t('scheduleButton')}${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}`}
             </button>
@@ -788,14 +788,14 @@ function PublishPage() {
       )}
 
       {/* ── Koblede kontoer ── */}
-      <div className="bg-white rounded-xl border p-6 mb-6">
+      <div className="cf-panel p-6 mb-6">
         <h2 className="font-semibold mb-3">{t('connectedAccounts')}</h2>
         {connections.length === 0 ? (
           <div>
             <p className="text-gray-500 mb-4 text-sm">{t('noAccounts')}</p>
             {userId ? (
               <div className="flex flex-wrap gap-2">
-                <a href={`/api/auth/facebook?userId=${userId}`} className="bg-[#185FA5] text-white px-4 py-2 rounded-lg text-sm">
+                <a href={`/api/auth/facebook?userId=${userId}`} className="cf-ink-btn px-4 py-2 rounded-lg text-sm">
                   {t('connectFacebook')}
                 </a>
                 <a href={`/api/auth/tiktok?userId=${userId}`} className="bg-black text-white px-4 py-2 rounded-lg text-sm">
@@ -855,7 +855,7 @@ function PublishPage() {
 
       {/* Publiseringshistorikk */}
       {publications.length > 0 && (
-        <div className="bg-white rounded-xl border p-6 mt-6">
+        <div className="cf-panel p-6 mt-6">
           <h2 className="font-semibold mb-4">{t('publishingHistory')}</h2>
           <div className="space-y-3">
             {publications.map((p) => (

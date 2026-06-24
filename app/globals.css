@@ -41,8 +41,8 @@ body {
   display: inline-block;
   width: 1.5rem;
   height: 1.5rem;
-  border: 2px solid #d1cec7;
-  border-top-color: #185FA5;
+  border: 2px solid #e6ddcc;
+  border-top-color: #d9521c;
   border-radius: 50%;
   animation: cf-spin 0.7s linear infinite;
 }
@@ -115,6 +115,9 @@ body {
 @keyframes cf-glow  { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.85; } }
 @keyframes cf-spark { 0% { top: -4px; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
 @keyframes cf-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+/* Transform-only modal pop-in (never gates content visibility). */
+@keyframes cf-modal { from { transform: translateY(8px) scale(0.985); } to { transform: translateY(0) scale(1); } }
+.cf-anim-modal { animation: cf-modal 0.22s ease both; }
 
 .cf-anim-pulse { animation: cf-pulse 2.6s ease-in-out infinite; }
 .cf-anim-glow  { animation: cf-glow 2.6s ease-in-out infinite; }
@@ -161,6 +164,35 @@ body {
   outline: none;
 }
 .cf-input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Daylight Studio reusable surfaces */
+.cf-panel {
+  background: #fffdf8;
+  border: 1px solid #e6ddcc;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(70, 45, 20, 0.04);
+}
+.cf-eyebrow {
+  font-family: var(--font-cfmono), monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #a89c88;
+}
+.cf-h1 {
+  font-family: var(--font-serif), serif;
+  font-weight: 400;
+  font-size: clamp(32px, 4vw, 42px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #1c1a16;
+  margin: 0;
+}
+.cf-ink-btn { background: #1c1a16; color: #f4eee2; transition: background 0.15s ease; }
+.cf-ink-btn:hover { background: #34302a; }
+.cf-soft-btn { background: #f7f1e6; color: #5e564a; border: 1px solid #e6ddcc; transition: background 0.15s ease; }
+.cf-soft-btn:hover { background: #efe7d8; }
 
 /* Daylight Studio legal pages (scoped prose) */
 .cf-legal section { margin-bottom: 30px; }

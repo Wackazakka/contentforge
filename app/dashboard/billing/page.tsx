@@ -5,6 +5,9 @@ import { useAuth } from '@/lib/authContext'
 import { PLANS, PlanKey } from '@/lib/stripe'
 import { useTranslations } from 'next-intl'
 
+const HANKEN = 'var(--font-hanken), sans-serif'
+const SERIF = 'var(--font-serif), serif'
+
 interface Subscription {
   plan: PlanKey
   status: string
@@ -80,48 +83,49 @@ export default function BillingPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="text-gray-500">{t('loading')}</div>
+        <div style={{ fontFamily: HANKEN, color: '#A89C88' }}>{t('loading')}</div>
       </div>
     )
   }
 
   const planConfig = subscription?.plan ? PLANS[subscription.plan] : null
+  const eyebrow: React.CSSProperties = { fontFamily: 'var(--font-cfmono), monospace', fontSize: 11, fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#A89C88', margin: '0 0 16px' }
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6" style={{ color: '#0C447C' }}>{t('title')}</h1>
+    <div style={{ maxWidth: 640 }}>
+      <h1 className="cf-h1" style={{ marginBottom: 28 }}>{t('title')}</h1>
 
       {/* Current plan */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{t('currentPlan')}</p>
+      <div className="cf-panel" style={{ padding: 28, marginBottom: 18 }}>
+        <p style={eyebrow}>{t('currentPlan')}</p>
         {planConfig && subscription ? (
-          <div className="flex items-center justify-between">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <p className="text-xl font-bold text-gray-900">{planConfig.name}</p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 24, color: '#1C1A16', margin: '0 0 6px' }}>{planConfig.name}</p>
+              <p style={{ fontFamily: HANKEN, fontSize: 14, color: '#6B6358', margin: '0 0 3px' }}>
                 {t('status')}:{' '}
-                <span className={subscription.status === 'active' ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
+                <span style={{ color: subscription.status === 'active' ? '#3F7A4E' : '#C5451B', fontWeight: 600 }}>
                   {subscription.status}
                 </span>
               </p>
               {subscription.current_period_end && (
-                <p className="text-sm text-gray-500 mt-0.5">
+                <p style={{ fontFamily: HANKEN, fontSize: 14, color: '#6B6358', margin: 0 }}>
                   {t('renews', { date: formatDate(subscription.current_period_end) })}
                 </p>
               )}
             </div>
-            <div className="text-right">
-              <p className="text-3xl font-bold" style={{ color: '#0C447C' }}>${planConfig.price}</p>
-              <p className="text-sm text-gray-500">/mo</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+              <span style={{ fontFamily: SERIF, fontSize: 42, lineHeight: 1, color: '#1C1A16' }}>${planConfig.price}</span>
+              <span style={{ fontFamily: HANKEN, fontSize: 15, color: '#978B79' }}>/mo</span>
             </div>
           </div>
         ) : (
           <div>
-            <p className="text-gray-600 mb-3">{t('noSubscription')}</p>
+            <p style={{ fontFamily: HANKEN, fontSize: 15, color: '#6B6358', margin: '0 0 14px' }}>{t('noSubscription')}</p>
             <a
               href="/pricing"
-              className="inline-block rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors"
-              style={{ backgroundColor: '#185FA5' }}
+              className="cf-btn-ink"
+              style={{ display: 'inline-block', fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: '#F4EEE2', background: '#1C1A16', borderRadius: 999, padding: '11px 22px', textDecoration: 'none' }}
             >
               {t('viewPlans')}
             </a>
@@ -129,35 +133,36 @@ export default function BillingPage() {
         )}
 
         {planConfig && (
-          <div className="mt-5 pt-5 border-t border-gray-100">
+          <>
+            <div style={{ height: 1, background: '#E6DDCC', margin: '22px 0' }} />
             <button
               onClick={handleManage}
               disabled={portalLoading}
-              className="w-full py-2.5 rounded-xl font-semibold text-sm border transition-colors disabled:opacity-50"
-              style={{ borderColor: '#378ADD', color: '#185FA5' }}
+              className="cf-btn-ghost"
+              style={{ width: '100%', fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: '#1C1A16', background: 'transparent', border: '1px solid #D2C7B2', borderRadius: 11, padding: 13, cursor: portalLoading ? 'not-allowed' : 'pointer', opacity: portalLoading ? 0.5 : 1 }}
             >
               {portalLoading ? t('opening') : t('manageSubscription')}
             </button>
-          </div>
+          </>
         )}
       </div>
 
       {/* Credits */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{t('creditsTitle')}</p>
-        <div className="flex items-end gap-3 mb-4">
-          <p className="text-5xl font-bold" style={{ color: '#0C447C' }}>{balance ?? 0}</p>
-          <p className="text-gray-500 mb-1">{t('creditsRemaining')}</p>
+      <div className="cf-panel" style={{ padding: 28, marginBottom: 18 }}>
+        <p style={eyebrow}>{t('creditsTitle')}</p>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 20 }}>
+          <span style={{ fontFamily: SERIF, fontSize: 52, lineHeight: 1, color: '#D9521C' }}>{balance ?? 0}</span>
+          <span style={{ fontFamily: HANKEN, fontSize: 16, color: '#6B6358' }}>{t('creditsRemaining')}</span>
         </div>
         {planConfig && (
-          <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: '#EBF4FF' }}>
-            <div className="flex justify-between mb-1">
-              <span className="text-gray-600">{t('videoProduction')}</span>
-              <span className="font-semibold">{t('creditCost10')}</span>
+          <div style={{ background: '#F8E7DB', border: '1px solid #EBC9B2', borderRadius: 13, padding: '16px 18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0' }}>
+              <span style={{ fontFamily: HANKEN, fontSize: 14.5, color: '#3A352C' }}>{t('videoProduction')}</span>
+              <span style={{ fontFamily: HANKEN, fontSize: 14.5, fontWeight: 700, color: '#C5451B' }}>{t('creditCost10')}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">{t('articleGeneration')}</span>
-              <span className="font-semibold">{t('creditCost1')}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0' }}>
+              <span style={{ fontFamily: HANKEN, fontSize: 14.5, color: '#3A352C' }}>{t('articleGeneration')}</span>
+              <span style={{ fontFamily: HANKEN, fontSize: 14.5, fontWeight: 700, color: '#C5451B' }}>{t('creditCost1')}</span>
             </div>
           </div>
         )}
@@ -165,18 +170,16 @@ export default function BillingPage() {
 
       {/* Transaction history */}
       {transactions.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">{t('transactionHistory')}</p>
-          <div className="space-y-3">
+        <div className="cf-panel" style={{ padding: 28 }}>
+          <p style={eyebrow}>{t('transactionHistory')}</p>
+          <div>
             {transactions.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+              <div key={tx.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #EFE7D8' }}>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{tx.description}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{formatDate(tx.created_at)}</p>
+                  <p style={{ fontFamily: HANKEN, fontSize: 15, fontWeight: 600, color: '#1C1A16', margin: 0 }}>{tx.description}</p>
+                  <p style={{ fontFamily: 'var(--font-cfmono), monospace', fontSize: 11, letterSpacing: '0.04em', color: '#A89C88', margin: '3px 0 0' }}>{formatDate(tx.created_at)}</p>
                 </div>
-                <span
-                  className={`text-sm font-bold ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}
-                >
+                <span style={{ fontFamily: HANKEN, fontSize: 15, fontWeight: 700, color: tx.amount > 0 ? '#3F7A4E' : '#C5451B' }}>
                   {tx.amount > 0 ? '+' : ''}{tx.amount}
                 </span>
               </div>

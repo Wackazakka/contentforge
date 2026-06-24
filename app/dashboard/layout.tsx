@@ -6,9 +6,16 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col min-h-screen bg-cf-bg">
+    <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--paper)', fontFamily: 'var(--font-hanken), sans-serif', color: 'var(--ink)' }}>
+      <div className="cf-grain" aria-hidden="true" />
       <NavBar />
-      <main className="flex-1 px-4 sm:px-6 py-6 sm:py-8 max-w-5xl mx-auto w-full">
+      <main
+        style={{
+          position: 'relative', zIndex: 2,
+          maxWidth: 1080, margin: '0 auto', width: '100%',
+          padding: 'clamp(36px,5vw,64px) 26px 80px',
+        }}
+      >
         {children}
       </main>
     </div>
