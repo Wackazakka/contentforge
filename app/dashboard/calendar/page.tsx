@@ -37,19 +37,28 @@ type Product = {
   name: string
 }
 
+const HANKEN = 'var(--font-hanken), sans-serif'
+const MONO = 'var(--font-cfmono), monospace'
+
 const PLATFORMS = ['All', 'facebook', 'instagram', 'linkedin', 'tiktok', 'x', 'youtube']
 const STATUSES = ['All', 'scheduled', 'published', 'failed']
 
 const statusColor: Record<string, string> = {
-  scheduled: '#185FA5',
-  published: '#1D9E75',
-  failed: '#ef4444',
+  scheduled: '#C5451B',
+  published: '#3F7A4E',
+  failed: '#C5451B',
 }
 
 const statusBg: Record<string, string> = {
-  scheduled: '#E6F1FB',
-  published: '#EAF3DE',
-  failed: '#fef2f2',
+  scheduled: '#F8E7DB',
+  published: '#E4EFE0',
+  failed: '#FBEAE6',
+}
+
+const statusBorder: Record<string, string> = {
+  scheduled: '#EBC9B2',
+  published: '#CADBC4',
+  failed: '#F0C4B8',
 }
 
 const platformLabel: Record<string, string> = {
@@ -61,10 +70,20 @@ const platformLabel: Record<string, string> = {
   youtube: 'YouTube',
 }
 
+const filterSelectStyle: React.CSSProperties = {
+  fontFamily: HANKEN, fontSize: 14, color: '#1C1A16', background: '#FFFDF8',
+  border: '1px solid #D8CDB8', borderRadius: 9, padding: '8px 12px', cursor: 'pointer',
+}
+
 function Badge({ status }: { status: string }) {
   return (
-    <span className="px-2 py-0.5 rounded-full text-xs font-semibold capitalize"
-      style={{ backgroundColor: statusBg[status] || '#F1EFE8', color: statusColor[status] || '#6b7280' }}>
+    <span
+      style={{
+        fontFamily: HANKEN, fontSize: 12.5, fontWeight: 600, textTransform: 'capitalize',
+        color: statusColor[status] || '#6B6358', background: statusBg[status] || '#F7F1E6',
+        border: `1px solid ${statusBorder[status] || '#E6DDCC'}`, borderRadius: 999, padding: '3px 11px',
+      }}
+    >
       {status}
     </span>
   )
@@ -146,101 +165,83 @@ export default function CalendarPage() {
     })
   }
 
+  const segStyle = (active: boolean): React.CSSProperties => ({
+    fontFamily: HANKEN, fontSize: 14, fontWeight: active ? 600 : 500,
+    color: active ? '#C5451B' : '#6B6358', background: active ? '#F8E7DB' : 'transparent',
+    border: active ? '1px solid #EBC9B2' : '1px solid transparent', borderRadius: 999,
+    padding: '7px 16px', cursor: 'pointer',
+  })
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: '#0C447C' }}>{t('title')}</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setView('table')}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium"
-            style={view === 'table' ? { backgroundColor: '#EBF4FF', color: '#185FA5' } : { color: '#6b7280' }}
-          >{t('tableView')}</button>
-          <button
-            onClick={() => setView('calendar')}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium"
-            style={view === 'calendar' ? { backgroundColor: '#EBF4FF', color: '#185FA5' } : { color: '#6b7280' }}
-          >{t('calendarView')}</button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <h1 className="cf-h1">{t('title')}</h1>
+        <div style={{ display: 'inline-flex', alignItems: 'center', background: '#F0E8D9', border: '1px solid #E0D7C6', borderRadius: 999, padding: 3 }}>
+          <button onClick={() => setView('table')} style={segStyle(view === 'table')}>{t('tableView')}</button>
+          <button onClick={() => setView('calendar')} style={segStyle(view === 'calendar')}>{t('calendarView')}</button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 mb-6 flex-wrap">
-        <div>
-          <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>{t('platformFilter')}</label>
-          <select
-            value={platformFilter}
-            onChange={e => setPlatformFilter(e.target.value)}
-            className="text-sm rounded-lg px-3 py-1.5 border"
-            style={{ backgroundColor: '#ffffff', borderColor: '#d1cec7', color: '#2C2C2A' }}
-          >
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B6358' }}>{t('platformFilter')}</span>
+          <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} style={filterSelectStyle}>
             {PLATFORMS.map(p => <option key={p}>{p}</option>)}
           </select>
         </div>
-        <div>
-          <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>{t('statusFilter')}</label>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="text-sm rounded-lg px-3 py-1.5 border"
-            style={{ backgroundColor: '#ffffff', borderColor: '#d1cec7', color: '#2C2C2A' }}
-          >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B6358' }}>{t('statusFilter')}</span>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={filterSelectStyle}>
             {STATUSES.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
         {products.length > 0 && (
-          <div>
-            <label className="text-xs font-medium mr-1" style={{ color: '#6b7280' }}>{t('productFilter')}</label>
-            <select
-              value={productFilter}
-              onChange={e => setProductFilter(e.target.value)}
-              className="text-sm rounded-lg px-3 py-1.5 border"
-              style={{ backgroundColor: '#ffffff', borderColor: '#d1cec7', color: '#2C2C2A' }}
-            >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B6358' }}>{t('productFilter')}</span>
+            <select value={productFilter} onChange={e => setProductFilter(e.target.value)} style={filterSelectStyle}>
               <option value="All">{t('allProducts')}</option>
               {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
         )}
-        <div className="text-xs self-end pb-1.5" style={{ color: '#9ca3af' }}>{t('posts', { count: filtered.length })}</div>
+        <span style={{ fontFamily: MONO, fontSize: 12, letterSpacing: '0.04em', color: '#A89C88' }}>{t('posts', { count: filtered.length })}</span>
       </div>
 
       {loading ? (
-        <p className="text-sm" style={{ color: '#9ca3af' }}>{t('loading')}</p>
+        <p style={{ fontFamily: HANKEN, fontSize: 14, color: '#A89C88' }}>{t('loading')}</p>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border p-10 text-center" style={{ borderColor: '#e5e2d9', backgroundColor: '#ffffff' }}>
-          <p className="text-sm" style={{ color: '#9ca3af' }}>{t('noPostsFound')}</p>
+        <div className="cf-panel" style={{ padding: 40, textAlign: 'center' }}>
+          <p style={{ fontFamily: HANKEN, fontSize: 14, color: '#A89C88', margin: 0 }}>{t('noPostsFound')}</p>
         </div>
       ) : view === 'table' ? (
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#e5e2d9', backgroundColor: '#ffffff' }}>
-          <table className="w-full text-sm">
+        <div className="cf-panel" style={{ padding: '6px 26px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #e5e2d9', backgroundColor: '#fafaf8' }}>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>{t('dateHeader')}</th>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>{t('platformHeader')}</th>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>{t('typeHeader')}</th>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: '#6b7280' }}>{t('statusHeader')}</th>
-                <th className="px-4 py-3" />
+              <tr style={{ borderBottom: '1px solid #E6DDCC' }}>
+                {[t('dateHeader'), t('platformHeader'), t('typeHeader'), t('statusHeader')].map((h, i) => (
+                  <th key={i} style={{ textAlign: 'left', padding: '16px 8px 13px 0', fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#A89C88' }}>{h}</th>
+                ))}
+                <th style={{ padding: '16px 0 13px' }} />
               </tr>
             </thead>
             <tbody>
-              {filtered.map((entry, i) => (
-                <tr key={entry.id} style={{ borderTop: i > 0 ? '1px solid #f0ede6' : undefined }}>
-                  <td className="px-4 py-3" style={{ color: '#2C2C2A' }}>
+              {filtered.map((entry) => (
+                <tr key={entry.id} style={{ borderTop: '1px solid #EFE7D8' }}>
+                  <td style={{ padding: '15px 8px 15px 0', fontFamily: HANKEN, fontSize: 14.5, color: '#1C1A16' }}>
                     {new Date(entry.date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </td>
-                  <td className="px-4 py-3 capitalize" style={{ color: '#2C2C2A' }}>
+                  <td style={{ padding: '15px 8px', fontFamily: HANKEN, fontSize: 14.5, color: '#3A352C', textTransform: 'capitalize' }}>
                     {platformLabel[entry.platform] || entry.platform}
                   </td>
-                  <td className="px-4 py-3 capitalize" style={{ color: '#6b7280' }}>{entry.content_type}</td>
-                  <td className="px-4 py-3"><Badge status={entry.status} /></td>
-                  <td className="px-4 py-3 text-right">
+                  <td style={{ padding: '15px 8px', fontFamily: HANKEN, fontSize: 14, color: '#6B6358', textTransform: 'capitalize' }}>{entry.content_type}</td>
+                  <td style={{ padding: '15px 8px' }}><Badge status={entry.status} /></td>
+                  <td style={{ padding: '15px 0', textAlign: 'right' }}>
                     {entry.isScheduled && (
                       <button
                         onClick={() => handleDelete(entry)}
                         disabled={deleting === entry.id}
-                        className="text-xs px-2 py-1 rounded"
-                        style={{ color: '#ef4444', backgroundColor: '#fef2f2' }}
+                        style={{ fontFamily: HANKEN, fontSize: 12.5, fontWeight: 600, color: '#C5451B', background: '#FBEAE6', border: '1px solid #F0C4B8', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
                       >
                         {deleting === entry.id ? '...' : t('deleteButton')}
                       </button>
@@ -253,37 +254,37 @@ export default function CalendarPage() {
         </div>
       ) : (
         /* Calendar view */
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#e5e2d9', backgroundColor: '#ffffff' }}>
-          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #e5e2d9' }}>
-            <button onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} className="text-lg px-2" style={{ color: '#6b7280' }}>‹</button>
-            <span className="font-semibold capitalize" style={{ color: '#0C447C' }}>{monthLabel}</span>
-            <button onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} className="text-lg px-2" style={{ color: '#6b7280' }}>›</button>
+        <div className="cf-panel" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <button onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} style={{ fontSize: 20, padding: '0 8px', color: '#6B6358', background: 'transparent', border: 'none', cursor: 'pointer' }}>‹</button>
+            <span style={{ fontFamily: 'var(--font-serif), serif', fontSize: 24, color: '#1C1A16', textTransform: 'capitalize' }}>{monthLabel}</span>
+            <button onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} style={{ fontSize: 20, padding: '0 8px', color: '#6B6358', background: 'transparent', border: 'none', cursor: 'pointer' }}>›</button>
           </div>
-          <div className="grid grid-cols-7">
-            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-              <div key={d} className="text-center text-xs font-medium py-2" style={{ color: '#9ca3af', borderBottom: '1px solid #f0ede6' }}>{d}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 8, marginBottom: 8 }}>
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+              <div key={d} style={{ textAlign: 'center', fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#A89C88' }}>{d}</div>
             ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 8 }}>
             {Array.from({ length: (firstDay === 0 ? 6 : firstDay - 1) }).map((_, i) => (
-              <div key={`empty-${i}`} style={{ borderBottom: '1px solid #f0ede6', borderRight: '1px solid #f0ede6', minHeight: 72 }} />
+              <div key={`empty-${i}`} style={{ minHeight: 62 }} />
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1
               const dayEntries = entriesForDay(day)
               const isToday = new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year
               return (
-                <div key={day} className="p-1" style={{ borderBottom: '1px solid #f0ede6', borderRight: '1px solid #f0ede6', minHeight: 72 }}>
-                  <div className="text-xs mb-1 font-medium w-6 h-6 flex items-center justify-center rounded-full"
-                    style={isToday ? { backgroundColor: '#185FA5', color: '#fff' } : { color: '#6b7280' }}>
+                <div key={day} style={{ position: 'relative', minHeight: 62, background: '#F7F1E6', border: '1px solid #EFE7D8', borderRadius: 9, padding: 8 }}>
+                  <div style={{ fontFamily: HANKEN, fontSize: 13, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', ...(isToday ? { background: '#D9521C', color: '#fff', fontWeight: 600 } : { color: '#6B6358' }) }}>
                     {day}
                   </div>
                   {dayEntries.slice(0, 3).map(e => (
-                    <div key={e.id} className="text-xs px-1 py-0.5 rounded mb-0.5 truncate"
-                      style={{ backgroundColor: statusBg[e.status], color: statusColor[e.status] }}>
+                    <div key={e.id} style={{ fontFamily: HANKEN, fontSize: 11, padding: '1px 5px', borderRadius: 5, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: statusBg[e.status], color: statusColor[e.status] }}>
                       {platformLabel[e.platform] || e.platform}
                     </div>
                   ))}
                   {dayEntries.length > 3 && (
-                    <div className="text-xs" style={{ color: '#9ca3af' }}>{t('more', { count: dayEntries.length - 3 })}</div>
+                    <div style={{ fontFamily: HANKEN, fontSize: 11, color: '#A89C88', marginTop: 2 }}>{t('more', { count: dayEntries.length - 3 })}</div>
                   )}
                 </div>
               )

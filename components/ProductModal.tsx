@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 
+const HANKEN = 'var(--font-hanken), sans-serif'
+const SERIF = 'var(--font-serif), serif'
+
 interface ProductModalProps {
   isOpen: boolean
   onClose: () => void
@@ -10,11 +13,13 @@ interface ProductModalProps {
   isLoading?: boolean
 }
 
+const labelStyle = { display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: '#3A352C', marginBottom: 8 } as const
+
 export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: ProductModalProps) {
   const t = useTranslations('productModal')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('produkt')
+  const [category, setCategory] = useState('product')
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,74 +46,78 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('title')}</h2>
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(28,26,22,0.45)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="cf-anim-modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 520, background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 20, padding: 32, boxShadow: '0 40px 80px -30px rgba(40,25,10,0.5)' }}
+      >
+        <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 32, lineHeight: 1, color: '#1C1A16', margin: '0 0 22px' }}>{t('title')}</h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700">{error}</p>
+          <div style={{ background: '#FBEAE6', border: '1px solid #F0C4B8', borderRadius: 11, padding: '13px 16px', fontFamily: HANKEN, fontSize: 14.5, fontWeight: 600, color: '#C5451B', marginBottom: 20 }}>
+            {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('productNameLabel')}
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
-              placeholder={t('productNamePlaceholder')}
-            />
-          </div>
+        <form onSubmit={handleSubmit}>
+          <label style={labelStyle}>{t('productNameLabel')}</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isLoading}
+            className="cf-input"
+            style={{ marginBottom: 20 }}
+            placeholder={t('productNamePlaceholder')}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('descriptionLabel')}
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
-              rows={3}
-              placeholder={t('descriptionPlaceholder')}
-            />
-          </div>
+          <label style={labelStyle}>{t('descriptionLabel')}</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={isLoading}
+            className="cf-input"
+            style={{ marginBottom: 20, resize: 'vertical' }}
+            rows={3}
+            placeholder={t('descriptionPlaceholder')}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('categoryLabel')}
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              disabled={isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
-            >
-              <option value="product">{t('categoryProduct')}</option>
-              <option value="brand">{t('categoryBrand')}</option>
-              <option value="service">{t('categoryService')}</option>
-            </select>
-          </div>
+          <label style={labelStyle}>{t('categoryLabel')}</label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            disabled={isLoading}
+            className="cf-input"
+            style={{ marginBottom: 28, cursor: 'pointer' }}
+          >
+            <option value="product">{t('categoryProduct')}</option>
+            <option value="brand">{t('categoryBrand')}</option>
+            <option value="service">{t('categoryService')}</option>
+          </select>
 
-          <div className="flex gap-3 pt-4">
+          <div style={{ display: 'flex', gap: 12 }}>
             <button
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50"
+              className="cf-btn-ghost"
+              style={{ flex: 1, fontFamily: HANKEN, fontWeight: 600, fontSize: 15, color: '#1C1A16', background: 'transparent', border: '1px solid #D2C7B2', borderRadius: 11, padding: 13, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1 }}
             >
               {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-[#185FA5] text-white rounded-lg font-medium hover:bg-[#0C447C] disabled:opacity-50"
+              className="cf-btn-ink"
+              style={{ flex: 1.4, fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: '#F4EEE2', background: '#1C1A16', border: 'none', borderRadius: 11, padding: 13, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1 }}
             >
               {isLoading ? t('creating') : t('createProduct')}
             </button>

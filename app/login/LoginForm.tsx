@@ -5,20 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
-
-function HexagonIcon() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <polygon
-        points="12,2.5 20.8,7.75 20.8,16.25 12,21.5 3.2,16.25 3.2,7.75"
-        stroke="#378ADD"
-        strokeWidth="1.75"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  )
-}
+import { AuthShell, AuthField, AuthSubmit, AuthBanner, AuthSwitch, emberLink } from '@/components/AuthUI'
 
 export function LoginForm() {
   const router = useRouter()
@@ -68,81 +55,40 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8 border border-gray-200">
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <HexagonIcon />
-          <span className="text-2xl font-bold" style={{ color: '#0C447C' }}>
-            Center<span style={{ color: '#378ADD' }}>Forge</span>
-          </span>
-        </div>
-        <p className="text-sm text-gray-500">{t('subtitle')}</p>
-      </div>
+    <AuthShell title={t('title')} subtitle={t('subtitle')}>
+      {message && <AuthBanner variant="success">{message}</AuthBanner>}
+      {error && <AuthBanner variant="error">{error}</AuthBanner>}
 
-      {message && (
-        <div className="mb-5 p-4 rounded-lg bg-green-50 border border-green-200">
-          <p className="text-sm text-green-700">{message}</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-5 p-4 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            {t('emailLabel')}
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            disabled={loading}
-            className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-            placeholder={t('emailPlaceholder')}
-          />
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-sm font-medium text-gray-700">
-              {t('passwordLabel')}
-            </label>
-            <Link href="/forgot-password" className="text-xs font-medium hover:underline" style={{ color: '#185FA5' }}>
+      <form onSubmit={handleSubmit}>
+        <AuthField
+          label={t('emailLabel')}
+          type="email"
+          name="email"
+          autoComplete="email"
+          value={form.email}
+          onChange={handleChange}
+          disabled={loading}
+          placeholder={t('emailPlaceholder')}
+        />
+        <AuthField
+          label={t('passwordLabel')}
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          value={form.password}
+          onChange={handleChange}
+          disabled={loading}
+          placeholder={t('passwordPlaceholder')}
+          rightSlot={
+            <Link href="/forgot-password" style={{ ...emberLink, fontSize: 13.5, fontWeight: 600 }}>
               {t('forgotPassword')}
             </Link>
-          </div>
-          <input
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            disabled={loading}
-            className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-            placeholder={t('passwordPlaceholder')}
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2.5 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-          style={{ backgroundColor: '#185FA5' }}
-        >
-          {loading ? t('signingIn') : t('signIn')}
-        </button>
+          }
+        />
+        <AuthSubmit loading={loading} loadingLabel={t('signingIn')}>{t('signIn')}</AuthSubmit>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-400">
-        {t('noAccount')}{' '}
-        <Link href="/register" className="font-medium hover:underline" style={{ color: '#185FA5' }}>
-          {t('signUp')}
-        </Link>
-      </p>
-    </div>
+      <AuthSwitch prompt={t('noAccount')} linkLabel={t('signUp')} href="/register" />
+    </AuthShell>
   )
 }

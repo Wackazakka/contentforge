@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
+import { AuthShell, AuthField, AuthSubmit, AuthBanner } from '@/components/AuthUI'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -47,61 +48,43 @@ export default function ResetPasswordPage() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#F1EFE8' }}>
-        <div className="text-gray-500">{t('verifying')}</div>
+      <div
+        className="min-h-screen flex items-center justify-center px-4"
+        style={{ background: 'var(--paper)', color: '#6B6358', fontFamily: 'var(--font-hanken), sans-serif', fontSize: 15 }}
+      >
+        {t('verifying')}
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#F1EFE8' }}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8 border border-gray-200">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold mb-1" style={{ color: '#0C447C' }}>{t('title')}</h1>
-          <p className="text-sm text-gray-500">{t('subtitle')}</p>
-        </div>
+    <AuthShell title={t('title')} subtitle={t('subtitle')}>
+      {error && <AuthBanner variant="error">{error}</AuthBanner>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('newPasswordLabel')}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-              className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50"
-              placeholder="••••••••"
-            />
-            <p className="text-xs text-gray-400 mt-1">{t('passwordHint')}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('confirmPasswordLabel')}</label>
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              required
-              disabled={loading}
-              className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50"
-              placeholder="••••••••"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 text-white text-sm font-semibold rounded-lg disabled:opacity-50"
-            style={{ backgroundColor: '#185FA5' }}
-          >
-            {loading ? t('saving') : t('setNewPassword')}
-          </button>
-        </form>
-      </div>
-    </div>
+      <form onSubmit={handleSubmit}>
+        <AuthField
+          label={t('newPasswordLabel')}
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          disabled={loading}
+          placeholder="••••••••"
+          hint={t('passwordHint')}
+        />
+        <AuthField
+          label={t('confirmPasswordLabel')}
+          type="password"
+          autoComplete="new-password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          required
+          disabled={loading}
+          placeholder="••••••••"
+        />
+        <AuthSubmit loading={loading} loadingLabel={t('saving')}>{t('setNewPassword')}</AuthSubmit>
+      </form>
+    </AuthShell>
   )
 }
