@@ -476,7 +476,7 @@ export default function ProductPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cf-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--paper)] flex items-center justify-center">
         <div className="text-gray-600">{t('loading')}</div>
       </div>
     )
@@ -484,9 +484,9 @@ export default function ProductPage() {
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-cf-bg">
+      <div className="min-h-screen bg-[var(--paper)]">
         <div className="max-w-6xl mx-auto px-6 py-8">
-          <Link href="/dashboard" className="text-[#185FA5] hover:text-[#0C447C] mb-4 inline-block">
+          <Link href="/dashboard" className="text-[#C5451B] hover:text-[#1C1A16] mb-4 inline-block">
             {t('backToDashboard')}
           </Link>
           <div className="text-center py-12">
@@ -513,11 +513,11 @@ export default function ProductPage() {
   )
 
   return (
-    <div className="min-h-screen bg-cf-bg">
+    <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Header */}
         <div className="mb-6">
-          <Link href="/dashboard" className="text-sm font-medium mb-3 inline-block" style={{ color: '#185FA5' }}>
+          <Link href="/dashboard" className="text-sm font-medium mb-3 inline-block" style={{ color: '#C5451B' }}>
             {t('backToDashboard')}
           </Link>
           <div className="flex items-start justify-between gap-4">
@@ -564,7 +564,7 @@ export default function ProductPage() {
                   value={profileForm.logo_url}
                   onChange={(e) => setProfileForm({ ...profileForm, logo_url: e.target.value })}
                   placeholder="https://example.com/logo.png"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
                 />
                 <span className="text-gray-400 text-sm">{t('or')}</span>
                 <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm border border-gray-300 transition-colors">
@@ -594,7 +594,7 @@ export default function ProductPage() {
                   value={profileForm.article_logo_url}
                   onChange={(e) => setProfileForm({ ...profileForm, article_logo_url: e.target.value })}
                   placeholder="https://example.com/article-logo.png"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
                 />
                 <span className="text-gray-400 text-sm">{t('or')}</span>
                 <label className="cursor-pointer px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm border border-gray-300 transition-colors">
@@ -631,7 +631,7 @@ export default function ProductPage() {
                   value={profileForm.primary_color}
                   onChange={(e) => setProfileForm({ ...profileForm, primary_color: e.target.value })}
                   placeholder="#000000"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
                 />
               </div>
             </div>
@@ -654,7 +654,7 @@ export default function ProductPage() {
                     setProfileForm({ ...profileForm, secondary_color: e.target.value })
                   }
                   placeholder="#000000"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
                 />
               </div>
             </div>
@@ -673,7 +673,7 @@ export default function ProductPage() {
                   value={profileForm.accent_color}
                   onChange={(e) => setProfileForm({ ...profileForm, accent_color: e.target.value })}
                   placeholder="#000000"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
                 />
               </div>
             </div>
@@ -685,7 +685,7 @@ export default function ProductPage() {
                 value={profileForm.font_family}
                 onChange={(e) => setProfileForm({ ...profileForm, font_family: e.target.value })}
                 placeholder={t('fontFamilyPlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
               />
             </div>
 
@@ -696,7 +696,7 @@ export default function ProductPage() {
                 onChange={(e) => setProfileForm({ ...profileForm, brand_voice: e.target.value })}
                 placeholder={t('brandVoicePlaceholder')}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
               />
             </div>
 
@@ -711,7 +711,7 @@ export default function ProductPage() {
                 }
                 placeholder={t('brandGuidelinesPlaceholder')}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
               />
             </div>
 
@@ -722,7 +722,7 @@ export default function ProductPage() {
                 value={(profileForm as any).website_url || ""}
                 onChange={(e) => setProfileForm({ ...profileForm, website_url: e.target.value } as any)}
                 placeholder={t('websiteUrlPlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
               />
               <p className="text-xs text-gray-400 mt-1">{t('websiteUrlHint')}</p>
             </div>
@@ -734,7 +734,7 @@ export default function ProductPage() {
                 value={(profileForm as any).cta_text || ''}
                 onChange={(e) => setProfileForm({ ...profileForm, cta_text: e.target.value } as any)}
                 placeholder={t('ctaTextPlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
               />
               <p className="text-xs text-gray-400 mt-1">{t('ctaTextHint')}</p>
             </div>
@@ -743,7 +743,7 @@ export default function ProductPage() {
               onClick={handleSaveProfile}
               disabled={profileSaving}
               className="w-full disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-              style={{ backgroundColor: profileSaving ? undefined : '#185FA5' }}
+              style={{ backgroundColor: profileSaving ? undefined : '#C5451B' }}
             >
               {profileSaving ? t('saving') : t('saveProfile')}
             </button>
@@ -758,7 +758,7 @@ export default function ProductPage() {
           <div className="grid sm:grid-cols-2 gap-3">
             <Link
               href={`/dashboard/products/${productId}/video/draft/new`}
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#185FA5] hover:bg-[#EBF4FF] transition-all text-left block"
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#C5451B] hover:bg-[#F8E7DB] transition-all text-left block"
             >
               <div className="text-2xl mb-2">🎬</div>
               <h3 className="font-semibold text-gray-900">{t('createVideoApproval')}</h3>
@@ -785,7 +785,7 @@ export default function ProductPage() {
 
             <button
               onClick={() => router.push(`/dashboard/products/${productId}/article`)}
-              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#1D9E75] hover:bg-[#f0fdf8] transition-all text-left"
+              className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#3F7A4E] hover:bg-[#f0fdf8] transition-all text-left"
             >
               <div className="text-2xl mb-2">📝</div>
               <h3 className="font-semibold text-gray-900">{t('createArticle')}</h3>
@@ -903,7 +903,7 @@ export default function ProductPage() {
                                   `/dashboard/publish?type=video&job_id=${job.id}&product_id=${productId}`
                                 )
                               }
-                              className="flex-1 text-center text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors" style={{ backgroundColor: '#185FA5' }}
+                              className="flex-1 text-center text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors" style={{ backgroundColor: '#C5451B' }}
                             >
                               {t('publish')}
                             </button>
@@ -1082,7 +1082,7 @@ export default function ProductPage() {
                                   `/dashboard/publish?type=video&job_id=${video.job_id}&product_id=${productId}`
                                 )
                               }
-                              className="flex-1 text-center text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors" style={{ backgroundColor: '#185FA5' }}
+                              className="flex-1 text-center text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors" style={{ backgroundColor: '#C5451B' }}
                             >
                               {t('publish')}
                             </button>
@@ -1202,7 +1202,7 @@ export default function ProductPage() {
                               >
                                 {article.title}
                               </a>
-                              <span className="inline-block px-2 py-0.5 text-xs font-medium rounded capitalize" style={{ backgroundColor: '#EBF4FF', color: '#185FA5' }}>
+                              <span className="inline-block px-2 py-0.5 text-xs font-medium rounded capitalize" style={{ backgroundColor: '#F8E7DB', color: '#C5451B' }}>
                                 {article.platform}
                               </span>
                             </div>
@@ -1222,7 +1222,7 @@ export default function ProductPage() {
                                   )
                                 }
                                 className="px-3 py-1.5 text-white rounded-lg text-xs font-semibold transition-colors"
-                                style={{ backgroundColor: '#185FA5' }}
+                                style={{ backgroundColor: '#C5451B' }}
                               >
                                 {t('publish')}
                               </button>

@@ -146,7 +146,7 @@ export default function ArticleDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cf-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--paper)] flex items-center justify-center">
         <div className="text-gray-600">{t('loading')}</div>
       </div>
     )
@@ -154,7 +154,7 @@ export default function ArticleDetailPage() {
 
   if (error || !article) {
     return (
-      <div className="min-h-screen bg-cf-bg">
+      <div className="min-h-screen bg-[var(--paper)]">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <Link href={`/dashboard/products/${productId}`} className="hover:underline mb-4 inline-block">
             {t('backToProduct')}
@@ -168,7 +168,7 @@ export default function ArticleDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cf-bg">
+    <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link href={`/dashboard/products/${productId}`} className="hover:underline mb-6 inline-block">
           {t('backToProduct')}
@@ -177,7 +177,7 @@ export default function ArticleDetailPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-8">
           {/* Platform Badge */}
           <div className="mb-6">
-            <span className="inline-block px-4 py-2 bg-[#EBF4FF] text-[#185FA5] rounded-full text-sm font-medium capitalize">
+            <span className="inline-block px-4 py-2 bg-[#F8E7DB] text-[#C5451B] rounded-full text-sm font-medium capitalize">
               {article.platform}
             </span>
           </div>
@@ -237,13 +237,13 @@ export default function ArticleDetailPage() {
                 value={editDraft}
                 onChange={(e) => setEditDraft(e.target.value)}
                 rows={16}
-                className="w-full px-3 py-2 border border-blue-400 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#185FA5] resize-y"
+                className="w-full px-3 py-2 border border-blue-400 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#C5451B] resize-y"
               />
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={saveEdit}
                   disabled={saving}
-                  className="px-4 py-2 bg-[#185FA5] hover:bg-[#0C447C] disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="px-4 py-2 bg-[#C5451B] hover:bg-[#1C1A16] disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   {saving ? t('saving') : t('save')}
                 </button>
@@ -267,7 +267,7 @@ export default function ArticleDetailPage() {
           <div className="flex flex-wrap gap-3 items-center">
             <Link
               href={`/dashboard/publish?type=article&content_id=${article.id}&product_id=${productId}`}
-              className="inline-flex items-center px-5 py-2 bg-[#185FA5] hover:bg-[#0C447C] text-white font-medium rounded-lg transition-colors"
+              className="inline-flex items-center px-5 py-2 bg-[#C5451B] hover:bg-[#1C1A16] text-white font-medium rounded-lg transition-colors"
             >
               {t('publish')}
             </Link>

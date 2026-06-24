@@ -383,7 +383,7 @@ export default function DraftPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cf-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--paper)] flex items-center justify-center">
         <div className="text-gray-600">{t('loadingDraft')}</div>
       </div>
     )
@@ -391,9 +391,9 @@ export default function DraftPage() {
 
   if (error || !draft) {
     return (
-      <div className="min-h-screen bg-cf-bg">
+      <div className="min-h-screen bg-[var(--paper)]">
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[#185FA5] hover:text-[#0C447C] mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[#C5451B] hover:text-[#1C1A16] mb-4 inline-block">
             {t('backToProduct')}
           </Link>
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">{error || t('draftNotFound')}</div>
@@ -403,11 +403,11 @@ export default function DraftPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cf-bg">
+    <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[#185FA5] hover:text-[#0C447C] mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[#C5451B] hover:text-[#1C1A16] mb-4 inline-block">
             {t('backToProduct')}
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
@@ -419,10 +419,10 @@ export default function DraftPage() {
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg px-5 py-4 flex items-center gap-3">
             <div className="w-5 h-5 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-[#0C447C]">
+              <p className="text-sm font-medium text-[#1C1A16]">
                 {t('generatingImages', { done: draft.segments.length - generatingImages.size, total: draft.segments.length })}
               </p>
-              <p className="text-xs text-[#185FA5] mt-0.5">{t('generatingImagesHint')}</p>
+              <p className="text-xs text-[#C5451B] mt-0.5">{t('generatingImagesHint')}</p>
             </div>
           </div>
         )}
@@ -475,7 +475,7 @@ export default function DraftPage() {
                           updatedSegments[index].text = e.target.value
                           setDraft({ ...draft, segments: updatedSegments })
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
                         rows={2}
                       />
                     </div>
@@ -490,7 +490,7 @@ export default function DraftPage() {
                           updatedSegments[index].voiceover = e.target.value
                           setDraft({ ...draft, segments: updatedSegments })
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5]"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
                         rows={3}
                       />
 
@@ -534,7 +534,7 @@ export default function DraftPage() {
                       className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                         segment.approved
                           ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-[#185FA5] hover:bg-[#0C447C] text-white'
+                          : 'bg-[#C5451B] hover:bg-[#1C1A16] text-white'
                       }`}
                     >
                       {segment.approved ? t('approvedButton') : t('approveButton')}

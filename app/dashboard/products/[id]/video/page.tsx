@@ -115,13 +115,13 @@ export default function VideoProductionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cf-bg">
+    <div className="min-h-screen bg-[var(--paper)]">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-6 py-6">
           <Link
             href={`/dashboard/products/${productId}`}
-            className="text-[#185FA5] hover:text-[#0C447C] text-sm font-medium mb-2 inline-block"
+            className="text-[#C5451B] hover:text-[#1C1A16] text-sm font-medium mb-2 inline-block"
           >
             {t('backToProduct')}
           </Link>
@@ -153,7 +153,7 @@ export default function VideoProductionPage() {
               value={campaignName}
               onChange={(e) => setCampaignName(e.target.value)}
               disabled={loading}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] disabled:bg-gray-100"
               placeholder={t('campaignNamePlaceholder')}
             />
           </div>
@@ -168,7 +168,7 @@ export default function VideoProductionPage() {
               value={headline}
               onChange={(e) => setHeadline(e.target.value)}
               disabled={loading}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] disabled:bg-gray-100"
               placeholder={t('headlinePlaceholder')}
             />
           </div>
@@ -183,7 +183,7 @@ export default function VideoProductionPage() {
               onChange={(e) => setBodyCopy(e.target.value)}
               disabled={loading}
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] disabled:bg-gray-100"
               placeholder={t('descriptionPlaceholder')}
             />
           </div>
@@ -198,7 +198,7 @@ export default function VideoProductionPage() {
               value={cta}
               onChange={(e) => setCta(e.target.value)}
               disabled={loading}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] disabled:bg-gray-100"
               placeholder={t('ctaPlaceholder')}
             />
           </div>
@@ -212,7 +212,7 @@ export default function VideoProductionPage() {
               value={tone}
               onChange={(e) => setTone(e.target.value)}
               disabled={loading}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#185FA5] disabled:bg-gray-100"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] disabled:bg-gray-100"
             >
               <option value="professional">{t('toneProfessional')}</option>
               <option value="friendly">{t('toneFriendly')}</option>
@@ -259,7 +259,7 @@ export default function VideoProductionPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-[#185FA5] text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 px-4 py-3 bg-[#C5451B] text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
             >
               {loading ? t('starting') : t('startProduction')}
             </button>

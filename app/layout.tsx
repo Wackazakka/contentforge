@@ -115,7 +115,7 @@ export default async function RootLayout({
           strategy="afterInteractive"
         />
       </head>
-      <body className="min-h-full flex flex-col bg-cf-bg text-cf-dark">
+      <body className="min-h-full flex flex-col" style={{ background: "var(--paper)", color: "var(--ink)" }}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthProvider>{children}</AuthProvider>
         </NextIntlClientProvider>

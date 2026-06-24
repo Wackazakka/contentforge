@@ -32,7 +32,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">{label}</p>
-      <p className="text-3xl font-bold" style={{ color: '#0C447C' }}>{value}</p>
+      <p className="text-3xl font-bold" style={{ color: '#1C1A16' }}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
   )
@@ -101,7 +101,7 @@ export default function AdminPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6" style={{ color: '#0C447C' }}>Overview</h1>
+      <h1 className="text-2xl font-bold mb-6" style={{ color: '#1C1A16' }}>Overview</h1>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -156,8 +156,8 @@ export default function AdminPage() {
                         <span
                           className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold"
                           style={{
-                            backgroundColor: user.sub_status === 'active' ? '#EBF4FF' : '#FEF2F2',
-                            color: user.sub_status === 'active' ? '#185FA5' : '#DC2626',
+                            backgroundColor: user.sub_status === 'active' ? '#F8E7DB' : '#FEF2F2',
+                            color: user.sub_status === 'active' ? '#C5451B' : '#DC2626',
                           }}
                         >
                           {PLANS[user.plan]?.name ?? user.plan}
@@ -166,7 +166,7 @@ export default function AdminPage() {
                         <span className="text-gray-400 text-xs">Free</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold" style={{ color: '#0C447C' }}>
+                    <td className="px-4 py-3 text-right font-semibold" style={{ color: '#1C1A16' }}>
                       {user.balance}
                     </td>
                     <td className="px-4 py-3 text-gray-500">{formatDate(user.created_at)}</td>
@@ -179,7 +179,7 @@ export default function AdminPage() {
                           setAdjustNote('')
                         }}
                         className="text-xs font-medium hover:underline"
-                        style={{ color: '#185FA5' }}
+                        style={{ color: '#C5451B' }}
                       >
                         {adjustingId === user.id ? 'Cancel' : 'Adjust credits'}
                       </button>
@@ -207,7 +207,7 @@ export default function AdminPage() {
                             onClick={() => handleAdjust(user.id)}
                             disabled={adjusting || !adjustAmount || parseInt(adjustAmount) === 0}
                             className="text-sm font-semibold text-white px-4 py-1.5 rounded-lg disabled:opacity-50"
-                            style={{ backgroundColor: '#185FA5' }}
+                            style={{ backgroundColor: '#C5451B' }}
                           >
                             {adjusting ? 'Saving...' : 'Apply'}
                           </button>

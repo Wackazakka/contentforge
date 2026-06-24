@@ -432,7 +432,7 @@ function PublishPage() {
             ? 'bg-green-50 border-green-200 text-green-800'
             : message.startsWith('❌')
             ? 'bg-red-50 border-red-200 text-red-700'
-            : 'bg-[#EBF4FF] border-[#378ADD]'
+            : 'bg-[#F8E7DB] border-[#E3A883]'
         }`}>
           {message}
         </div>
@@ -498,7 +498,7 @@ function PublishPage() {
                       key={v.id}
                       onClick={() => setSelectedContent(v)}
                       className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
-                        isSelected ? 'border-[#185FA5] ring-2 ring-[#c3ddf7]' : 'border-gray-200 hover:border-[#378ADD]'
+                        isSelected ? 'border-[#C5451B] ring-2 ring-[#EBC9B2]' : 'border-gray-200 hover:border-[#E3A883]'
                       }`}
                     >
                       {videoUrl ? (
@@ -578,7 +578,7 @@ function PublishPage() {
                     key={a.id}
                     onClick={() => setSelectedContent(a)}
                     className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedContent?.id === a.id ? 'border-[#185FA5] bg-[#EBF4FF]' : 'hover:border-[#378ADD]'
+                      selectedContent?.id === a.id ? 'border-[#C5451B] bg-[#F8E7DB]' : 'hover:border-[#E3A883]'
                     }`}
                   >
                     <p className="text-sm font-medium">{a.title}</p>
@@ -753,7 +753,7 @@ function PublishPage() {
                     />
                     <span className="flex-1">{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : c.platform === 'reddit' ? '🤖' : c.platform === 'youtube' ? '▶' : '📷'} {c.page_name}</span>
                     {igChecked && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={igLinked ? { backgroundColor: '#EAF3DE', color: '#1D9E75' } : { backgroundColor: '#fef2f2', color: '#ef4444' }}>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={igLinked ? { backgroundColor: '#EAF3DE', color: '#3F7A4E' } : { backgroundColor: '#fef2f2', color: '#ef4444' }}>
                         {igLinked ? '✓ Instagram koblet' : '✗ Ingen Instagram'}
                       </span>
                     )}
@@ -829,7 +829,7 @@ function PublishPage() {
             ))}
             {userId && (
               <div className="flex flex-wrap gap-2 mt-3">
-                <a href={`/api/auth/facebook?userId=${userId}`} className="text-sm text-[#185FA5] hover:underline">
+                <a href={`/api/auth/facebook?userId=${userId}`} className="text-sm text-[#C5451B] hover:underline">
                   + {t('connectFacebook')}
                 </a>
                 <a href={`/api/auth/tiktok?userId=${userId}`} className="text-sm text-gray-800 hover:underline">
