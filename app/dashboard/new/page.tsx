@@ -191,7 +191,7 @@ export default function NewCampaignPage() {
             onClick={() => { setCampaignType("reklame"); setSegments([]); }}
             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
               campaignType === "reklame"
-                ? "bg-[#185FA5] text-white"
+                ? "bg-[#C5451B] text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
@@ -202,7 +202,7 @@ export default function NewCampaignPage() {
             onClick={() => setCampaignType("storytelling")}
             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
               campaignType === "storytelling"
-                ? "bg-[#185FA5] text-white"
+                ? "bg-[#C5451B] text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
@@ -494,7 +494,7 @@ export default function NewCampaignPage() {
                           alert('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
                         }
                       }}
-                      className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#185FA5] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#0C447C]"
+                      className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
                     />
                   </label>
                 </div>
@@ -562,7 +562,7 @@ export default function NewCampaignPage() {
               !form.productName ||
               !form.cta
             }
-            className="rounded-full bg-[#185FA5] hover:bg-[#0C447C] disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
+            className="rounded-full bg-[#C5451B] hover:bg-[#1C1A16] disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
           >
             {scriptLoading ? t('generatingScript') : t('generateScript')}
           </button>
@@ -572,14 +572,14 @@ export default function NewCampaignPage() {
         {campaignType === "storytelling" && segments.length > 0 && (
           <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 flex flex-col gap-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-[#0C447C] text-sm uppercase tracking-widest">
+              <h2 className="font-semibold text-[#1C1A16] text-sm uppercase tracking-widest">
                 {t('scriptTitle')}
               </h2>
               <button
                 type="button"
                 onClick={handleGenerateScript}
                 disabled={scriptLoading}
-                className="text-xs text-[#185FA5] hover:text-[#0C447C] underline disabled:opacity-50"
+                className="text-xs text-[#C5451B] hover:text-[#1C1A16] underline disabled:opacity-50"
               >
                 {scriptLoading ? t('regenerating') : t('regenerate')}
               </button>
@@ -587,7 +587,7 @@ export default function NewCampaignPage() {
 
             {segments.map((seg, i) => (
               <div key={i} className="flex flex-col gap-2">
-                <span className="text-xs font-semibold text-[#185FA5] uppercase tracking-wide">
+                <span className="text-xs font-semibold text-[#C5451B] uppercase tracking-wide">
                   {t('segmentLabel', { index: i + 1 })}
                 </span>
                 <Field label={t('voiceoverTextLabel')}>

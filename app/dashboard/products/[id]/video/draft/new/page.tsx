@@ -117,10 +117,10 @@ export default function NewDraftPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cf-bg">
+    <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header */}
-        <Link href={`/dashboard/products/${productId}`} className="text-[#185FA5] hover:text-[#0C447C] mb-4 inline-block">
+        <Link href={`/dashboard/products/${productId}`} className="text-[#C5451B] hover:text-[#1C1A16] mb-4 inline-block">
           {t('backToProduct')}
         </Link>
 
@@ -152,7 +152,7 @@ export default function NewDraftPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
                     placeholder={t('titlePlaceholder')}
                   />
                 </div>
@@ -164,7 +164,7 @@ export default function NewDraftPage() {
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     placeholder={t('topicPlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
                     rows={4}
                   />
                 </div>
@@ -175,7 +175,7 @@ export default function NewDraftPage() {
                   <select
                     value={segmentCount}
                     onChange={(e) => setSegmentCount(Number(e.target.value))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
                   >
                     <option value={2}>{t('seg2')}</option>
                     <option value={3}>{t('seg3')}</option>
@@ -193,7 +193,7 @@ export default function NewDraftPage() {
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
                     placeholder={t('targetAudiencePlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
                   />
                 </div>
 
@@ -205,7 +205,7 @@ export default function NewDraftPage() {
                     value={problem}
                     onChange={(e) => setProblem(e.target.value)}
                     placeholder={t('problemPlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
                   />
                 </div>
 
@@ -217,7 +217,7 @@ export default function NewDraftPage() {
                     value={cta}
                     onChange={(e) => setCta(e.target.value)}
                     placeholder={t('ctaPlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -243,7 +243,7 @@ export default function NewDraftPage() {
                           onClick={() => setVoiceId(v.id)}
                           className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${
                             isSelected
-                              ? 'border-[#185FA5] bg-[#EBF4FF]'
+                              ? 'border-[#C5451B] bg-[#F8E7DB]'
                               : 'border-gray-200 hover:border-gray-300 bg-white'
                           }`}
                         >
@@ -266,7 +266,7 @@ export default function NewDraftPage() {
                               }
                             }}
                             className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                              isPlaying ? 'bg-[#185FA5] text-white' : 'bg-gray-100 hover:bg-[#EBF4FF] text-gray-600'
+                              isPlaying ? 'bg-[#C5451B] text-white' : 'bg-gray-100 hover:bg-[#F8E7DB] text-gray-600'
                             }`}
                             title={isPlaying ? 'Stopp' : 'Hør stemmen'}
                           >
@@ -277,7 +277,7 @@ export default function NewDraftPage() {
                             )}
                           </button>
                           <div className="min-w-0">
-                            <div className={`text-sm font-medium leading-tight ${isSelected ? 'text-[#185FA5]' : 'text-gray-900'}`}>{v.name}</div>
+                            <div className={`text-sm font-medium leading-tight ${isSelected ? 'text-[#C5451B]' : 'text-gray-900'}`}>{v.name}</div>
                             {v.desc && <div className="text-xs text-gray-400 leading-tight truncate">{v.desc}</div>}
                           </div>
                         </button>
@@ -289,11 +289,11 @@ export default function NewDraftPage() {
                     value={voiceId}
                     onChange={(e) => setVoiceId(e.target.value)}
                     placeholder="Eller lim inn Voice ID fra ElevenLabs…"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#185FA5] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
                   />
                   <p className="text-xs text-gray-400 mt-1">
                     Velg stemme ovenfor, eller lim inn ID direkte fra{' '}
-                    <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#185FA5] hover:underline">
+                    <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#C5451B] hover:underline">
                       ElevenLabs voice library →
                     </a>
                   </p>
@@ -457,7 +457,7 @@ export default function NewDraftPage() {
                               inputElement.value = ''
                             }
                           }}
-                          className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#185FA5] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#0C447C]"
+                          className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
                         />
                       </label>
                     </div>
@@ -552,7 +552,7 @@ export default function NewDraftPage() {
                   type="checkbox"
                   checked={includeOutroCard}
                   onChange={(e) => setIncludeOutroCard(e.target.checked)}
-                  className="mt-1 h-4 w-4 text-[#185FA5] border-gray-300 rounded focus:ring-[#185FA5]"
+                  className="mt-1 h-4 w-4 text-[#C5451B] border-gray-300 rounded focus:ring-[#C5451B]"
                 />
                 <div>
                   <div className="text-sm font-medium text-gray-900">
@@ -571,7 +571,7 @@ export default function NewDraftPage() {
                 type="submit"
                 disabled={loading}
                 className={`flex-1 px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
-                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#185FA5] hover:bg-[#0C447C]'
+                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#C5451B] hover:bg-[#1C1A16]'
                 }`}
               >
                 {loading ? t('creatingDraft') : t('createDraft')}

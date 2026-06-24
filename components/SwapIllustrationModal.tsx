@@ -178,7 +178,7 @@ export default function SwapIllustrationModal({
             onClick={() => setTab('generate')}
             className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
               tab === 'generate'
-                ? 'text-[#185FA5] border-b-2 border-[#185FA5]'
+                ? 'text-[#C5451B] border-b-2 border-[#C5451B]'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -188,7 +188,7 @@ export default function SwapIllustrationModal({
             onClick={() => setTab('bank')}
             className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
               tab === 'bank'
-                ? 'text-[#185FA5] border-b-2 border-[#185FA5]'
+                ? 'text-[#C5451B] border-b-2 border-[#C5451B]'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -224,7 +224,7 @@ export default function SwapIllustrationModal({
               <button
                 onClick={handleGenerate}
                 disabled={generating}
-                className="w-full bg-[#185FA5] hover:bg-[#0C447C] disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
+                className="w-full bg-[#C5451B] hover:bg-[#1C1A16] disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
               >
                 {generating ? t('generatingButton') : t('generateButton')}
               </button>
@@ -271,7 +271,7 @@ export default function SwapIllustrationModal({
                   <button
                     onClick={handleApplyAsset}
                     disabled={!selectedAssetUrl || applying}
-                    className="w-full bg-[#185FA5] hover:bg-[#0C447C] disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
+                    className="w-full bg-[#C5451B] hover:bg-[#1C1A16] disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
                   >
                     {applying ? t('applyingButton') : t('applyButton')}
                   </button>

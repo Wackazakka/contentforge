@@ -61,10 +61,10 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F1EFE8' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F4EEE2' }}>
       {/* Header */}
       <div className="text-center py-16 px-4">
-        <h1 className="text-4xl font-bold mb-4" style={{ color: '#0C447C' }}>
+        <h1 className="text-4xl font-bold mb-4" style={{ color: '#1C1A16' }}>
           Simple, predictable pricing
         </h1>
         <p className="text-lg text-gray-600 max-w-xl mx-auto">
@@ -83,12 +83,12 @@ export default function PricingPage() {
                 key={plan}
                 className={`rounded-2xl p-8 flex flex-col ${
                   isPro
-                    ? 'bg-[#0C447C] text-white shadow-xl scale-105'
+                    ? 'bg-[#1C1A16] text-white shadow-xl scale-105'
                     : 'bg-white border border-gray-200'
                 }`}
               >
                 {isPro && (
-                  <div className="text-xs font-bold uppercase tracking-widest text-[#378ADD] mb-3">
+                  <div className="text-xs font-bold uppercase tracking-widest text-[#E3A883] mb-3">
                     Most popular
                   </div>
                 )}
@@ -105,7 +105,7 @@ export default function PricingPage() {
                 <ul className="space-y-3 mb-8 flex-1">
                   {features[plan].map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm">
-                      <span className={isPro ? 'text-[#1D9E75]' : 'text-[#1D9E75]'}>✓</span>
+                      <span className={isPro ? 'text-[#3F7A4E]' : 'text-[#3F7A4E]'}>✓</span>
                       <span className={isPro ? 'text-blue-100' : 'text-gray-600'}>{f}</span>
                     </li>
                   ))}
@@ -116,8 +116,8 @@ export default function PricingPage() {
                   disabled={loading === plan}
                   className={`w-full py-3 rounded-xl font-semibold transition-colors disabled:opacity-60 ${
                     isPro
-                      ? 'bg-[#378ADD] hover:bg-[#185FA5] text-white'
-                      : 'bg-[#0C447C] hover:bg-[#185FA5] text-white'
+                      ? 'bg-[#E3A883] hover:bg-[#C5451B] text-white'
+                      : 'bg-[#1C1A16] hover:bg-[#C5451B] text-white'
                   }`}
                 >
                   {loading === plan ? 'Loading...' : session ? 'Get started' : 'Sign up'}
@@ -141,7 +141,7 @@ export default function PricingPage() {
             </div>
             <div className="flex justify-between py-3">
               <span className="text-gray-600">🚀 Publishing (all platforms)</span>
-              <span className="font-semibold text-[#1D9E75]">Free</span>
+              <span className="font-semibold text-[#3F7A4E]">Free</span>
             </div>
           </div>
         </div>
