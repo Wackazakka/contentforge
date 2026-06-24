@@ -141,3 +141,23 @@ body {
 .cf-card:hover { border-color: #e3a883; box-shadow: 0 18px 36px -22px rgba(217, 82, 28, 0.35); }
 .cf-price-cta { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
 .cf-price-cta:hover { background: linear-gradient(135deg, #e8632b, #c5451b); border-color: transparent; color: #fff4e8; }
+
+/* Daylight Studio form inputs */
+.cf-input {
+  width: 100%;
+  font-family: var(--font-hanken), sans-serif;
+  font-size: 15px;
+  color: #1c1a16;
+  background: #fffdf8;
+  border: 1px solid #d8cdb8;
+  border-radius: 11px;
+  padding: 13px 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cf-input::placeholder { color: #b3a78f; }
+.cf-input:focus {
+  border-color: #d9521c;
+  box-shadow: 0 0 0 3px rgba(217, 82, 28, 0.12);
+  outline: none;
+}
+.cf-input:disabled { opacity: 0.55; cursor: not-allowed; }

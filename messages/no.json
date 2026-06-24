@@ -93,8 +93,9 @@
     "footer": "CenterForge © {year} — Wackazakka"
   },
   "login": {
+    "title": "Velkommen tilbake",
     "loading": "Laster...",
-    "subtitle": "Logg inn på kontoen din",
+    "subtitle": "Logg inn på CenterForge-kontoen din.",
     "emailLabel": "E-post",
     "emailPlaceholder": "deg@eksempel.no",
     "passwordLabel": "Passord",
@@ -109,7 +110,8 @@
     "errorUnexpected": "En uventet feil oppstod"
   },
   "register": {
-    "subtitle": "Opprett kontoen din",
+    "title": "Opprett konto",
+    "subtitle": "Kom i gang med profesjonelt annonseinnhold.",
     "checkEmailTitle": "Sjekk e-posten din",
     "checkEmailText": "Vi sendte en bekreftelseslenke til {email}. Klikk den for å aktivere kontoen din.",
     "backToSignIn": "← Tilbake til innlogging",
@@ -133,8 +135,8 @@
     "errorUnexpected": "En uventet feil oppstod"
   },
   "forgotPassword": {
-    "title": "Glemt passord?",
-    "subtitle": "Vi sender deg en tilbakestillingslenke",
+    "title": "Tilbakestill passord",
+    "subtitle": "Skriv inn e-postadressen din, så sender vi deg en lenke for å lage et nytt passord.",
     "checkEmail": "Sjekk e-posten din",
     "resetLinkSent": "Vi sendte en tilbakestillingslenke til",
     "backToSignIn": "← Tilbake til innlogging",

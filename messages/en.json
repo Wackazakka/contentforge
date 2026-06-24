@@ -93,8 +93,9 @@
     "footer": "CenterForge © {year} — Wackazakka"
   },
   "login": {
+    "title": "Welcome back",
     "loading": "Loading...",
-    "subtitle": "Sign in to your account",
+    "subtitle": "Sign in to your CenterForge account.",
     "emailLabel": "Email",
     "emailPlaceholder": "you@example.com",
     "passwordLabel": "Password",
@@ -109,7 +110,8 @@
     "errorUnexpected": "An unexpected error occurred"
   },
   "register": {
-    "subtitle": "Create your account",
+    "title": "Create account",
+    "subtitle": "Get started with professional ad content.",
     "checkEmailTitle": "Check your email",
     "checkEmailText": "We sent a confirmation link to {email}. Click it to activate your account.",
     "backToSignIn": "← Back to sign in",
@@ -133,8 +135,8 @@
     "errorUnexpected": "An unexpected error occurred"
   },
   "forgotPassword": {
-    "title": "Forgot password?",
-    "subtitle": "We'll send you a reset link",
+    "title": "Reset password",
+    "subtitle": "Enter your email and we'll send you a link to set a new password.",
     "checkEmail": "Check your email",
     "resetLinkSent": "We sent a password reset link to",
     "backToSignIn": "← Back to sign in",

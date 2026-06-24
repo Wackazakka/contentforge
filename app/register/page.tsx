@@ -1,23 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { signUp, getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
-
-function HexagonIcon() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <polygon
-        points="12,2.5 20.8,7.75 20.8,16.25 12,21.5 3.2,16.25 3.2,7.75"
-        stroke="#378ADD"
-        strokeWidth="1.75"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  )
-}
+import { AuthShell, AuthField, AuthSubmit, AuthBanner, AuthSwitch } from '@/components/AuthUI'
 
 export default function RegisterPage() {
   const t = useTranslations('register')
@@ -113,111 +99,68 @@ export default function RegisterPage() {
 
   if (registered) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#F1EFE8' }}>
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8 border border-gray-200 text-center">
-          <div className="text-4xl mb-4">📬</div>
-          <h2 className="text-xl font-bold mb-2" style={{ color: '#0C447C' }}>{t('checkEmailTitle')}</h2>
-          <p className="text-sm text-gray-500 mb-6">
+      <AuthShell title={t('checkEmailTitle')}>
+        <div style={{ fontFamily: 'var(--font-hanken), sans-serif' }}>
+          <div style={{ fontSize: 40, marginBottom: 6 }}>📬</div>
+          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6B6358', margin: '0 0 22px' }}>
             {t('checkEmailText', { email: registeredEmail })}
           </p>
-          <Link href="/login" className="text-sm font-medium hover:underline" style={{ color: '#185FA5' }}>
-            {t('backToSignIn')}
-          </Link>
+          <AuthSwitch linkLabel={t('backToSignIn')} href="/login" />
         </div>
-      </div>
+      </AuthShell>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: '#F1EFE8' }}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8 border border-gray-200">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <HexagonIcon />
-            <span className="text-2xl font-bold" style={{ color: '#0C447C' }}>
-              Center<span style={{ color: '#378ADD' }}>Forge</span>
-            </span>
-          </div>
-          <p className="text-sm text-gray-500">{t('subtitle')}</p>
-        </div>
+    <AuthShell title={t('title')} subtitle={t('subtitle')}>
+      {error && <AuthBanner variant="error">{error}</AuthBanner>}
 
-        {error && (
-          <div className="mb-5 p-4 rounded-lg bg-red-50 border border-red-200">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
+      <form onSubmit={handleSubmit}>
+        <AuthField
+          label={t('fullNameLabel')}
+          type="text"
+          name="fullName"
+          autoComplete="name"
+          value={form.fullName}
+          onChange={handleChange}
+          disabled={loading}
+          placeholder={t('fullNamePlaceholder')}
+        />
+        <AuthField
+          label={t('emailLabel')}
+          type="email"
+          name="email"
+          autoComplete="email"
+          value={form.email}
+          onChange={handleChange}
+          disabled={loading}
+          placeholder={t('emailPlaceholder')}
+        />
+        <AuthField
+          label={t('passwordLabel')}
+          type="password"
+          name="password"
+          autoComplete="new-password"
+          value={form.password}
+          onChange={handleChange}
+          disabled={loading}
+          placeholder={t('passwordPlaceholder')}
+          hint={t('passwordHint')}
+        />
+        <AuthField
+          label={t('confirmPasswordLabel')}
+          type="password"
+          name="confirmPassword"
+          autoComplete="new-password"
+          value={form.confirmPassword}
+          onChange={handleChange}
+          disabled={loading}
+          placeholder={t('confirmPasswordPlaceholder')}
+        />
+        <AuthSubmit loading={loading} loadingLabel={t('creatingAccount')}>{t('createAccount')}</AuthSubmit>
+      </form>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('fullNameLabel')}</label>
-            <input
-              type="text"
-              name="fullName"
-              value={form.fullName}
-              onChange={handleChange}
-              disabled={loading}
-              className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-              placeholder={t('fullNamePlaceholder')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('emailLabel')}</label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              disabled={loading}
-              className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-              placeholder={t('emailPlaceholder')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('passwordLabel')}</label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              disabled={loading}
-              className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-              placeholder={t('passwordPlaceholder')}
-            />
-            <p className="text-xs text-gray-400 mt-1">{t('passwordHint')}</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('confirmPasswordLabel')}</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              disabled={loading}
-              className="w-full px-4 py-2.5 rounded-lg text-sm border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50 transition-colors"
-              placeholder={t('confirmPasswordPlaceholder')}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-            style={{ backgroundColor: '#185FA5' }}
-          >
-            {loading ? t('creatingAccount') : t('createAccount')}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-400">
-          {t('alreadyHaveAccount')}{' '}
-          <Link href="/login" className="font-medium hover:underline" style={{ color: '#185FA5' }}>
-            {t('signIn')}
-          </Link>
-        </p>
-      </div>
-    </div>
+      <AuthSwitch prompt={t('alreadyHaveAccount')} linkLabel={t('signIn')} href="/login" />
+    </AuthShell>
   )
 }
