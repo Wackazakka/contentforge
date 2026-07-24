@@ -142,27 +142,24 @@ export async function GET(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Delete any existing connection for this user/account, then insert fresh.
-    await supabase
-      .from('social_connections')
-      .delete()
-      .eq('user_id', userId)
-      .eq('platform', 'x')
-      .eq('page_id', xUserId)
-
+    // Atomisk upsert på (user_id, platform, page_id) — matcher de andre
+    // callbackene og fjerner race-vinduet i det gamle delete-så-insert-mønsteret.
     const { error: insertError } = await supabase
       .from('social_connections')
-      .insert({
-        user_id: userId,
-        platform: 'x',
-        page_id: xUserId,
-        page_name: displayName,
-        access_token: tokenData.access_token,
-        user_access_token: tokenData.refresh_token || null,
-      })
+      .upsert(
+        {
+          user_id: userId,
+          platform: 'x',
+          page_id: xUserId,
+          page_name: displayName,
+          access_token: tokenData.access_token,
+          user_access_token: tokenData.refresh_token || null,
+        },
+        { onConflict: 'user_id,platform,page_id' }
+      )
 
     if (insertError) {
-      console.error('[x/callback] Supabase insert error:', insertError)
+      console.error('[x/callback] Supabase upsert error:', insertError)
       return NextResponse.redirect(
         `${BASE_URL}/dashboard/publish?error=db_error`
       )
