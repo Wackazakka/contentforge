@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
@@ -56,6 +56,15 @@ function PublishPage() {
   const [scheduledAt, setScheduledAt] = useState<string>('')
   const [scheduling, setScheduling] = useState(false)
   const [igPageStatus, setIgPageStatus] = useState<Record<string, string | null>>({})
+  const selectedArticleRef = useRef<HTMLDivElement>(null)
+
+  // Når man kommer hit fra en artikkel (prefill), scroll den forhåndsvalgte
+  // artikkelen inn i synsfeltet så man slipper å lete etter den highlightede.
+  useEffect(() => {
+    if (contentType === 'article' && prefillContentId && selectedContent?.id === prefillContentId) {
+      selectedArticleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [contentType, prefillContentId, selectedContent])
 
   useEffect(() => {
     // Get current user
@@ -592,6 +601,7 @@ function PublishPage() {
                   return (
                     <div
                       key={a.id}
+                      ref={selectedContent?.id === a.id ? selectedArticleRef : undefined}
                       onClick={() => setSelectedContent(a)}
                       className={`flex gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
                         selectedContent?.id === a.id ? 'border-[#C5451B] bg-[#F8E7DB]' : 'hover:border-[#E3A883]'
