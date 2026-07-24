@@ -54,6 +54,7 @@ function PublishPage() {
   const [prefillContentId, setPrefillContentId] = useState<string | null>(null)
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now')
   const [scheduledAt, setScheduledAt] = useState<string>('')
+  const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null)
   const [scheduling, setScheduling] = useState(false)
   const [igPageStatus, setIgPageStatus] = useState<Record<string, string | null>>({})
   const selectedArticleRef = useRef<HTMLDivElement>(null)
@@ -256,6 +257,7 @@ function PublishPage() {
 
     setScheduling(true)
     setMessage(null)
+    setScheduleSuccess(null)
     try {
       const row: Record<string, any> = {
         platform: publishPlatform,
@@ -282,16 +284,17 @@ function PublishPage() {
         return
       }
 
-      setMessage(
-        `✅ Scheduled for ${publishTime.toLocaleString('en-GB', {
-          day: 'numeric',
-          month: 'long',
-          hour: '2-digit',
-          minute: '2-digit',
-        })}`
-      )
+      const naar = publishTime.toLocaleString('nb-NO', {
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      setMessage(`✅ Planlagt til ${naar}`)
+      setScheduleSuccess(`✅ Innlegget er planlagt til ${naar}`)
       setScheduledAt('')
-      // Stay in schedule mode — don't switch to 'now' which shows confusing "Publiser nå" button
+      // Bli i planleggingsmodus — men vis suksess ved knappen (ikke bare øverst),
+      // ellers ser det ut som at feltet nullstilte seg og feilet.
     } catch (err) {
       console.error('[publish] Schedule error:', err)
       setMessage(`❌ ${err instanceof Error ? err.message : String(err)}`)
@@ -832,7 +835,7 @@ function PublishPage() {
                       ref={scheduleInputRef}
                       type="datetime-local"
                       value={scheduledAt}
-                      onChange={(e) => setScheduledAt(e.target.value)}
+                      onChange={(e) => { setScheduledAt(e.target.value); setScheduleSuccess(null) }}
                       min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
                       className="cf-input"
                     />
@@ -855,11 +858,15 @@ function PublishPage() {
                     {scheduling ? t('schedulingButton') : `${t('scheduleButton')}${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}`}
                   </button>
                 )}
-                {!ready && (
+                {scheduleSuccess ? (
+                  <p className="text-sm mt-2 text-center font-medium" style={{ color: '#3F7A4E' }}>
+                    {scheduleSuccess}. Velg et nytt tidspunkt for å planlegge en til.
+                  </p>
+                ) : !ready ? (
                   <p className="text-sm text-gray-500 mt-2 text-center">
                     {publishMode === 'schedule' ? 'For å planlegge' : 'For å publisere'}: {missing.join(', ')}.
                   </p>
-                )}
+                ) : null}
               </>
             )
           })()}
