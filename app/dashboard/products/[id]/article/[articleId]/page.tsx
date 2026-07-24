@@ -76,6 +76,7 @@ export default function ArticleDetailPage() {
   const [editDraft, setEditDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const [imageSavedMsg, setImageSavedMsg] = useState<string | null>(null)
 
   useEffect(() => {
     if (!articleId) return
@@ -188,6 +189,13 @@ export default function ArticleDetailPage() {
             {t('created', { date: new Date(article.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) })}
           </p>
 
+          {/* Bekreftelse etter bildelagring — gjør tydelig at det er LAGRET, ikke publisert */}
+          {imageSavedMsg && (
+            <div className="mb-6 p-3 rounded-lg border text-sm font-medium" style={{ backgroundColor: '#EAF3DE', borderColor: '#BFD8A8', color: '#3F7A4E' }}>
+              {imageSavedMsg}
+            </div>
+          )}
+
           {/* Illustration */}
           {article.image_urls?.[0] ? (
             <div className="mb-8">
@@ -222,9 +230,11 @@ export default function ArticleDetailPage() {
               logoUrl={productLogoUrl || undefined}
               currentImageUrl={article.image_urls?.[0]}
               onClose={() => setSwapOpen(false)}
-              onImageUpdated={(newUrl) =>
+              onImageUpdated={(newUrl) => {
                 setArticle((prev) => (prev ? { ...prev, image_urls: [newUrl] } : prev))
-              }
+                setImageSavedMsg('✓ Bilde lagret — ingenting er publisert ennå')
+                setTimeout(() => setImageSavedMsg(null), 5000)
+              }}
             />
           )}
 
