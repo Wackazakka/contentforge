@@ -692,19 +692,6 @@ function PublishPage() {
                 {t('schedule')}
               </button>
             </div>
-            {publishMode === 'schedule' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Velg dato og klokkeslett</label>
-                <input
-                  ref={scheduleInputRef}
-                  type="datetime-local"
-                  value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
-                  min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
-                  className="cf-input"
-                />
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -838,6 +825,19 @@ function PublishPage() {
             const ready = missing.length === 0
             return (
               <>
+                {publishMode === 'schedule' && (
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Velg dato og klokkeslett</label>
+                    <input
+                      ref={scheduleInputRef}
+                      type="datetime-local"
+                      value={scheduledAt}
+                      onChange={(e) => setScheduledAt(e.target.value)}
+                      min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                      className="cf-input"
+                    />
+                  </div>
+                )}
                 {publishMode === 'now' ? (
                   <button
                     onClick={handlePublish}
