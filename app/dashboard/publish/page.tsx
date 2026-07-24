@@ -798,26 +798,43 @@ function PublishPage() {
         </div>
       )}
 
-      {/* ── Send-knapp ── */}
-      {selectedContent && caption && selectedPages.length > 0 && (
+      {/* ── Send-knapp ── alltid synlig når innhold er valgt; deaktivert med
+           forklaring når noe mangler, så knappen aldri "forsvinner" i stillhet */}
+      {selectedContent && (
         <div className="mb-6">
-          {publishMode === 'now' ? (
-            <button
-              onClick={handlePublish}
-              disabled={publishing}
-              className="w-full cf-ink-btn py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
-            >
-              {publishing ? t('publishingButton') : t('publishNowButton')}
-            </button>
-          ) : (
-            <button
-              onClick={handleSchedule}
-              disabled={scheduling || !scheduledAt}
-              className="w-full cf-ink-btn py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50"
-            >
-              {scheduling ? t('schedulingButton') : `${t('scheduleButton')}${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}`}
-            </button>
-          )}
+          {(() => {
+            const missing: string[] = []
+            if (!caption) missing.push('skriv en bildetekst')
+            if (selectedPages.length === 0) missing.push('velg minst én side å publisere til')
+            if (publishMode === 'schedule' && !scheduledAt) missing.push('velg tidspunkt')
+            const ready = missing.length === 0
+            return (
+              <>
+                {publishMode === 'now' ? (
+                  <button
+                    onClick={handlePublish}
+                    disabled={!ready || publishing}
+                    className="w-full cf-ink-btn py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {publishing ? t('publishingButton') : t('publishNowButton')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSchedule}
+                    disabled={!ready || scheduling}
+                    className="w-full cf-ink-btn py-3 rounded-xl font-semibold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {scheduling ? t('schedulingButton') : `${t('scheduleButton')}${scheduledAt ? ' — ' + new Date(scheduledAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}`}
+                  </button>
+                )}
+                {!ready && (
+                  <p className="text-sm text-gray-500 mt-2 text-center">
+                    For å publisere: {missing.join(', ')}.
+                  </p>
+                )}
+              </>
+            )
+          })()}
         </div>
       )}
 
