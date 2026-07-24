@@ -57,6 +57,7 @@ function PublishPage() {
   const [scheduling, setScheduling] = useState(false)
   const [igPageStatus, setIgPageStatus] = useState<Record<string, string | null>>({})
   const selectedArticleRef = useRef<HTMLDivElement>(null)
+  const scheduleInputRef = useRef<HTMLInputElement>(null)
 
   // Når man kommer hit fra en artikkel (prefill), scroll den forhåndsvalgte
   // artikkelen inn i synsfeltet så man slipper å lete etter den highlightede.
@@ -65,6 +66,14 @@ function PublishPage() {
       selectedArticleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [contentType, prefillContentId, selectedContent])
+
+  // Når man velger «Planlegg», flytt fokus til dato/tid-feltet så det scroller
+  // inn i synsfeltet — feltet ligger i Steg 2, hinten står nederst ved knappen.
+  useEffect(() => {
+    if (publishMode === 'schedule') {
+      scheduleInputRef.current?.focus()
+    }
+  }, [publishMode])
 
   useEffect(() => {
     // Get current user
@@ -684,13 +693,17 @@ function PublishPage() {
               </button>
             </div>
             {publishMode === 'schedule' && (
-              <input
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
-                className="cf-input"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Velg dato og klokkeslett</label>
+                <input
+                  ref={scheduleInputRef}
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                  className="cf-input"
+                />
+              </div>
             )}
           </div>
         </div>
