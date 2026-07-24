@@ -834,7 +834,7 @@ function PublishPage() {
                 )}
                 {!ready && (
                   <p className="text-sm text-gray-500 mt-2 text-center">
-                    For å publisere: {missing.join(', ')}.
+                    {publishMode === 'schedule' ? 'For å planlegge' : 'For å publisere'}: {missing.join(', ')}.
                   </p>
                 )}
               </>
