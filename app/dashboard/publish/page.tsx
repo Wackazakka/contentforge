@@ -13,6 +13,19 @@ interface SocialConnection {
   created_at: string
 }
 
+// Strip markdown/HTML down to a plain-text snippet for the article picker preview.
+function articleSnippet(content: unknown, max = 180): string {
+  if (typeof content !== 'string') return ''
+  const text = content
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')   // markdown images
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')  // markdown links -> label
+    .replace(/<[^>]+>/g, ' ')                  // html tags
+    .replace(/[#*_>`~]/g, ' ')                 // markdown symbols
+    .replace(/\s+/g, ' ')                      // collapse whitespace
+    .trim()
+  return text.length > max ? text.slice(0, max).trimEnd() + '…' : text
+}
+
 function PublishPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -573,25 +586,46 @@ function PublishPage() {
             <div>
               <label className="block text-sm font-medium mb-1">{t('selectArticle')}</label>
               <div className="space-y-2">
-                {articles.map((a) => (
-                  <div
-                    key={a.id}
-                    onClick={() => setSelectedContent(a)}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedContent?.id === a.id ? 'border-[#C5451B] bg-[#F8E7DB]' : 'hover:border-[#E3A883]'
-                    }`}
-                  >
-                    <p className="text-sm font-medium">{a.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                        {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                      </span>
+                {articles.map((a) => {
+                  const imageUrl = a.image_urls?.[0] || null
+                  const snippet = articleSnippet(a.content)
+                  return (
+                    <div
+                      key={a.id}
+                      onClick={() => setSelectedContent(a)}
+                      className={`flex gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedContent?.id === a.id ? 'border-[#C5451B] bg-[#F8E7DB]' : 'hover:border-[#E3A883]'
+                      }`}
+                    >
+                      <div className="shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                        {imageUrl ? (
+                          <img src={imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-gray-300 text-xl">🖼️</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{a.title}</p>
+                        {snippet && (
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{snippet}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                            {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </span>
+                          {!imageUrl && (
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                              ⚠ mangler eget bilde
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
