@@ -226,7 +226,7 @@ function PublishPage() {
   }
 
   const handleSchedule = async () => {
-    if (!selectedContent || selectedPages.length === 0 || !caption || !scheduledAt) {
+    if (!selectedContent || selectedPages.length === 0 || (contentType !== 'article' && !caption) || !scheduledAt) {
       setMessage(t('errorSelectContent'))
       return
     }
@@ -283,7 +283,7 @@ function PublishPage() {
   }
 
   const handlePublish = async () => {
-    if (!selectedContent || selectedPages.length === 0 || !caption) {
+    if (!selectedContent || selectedPages.length === 0 || (contentType !== 'article' && !caption)) {
       setMessage(t('errorSelectPublish'))
       return
     }
@@ -637,16 +637,21 @@ function PublishPage() {
         <div className="cf-panel p-6 mb-4">
           <p className="cf-eyebrow mb-4">{t('step2')}</p>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('captionLabel')}</label>
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={4}
-              placeholder={t('captionPlaceholder')}
-              className="cf-input"
-            />
-          </div>
+          {/* Bildetekst = selve posttekst for video/avatar. For artikler blir
+              tittel + innhold posten, og caption sendes aldri til API-et —
+              så vi hverken viser feltet eller krever det. */}
+          {contentType !== 'article' && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('captionLabel')}</label>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={4}
+                placeholder={t('captionPlaceholder')}
+                className="cf-input"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{t('publishWhen')}</label>
@@ -804,7 +809,7 @@ function PublishPage() {
         <div className="mb-6">
           {(() => {
             const missing: string[] = []
-            if (!caption) missing.push('skriv en bildetekst')
+            if (contentType !== 'article' && !caption) missing.push('skriv en bildetekst')
             if (selectedPages.length === 0) missing.push('velg minst én side å publisere til')
             if (publishMode === 'schedule' && !scheduledAt) missing.push('velg tidspunkt')
             const ready = missing.length === 0
