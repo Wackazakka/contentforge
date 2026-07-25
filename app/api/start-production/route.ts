@@ -15,7 +15,7 @@ function stripEmojis(text: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { draftId, userId, imageStyle, includeOutroCard } = await request.json()
+    const { draftId, userId, imageStyle, includeOutroCard, outroJingle } = await request.json()
     if (!draftId) return NextResponse.json({ error: 'Missing draftId' }, { status: 400 })
 
     if (userId) {
@@ -70,6 +70,7 @@ export async function POST(request: Request) {
           primaryColor: productProfile?.primary_color || '#1a1a2e',
           secondaryColor: productProfile?.secondary_color || '#ffffff',
           durationSeconds: 3,
+          jingleFile: outroJingle || null,
         }
       : null
     console.log('[start-production] Outro card:', outroCard ? 'enabled' : 'disabled')
