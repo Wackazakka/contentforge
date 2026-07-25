@@ -52,7 +52,10 @@ async function generateImageBuffer(topic: string, imageSize: string = '1024x1024
       })(),
       n: 1,
       size: imageSize,
-      quality: 'high',
+      // 'low' (~10s) holder oss trygt under Netlifys ~26s synkron-grense — 'high'/'medium'
+      // (~25-40s) timet ut CDN-funksjonen → HTML 502 («Unexpected token '<'»). Lav kvalitet
+      // er greit for et segment som vises kort i en 9:16-video.
+      quality: 'low',
     }),
   })
 
