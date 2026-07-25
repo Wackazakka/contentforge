@@ -6,6 +6,19 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 
+// Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
+const VOICES = [
+  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind', desc: 'Dyp og rolig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/7dc5c03caf8f40daa575fa9eacbf3de8/voices/nhvaqgRyAq6BmFs3WcdX/Z8yVliHOyn9eSmt4YEVw.mp3' },
+  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis', desc: 'Klar og behagelig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/15af1c0d0dcd479cb8376a767ab07b4c/voices/s2xtA7B2CTXPPlJzch1v/YB9DE4weRg6BTei8hVZ5.mp3' },
+  { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes', desc: 'Selvsikker', preview: 'https://storage.googleapis.com/eleven-public-prod/custom/voices/2dhHLsmg0MVma2t041qT/fX3l7ljt7bx6zRPz8VdC.mp3' },
+  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Maja', desc: 'Nordisk, dramatisk', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/ed9b05e6324c457685490352e9a1ec90/voices/BGEU6wFi2uNm6Kje1Yhk/gCIHS9pPkrtwiAjN4VgG.mp3' },
+  { id: 'CMbvLbbccSd611KtwxV3', name: 'Robert', desc: 'Oslo', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/2461cf568dc042a3bbfbf75522203b35/voices/CMbvLbbccSd611KtwxV3/fabf86a6-90db-42c2-9993-47fff3f73a80.mp3' },
+  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Helge', desc: '', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/3690d7df74c84d8880e0e0d0641de7f2/voices/vUmLiNBm6MDcy1NUHaVr/6JBvRVvXcssLtXlaqLg1.mp3' },
+  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Mia', desc: 'Norsk kvinne', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/a2175a4ce5a74c88868dd9d4a000c9a6/voices/uNsWM1StCcpydKYOjKyu/868f87d5-7724-4786-a7fa-a48e01b2ba54.mp3' },
+]
+
+interface MusicFile { filename: string; name: string; folder?: string; url: string; size: number }
+
 interface Segment {
   index: number
   text: string
@@ -69,6 +82,9 @@ export default function DraftPage() {
   const [showImageBank, setShowImageBank] = useState<number | null>(null)
   const [voicePreviews, setVoicePreviews] = useState<Record<number, string>>({})
   const [voiceLoading, setVoiceLoading] = useState<Record<number, boolean>>({})
+  const [musicLibrary, setMusicLibrary] = useState<MusicFile[]>([])
+  // Jingle er ikke lagret på draft-raden (ingen kolonne) — hold i state, init fra ?jingle=
+  const [outroJingle, setOutroJingle] = useState<string | null>(searchParams?.get('jingle') || null)
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
   const formatFromUrl = searchParams?.get('format') || ''
 
@@ -167,6 +183,40 @@ export default function DraftPage() {
 
     fetchAssets()
   }, [productId])
+
+  // Hent musikk-/jingle-biblioteket for velgerne
+  useEffect(() => {
+    fetch('/api/music')
+      .then((r) => r.json())
+      .then((d) => setMusicLibrary(d.files || []))
+      .catch((err) => console.error('[DraftPage] Music fetch error:', err))
+  }, [])
+
+  // Bytt stemme — oppdater state + lagre på draft-raden (brukes av voiceover + produksjon)
+  const updateVoice = async (voiceId: string) => {
+    if (!draft) return
+    setDraft({ ...draft, voice_id: voiceId })
+    try {
+      const supabase = getSupabase()
+      const { error } = await supabase.from('production_drafts').update({ voice_id: voiceId }).eq('id', draftId)
+      if (error) console.error('[updateVoice] save failed:', error)
+    } catch (err) {
+      console.error('[updateVoice] error:', err)
+    }
+  }
+
+  // Bytt bakgrunnsmusikk — oppdater state + lagre på draft-raden
+  const updateMusic = async (musicFile: string | null) => {
+    if (!draft) return
+    setDraft({ ...draft, music_file: musicFile })
+    try {
+      const supabase = getSupabase()
+      const { error } = await supabase.from('production_drafts').update({ music_file: musicFile }).eq('id', draftId)
+      if (error) console.error('[updateMusic] save failed:', error)
+    } catch (err) {
+      console.error('[updateMusic] error:', err)
+    }
+  }
 
   const generateImagesForAllSegments = async (draftData: Draft) => {
     console.log('[DraftPage] ========== START AUTO IMAGE GENERATION ==========')
@@ -408,7 +458,7 @@ export default function DraftPage() {
 
       // Determine outro card preference: default true unless explicitly disabled (?outro=0)
       const includeOutroCard = searchParams?.get('outro') !== '0'
-      const outroJingle = searchParams?.get('jingle') || null
+      // outroJingle kommer fra state (velgeren nedenfor), init fra ?jingle=
 
       // Call start-production API with draftId
       const response = await fetch('/api/start-production', {
@@ -471,6 +521,71 @@ export default function DraftPage() {
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
           <p className="text-gray-600 mt-2">{t('subtitle')}</p>
+        </div>
+
+        {/* Video-innstillinger: stemme, bakgrunnsmusikk, jingle — kan endres når som helst,
+            også etter at en video er laget (via «Rediger»-knappen på ferdig video). */}
+        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-5">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">🎬 Video-innstillinger</h2>
+          <p className="text-sm text-gray-500 mb-4">Bytt stemme, bakgrunnsmusikk eller jingle. Kjør «{t('startProduction')}» på nytt for å bruke endringene.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Stemme */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">🎙️ Stemme</label>
+              <select
+                value={draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX'}
+                onChange={(e) => updateVoice(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] bg-white"
+              >
+                {VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
+                ))}
+              </select>
+              {(() => {
+                const v = VOICES.find((x) => x.id === (draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX'))
+                return v ? <audio controls preload="none" src={v.preview} className="mt-2 w-full" /> : null
+              })()}
+              <p className="text-xs text-gray-400 mt-1">Brukes på alle nye voiceovers.</p>
+            </div>
+
+            {/* Bakgrunnsmusikk */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">🎵 Bakgrunnsmusikk</label>
+              <select
+                value={draft.music_file || ''}
+                onChange={(e) => updateMusic(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] bg-white"
+              >
+                <option value="">Ingen musikk</option>
+                {musicLibrary.filter((m) => m.folder !== 'jingles').map((m) => (
+                  <option key={m.filename} value={m.filename}>{m.name}</option>
+                ))}
+              </select>
+              {draft.music_file && (
+                <audio controls preload="none" src={`/api/music/${encodeURIComponent(draft.music_file)}`} className="mt-2 w-full" />
+              )}
+              <p className="text-xs text-gray-400 mt-1">Spilles under hele videoen.</p>
+            </div>
+
+            {/* Jingle på sluttplakat */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">🔔 Jingle (sluttplakat)</label>
+              <select
+                value={outroJingle || ''}
+                onChange={(e) => setOutroJingle(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] bg-white"
+              >
+                <option value="">Ingen jingle</option>
+                {musicLibrary.filter((m) => m.folder === 'jingles').map((j) => (
+                  <option key={j.filename} value={j.filename}>{j.name}</option>
+                ))}
+              </select>
+              {outroJingle && (
+                <audio controls preload="none" src={`/api/music/${encodeURIComponent(outroJingle)}`} className="mt-2 w-full" />
+              )}
+              <p className="text-xs text-gray-400 mt-1">Spilles på sluttplakaten. Last opp flere via radio-siden (mappe «jingles»).</p>
+            </div>
+          </div>
         </div>
 
         {/* Image generation progress banner */}
