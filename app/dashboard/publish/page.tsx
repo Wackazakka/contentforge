@@ -55,6 +55,7 @@ function PublishPage() {
   const [publishMode, setPublishMode] = useState<'now' | 'schedule'>('now')
   const [scheduledAt, setScheduledAt] = useState<string>('')
   const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null)
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null)
   const [scheduling, setScheduling] = useState(false)
   const [igPageStatus, setIgPageStatus] = useState<Record<string, string | null>>({})
   const selectedArticleRef = useRef<HTMLDivElement>(null)
@@ -310,6 +311,8 @@ function PublishPage() {
     }
 
     setPublishing(true)
+    setPublishSuccess(null)
+    setScheduleSuccess(null)
     try {
       // Build pages map for page names
       const pagesMap: Record<string, string> = {}
@@ -403,6 +406,7 @@ function PublishPage() {
             if (statusData.status === 'published') {
               setMessage(t('published'))
               setPublishResult(statusData)
+              setPublishSuccess('✅ Publisert nå på Instagram! Se publiseringshistorikken nederst.')
               break
             }
             if (statusData.status === 'failed') {
@@ -422,6 +426,9 @@ function PublishPage() {
       } else {
         setPublishResult(data)
         setMessage(data.success ? t('published') : `❌ ${data.error}`)
+        if (data.success) {
+          setPublishSuccess(`✅ Publisert nå til ${selectedPages.length} ${selectedPages.length === 1 ? 'kanal' : 'kanaler'}! Se publiseringshistorikken nederst.`)
+        }
       }
 
       // Refresh publications
@@ -861,6 +868,10 @@ function PublishPage() {
                 {scheduleSuccess ? (
                   <p className="text-sm mt-2 text-center font-medium" style={{ color: '#3F7A4E' }}>
                     {scheduleSuccess}. Velg et nytt tidspunkt for å planlegge en til.
+                  </p>
+                ) : publishSuccess ? (
+                  <p className="text-sm mt-2 text-center font-medium" style={{ color: '#3F7A4E' }}>
+                    {publishSuccess}
                   </p>
                 ) : !ready ? (
                   <p className="text-sm text-gray-500 mt-2 text-center">
