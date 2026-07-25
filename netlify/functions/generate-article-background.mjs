@@ -106,11 +106,18 @@ export default async function handler(req) {
     console.log(`[bg-article] ✅ Content saved for ${articleId}: "${title.substring(0, 60)}"`)
 
     // Trigger image generation (reuses the existing background function), using the real title.
-    fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ articleId, topic: title, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'tech' }),
-    }).catch(() => {})
+    // MUST await: a background function is frozen on return, so an un-awaited fire-and-forget
+    // fetch never actually goes out → the image job never starts (root cause of missing images).
+    // Awaiting a call to a *-background function returns 202 immediately, so this is cheap.
+    try {
+      await fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ articleId, topic: title, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'tech' }),
+      });
+    } catch (imgErr) {
+      console.error('[bg-article] Failed to trigger image for', articleId, imgErr?.message || imgErr);
+    }
 
     return new Response('OK', { status: 200 })
   } catch (e) {
