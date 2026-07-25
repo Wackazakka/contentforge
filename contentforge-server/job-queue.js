@@ -382,8 +382,25 @@ router.post('/', async (req, res) => {
           const segment = orderedSegments[i]
           console.log(`[job-queue] Segment ${i + 1}: text="${(segment.text || '').slice(0, 50)}..." | vo="${(segment.voiceover || segment.text || '').slice(0, 50)}..."`)
           
-          // Generate voiceover from segment text
-          await generateVoiceover(segment.voiceover || segment.text, vid, `${jobDir}/vo_${i + 1}.mp3`, elevenKey)
+          // Use the APPROVED (previewed) voiceover if available — ElevenLabs is
+          // non-deterministic, so regenerating gives a different take than the one the
+          // user reviewed and approved. Fall back to fresh generation only if missing.
+          const voPath = `${jobDir}/vo_${i + 1}.mp3`
+          if (segment.voiceoverUrl) {
+            console.log(`[job-queue] Segment ${i + 1}: Downloading approved voiceover from ${segment.voiceoverUrl.substring(0, 60)}...`)
+            try {
+              const voRes = await fetch(segment.voiceoverUrl)
+              if (!voRes.ok) throw new Error(`HTTP ${voRes.status}`)
+              const voBuf = Buffer.from(await voRes.arrayBuffer())
+              fs.writeFileSync(voPath, voBuf)
+              console.log(`[job-queue] Segment ${i + 1}: Approved voiceover saved (${voBuf.byteLength} bytes)`)
+            } catch (voErr) {
+              console.error(`[job-queue] Segment ${i + 1}: approved voiceover download failed, regenerating:`, voErr.message)
+              await generateVoiceover(segment.voiceover || segment.text, vid, voPath, elevenKey)
+            }
+          } else {
+            await generateVoiceover(segment.voiceover || segment.text, vid, voPath, elevenKey)
+          }
           
           const localImagePath = `${jobDir}/image_${i + 1}.png`
 
