@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { getSupabase } from '@/lib/supabaseClient'
 
 interface JobStatus {
   jobId: string
@@ -30,6 +31,21 @@ export default function VideoStatusPage() {
   const [job, setJob] = useState<JobStatus | null>(null)
   const [dots, setDots] = useState('')
   const [videoError, setVideoError] = useState<string | null>(null)
+  const [draftId, setDraftId] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Look up the draft this job belongs to, so the user can return to the editor for tweaks.
+    ;(async () => {
+      try {
+        const { data } = await getSupabase()
+          .from('production_drafts')
+          .select('id')
+          .eq('job_id', jobId)
+          .maybeSingle()
+        if (data?.id) setDraftId(data.id)
+      } catch { /* ignore */ }
+    })()
+  }, [jobId])
 
   useEffect(() => {
     const poll = async () => {
@@ -152,6 +168,14 @@ export default function VideoStatusPage() {
               >
                 {t('download')}
               </a>
+              {draftId && (
+                <button
+                  onClick={() => router.push(`/dashboard/products/${productId}/video/draft/${draftId}`)}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  ✏️ Rediger
+                </button>
+              )}
               <button
                 onClick={() => router.push(`/dashboard/products/${productId}`)}
                 className="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
