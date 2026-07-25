@@ -640,7 +640,7 @@ function runScheduledPublisher() {
     console.warn('[scheduler] CRON_SECRET not set, skipping scheduled publishing')
     return
   }
-  fetch(`${NETLIFY_BASE}/api/cron/process-scheduled`, {
+  fetch(`${NETLIFY_BASE}/api/cron/publish-scheduled`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -649,8 +649,8 @@ function runScheduledPublisher() {
   })
     .then((res) => res.json())
     .then((data) => {
-      if (data.processed > 0) {
-        console.log(`[scheduler] Processed ${data.processed} scheduled publication(s)`)
+      if (data.published > 0) {
+        console.log(`[scheduler] Published ${data.published} scheduled publication(s)`)
       }
     })
     .catch((err) => console.error('[scheduler] Cron error:', err.message))
