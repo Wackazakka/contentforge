@@ -408,6 +408,7 @@ export default function DraftPage() {
 
       // Determine outro card preference: default true unless explicitly disabled (?outro=0)
       const includeOutroCard = searchParams?.get('outro') !== '0'
+      const outroJingle = searchParams?.get('jingle') || null
 
       // Call start-production API with draftId
       const response = await fetch('/api/start-production', {
@@ -417,6 +418,7 @@ export default function DraftPage() {
           draftId: draft.id,
           imageStyle,
           includeOutroCard,
+          outroJingle,
         }),
       })
 
