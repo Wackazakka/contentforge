@@ -230,23 +230,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { ctaText } = body
     const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-    console.log(`[article-produce] Starting ${platform} article for: "${topic}"`)
 
-    // Generate article content with Claude (~10s)
-    const { ctaText, ...rest } = body
-    const { title, content } = await generateArticleContent(topic, platform, includeLink, websiteUrl, ctaText)
-    console.log(`[article-produce] ✅ Content ready: "${title.substring(0, 60)}"`)
-
-    // Save article immediately with no image
+    // Create the article row up front with a placeholder; the background function fills
+    // title + content (then triggers the image). This keeps the slow Claude call OFF the
+    // synchronous CDN function, so long articles (esp. LinkedIn) never time out the gateway.
     const articleId = randomUUID()
     const { error: insertError } = await supabase.from('articles').insert({
       id: articleId,
       product_id: productId,
       campaign_id: isValidUuid(campaignId) ? campaignId : null,
-      title,
+      title: topic,
       platform,
-      content,
+      content: '',
       image_urls: [],
     })
 
@@ -254,25 +251,26 @@ export async function POST(request: NextRequest) {
       throw new Error(`Database insert failed: ${(insertError as any).message}`)
     }
 
-    console.log(`[article-produce] ✅ Article saved: ${articleId}`)
-
-    // Trigger Netlify Background Function — returns 202 immediately, no CDN timeout
+    // Trigger the article Background Function (Claude + image) — returns 202 immediately.
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
-    fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
+    fetch(SITE_URL + '/.netlify/functions/generate-article-background', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ articleId, topic: title, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'tech' }),
+      body: JSON.stringify({ articleId, topic, platform, includeLink, websiteUrl, ctaText, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'tech' }),
     }).catch(() => {})
 
-    // Return article immediately — image arrives in DB within ~40s
+    console.log(`[article-produce] Queued ${platform} article ${articleId}: "${topic}"`)
+
+    // Return immediately — content + image arrive in the DB within ~30-60s (poll the row).
     return NextResponse.json({
       success: true,
       article: {
         id: articleId,
         platform,
-        title,
-        content,
+        title: topic,
+        content: '',
         image_url: '',
+        pending: true,
       },
     })
   } catch (error) {
