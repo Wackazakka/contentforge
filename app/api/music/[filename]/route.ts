@@ -24,7 +24,9 @@ export async function GET(
     const headers = new Headers()
     headers.set('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg')
     headers.set('Accept-Ranges', 'bytes')
-    headers.set('Cache-Control', 'public, max-age=3600')
+    // No CDN caching: a cached full-200 response gets served for Range requests too, which
+    // breaks <audio> playback. Range-varying media must hit the function every time.
+    headers.set('Cache-Control', 'no-store')
     const contentRange = upstream.headers.get('content-range')
     if (contentRange) headers.set('Content-Range', contentRange)
     const contentLength = upstream.headers.get('content-length')
