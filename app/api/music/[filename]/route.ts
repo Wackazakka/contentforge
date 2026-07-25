@@ -9,23 +9,29 @@ export async function GET(
   try {
     const resolvedParams = await params
     const filename = decodeURIComponent(resolvedParams.filename)
-    const res = await fetch(`${DROPLET_URL}/music/files/${encodeURIComponent(filename)}`)
-    
-    if (!res.ok) {
+    // Forward the browser's Range header so the droplet returns a proper 206 Partial Content.
+    // Without this, <audio> playback fails in strict browsers (Safari) — the element renders
+    // but won't play, because we claimed Accept-Ranges but always answered 200.
+    const range = request.headers.get('range')
+    const upstream = await fetch(`${DROPLET_URL}/music/files/${encodeURIComponent(filename)}`, {
+      headers: range ? { Range: range } : {},
+    })
+
+    if (!upstream.ok && upstream.status !== 206) {
       return NextResponse.json({ error: 'Music file not found' }, { status: 404 })
     }
 
-    const buffer = await res.arrayBuffer()
-    const contentType = res.headers.get('content-type') || 'audio/mpeg'
+    const headers = new Headers()
+    headers.set('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg')
+    headers.set('Accept-Ranges', 'bytes')
+    headers.set('Cache-Control', 'public, max-age=3600')
+    const contentRange = upstream.headers.get('content-range')
+    if (contentRange) headers.set('Content-Range', contentRange)
+    const contentLength = upstream.headers.get('content-length')
+    if (contentLength) headers.set('Content-Length', contentLength)
 
-    return new NextResponse(buffer, {
-      headers: {
-        'Content-Type': contentType,
-        'Content-Length': String(buffer.byteLength),
-        'Accept-Ranges': 'bytes',
-        'Cache-Control': 'public, max-age=3600',
-      }
-    })
+    // Pass upstream status (206 for range, 200 otherwise) and stream the body through.
+    return new NextResponse(upstream.body, { status: upstream.status, headers })
   } catch (err) {
     console.error('[api/music/[filename]] Error proxying music file:', err)
     return NextResponse.json({ error: 'Failed to load music file' }, { status: 500 })
