@@ -60,32 +60,36 @@ export default async function handler(req) {
   }
 
   try {
-    const openaiRes = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-image-1',
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        quality: 'high',
-      }),
-    })
-
-    if (!openaiRes.ok) {
-      const errText = await openaiRes.text()
-      console.error('[bg-image] OpenAI failed:', openaiRes.status, errText)
-      return new Response('OpenAI error', { status: 500 })
+    // Retry OpenAI image generation up to 3× — a single transient hiccup should NOT leave
+    // the article permanently without an image (root cause of "some have images, some don't").
+    let b64 = null
+    let lastErr = ''
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const openaiRes = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
+          body: JSON.stringify({ model: 'gpt-image-1', prompt, n: 1, size: '1024x1024', quality: 'high' }),
+        })
+        if (!openaiRes.ok) {
+          lastErr = `${openaiRes.status} ${(await openaiRes.text()).slice(0, 200)}`
+          console.error(`[bg-image] OpenAI attempt ${attempt} failed:`, lastErr)
+        } else {
+          const imageData = await openaiRes.json()
+          b64 = imageData.data?.[0]?.b64_json || null
+          if (b64) break
+          lastErr = 'No b64_json in response'
+          console.error(`[bg-image] attempt ${attempt}: ${lastErr}`)
+        }
+      } catch (e) {
+        lastErr = String(e?.message || e)
+        console.error(`[bg-image] attempt ${attempt} threw:`, lastErr)
+      }
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 2000 * attempt))
     }
-
-    const imageData = await openaiRes.json()
-    const b64 = imageData.data?.[0]?.b64_json
     if (!b64) {
-      console.error('[bg-image] No b64_json in response:', JSON.stringify(imageData).substring(0, 500))
-      return new Response('No image data', { status: 500 })
+      console.error('[bg-image] All attempts failed:', lastErr)
+      return new Response('OpenAI error after retries', { status: 500 })
     }
 
     let imageBuffer = Buffer.from(b64, 'base64')
