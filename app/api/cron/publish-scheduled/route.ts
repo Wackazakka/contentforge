@@ -47,7 +47,9 @@ async function runCron(request?: NextRequest) {
       results.push({ id, success: false, error: 'missing page_id' })
       continue
     }
-    if (!caption) {
+    // Artikler trenger ikke bildetekst — FB/LinkedIn-posten bygges fra tittel + innhold.
+    // (Samsvarer med planleggingssiden som tillater artikler uten caption.)
+    if (!caption && content_type !== 'article') {
       console.error(`[cron] Post ${id}: missing caption, skipping`)
       await supabase.from('scheduled_publications').delete().eq('id', id)
       results.push({ id, success: false, error: 'missing caption' })
