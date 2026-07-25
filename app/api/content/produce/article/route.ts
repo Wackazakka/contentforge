@@ -18,6 +18,32 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740fe
 const isValidUuid = (str: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
 
+// Slug for UTM-kampanje: ASCII, små bokstaver, bindestreker, maks 60 tegn
+function slugify(s: string): string {
+  return (s || '')
+    .toLowerCase()
+    .replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // fjern øvrige aksenter
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'artikkel'
+}
+
+// Bygg UTM-tagget URL for per-artikkel-attribusjon i Plausible.
+// utm_source = plattform (facebook/linkedin/x), utm_medium = article, utm_campaign = tittel-slug.
+function buildTaggedUrl(websiteUrl: string, platform: string, topic: string): string {
+  const base = websiteUrl.trim().startsWith('http') ? websiteUrl.trim() : `https://${websiteUrl.trim()}`
+  try {
+    const u = new URL(base)
+    u.searchParams.set('utm_source', platform || 'facebook')
+    u.searchParams.set('utm_medium', 'article')
+    u.searchParams.set('utm_campaign', slugify(topic))
+    return u.toString()
+  } catch {
+    return base
+  }
+}
+
 // Only needs Claude time (~10s)
 export const maxDuration = 60
 
@@ -62,15 +88,17 @@ Return JSON with:
   "content": "Full article content optimized for ${platform}"
 }`
 
-  // If no fixed CTA, ask Claude to generate a subtle URL reference
+  // If no fixed CTA, ask Claude for a natural closing sentence WITHOUT a URL —
+  // we append the UTM-tagged link in code afterwards (Claude can't reproduce a long
+  // tracking URL reliably, and it looks unnatural in prose).
   let finalPrompt: string
   if (includeLink && websiteUrl && !ctaText?.trim()) {
-    const ctaGuides: Record<string, string> = {
-      facebook: 'End the article with a single natural sentence that subtly references this URL: ' + websiteUrl + '. Keep it brief and unforced. No call-to-action language.',
-      linkedin: 'Close the article with one understated sentence that references this URL: ' + websiteUrl + '. Make it feel like a natural sign-off, not a sales pitch.',
-      x: 'Add the URL ' + websiteUrl + ' at the very end on its own line. Nothing else.',
+    const closeGuides: Record<string, string> = {
+      facebook: 'End the article with a single natural, unforced closing sentence inviting the reader to check it out — but do NOT write any web address or link; one will be added automatically.',
+      linkedin: 'Close with one understated sign-off sentence — but do NOT write any web address or link; one will be added automatically.',
+      x: 'Keep it punchy — but do NOT write any web address or link; one will be added automatically.',
     }
-    finalPrompt = prompt + '\n\n' + (ctaGuides[platform] || 'End with: ' + websiteUrl)
+    finalPrompt = prompt + '\n\n' + (closeGuides[platform] || '')
   } else {
     finalPrompt = prompt
   }
@@ -104,14 +132,12 @@ Return JSON with:
 
   const parsed = JSON.parse(jsonMatch[0])
 
-  // Append fixed CTA verbatim in code — never rely on Claude to do it
-  if (includeLink && ctaText?.trim()) {
-    let ctaSuffix = ctaText.trim()
-    // Add the URL on its own line so Facebook renders it as a clickable link
-    if (websiteUrl?.trim()) {
-      const url = websiteUrl.trim().startsWith('http') ? websiteUrl.trim() : `https://${websiteUrl.trim()}`
-      ctaSuffix += '\n' + url
-    }
+  // Append the UTM-tagged link verbatim in code — never rely on Claude for the URL.
+  // The tagged URL on its own line makes Facebook/LinkedIn render it as a clickable
+  // link AND lets Plausible attribute the visit to this exact article (utm_campaign).
+  if (includeLink && websiteUrl?.trim()) {
+    const taggedUrl = buildTaggedUrl(websiteUrl, platform, topic)
+    const ctaSuffix = ctaText?.trim() ? `${ctaText.trim()}\n${taggedUrl}` : taggedUrl
     // Use a separator marker so the UI can style the CTA differently
     parsed.content = (parsed.content as string).trimEnd() + '\n\n---CTA---\n' + ctaSuffix
   }
