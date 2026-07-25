@@ -586,7 +586,7 @@ export default function DraftPage() {
               )}
               {/* Dedikert jingle-opplasting → mappe «jingles» → auto-velges */}
               <div className="mt-2">
-                <label className="text-xs text-gray-600 block mb-1">Eller last opp egen jingle (MP3, maks 4MB):</label>
+                <label className="text-xs text-gray-600 block mb-1">Eller last opp egen jingle (MP3, opptil 10 sek, maks 4MB):</label>
                 <input
                   type="file"
                   accept=".mp3"
