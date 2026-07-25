@@ -501,7 +501,7 @@ export default function NewDraftPage() {
                           <div className="text-xs text-gray-500 mt-1">
                             {(music.size / 1024 / 1024).toFixed(1)}MB
                           </div>
-                          <audio controls className="mt-2 w-full h-6" src={`/api/music/${encodeURIComponent(music.filename)}`} onClick={(e) => e.stopPropagation()} />
+                          <audio controls preload="none" className="mt-2 w-full" src={`/api/music/${encodeURIComponent(music.filename)}`} onClick={(e) => e.stopPropagation()} />
                         </div>
                       ))}
                     </div>
