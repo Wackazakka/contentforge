@@ -508,7 +508,7 @@
     "title": "Video production",
     "jobId": "Job ID: {jobId}",
     "connecting": "Connecting",
-    "takesTime": "This usually takes 2-4 minutes",
+    "takesTime": "This usually takes 5-10 minutes, depending on length",
     "videoReady": "✅ Video is ready!",
     "openVideo": "▶️ Open video",
     "download": "⬇️ Download",
