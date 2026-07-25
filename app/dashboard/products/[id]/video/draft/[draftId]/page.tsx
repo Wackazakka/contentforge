@@ -40,6 +40,7 @@ interface Draft {
   video_format?: string
   music_style?: string
   music_file?: string | null
+  outro_jingle?: string | null
 }
 
 // Split a text roughly in half — at the sentence boundary nearest the midpoint,
@@ -146,6 +147,19 @@ export default function DraftPage() {
         setDraft(data)
         setLoading(false) // Show page immediately — don't wait for images
 
+        // Jingle: kom vi fra draft/new med ?jingle=, persister det på draften så det
+        // overlever reload/«Rediger». Ellers: last inn draftens lagrede jingle.
+        const urlJingle = searchParams?.get('jingle') || null
+        if (urlJingle) {
+          supabase
+            .from('production_drafts')
+            .update({ outro_jingle: urlJingle })
+            .eq('id', draftId)
+            .then(({ error }: { error: any }) => { if (error) console.warn('[jingle persist] mangler outro_jingle-kolonnen?', error.message) })
+        } else if (data.outro_jingle) {
+          setOutroJingle(data.outro_jingle)
+        }
+
         // Auto-generate images in background (fire and forget)
         if (data.segments && productId) {
           console.log('[DraftPage] Starting auto image generation (background)...')
@@ -216,6 +230,20 @@ export default function DraftPage() {
       if (error) console.error('[updateMusic] save failed:', error)
     } catch (err) {
       console.error('[updateMusic] error:', err)
+    }
+  }
+
+  // Bytt jingle — oppdater state + lagre på draft-raden (outro_jingle-kolonnen).
+  // Defensivt: hvis kolonnen ikke finnes ennå, logges det bare — jingelen virker
+  // fortsatt per render (sendes fra state til start-production), men persisteres ikke.
+  const updateJingle = async (jingle: string | null) => {
+    setOutroJingle(jingle)
+    try {
+      const supabase = getSupabase()
+      const { error } = await supabase.from('production_drafts').update({ outro_jingle: jingle }).eq('id', draftId)
+      if (error) console.warn('[updateJingle] lagring feilet (mangler outro_jingle-kolonnen?):', error.message)
+    } catch (err) {
+      console.warn('[updateJingle] error:', err)
     }
   }
 
@@ -573,7 +601,7 @@ export default function DraftPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">🔔 Jingle (sluttplakat)</label>
               <select
                 value={outroJingle || ''}
-                onChange={(e) => setOutroJingle(e.target.value || null)}
+                onChange={(e) => updateJingle(e.target.value || null)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] bg-white"
               >
                 <option value="">Ingen jingle</option>
@@ -605,7 +633,7 @@ export default function DraftPage() {
                         const up = await res.json()
                         const data = await fetch('/api/music').then((r) => r.json())
                         if (data.files) setMusicLibrary(data.files)
-                        if (up?.file?.filename) setOutroJingle(up.file.filename)
+                        if (up?.file?.filename) updateJingle(up.file.filename)
                       } else {
                         alert('Opplasting feilet.')
                       }
