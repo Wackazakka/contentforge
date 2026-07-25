@@ -29,6 +29,28 @@ interface Draft {
   music_file?: string | null
 }
 
+// Split a text roughly in half — at the sentence boundary nearest the midpoint,
+// falling back to a word-count split when there's only one sentence.
+function splitTextInTwo(input: string): [string, string] {
+  const t = (input || '').trim()
+  if (!t) return ['', '']
+  const sentences = t.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g)?.map((s) => s.trim()).filter(Boolean) || [t]
+  if (sentences.length <= 1) {
+    const words = t.split(/\s+/)
+    const mid = Math.max(1, Math.ceil(words.length / 2))
+    return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')]
+  }
+  const half = t.length / 2
+  let acc = 0
+  let splitAt = 1
+  for (let i = 0; i < sentences.length; i++) {
+    acc += sentences[i].length
+    if (acc >= half) { splitAt = i + 1; break }
+  }
+  splitAt = Math.max(1, Math.min(sentences.length - 1, splitAt))
+  return [sentences.slice(0, splitAt).join(' '), sentences.slice(splitAt).join(' ')]
+}
+
 export default function DraftPage() {
   const router = useRouter()
   const params = useParams()
@@ -241,6 +263,41 @@ export default function DraftPage() {
     } catch (err) {
       console.error('[toggleApproval] Error:', err)
       alert('Error saving')
+    }
+  }
+
+  // Split a too-long segment into two: divide its text + voiceover, insert a new segment
+  // right after, and clear image/voiceover/approval on both halves so they get regenerated.
+  const splitSegment = async (index: number) => {
+    if (!draft) return
+    const seg = draft.segments[index]
+    const [t1, t2] = splitTextInTwo(seg.text)
+    const [v1, v2] = splitTextInTwo(seg.voiceover || seg.text)
+    if (!t2.trim() && !v2.trim()) {
+      alert('Segmentet er for kort til å deles.')
+      return
+    }
+    const first: Segment = { ...seg, text: t1, voiceover: v1, image_url: '', voiceover_url: undefined, approved: false }
+    const second: Segment = { index: index + 1, text: t2, voiceover: v2, image_url: '', approved: false }
+    const arr = [...draft.segments]
+    arr.splice(index, 1, first, second)
+    const reindexed = arr.map((s, i) => ({ ...s, index: i }))
+    setDraft({ ...draft, segments: reindexed })
+    try {
+      const supabase = getSupabase()
+      const { error } = await supabase
+        .from('production_drafts')
+        .update({ segments: reindexed })
+        .eq('id', draftId)
+      if (error) {
+        console.error('[splitSegment] Failed to save:', error)
+        alert('Kunne ikke lagre segment-delingen')
+      } else {
+        console.log('[splitSegment] Split segment', index, '→', reindexed.length, 'segmenter totalt')
+      }
+    } catch (err) {
+      console.error('[splitSegment] Error:', err)
+      alert('Feil ved deling av segment')
     }
   }
 
@@ -553,6 +610,14 @@ export default function DraftPage() {
                       className="px-4 py-2 rounded-lg font-medium text-sm bg-purple-600 hover:bg-purple-700 text-white transition-colors"
                     >
                       {t('selectFromBank')}
+                    </button>
+
+                    <button
+                      onClick={() => splitSegment(index)}
+                      title="Del dette segmentet i to hvis teksten er for lang"
+                      className="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                    >
+                      ✂️ Del segment
                     </button>
 
                     {/* Image Bank Modal */}
