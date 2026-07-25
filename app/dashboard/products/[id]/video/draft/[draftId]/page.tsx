@@ -85,6 +85,7 @@ export default function DraftPage() {
   const [musicLibrary, setMusicLibrary] = useState<MusicFile[]>([])
   // Jingle er ikke lagret på draft-raden (ingen kolonne) — hold i state, init fra ?jingle=
   const [outroJingle, setOutroJingle] = useState<string | null>(searchParams?.get('jingle') || null)
+  const [jingleUploading, setJingleUploading] = useState(false)
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
   const formatFromUrl = searchParams?.get('format') || ''
 
@@ -583,7 +584,42 @@ export default function DraftPage() {
               {outroJingle && (
                 <audio controls preload="none" src={`/api/music/${encodeURIComponent(outroJingle)}`} className="mt-2 w-full" />
               )}
-              <p className="text-xs text-gray-400 mt-1">Spilles på sluttplakaten. Last opp flere via radio-siden (mappe «jingles»).</p>
+              {/* Dedikert jingle-opplasting → mappe «jingles» → auto-velges */}
+              <div className="mt-2">
+                <label className="text-xs text-gray-600 block mb-1">Eller last opp egen jingle (MP3, maks 4MB):</label>
+                <input
+                  type="file"
+                  accept=".mp3"
+                  disabled={jingleUploading}
+                  onChange={async (e) => {
+                    const el = e.currentTarget
+                    const file = el.files?.[0]
+                    if (!file) return
+                    if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer.'); el.value = ''; return }
+                    if (file.size > 4 * 1024 * 1024) { alert('Filen er for stor (maks 4MB).'); el.value = ''; return }
+                    setJingleUploading(true)
+                    try {
+                      const fd = new FormData(); fd.append('file', file)
+                      const res = await fetch('/api/music/upload?folder=jingles', { method: 'POST', body: fd })
+                      if (res.ok) {
+                        const up = await res.json()
+                        const data = await fetch('/api/music').then((r) => r.json())
+                        if (data.files) setMusicLibrary(data.files)
+                        if (up?.file?.filename) setOutroJingle(up.file.filename)
+                      } else {
+                        alert('Opplasting feilet.')
+                      }
+                    } catch (err) {
+                      alert('Opplasting feilet: ' + (err instanceof Error ? err.message : 'ukjent feil'))
+                    } finally {
+                      setJingleUploading(false)
+                      el.value = ''
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{jingleUploading ? 'Laster opp jingle…' : 'Spilles på sluttplakaten.'}</p>
             </div>
           </div>
         </div>

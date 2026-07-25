@@ -44,6 +44,8 @@ export default function NewDraftPage() {
   const [imageStyle, setImageStyle] = useState('editorial')
   const [includeOutroCard, setIncludeOutroCard] = useState(true)
   const [outroJingle, setOutroJingle] = useState<string | null>(null)
+  const [showVoiceIdField, setShowVoiceIdField] = useState(false)
+  const [jingleUploading, setJingleUploading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
@@ -285,19 +287,32 @@ export default function NewDraftPage() {
                       )
                     })}
                   </div>
-                  <input
-                    type="text"
-                    value={voiceId}
-                    onChange={(e) => setVoiceId(e.target.value)}
-                    placeholder="Eller lim inn Voice ID fra ElevenLabs…"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Velg stemme ovenfor, eller lim inn ID direkte fra{' '}
-                    <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#C5451B] hover:underline">
-                      ElevenLabs voice library →
-                    </a>
-                  </p>
+                  {/* Avansert: egen ElevenLabs Voice-ID (skjult som standard — de 7 kortene dekker vanlig bruk) */}
+                  {!showVoiceIdField ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowVoiceIdField(true)}
+                      className="text-xs text-gray-400 hover:text-[#C5451B] mt-1"
+                    >
+                      Avansert: bruk egen stemme-ID ↓
+                    </button>
+                  ) : (
+                    <div className="mt-1">
+                      <input
+                        type="text"
+                        value={voiceId}
+                        onChange={(e) => setVoiceId(e.target.value)}
+                        placeholder="Lim inn Voice ID fra ElevenLabs…"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        Kun for avansert bruk — lim inn ID fra{' '}
+                        <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#C5451B] hover:underline">
+                          ElevenLabs voice library →
+                        </a>
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tone */}
@@ -466,7 +481,7 @@ export default function NewDraftPage() {
 
                   {musicLibrary.length > 0 ? (
                     <div className="grid gap-2">
-                      {musicLibrary.map((music) => (
+                      {musicLibrary.filter((m) => m.folder !== 'jingles').map((music) => (
                         <div
                           key={music.filename}
                           onClick={() => setMusicFile(music.filename)}
@@ -581,7 +596,42 @@ export default function NewDraftPage() {
                   {outroJingle && (
                     <audio controls preload="none" className="mt-2 w-full" src={`/api/music/${encodeURIComponent(outroJingle)}`} />
                   )}
-                  <p className="text-xs text-gray-400 mt-1">Spilles på sluttplakaten. Last opp flere jingles via radio-siden (mappe «jingles»).</p>
+                  {/* Dedikert jingle-opplasting → mappe «jingles» → auto-velges */}
+                  <div className="mt-2">
+                    <label className="text-xs text-gray-600 block mb-1">Eller last opp egen jingle (MP3, maks 4MB):</label>
+                    <input
+                      type="file"
+                      accept=".mp3"
+                      disabled={jingleUploading}
+                      onChange={async (e) => {
+                        const el = e.currentTarget
+                        const file = el.files?.[0]
+                        if (!file) return
+                        if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer.'); el.value = ''; return }
+                        if (file.size > 4 * 1024 * 1024) { alert('Filen er for stor (maks 4MB).'); el.value = ''; return }
+                        setJingleUploading(true)
+                        try {
+                          const fd = new FormData(); fd.append('file', file)
+                          const res = await fetch('/api/music/upload?folder=jingles', { method: 'POST', body: fd })
+                          if (res.ok) {
+                            const up = await res.json()
+                            const data = await fetch('/api/music').then((r) => r.json())
+                            if (data.files) setMusicLibrary(data.files)
+                            if (up?.file?.filename) setOutroJingle(up.file.filename) // auto-velg den nye jingelen
+                          } else {
+                            alert('Opplasting feilet.')
+                          }
+                        } catch (err) {
+                          alert('Opplasting feilet: ' + (err instanceof Error ? err.message : 'ukjent feil'))
+                        } finally {
+                          setJingleUploading(false)
+                          el.value = ''
+                        }
+                      }}
+                      className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">{jingleUploading ? 'Laster opp jingle…' : 'Spilles på sluttplakaten.'}</p>
                 </div>
               )}
             </div>
