@@ -62,9 +62,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No page IDs provided' }, { status: 400 })
     }
 
-    if (!videoUrl || !caption) {
-      return NextResponse.json({ error: 'Missing videoUrl or caption' }, { status: 400 })
+    if (!videoUrl) {
+      return NextResponse.json({ error: 'Missing videoUrl' }, { status: 400 })
     }
+    const captionText = caption || '' // bildetekst er valgfritt
 
     console.log('[publish/facebook] videoUrl:', videoUrl, '| asReel:', !!asReel)
     console.log('[publish/facebook] Publishing to pages:', pageIds)
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
 
         if (asReel) {
           console.log('[publish/facebook] Publishing as Reel to page:', pageId)
-          postId = await publishFacebookReel(pageId, videoUrl, caption, conn.access_token)
+          postId = await publishFacebookReel(pageId, videoUrl, captionText, conn.access_token)
         } else {
           console.log('[publish/facebook] Posting video to page:', pageId)
           const res = await fetch(`https://graph.facebook.com/v19.0/${pageId}/videos`, {
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               file_url: videoUrl,
-              description: caption,
+              description: captionText,
               access_token: conn.access_token,
             }),
           })
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
             page_id: pageId,
             page_name: pageName,
             post_id: postId,
-            caption,
+            caption: captionText,
             video_url: videoUrl,
             status: 'published',
           })
