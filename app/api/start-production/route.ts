@@ -15,7 +15,7 @@ function stripEmojis(text: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { draftId, userId, imageStyle, includeOutroCard, outroJingle } = await request.json()
+    const { draftId, userId, imageStyle, includeOutroCard, outroJingle, aiMotion, aiMotionEngine } = await request.json()
     if (!draftId) return NextResponse.json({ error: 'Missing draftId' }, { status: 400 })
 
     if (userId) {
@@ -132,6 +132,8 @@ export async function POST(request: Request) {
         logoUrl: logoUrl,
         imageStyle: imageStyle || 'editorial',
         outroCard,
+        aiMotion: !!aiMotion,
+        aiMotionEngine: aiMotionEngine || 'pixverse',
       }),
     })
 
