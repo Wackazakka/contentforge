@@ -440,7 +440,7 @@
     "sectionImageStyle": "Bildestil",
     "sectionOutro": "Avslutning",
     "outroLabel": "Avslutt med produktlenke 🔗",
-    "outroDesc": "Legger til 3 sekunder branded sluttbilde med produktets nettside, logo og CTA.",
+    "outroDesc": "Legger til et branded sluttbilde med produktets nettside, logo og CTA. Uten jingle varer det ca. 3 sekunder; med jingle varer det like lenge som jingelen (opptil 10 sek).",
     "createDraft": "🎬 Opprett draft",
     "creatingDraft": "⏳ Genererer draft...",
     "cancel": "Avbryt",
