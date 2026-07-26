@@ -94,6 +94,8 @@ export default function DraftPage() {
   const [outroText, setOutroText] = useState('#ffffff')
   const [colorSaving, setColorSaving] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [aiMotion, setAiMotion] = useState(false)
+  const [aiMotionEngine, setAiMotionEngine] = useState('pixverse')
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
   const formatFromUrl = searchParams?.get('format') || ''
 
@@ -535,6 +537,8 @@ export default function DraftPage() {
           imageStyle,
           includeOutroCard,
           outroJingle,
+          aiMotion,
+          aiMotionEngine,
         }),
       })
 
@@ -771,6 +775,37 @@ export default function DraftPage() {
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-1">{colorSaving ? 'Lagrer…' : 'Lagres automatisk. Brukes på sluttplakaten (video + avatar).'}</p>
+          </div>
+
+          {/* AI-bevegelse: animer stillbildene til ekte video (koster mer + tar lengre tid) */}
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={aiMotion}
+                onChange={(e) => setAiMotion(e.target.checked)}
+                className="mt-1 h-4 w-4"
+              />
+              <div>
+                <div className="text-sm font-medium text-gray-900">🎥 AI-bevegelse (ekte video)</div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  Animer hvert bilde med bevegelse i stedet for stillbilder. Koster mer og tar lengre tid (~15-25 min render).
+                </div>
+              </div>
+            </label>
+            {aiMotion && (
+              <div className="mt-2 pl-7 flex items-center gap-2">
+                <span className="text-xs text-gray-500">Motor</span>
+                <select
+                  value={aiMotionEngine}
+                  onChange={(e) => setAiMotionEngine(e.target.value)}
+                  className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-white"
+                >
+                  <option value="pixverse">PixVerse (rask/billig)</option>
+                  <option value="kling">Kling (høyere kvalitet)</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
