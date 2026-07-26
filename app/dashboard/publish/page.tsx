@@ -272,12 +272,20 @@ function PublishPage() {
         job_id: selectedContent.job_id || null,
         user_id: userId,
       }
+      if (contentType === 'video' && publishPlatform === 'facebook') row.as_reel = publishAsReel
 
       console.log('[schedule] inserting:', row)
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('scheduled_publications')
         .insert(row)
         .select()
+
+      // Defensivt: hvis as_reel-kolonnen ikke finnes ennå, planlegg som vanlig video
+      if (error && /as_reel/.test(error.message || '')) {
+        console.warn('[schedule] as_reel-kolonnen mangler — planlegger som vanlig video')
+        delete row.as_reel
+        ;({ data, error } = await supabase.from('scheduled_publications').insert(row).select())
+      }
 
       console.log('[schedule] result data:', data, 'error:', error)
 
@@ -837,7 +845,7 @@ function PublishPage() {
             const ready = missing.length === 0
             return (
               <>
-                {contentType === 'video' && publishPlatform === 'facebook' && publishMode !== 'schedule' && (
+                {contentType === 'video' && publishPlatform === 'facebook' && (
                   <label className="flex items-start gap-3 mb-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-[#E3A883]">
                     <input
                       type="checkbox"
