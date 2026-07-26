@@ -509,6 +509,7 @@
     "jobId": "Job ID: {jobId}",
     "connecting": "Connecting",
     "takesTime": "This usually takes 5-10 minutes, depending on length",
+    "takesTimeMotion": "With AI motion this takes longer — usually 15-25 minutes",
     "videoReady": "✅ Video is ready!",
     "openVideo": "▶️ Open video",
     "download": "⬇️ Download",

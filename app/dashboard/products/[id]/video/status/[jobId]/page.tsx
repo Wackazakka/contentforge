@@ -19,6 +19,7 @@ export default function VideoStatusPage() {
   const searchParams = useSearchParams()
   const t = useTranslations('videoStatus')
   const formatParam = searchParams?.get('format') || '9:16'
+  const motionParam = searchParams?.get('motion') === '1'
 
   // Map the chosen video format to a CSS aspect-ratio plus a sensible max width
   // so portrait, square and landscape videos all fit nicely inside the card.
@@ -105,7 +106,7 @@ export default function VideoStatusPage() {
               {statusLabel[job.status]}
               {dots}
             </p>
-            <p className="text-sm text-gray-400 mt-2">{t('takesTime')}</p>
+            <p className="text-sm text-gray-400 mt-2">{motionParam ? t('takesTimeMotion') : t('takesTime')}</p>
             <div className="mt-6 bg-gray-100 rounded-full h-2">
               <div
                 className="bg-blue-500 h-2 rounded-full transition-all duration-1000"

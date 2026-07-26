@@ -509,6 +509,7 @@
     "jobId": "Jobb-ID: {jobId}",
     "connecting": "Kobler til",
     "takesTime": "Dette tar vanligvis 5-10 minutter, avhengig av lengden",
+    "takesTimeMotion": "Med AI-bevegelse tar dette lengre tid — vanligvis 15-25 minutter",
     "videoReady": "✅ Videoen er klar!",
     "openVideo": "▶️ Åpne video",
     "download": "⬇️ Last ned",
