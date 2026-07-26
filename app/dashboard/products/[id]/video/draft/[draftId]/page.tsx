@@ -89,6 +89,10 @@ export default function DraftPage() {
   const [jingleUploading, setJingleUploading] = useState(false)
   const [musicUploading, setMusicUploading] = useState(false)
   const [musicFolder, setMusicFolder] = useState('global')
+  // Sluttplakat-farger — leses fra produktprofilen, kan endres direkte her
+  const [outroBg, setOutroBg] = useState('#1a1a2e')
+  const [outroText, setOutroText] = useState('#ffffff')
+  const [colorSaving, setColorSaving] = useState(false)
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
   const formatFromUrl = searchParams?.get('format') || ''
 
@@ -193,6 +197,15 @@ export default function DraftPage() {
           .eq('asset_type', 'image')
 
         setAssets(data || [])
+
+        // Hent sluttplakat-fargene fra produktprofilen
+        const { data: profile } = await supabase
+          .from('product_profiles')
+          .select('primary_color, secondary_color')
+          .eq('product_id', productId)
+          .single()
+        if (profile?.primary_color) setOutroBg(profile.primary_color)
+        if (profile?.secondary_color) setOutroText(profile.secondary_color)
       } catch (err) {
         console.error('[DraftPage] Asset fetch error:', err)
       }
@@ -200,6 +213,25 @@ export default function DraftPage() {
 
     fetchAssets()
   }, [productId])
+
+  // Lagre sluttplakat-farger på produktprofilen (brukes av outro på video + avatar)
+  const updateOutroColors = async (bg: string, text: string) => {
+    setOutroBg(bg)
+    setOutroText(text)
+    setColorSaving(true)
+    try {
+      const supabase = getSupabase()
+      const { error } = await supabase
+        .from('product_profiles')
+        .update({ primary_color: bg, secondary_color: text })
+        .eq('product_id', productId)
+      if (error) console.error('[updateOutroColors] save failed:', error)
+    } catch (err) {
+      console.error('[updateOutroColors] error:', err)
+    } finally {
+      setColorSaving(false)
+    }
+  }
 
   // Hent musikk-/jingle-biblioteket for velgerne
   useEffect(() => {
@@ -696,6 +728,45 @@ export default function DraftPage() {
               </div>
               <p className="text-xs text-gray-400 mt-1">{jingleUploading ? 'Laster opp jingle…' : 'Spilles på sluttplakaten.'}</p>
             </div>
+          </div>
+
+          {/* Sluttplakat-farger — endres direkte her (ingen omvei via produktinnstillinger) */}
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <label className="block text-sm font-medium text-gray-700 mb-2">🎨 Sluttplakat-farger</label>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Bakgrunn</span>
+                <input
+                  type="color"
+                  value={outroBg}
+                  onChange={(e) => updateOutroColors(e.target.value, outroText)}
+                  className="h-8 w-12 rounded border border-gray-300 cursor-pointer"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Tekst</span>
+                <input
+                  type="color"
+                  value={outroText}
+                  onChange={(e) => updateOutroColors(outroBg, e.target.value)}
+                  className="h-8 w-12 rounded border border-gray-300 cursor-pointer"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => updateOutroColors('#ffffff', '#1a1a2e')}
+                className="px-3 py-1.5 rounded-lg text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300"
+              >
+                Hvit bakgrunn + mørk tekst
+              </button>
+              <span
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200"
+                style={{ backgroundColor: outroBg, color: outroText }}
+              >
+                Forhåndsvisning
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">{colorSaving ? 'Lagrer…' : 'Lagres automatisk. Brukes på sluttplakaten (video + avatar).'}</p>
           </div>
         </div>
 

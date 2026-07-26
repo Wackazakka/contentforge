@@ -47,15 +47,6 @@ async function runCron(request?: NextRequest) {
       results.push({ id, success: false, error: 'missing page_id' })
       continue
     }
-    // Artikler trenger ikke bildetekst — FB/LinkedIn-posten bygges fra tittel + innhold.
-    // (Samsvarer med planleggingssiden som tillater artikler uten caption.)
-    if (!caption && content_type !== 'article') {
-      console.error(`[cron] Post ${id}: missing caption, skipping`)
-      await supabase.from('scheduled_publications').delete().eq('id', id)
-      results.push({ id, success: false, error: 'missing caption' })
-      continue
-    }
-
     // Instagram: two-phase flow to handle slow video processing
     if (platform === 'instagram' && content_type === 'video') {
       const videoUrl = job_id ? `${process.env.NEXT_PUBLIC_R2_URL}/videos/${job_id}/output.mp4` : null

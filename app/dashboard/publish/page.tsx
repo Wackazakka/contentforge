@@ -247,7 +247,7 @@ function PublishPage() {
   }
 
   const handleSchedule = async () => {
-    if (!selectedContent || selectedPages.length === 0 || (contentType !== 'article' && !caption) || !scheduledAt) {
+    if (!selectedContent || selectedPages.length === 0 || !scheduledAt) {
       setMessage(t('errorSelectContent'))
       return
     }
@@ -314,7 +314,7 @@ function PublishPage() {
   }
 
   const handlePublish = async () => {
-    if (!selectedContent || selectedPages.length === 0 || (contentType !== 'article' && !caption)) {
+    if (!selectedContent || selectedPages.length === 0) {
       setMessage(t('errorSelectPublish'))
       return
     }
@@ -681,7 +681,7 @@ function PublishPage() {
               så vi hverken viser feltet eller krever det. */}
           {contentType !== 'article' && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('captionLabel')}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('captionLabel')} <span className="text-gray-400 font-normal">(valgfritt)</span></label>
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
@@ -839,7 +839,6 @@ function PublishPage() {
         <div className="mb-6">
           {(() => {
             const missing: string[] = []
-            if (contentType !== 'article' && !caption) missing.push('skriv en bildetekst')
             if (selectedPages.length === 0) missing.push('velg minst én side å publisere til')
             if (publishMode === 'schedule' && !scheduledAt) missing.push('velg tidspunkt')
             const ready = missing.length === 0
