@@ -56,6 +56,7 @@ function PublishPage() {
   const [scheduledAt, setScheduledAt] = useState<string>('')
   const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null)
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null)
+  const [publishAsReel, setPublishAsReel] = useState(true)
   const [scheduling, setScheduling] = useState(false)
   const [igPageStatus, setIgPageStatus] = useState<Record<string, string | null>>({})
   const selectedArticleRef = useRef<HTMLDivElement>(null)
@@ -359,6 +360,7 @@ function PublishPage() {
           body.contentType = 'video'
         } else {
           endpoint = publishPlatform === 'facebook' ? '/api/publish/facebook' : '/api/publish/instagram'
+          if (publishPlatform === 'facebook') body.asReel = publishAsReel
         }
       } else {
         body.articleContent = selectedContent.content
@@ -835,6 +837,22 @@ function PublishPage() {
             const ready = missing.length === 0
             return (
               <>
+                {contentType === 'video' && publishPlatform === 'facebook' && publishMode !== 'schedule' && (
+                  <label className="flex items-start gap-3 mb-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-[#E3A883]">
+                    <input
+                      type="checkbox"
+                      checked={publishAsReel}
+                      onChange={(e) => setPublishAsReel(e.target.checked)}
+                      className="mt-1 h-4 w-4"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">🎬 Publiser som Reel</div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        Anbefalt for høydeformat (9:16) — Reels får mer organisk rekkevidde enn vanlige videoinnlegg. Skru av for å poste som vanlig video.
+                      </div>
+                    </div>
+                  </label>
+                )}
                 {publishMode === 'schedule' && (
                   <div className="mb-3">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Velg dato og klokkeslett</label>
