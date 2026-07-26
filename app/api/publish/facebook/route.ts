@@ -1,9 +1,62 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// Publish a video as a Facebook Reel via the 3-phase video_reels upload
+// (start → hosted upload by file_url → finish/publish). Returns the reel video id.
+async function publishFacebookReel(
+  pageId: string,
+  videoUrl: string,
+  caption: string,
+  accessToken: string
+): Promise<string> {
+  const base = `https://graph.facebook.com/v19.0/${pageId}/video_reels`
+
+  // Phase 1 — start: reserve a video_id and get the upload URL
+  const startRes = await fetch(base, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ upload_phase: 'start', access_token: accessToken }),
+  })
+  const startData = await startRes.json()
+  if (startData.error || !startData.video_id) {
+    throw new Error(startData.error?.message || 'Reel start-fase feilet')
+  }
+  const videoId: string = startData.video_id
+  const uploadUrl: string =
+    startData.upload_url || `https://rupload.facebook.com/video-upload/v19.0/${videoId}`
+
+  // Phase 2 — upload: hosted upload, Facebook pulls the file from our R2 URL
+  const upRes = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `OAuth ${accessToken}`,
+      file_url: videoUrl,
+    },
+  })
+  const upData = await upRes.json().catch(() => ({}))
+  if (upData.error || upData.success === false) {
+    throw new Error(upData.error?.message || 'Reel opplasting feilet')
+  }
+
+  // Phase 3 — finish: publish the reel with its caption
+  const finishParams = new URLSearchParams({
+    access_token: accessToken,
+    upload_phase: 'finish',
+    video_id: videoId,
+    video_state: 'PUBLISHED',
+    description: caption || '',
+  })
+  const finRes = await fetch(`${base}?${finishParams.toString()}`, { method: 'POST' })
+  const finData = await finRes.json()
+  if (finData.error || finData.success === false) {
+    throw new Error(finData.error?.message || 'Reel finish-fase feilet')
+  }
+  return videoId
+}
+
 export async function POST(request: Request) {
   try {
-    const { pageIds, videoUrl, caption, draftId, productId, userId, pages } = await request.json()
+    const { pageIds, videoUrl, caption, draftId, productId, userId, pages, asReel } = await request.json()
 
     if (!pageIds || !Array.isArray(pageIds) || pageIds.length === 0) {
       return NextResponse.json({ error: 'No page IDs provided' }, { status: 400 })
@@ -13,7 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing videoUrl or caption' }, { status: 400 })
     }
 
-    console.log('[publish/facebook] videoUrl:', videoUrl)
+    console.log('[publish/facebook] videoUrl:', videoUrl, '| asReel:', !!asReel)
     console.log('[publish/facebook] Publishing to pages:', pageIds)
 
     const supabase = createClient(
@@ -25,8 +78,6 @@ export async function POST(request: Request) {
 
     for (const pageId of pageIds) {
       try {
-        console.log('[publish/facebook] Fetching access token for page:', pageId)
-
         // Hent page access token
         const { data: conn, error } = await supabase
           .from('social_connections')
@@ -40,50 +91,55 @@ export async function POST(request: Request) {
           continue
         }
 
-        console.log('[publish/facebook] Posting video to page:', pageId)
+        let postId: string
 
-        // Post video til Facebook
-        const res = await fetch(`https://graph.facebook.com/v19.0/${pageId}/videos`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            file_url: videoUrl,
-            description: caption,
-            access_token: conn.access_token,
-          }),
-        })
-
-        const data = await res.json()
-
-        if (data.error) {
-          console.error('[publish/facebook] Facebook error for page:', pageId, data.error)
-          results.push({ pageId, success: false, error: data.error.message })
+        if (asReel) {
+          console.log('[publish/facebook] Publishing as Reel to page:', pageId)
+          postId = await publishFacebookReel(pageId, videoUrl, caption, conn.access_token)
         } else {
-          console.log('[publish/facebook] Successfully posted to page:', pageId)
-          
-          // Lagre publisering i Supabase
-          if (draftId && productId && userId) {
-            const pageName = pages?.[pageId] || conn.page_name
-            await supabase.from('publications').insert({
-              user_id: userId,
-              product_id: productId,
-              draft_id: draftId,
-              platform: 'facebook',
-              page_id: pageId,
-              page_name: pageName,
-              post_id: data.id,
-              caption,
-              video_url: videoUrl,
-              status: 'published',
-            })
-            console.log('[publish/facebook] Publication saved to database for page:', pageId)
+          console.log('[publish/facebook] Posting video to page:', pageId)
+          const res = await fetch(`https://graph.facebook.com/v19.0/${pageId}/videos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              file_url: videoUrl,
+              description: caption,
+              access_token: conn.access_token,
+            }),
+          })
+          const data = await res.json()
+          if (data.error) {
+            console.error('[publish/facebook] Facebook error for page:', pageId, data.error)
+            results.push({ pageId, success: false, error: data.error.message })
+            continue
           }
-          
-          results.push({ pageId, success: true, post_id: data.id })
+          postId = data.id
         }
-      } catch (err) {
+
+        console.log('[publish/facebook] Successfully published to page:', pageId, '| id:', postId)
+
+        // Lagre publisering i Supabase
+        if (draftId && productId && userId) {
+          const pageName = pages?.[pageId] || conn.page_name
+          await supabase.from('publications').insert({
+            user_id: userId,
+            product_id: productId,
+            draft_id: draftId,
+            platform: 'facebook',
+            page_id: pageId,
+            page_name: pageName,
+            post_id: postId,
+            caption,
+            video_url: videoUrl,
+            status: 'published',
+          })
+          console.log('[publish/facebook] Publication saved to database for page:', pageId)
+        }
+
+        results.push({ pageId, success: true, post_id: postId, reel: !!asReel })
+      } catch (err: any) {
         console.error('[publish/facebook] Error posting to page:', pageId, err)
-        results.push({ pageId, success: false, error: String(err) })
+        results.push({ pageId, success: false, error: err?.message || String(err) })
       }
     }
 
