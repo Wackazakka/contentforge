@@ -38,7 +38,7 @@ async function runCron(request?: NextRequest) {
   const results = []
 
   for (const post of due) {
-    const { id, platform, content_type, page_id, caption, draft_id, job_id, user_id, production_id, container_id, ig_account_id } = post
+    const { id, platform, content_type, page_id, caption, draft_id, job_id, user_id, production_id, container_id, ig_account_id, as_reel } = post
 
     // Guard: skip posts with missing critical data
     if (!page_id) {
@@ -208,6 +208,7 @@ async function runCron(request?: NextRequest) {
               productId: production_id,
               userId: user_id,
               pages: {},
+              asReel: as_reel ?? false,
             }),
           })
           publishResult = await res.json()
