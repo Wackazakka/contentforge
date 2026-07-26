@@ -87,6 +87,8 @@ export default function DraftPage() {
   // Jingle er ikke lagret på draft-raden (ingen kolonne) — hold i state, init fra ?jingle=
   const [outroJingle, setOutroJingle] = useState<string | null>(searchParams?.get('jingle') || null)
   const [jingleUploading, setJingleUploading] = useState(false)
+  const [musicUploading, setMusicUploading] = useState(false)
+  const [musicFolder, setMusicFolder] = useState('global')
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
   const formatFromUrl = searchParams?.get('format') || ''
 
@@ -593,7 +595,52 @@ export default function DraftPage() {
               {draft.music_file && (
                 <audio controls preload="none" src={`/api/music/${encodeURIComponent(draft.music_file)}`} className="mt-2 w-full" />
               )}
-              <p className="text-xs text-gray-400 mt-1">Spilles under hele videoen.</p>
+              {/* Last opp egen bakgrunnsmusikk → valgt mappe → auto-velges */}
+              <div className="mt-2 flex items-center gap-2">
+                <select
+                  value={musicFolder}
+                  onChange={(e) => setMusicFolder(e.target.value)}
+                  className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-white"
+                  title="Mappe for opplastet musikk"
+                >
+                  <option value="global">Felles</option>
+                  <option value="bildeal">BilDeal</option>
+                  <option value="reforhandle">Reforhandle</option>
+                  <option value="singlepicker">SinglePicker</option>
+                </select>
+                <input
+                  type="file"
+                  accept=".mp3"
+                  disabled={musicUploading}
+                  onChange={async (e) => {
+                    const el = e.currentTarget
+                    const file = el.files?.[0]
+                    if (!file) return
+                    if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer.'); el.value = ''; return }
+                    if (file.size > 4 * 1024 * 1024) { alert('Filen er for stor (maks 4MB).'); el.value = ''; return }
+                    setMusicUploading(true)
+                    try {
+                      const fd = new FormData(); fd.append('file', file)
+                      const res = await fetch(`/api/music/upload?folder=${encodeURIComponent(musicFolder)}`, { method: 'POST', body: fd })
+                      if (res.ok) {
+                        const up = await res.json()
+                        const data = await fetch('/api/music').then((r) => r.json())
+                        if (data.files) setMusicLibrary(data.files)
+                        if (up?.file?.filename) updateMusic(up.file.filename) // auto-velg den nye musikken
+                      } else {
+                        alert('Opplasting feilet.')
+                      }
+                    } catch (err) {
+                      alert('Opplasting feilet: ' + (err instanceof Error ? err.message : 'ukjent feil'))
+                    } finally {
+                      setMusicUploading(false)
+                      el.value = ''
+                    }
+                  }}
+                  className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).'}</p>
             </div>
 
             {/* Jingle på sluttplakat */}

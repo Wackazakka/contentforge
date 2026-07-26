@@ -1,19 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-
-const NORWEGIAN_VOICES = [
-  { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind', desc: 'Dyp og rolig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/7dc5c03caf8f40daa575fa9eacbf3de8/voices/nhvaqgRyAq6BmFs3WcdX/Z8yVliHOyn9eSmt4YEVw.mp3' },
-  { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis', desc: 'Klar og behagelig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/15af1c0d0dcd479cb8376a767ab07b4c/voices/s2xtA7B2CTXPPlJzch1v/YB9DE4weRg6BTei8hVZ5.mp3' },
-  { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes', desc: 'Selvsikker', preview: 'https://storage.googleapis.com/eleven-public-prod/custom/voices/2dhHLsmg0MVma2t041qT/fX3l7ljt7bx6zRPz8VdC.mp3' },
-  { id: 'BGEU6wFi2uNm6Kje1Yhk', name: 'Maja', desc: 'Nordisk, dramatisk', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/ed9b05e6324c457685490352e9a1ec90/voices/BGEU6wFi2uNm6Kje1Yhk/gCIHS9pPkrtwiAjN4VgG.mp3' },
-  { id: 'CMbvLbbccSd611KtwxV3', name: 'Robert', desc: 'Oslo', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/2461cf568dc042a3bbfbf75522203b35/voices/CMbvLbbccSd611KtwxV3/fabf86a6-90db-42c2-9993-47fff3f73a80.mp3' },
-  { id: 'vUmLiNBm6MDcy1NUHaVr', name: 'Helge', desc: '', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/3690d7df74c84d8880e0e0d0641de7f2/voices/vUmLiNBm6MDcy1NUHaVr/6JBvRVvXcssLtXlaqLg1.mp3' },
-  { id: 'uNsWM1StCcpydKYOjKyu', name: 'Mia', desc: 'Norsk kvinne', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/a2175a4ce5a74c88868dd9d4a000c9a6/voices/uNsWM1StCcpydKYOjKyu/868f87d5-7724-4786-a7fa-a48e01b2ba54.mp3' },
-]
 
 const VIDEO_FORMATS = [
   { value: '9:16', label: 'Portrait (TikTok)', color: 'blue' },
@@ -32,38 +22,14 @@ export default function NewDraftPage() {
   const [segmentCount, setSegmentCount] = useState(4)
   const [targetAudience, setTargetAudience] = useState('')
   const [problem, setProblem] = useState('')
-  const [voiceId, setVoiceId] = useState('nhvaqgRyAq6BmFs3WcdX')
   const [tone, setTone] = useState('Energisk')
   const [perspective, setPerspective] = useState<'du' | 'jeg'>('du')
   const [cta, setCta] = useState('')
   const [videoFormat, setVideoFormat] = useState('9:16')
-  const [musicStyle, setMusicStyle] = useState('Upbeat')
-  const [musicFile, setMusicFile] = useState<string | null>(null)
-  const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
-  const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
   const [imageStyle, setImageStyle] = useState('editorial')
   const [includeOutroCard, setIncludeOutroCard] = useState(true)
-  const [outroJingle, setOutroJingle] = useState<string | null>(null)
-  const [showVoiceIdField, setShowVoiceIdField] = useState(false)
-  const [jingleUploading, setJingleUploading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [playingVoice, setPlayingVoice] = useState<string | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-
-  useEffect(() => {
-    const fetchMusic = async () => {
-      try {
-        const res = await fetch('/api/music')
-        const data = await res.json()
-        console.log('[music] fetched:', data.files?.length, 'files')
-        setMusicLibrary(data.files || [])
-      } catch (err) {
-        console.error('Failed to fetch music list:', err)
-      }
-    }
-    fetchMusic()
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,13 +60,10 @@ export default function NewDraftPage() {
           segmentCount,
           targetAudience,
           problem,
-          voiceId,
           tone,
           perspective,
           cta,
           videoFormat,
-          musicStyle,
-          musicFile,
           includeOutroCard,
         }),
       })
@@ -111,7 +74,7 @@ export default function NewDraftPage() {
       }
 
       const data = await response.json()
-      router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}&format=${encodeURIComponent(videoFormat)}&outro=${includeOutroCard ? '1' : '0'}&jingle=${encodeURIComponent(outroJingle || '')}`)
+      router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}&format=${encodeURIComponent(videoFormat)}&outro=${includeOutroCard ? '1' : '0'}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -232,89 +195,6 @@ export default function NewDraftPage() {
                 {t('sectionContent')}
               </h2>
               <div className="space-y-4">
-                {/* Voice */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('voiceLabel')}</label>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    {NORWEGIAN_VOICES.map((v) => {
-                      const isSelected = voiceId === v.id
-                      const isPlaying = playingVoice === v.id
-                      return (
-                        <button
-                          key={v.id}
-                          type="button"
-                          onClick={() => setVoiceId(v.id)}
-                          className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${
-                            isSelected
-                              ? 'border-[#C5451B] bg-[#F8E7DB]'
-                              : 'border-gray-200 hover:border-gray-300 bg-white'
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              if (isPlaying) {
-                                audioRef.current?.pause()
-                                setPlayingVoice(null)
-                              } else {
-                                if (audioRef.current) {
-                                  audioRef.current.pause()
-                                }
-                                const audio = new Audio(v.preview)
-                                audioRef.current = audio
-                                audio.play()
-                                setPlayingVoice(v.id)
-                                audio.onended = () => setPlayingVoice(null)
-                              }
-                            }}
-                            className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                              isPlaying ? 'bg-[#C5451B] text-white' : 'bg-gray-100 hover:bg-[#F8E7DB] text-gray-600'
-                            }`}
-                            title={isPlaying ? 'Stopp' : 'Hør stemmen'}
-                          >
-                            {isPlaying ? (
-                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8"/><rect x="6" y="1" width="3" height="8"/></svg>
-                            ) : (
-                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9"/></svg>
-                            )}
-                          </button>
-                          <div className="min-w-0">
-                            <div className={`text-sm font-medium leading-tight ${isSelected ? 'text-[#C5451B]' : 'text-gray-900'}`}>{v.name}</div>
-                            {v.desc && <div className="text-xs text-gray-400 leading-tight truncate">{v.desc}</div>}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {/* Avansert: egen ElevenLabs Voice-ID (skjult som standard — de 7 kortene dekker vanlig bruk) */}
-                  {!showVoiceIdField ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowVoiceIdField(true)}
-                      className="text-xs text-gray-400 hover:text-[#C5451B] mt-1"
-                    >
-                      Avansert: bruk egen stemme-ID ↓
-                    </button>
-                  ) : (
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        value={voiceId}
-                        onChange={(e) => setVoiceId(e.target.value)}
-                        placeholder="Lim inn Voice ID fra ElevenLabs…"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
-                      />
-                      <p className="text-xs text-gray-400 mt-1">
-                        Kun for avansert bruk — lim inn ID fra{' '}
-                        <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#C5451B] hover:underline">
-                          ElevenLabs voice library →
-                        </a>
-                      </p>
-                    </div>
-                  )}
-                </div>
-
                 {/* Tone */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">{t('toneLabel')}</label>
@@ -399,132 +279,6 @@ export default function NewDraftPage() {
                   </div>
                 </div>
 
-                {/* Music */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">{t('musicLabel')}</label>
-                  <p className="text-xs text-gray-500 mb-3">{t('musicHint')}</p>
-
-                  {/* Upload form */}
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mb-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <label className="block">
-                        <span className="text-xs font-medium text-gray-700 block mb-1">{t('musicFolder')}</span>
-                        <select
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          value={selectedMusicFolder}
-                          onChange={(e) => setSelectedMusicFolder(e.target.value)}
-                        >
-                          <option value="global">{t('musicFolderGlobal')}</option>
-                          <option value="bildeal">BilDeal</option>
-                          <option value="reforhandle">Reforhandle</option>
-                          <option value="singlepicker">SinglePicker</option>
-                        </select>
-                      </label>
-                      <label className="block">
-                        <span className="text-xs font-medium text-gray-700 block mb-1">{t('uploadMP3')}</span>
-                        <input
-                          type="file"
-                          accept=".mp3"
-                          onChange={async (e) => {
-                            const inputElement = e.currentTarget
-                            if (!inputElement) {
-                              console.error('[music upload] Input element is null')
-                              return
-                            }
-                            
-                            const file = inputElement.files?.[0]
-                            if (!file) return
-                            
-                            if (!file.name.toLowerCase().endsWith('.mp3')) {
-                              alert(t('alertMp3Only'))
-                              inputElement.value = ''
-                              return
-                            }
-
-                            const maxSize = 4 * 1024 * 1024
-                            if (file.size > maxSize) {
-                              alert(t('alertFileTooLarge', { size: (file.size / 1024 / 1024).toFixed(1) }))
-                              inputElement.value = ''
-                              return
-                            }
-                            
-                            const formData = new FormData()
-                            formData.append('file', file)
-                            
-                            try {
-                              const res = await fetch('/api/music/upload?' + new URLSearchParams({ folder: selectedMusicFolder }).toString(), {
-                                method: 'POST',
-                                body: formData,
-                              })
-                              if (res.ok) {
-                                const data = await fetch('/api/music').then(r => r.json())
-                                if (data.files) setMusicLibrary(data.files)
-                                alert(t('alertUploaded'))
-                                inputElement.value = ''
-                              } else {
-                                const error = await res.text()
-                                console.error('[music upload] Server error:', error)
-                                alert(`Upload failed: ${error}`)
-                                inputElement.value = ''
-                              }
-                            } catch (err) {
-                              console.error('[music upload] Error:', err)
-                              alert('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
-                              inputElement.value = ''
-                            }
-                          }}
-                          className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {musicLibrary.length > 0 ? (
-                    <div className="grid gap-2">
-                      {musicLibrary.filter((m) => m.folder !== 'jingles').map((music) => (
-                        <div
-                          key={music.filename}
-                          onClick={() => setMusicFile(music.filename)}
-                          className={`text-left p-3 border-2 rounded-lg transition-colors cursor-pointer ${
-                            musicFile === music.filename
-                              ? 'border-green-500 bg-green-50'
-                              : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium text-gray-900">{music.name}</div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                                {music.folder || 'global'}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={async (e) => {
-                                  e.stopPropagation()
-                                  if (!confirm(`Slett «${music.name}»?`)) return
-                                  await fetch(`/api/music/${encodeURIComponent(music.filename)}`, { method: 'DELETE' })
-                                  if (musicFile === music.filename) setMusicFile(null)
-                                  const data = await fetch('/api/music').then(r => r.json())
-                                  if (data.files) setMusicLibrary(data.files)
-                                }}
-                                className="text-gray-300 hover:text-red-500 transition-colors text-xs px-1"
-                                title="Slett fil"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {(music.size / 1024 / 1024).toFixed(1)}MB
-                          </div>
-                          <audio controls preload="none" className="mt-2 w-full" src={`/api/music/${encodeURIComponent(music.filename)}`} onClick={(e) => e.stopPropagation()} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">{t('loadingMusic')}</p>
-                  )}
-                </div>
               </div>
             </div>
 
@@ -580,60 +334,6 @@ export default function NewDraftPage() {
                 </div>
               </label>
 
-              {includeOutroCard && (
-                <div className="mt-3 pl-4">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Jingle på sluttplakaten (valgfritt)</label>
-                  <select
-                    value={outroJingle || ''}
-                    onChange={(e) => setOutroJingle(e.target.value || null)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  >
-                    <option value="">Ingen jingle</option>
-                    {musicLibrary.filter((m) => m.folder === 'jingles').map((j) => (
-                      <option key={j.filename} value={j.filename}>{j.name}</option>
-                    ))}
-                  </select>
-                  {outroJingle && (
-                    <audio controls preload="none" className="mt-2 w-full" src={`/api/music/${encodeURIComponent(outroJingle)}`} />
-                  )}
-                  {/* Dedikert jingle-opplasting → mappe «jingles» → auto-velges */}
-                  <div className="mt-2">
-                    <label className="text-xs text-gray-600 block mb-1">Eller last opp egen jingle (MP3, opptil 10 sek, maks 4MB):</label>
-                    <input
-                      type="file"
-                      accept=".mp3"
-                      disabled={jingleUploading}
-                      onChange={async (e) => {
-                        const el = e.currentTarget
-                        const file = el.files?.[0]
-                        if (!file) return
-                        if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer.'); el.value = ''; return }
-                        if (file.size > 4 * 1024 * 1024) { alert('Filen er for stor (maks 4MB).'); el.value = ''; return }
-                        setJingleUploading(true)
-                        try {
-                          const fd = new FormData(); fd.append('file', file)
-                          const res = await fetch('/api/music/upload?folder=jingles', { method: 'POST', body: fd })
-                          if (res.ok) {
-                            const up = await res.json()
-                            const data = await fetch('/api/music').then((r) => r.json())
-                            if (data.files) setMusicLibrary(data.files)
-                            if (up?.file?.filename) setOutroJingle(up.file.filename) // auto-velg den nye jingelen
-                          } else {
-                            alert('Opplasting feilet.')
-                          }
-                        } catch (err) {
-                          alert('Opplasting feilet: ' + (err instanceof Error ? err.message : 'ukjent feil'))
-                        } finally {
-                          setJingleUploading(false)
-                          el.value = ''
-                        }
-                      }}
-                      className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">{jingleUploading ? 'Laster opp jingle…' : 'Spilles på sluttplakaten.'}</p>
-                </div>
-              )}
             </div>
 
             {/* Buttons */}
