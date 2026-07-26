@@ -440,7 +440,7 @@
     "sectionImageStyle": "Image style",
     "sectionOutro": "Ending",
     "outroLabel": "End with product link 🔗",
-    "outroDesc": "Adds 3 seconds branded end frame with product website, logo and CTA.",
+    "outroDesc": "Adds a branded end frame with product website, logo and CTA. Without a jingle it lasts ~3 seconds; with a jingle it lasts as long as the jingle (up to 10 sec).",
     "createDraft": "🎬 Create draft",
     "creatingDraft": "⏳ Creating draft...",
     "cancel": "Cancel",
