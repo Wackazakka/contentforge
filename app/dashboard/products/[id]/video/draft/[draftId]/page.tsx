@@ -93,6 +93,7 @@ export default function DraftPage() {
   const [outroBg, setOutroBg] = useState('#1a1a2e')
   const [outroText, setOutroText] = useState('#ffffff')
   const [colorSaving, setColorSaving] = useState(false)
+  const [starting, setStarting] = useState(false)
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
   const formatFromUrl = searchParams?.get('format') || ''
 
@@ -498,8 +499,9 @@ export default function DraftPage() {
   }
 
   const startProduction = async () => {
-    if (!draft) return
+    if (!draft || starting) return
 
+    setStarting(true)
     try {
       // Verify that draft in DB actually has all approved before we start
       console.log('[startProduction] Verifying draft approval status in database...')
@@ -514,6 +516,7 @@ export default function DraftPage() {
       if (!allSaved) {
         console.warn('[startProduction] Not all segments saved to database yet')
         alert('Saving in progress, try again in a moment')
+        setStarting(false)
         return
       }
 
@@ -548,6 +551,7 @@ export default function DraftPage() {
     } catch (err) {
       console.error('[DraftPage] Production error:', err)
       alert('Error starting production')
+      setStarting(false)
     }
   }
 
@@ -978,14 +982,21 @@ export default function DraftPage() {
 
           <button
             onClick={startProduction}
-            disabled={!allApproved}
+            disabled={!allApproved || starting}
             className={`px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
-              allApproved
-                ? 'bg-green-600 hover:bg-green-700'
-                : 'bg-gray-400 cursor-not-allowed opacity-50'
+              !allApproved || starting
+                ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                : 'bg-green-600 hover:bg-green-700'
             }`}
           >
-            {t('startProduction')}
+            {starting ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Starter produksjon…
+              </span>
+            ) : (
+              t('startProduction')
+            )}
           </button>
         </div>
       </div>
