@@ -9,6 +9,7 @@ import { COSTS_NOK, fmtNok } from '@/lib/costs'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 const VOICES = [
+  { id: 'buLDb121bbD0rdxWw26y', name: 'Adam', desc: 'Reforhandle-verten (karakter-stemme)', preview: 'https://api.us.elevenlabs.io/v1/voices/buLDb121bbD0rdxWw26y/previews/audio?payload=eyJ2b2ljZV9zb3VyY2UiOiJjdXN0b20iLCJ3b3Jrc3BhY2VfaWQiOiJhODM3MTU4Y2UzYzM0MjQyODdjODhlYTg4ZDMxZDVjMSIsImZpbGVuYW1lIjoiZTdhYWNlNjQtNGU5OC00NTM3LTg5YTEtOTc4MTAwOGNiYTU5Lm1wMyIsInRpbWVzdGFtcCI6MTc4NTE0NjQwMDAwMDAwMH0%3D' },
   { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind', desc: 'Dyp og rolig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/7dc5c03caf8f40daa575fa9eacbf3de8/voices/nhvaqgRyAq6BmFs3WcdX/Z8yVliHOyn9eSmt4YEVw.mp3' },
   { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis', desc: 'Klar og behagelig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/15af1c0d0dcd479cb8376a767ab07b4c/voices/s2xtA7B2CTXPPlJzch1v/YB9DE4weRg6BTei8hVZ5.mp3' },
   { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes', desc: 'Selvsikker', preview: 'https://storage.googleapis.com/eleven-public-prod/custom/voices/2dhHLsmg0MVma2t041qT/fX3l7ljt7bx6zRPz8VdC.mp3' },
