@@ -5,6 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
+import { COSTS_NOK, fmtNok } from '@/lib/costs'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 const VOICES = [
@@ -43,6 +44,7 @@ interface Draft {
   music_style?: string
   music_file?: string | null
   outro_jingle?: string | null
+  cost_accumulated?: number | null
 }
 
 // Split a text roughly in half — at the sentence boundary nearest the midpoint,
@@ -92,6 +94,7 @@ export default function DraftPage() {
   const [jingleUploading, setJingleUploading] = useState(false)
   // Karakter-modus: konsistent vert (flux-lora) i alle segmentbilder — init fra ?character=
   const [character, setCharacter] = useState<string>(searchParams?.get('character') || '')
+  const [userChars, setUserChars] = useState<Array<{ id: string; name: string; status: string }>>([])
   const [musicUploading, setMusicUploading] = useState(false)
   const [musicFolder, setMusicFolder] = useState('global')
   // Sluttplakat-farger — leses fra produktprofilen, kan endres direkte her
@@ -247,7 +250,23 @@ export default function DraftPage() {
       .then((r) => r.json())
       .then((d) => setMusicLibrary(d.files || []))
       .catch((err) => console.error('[DraftPage] Music fetch error:', err))
+    fetch('/api/characters')
+      .then((r) => r.json())
+      .then((d) => setUserChars((d.characters || []).filter((c: any) => c.status === 'ready')))
+      .catch(() => {})
   }, [])
+
+  // Taxameter: legg påløpt kostnad (NOK, inkl. påslag) på draften — defensivt hvis kolonnen mangler
+  const addCost = (nok: number) => {
+    setDraft((prev) => {
+      if (!prev) return prev
+      const next = { ...prev, cost_accumulated: (Number(prev.cost_accumulated) || 0) + nok }
+      const supabase = getSupabase()
+      supabase.from('production_drafts').update({ cost_accumulated: next.cost_accumulated }).eq('id', draftId)
+        .then(({ error }: { error: any }) => { if (error) console.warn('[addCost] mangler cost_accumulated-kolonnen?', error.message) })
+      return next
+    })
+  }
 
   // Bytt stemme — oppdater state + lagre på draft-raden (brukes av voiceover + produksjon)
   const updateVoice = async (voiceId: string) => {
@@ -354,6 +373,7 @@ export default function DraftPage() {
             segs[index] = { ...segs[index], image_url: imageUrl }
             return { ...prev, segments: segs }
           })
+          addCost(character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard)
         }
       } catch (err: any) {
         const errMsg = err?.name === 'AbortError'
@@ -469,6 +489,7 @@ export default function DraftPage() {
       } catch (saveErr) {
         console.warn('[regenerateImage] kunne ikke lagre segmenter:', saveErr)
       }
+      addCost(character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard)
     } catch (err) {
       console.error('[DraftPage] Regenerate error:', err)
       alert('Error regenerating image')
@@ -503,6 +524,7 @@ export default function DraftPage() {
       })
       const data = await res.json()
       if (data.url) {
+        addCost(COSTS_NOK.voiceoverPreview)
         setVoicePreviews((prev) => ({ ...prev, [index]: data.url }))
 
         // Persist R2 URL on the segment so production can reuse the approved file
@@ -574,6 +596,12 @@ export default function DraftPage() {
       if (!response.ok) throw new Error(data.error || 'Video production failed')
 
       console.log('[startProduction] Production started with jobId:', data.jobId)
+
+      // Taxameter: animasjonskostnad påløper ved produksjonsstart (5s/8s etter voiceover-lengde ukjent her → 5s-sats)
+      if (aiMotion) {
+        const nAnim = draft.segments.filter((s) => s.animate === true).length
+        if (nAnim > 0) addCost(nAnim * COSTS_NOK.animate5s)
+      }
 
       // Redirect to production status page — forward video format so the
       // status page can size the player container correctly.
@@ -817,8 +845,11 @@ export default function DraftPage() {
                 <option value="">Ingen — vanlige scenebilder</option>
                 <option value="adam">Adam (Reforhandle)</option>
                 <option value="lawrence">Lawrence (Peregrine)</option>
+                {userChars.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} (egen)</option>
+                ))}
               </select>
-              <span className="text-xs text-gray-400">Brukes ved «Regenerer bilde» — samme vert i alle segmenter.</span>
+              <span className="text-xs text-gray-400">Brukes ved «Regenerer bilde» — samme vert i alle segmenter. <a href="/dashboard/characters" className="text-[#C5451B] hover:underline">Lag egen karakter →</a></span>
             </div>
           </div>
 
@@ -1101,6 +1132,19 @@ export default function DraftPage() {
                 {t('waitingSegments', { count: draft.segments.filter((s) => !s.approved).length })}
               </span>
             )}
+            {/* 💰 Taxameter: påløpt + estimat for det som gjenstår */}
+            {(() => {
+              const paalopt = Number(draft.cost_accumulated) || 0
+              const nAnim = aiMotion ? draft.segments.filter((s) => s.animate === true).length : 0
+              const nImg = draft.segments.filter((s) => !s.image_url || !s.image_url.trim()).length
+              const estimat = nAnim * COSTS_NOK.animate5s + nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard)
+              return (
+                <div className="text-xs text-gray-500 mt-1">
+                  💰 Påløpt: <span className="font-medium">{fmtNok(paalopt)}</span>
+                  {estimat > 0 && <> · Neste produksjon: ~<span className="font-medium">{fmtNok(estimat)}</span>{nAnim > 0 && ' (animasjoner kan bli inntil det dobbelte ved lange segmenter)'}</>}
+                </div>
+              )
+            })()}
           </div>
 
           <button
