@@ -830,8 +830,8 @@ export default function AvatarVideoPage() {
                     </div>
                   ))}
                   <p className="text-xs text-gray-400 pt-1">
-                    {segments.filter(s => s.audioBlob).length}/{segments.length} segmenter godkjent
-                    {segments.length > 0 && segments.every(s => s.audioBlob) ? ' — klar til innsending ✓' : ''}
+                    {segments.filter(s => s.audioBlob).length}/{segments.length} segmenter har generert tale
+                    {segments.length > 0 && segments.every(s => s.audioBlob) ? ' — lytt gjennom, regenerer de du ikke er fornøyd med, og send inn når alt låter bra ✓' : ''}
                   </p>
                 </div>
               )}
