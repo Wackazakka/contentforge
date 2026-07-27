@@ -288,6 +288,7 @@ export default function Home() {
               <p style={{ fontFamily: HANKEN, fontSize: 14, lineHeight: 1.5, color: '#978B79', margin: 0 }}>{t('foot_tag')}</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Link href="/white-label" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: '#6B6358', textDecoration: 'none' }}>{t('foot_whitelabel')}</Link>
               <Link href="/privacy" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: '#6B6358', textDecoration: 'none' }}>{t('foot_privacy')}</Link>
               <Link href="/terms" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: '#6B6358', textDecoration: 'none' }}>{t('foot_terms')}</Link>
             </div>

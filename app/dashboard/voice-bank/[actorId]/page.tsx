@@ -16,6 +16,7 @@ interface ActorDetail {
   actor_rate_nok: number
   customer_price_nok: number
   rates: Record<string, { actor_rate_nok: number; customer_price_nok: number }> | null
+  face_character_id: string | null
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
   created_at: string
@@ -24,8 +25,8 @@ interface ActorDetail {
 interface Agg { key: string; uses: number; to_actor_nok: number; from_customers_nok: number }
 
 const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('nb-NO')} kr`
-const KIND_LABEL: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', ukjent: 'Ukjent' }
-const KINDS = ['video', 'avatar', 'radio']
+const KIND_LABEL: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt (karakter)', ukjent: 'Ukjent' }
+const KINDS = ['video', 'avatar', 'radio', 'face']
 
 export default function VoiceActorPage() {
   const params = useParams()
@@ -42,6 +43,7 @@ export default function VoiceActorPage() {
   const [editRate, setEditRate] = useState('')
   const [editPrice, setEditPrice] = useState('')
   const [editKinds, setEditKinds] = useState<Record<string, { rate: string; price: string }>>({})
+  const [editFaceId, setEditFaceId] = useState('')
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
 
@@ -73,6 +75,7 @@ export default function VoiceActorPage() {
         ek[k] = r ? { rate: String(r.actor_rate_nok), price: String(r.customer_price_nok) } : { rate: '', price: '' }
       }
       setEditKinds(ek)
+      setEditFaceId(data.actor.face_character_id || '')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -101,7 +104,7 @@ export default function VoiceActorPage() {
     try {
       const res = await authedFetch({
         method: 'PATCH',
-        body: JSON.stringify({ actorId, actorRateNok: Number(editRate), customerPriceNok: Number(editPrice), rates }),
+        body: JSON.stringify({ actorId, actorRateNok: Number(editRate), customerPriceNok: Number(editPrice), rates, faceCharacterId: editFaceId.trim() }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Lagring feilet')
@@ -186,6 +189,11 @@ export default function VoiceActorPage() {
                   </div>
                 ))}
               </div>
+
+              <p className="text-sm font-medium text-gray-700 mb-1">Ansikt (valgfritt)</p>
+              <p className="text-xs text-gray-400 mb-2">Lim inn karakter-id-en fra karaktertreningen hvis skuespilleren også har lisensiert ansiktet sitt (Flux LoRA). Produksjoner som bruker karakteren logges da med «Ansikt»-taksten over — eller standardsatsene hvis den står tom.</p>
+              <input value={editFaceId} onChange={(e) => setEditFaceId(e.target.value)} placeholder="Karakter-id (tom = ingen ansiktslisens)"
+                className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono mb-4" />
 
               {saveMsg && (
                 <div className={`mb-3 p-3 rounded-lg text-sm ${saveMsg === 'Takstene er lagret.' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>

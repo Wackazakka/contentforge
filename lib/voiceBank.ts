@@ -92,6 +92,49 @@ export async function getAvailableVoiceActors(tenantId: string): Promise<VoiceAc
 }
 
 /**
+ * Logg bruk av en skuespillers ANSIKT (Flux LoRA-karakter) i en produksjon.
+ * Kobling: voice_actors.face_character_id → user_characters.id. Takst =
+ * 'face'-taksten hvis satt, ellers standardsatsene. Samme hovedbok som
+ * stemmen, skilt med asset_type='face'. Feiler stille.
+ */
+export async function logFaceUsage(e: {
+  characterId?: string | null
+  usedByTenantId?: string | null
+  productId?: string | null
+  draftId?: string | null
+  jobId?: string | null
+}): Promise<void> {
+  try {
+    if (!e.characterId || !e.usedByTenantId) return
+    const chain = await tenantChainUp(e.usedByTenantId)
+    if (chain.length === 0) return
+    const { data: actors } = await admin()
+      .from('voice_actors')
+      .select('*')
+      .in('owner_tenant_id', chain)
+      .eq('is_active', true)
+      .eq('face_character_id', e.characterId)
+    const actor = (actors || [])[0] as VoiceActor | undefined
+    if (!actor) return
+    const { rate, price } = ratesForKind(actor, 'face')
+    await admin().from('voice_usage_events').insert({
+      actor_id: actor.id,
+      used_by_tenant_id: e.usedByTenantId,
+      product_id: e.productId ?? null,
+      draft_id: e.draftId ?? null,
+      job_id: e.jobId ?? null,
+      actor_rate_nok: rate,
+      customer_price_nok: price,
+      asset_type: 'face',
+      meta: { kind: 'face' },
+    })
+    console.log(`[voiceBank] Ansikts-royalty: ${actor.name} brukt av tenant ${e.usedByTenantId}`)
+  } catch (err) {
+    console.warn('[voiceBank] ansikts-logging feilet (ignoreres):', err)
+  }
+}
+
+/**
  * Logg bruk av en skuespillerstemme i en produksjon (royalty-hendelse).
  * Kalles ved produksjonsstart med ElevenLabs-voice-id-en produksjonen bruker;
  * gjør ingenting hvis stemmen ikke er en registrert skuespiller. Feiler stille.

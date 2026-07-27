@@ -682,6 +682,7 @@ export default function DraftPage() {
           outroJingle,
           aiMotion,
           aiMotionEngine,
+          character: character || null,
         }),
       })
 

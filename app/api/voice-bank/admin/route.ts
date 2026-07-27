@@ -188,6 +188,10 @@ export async function PATCH(request: Request) {
       if (!(v >= 0)) return NextResponse.json({ error: 'Ugyldig kundepris' }, { status: 400 })
       patch.customer_price_nok = v
     }
+    if (body.faceCharacterId !== undefined) {
+      // Kobling til skuespillerens ansikt (LoRA-karakter); tom streng fjerner koblingen
+      patch.face_character_id = body.faceCharacterId ? String(body.faceCharacterId).trim() : null
+    }
     if (body.rates !== undefined) {
       // Takster per brukstype: {video:{actor_rate_nok,customer_price_nok},…} — kun gyldige tall beholdes
       const clean: Record<string, { actor_rate_nok: number; customer_price_nok: number }> = {}

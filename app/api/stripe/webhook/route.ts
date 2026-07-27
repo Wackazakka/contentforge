@@ -39,6 +39,25 @@ export async function POST(request: Request) {
         break
       }
 
+      // Kredittpåfyll for white-label-sluttkunder — idempotent på session-id
+      if (session.metadata?.kind === 'org_topup') {
+        try {
+          await supabase.from('org_topups').upsert(
+            {
+              organization_id: session.metadata.organization_id,
+              amount_nok: Number(session.metadata.amount_nok),
+              bonus_nok: Number(session.metadata.bonus_nok || 0),
+              note: 'Selvbetjent kortkjøp (Stripe)',
+              stripe_session_id: session.id,
+            },
+            { onConflict: 'stripe_session_id', ignoreDuplicates: true }
+          )
+        } catch (err: any) {
+          console.error('[stripe/webhook] org_topup-registrering feilet:', err.message)
+        }
+        break
+      }
+
       const userId = session.metadata?.user_id
       const plan = session.metadata?.plan as PlanKey
 

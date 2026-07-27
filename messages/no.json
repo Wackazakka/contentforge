@@ -6,7 +6,8 @@
     "billing": "Fakturering",
     "logout": "Logg ut",
     "credits": "{count} kreditter",
-    "voicebank": "Stemmebank"
+    "voicebank": "Stemmebank",
+    "buy_credits": "Kreditter"
   },
   "home": {
     "nav_pricing": "Priser",
@@ -91,7 +92,8 @@
         ]
       }
     ],
-    "footer": "CenterForge © {year} — Wackazakka"
+    "footer": "CenterForge © {year} — Wackazakka",
+    "foot_whitelabel": "Bli white-label-partner"
   },
   "login": {
     "title": "Velkommen tilbake",
