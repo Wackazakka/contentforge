@@ -1008,7 +1008,7 @@ export default function DraftPage() {
                           onChange={(e) => updateAnimate(index, e.target.checked)}
                           className="h-4 w-4"
                         />
-                        🎥 Animer dette segmentet <span className="text-gray-400 font-normal">(AI-bevegelse — koster ~2 kr)</span>
+                        🎥 Animer dette segmentet <span className="text-gray-400 font-normal">(AI-bevegelse — ca. {fmtNok(COSTS_NOK.animate5s)}, opptil {fmtNok(COSTS_NOK.animate8s)} ved lange segmenter)</span>
                       </label>
                     )}
                     <button
