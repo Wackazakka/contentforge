@@ -25,7 +25,9 @@ export default function NavBar() {
     { href: '/dashboard', label: t('overview') },
     { href: '/dashboard/publish', label: t('publish') },
     { href: '/dashboard/calendar', label: t('calendar') },
-    ...(tenant.billing_mode === 'invoice' ? [] : [{ href: '/dashboard/billing', label: t('billing') }]),
+    ...(tenant.billing_mode === 'invoice'
+      ? [{ href: '/dashboard/credits', label: t('buy_credits') }]
+      : [{ href: '/dashboard/billing', label: t('billing') }]),
     ...(voiceBankAdmin ? [{ href: '/dashboard/voice-bank', label: t('voicebank') }] : []),
   ]
 

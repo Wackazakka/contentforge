@@ -6,7 +6,8 @@
     "billing": "Billing",
     "logout": "Log out",
     "credits": "{count} credits",
-    "voicebank": "Voice bank"
+    "voicebank": "Voice bank",
+    "buy_credits": "Credits"
   },
   "home": {
     "nav_pricing": "Pricing",
@@ -91,7 +92,8 @@
         ]
       }
     ],
-    "footer": "CenterForge © {year} — Wackazakka"
+    "footer": "CenterForge © {year} — Wackazakka",
+    "foot_whitelabel": "Become a white-label partner"
   },
   "login": {
     "title": "Welcome back",
