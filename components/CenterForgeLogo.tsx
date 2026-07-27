@@ -44,11 +44,22 @@ export function CenterForgeLogo({
   const tenant = useTenant()
 
   if (tenant.logo_url) {
-    // Tenant med egen logo: vis den alene (logoen inneholder som regel navnet)
+    // Tenant med eget merke: merke-bilde + app-navn som wordmark
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 11 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={tenant.logo_url} alt={tenant.app_name} style={{ height: size * 1.2, width: 'auto' }} />
+        <span
+          style={{
+            fontFamily: 'var(--font-archivo), sans-serif',
+            fontWeight: 800,
+            fontSize: wordmarkSize,
+            letterSpacing: '-0.02em',
+            color: 'var(--ink)',
+          }}
+        >
+          {tenant.app_name}
+        </span>
       </span>
     )
   }
