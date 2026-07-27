@@ -26,7 +26,11 @@ interface GenerateImageRequest {
   imageSize?: '1024x1024' | '1024x1536' | '1536x1024'
   imageStyle?: 'tech' | 'cinematic' | 'warm' | 'surreal' | 'manga'
   character?: string
+  draftId?: string
 }
+
+// Anonyme drafts: tak på antall bildegenereringer (hindrer API-brenning før betaling)
+const ANON_IMAGE_CAP = 24
 
 const VIDEO_STYLE_PROMPTS: Record<string, string> = {
   tech:      'Cutting-edge technology product scene, ultra-sharp macro details, dramatic directional lighting with deep contrasting shadows, floating holographic elements, premium industrial materials — brushed metal, matte glass, anodized surfaces — shot as if for a flagship product launch. Sophisticated and visually arresting.',
@@ -191,7 +195,7 @@ async function uploadBufferToR2(imageBuffer: Buffer, fileName: string): Promise<
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateImageRequest = await request.json()
-    const { topic, productId, logoUrl, articleIds, imageSize = '1024x1024', imageStyle, character } = body
+    const { topic, productId, logoUrl, articleIds, imageSize = '1024x1024', imageStyle, character, draftId } = body
 
     if (!topic || !productId) {
       return NextResponse.json({ error: 'Missing topic or productId' }, { status: 400 })
@@ -199,6 +203,30 @@ export async function POST(request: NextRequest) {
 
     if (!OPENAI_API_KEY && !character) {
       return NextResponse.json({ error: 'OPENAI_API_KEY not set' }, { status: 500 })
+    }
+
+    // Anon-caps: for drafts uten eier begrenses antall genereringer, og
+    // karakter-modus (dyrere flux-lora) er forbeholdt registrerte.
+    // KUN når billing er aktivert — i gratisfasen har alle drafts user_id NULL.
+    if (draftId && process.env.BILLING_ENABLED === 'true') {
+      const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+      const { data: draft } = await supabase
+        .from('production_drafts')
+        .select('user_id, anon_image_count')
+        .eq('id', draftId)
+        .single()
+      if (draft && !draft.user_id) {
+        if (character) {
+          return NextResponse.json({ error: 'Karakter-modus krever konto. Registrer deg (33 % rabatt) for å bruke egne karakterer.' }, { status: 403 })
+        }
+        if ((draft.anon_image_count || 0) >= ANON_IMAGE_CAP) {
+          return NextResponse.json({ error: 'Grensen for bildegenerering uten konto er nådd. Registrer deg for å fortsette (33 % rabatt).' }, { status: 429 })
+        }
+        await supabase
+          .from('production_drafts')
+          .update({ anon_image_count: (draft.anon_image_count || 0) + 1 })
+          .eq('id', draftId)
+      }
     }
 
     console.log('[generateImage] ===== START:  + topic +  =====')
@@ -238,6 +266,20 @@ export async function POST(request: NextRequest) {
           .from('articles')
           .update({ image_urls: [r2Url] })
           .eq('id', articleId)
+      }
+    }
+
+    // Server-side kost-akkumulering (atomisk RPC) — klientens addCost er kun visning
+    if (draftId) {
+      try {
+        const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+        const { COSTS_NOK } = await import('@/lib/costs')
+        await supabase.rpc('add_draft_cost', {
+          p_draft_id: draftId,
+          p_amount: character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard,
+        })
+      } catch (costErr) {
+        console.warn('[generateImage] add_draft_cost feilet:', costErr)
       }
     }
 
