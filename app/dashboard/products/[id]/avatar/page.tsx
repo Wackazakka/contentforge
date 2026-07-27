@@ -379,6 +379,220 @@ export default function AvatarVideoPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
+          {/* Section 3: Avatar + Voice */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Avatar & stemme</h2>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Avatar-bilde <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2 mb-2">
+                <label className={`flex-1 flex items-center justify-center gap-2 border-2 border-dashed rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${uploadingImage ? 'border-gray-200 text-gray-400' : 'border-[#C5451B] text-[#C5451B] hover:bg-[#F8E7DB]'}`}>
+                  {uploadingImage ? 'Laster opp…' : '📁 Last opp fra datamaskin'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploadingImage}
+                    onChange={async (e) => {
+                      const file = e.currentTarget.files?.[0]
+                      if (!file) return
+                      setUploadingImage(true)
+                      setError(null)
+                      try {
+                        const formData = new FormData()
+                        formData.append('file', file)
+                        const res = await fetch('/api/avatar/upload-image', { method: 'POST', body: formData })
+                        const data = await res.json()
+                        if (!res.ok) throw new Error(data.error || 'Opplasting feilet')
+                        setAvatarImageUrl(data.url)
+                        saveAvatarImageUrl(data.url, true)
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Opplasting feilet')
+                      } finally {
+                        setUploadingImage(false)
+                        e.currentTarget.value = ''
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={avatarImageUrl}
+                  onChange={(e) => setAvatarImageUrl(e.target.value)}
+                  onBlur={(e) => { if (e.target.value) saveAvatarImageUrl(e.target.value) }}
+                  placeholder="https://eksempel.com/mitt-avatar-bilde.jpg"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                />
+                {avatarImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => saveAvatarImageUrl(avatarImageUrl)}
+                    className={`px-3 py-2 text-xs rounded-lg transition-colors ${savedFeedback ? 'bg-green-500 text-white' : 'bg-[#C5451B] text-white hover:bg-[#1450a0]'}`}
+                  >
+                    {savedFeedback ? 'Lagret ✓' : 'Lagre'}
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Last opp eller lim inn URL — bildet huskes til neste gang. Anbefalt: god belysning, nøytral bakgrunn, ansiktet tydelig synlig.
+              </p>
+            </div>
+
+            {/* Karakter-avatarer (flux-lora) — konsistente verter, klikk for å bruke */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-500 mb-2">🧑‍🎤 Karakter-avatarer — klikk for å velge:</p>
+              <div className="flex flex-wrap gap-2">
+                {CHARACTER_AVATARS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    title={c.name}
+                    onClick={() => { setAvatarImageUrl(c.url); saveAvatarImageUrl(c.url) }}
+                    className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === c.url ? 'border-[#C5451B] ring-2 ring-[#C5451B]' : 'border-gray-200 hover:border-gray-400'}`}
+                  >
+                    <img src={c.url} alt={c.name} className="w-20 h-20 object-cover" />
+                    <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] text-center py-0.5">{c.name.split(' ')[0]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {savedAvatarImages.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Lagrede bilder — klikk for å velge:</p>
+                <div className="flex flex-wrap gap-2">
+                  {savedAvatarImages.map((url) => (
+                    <div key={url} className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => { setAvatarImageUrl(url); saveAvatarImageUrl(url) }}
+                        className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === url ? 'border-[#C5451B] ring-2 ring-[#C5451B]' : 'border-gray-200 hover:border-gray-400'}`}
+                      >
+                        <img
+                          src={url}
+                          alt="Avatar"
+                          className="w-20 h-20 object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).closest('.group')!.remove() }}
+                        />
+                        {avatarImageUrl === url && (
+                          <div className="absolute inset-0 bg-[#C5451B]/10 flex items-center justify-center">
+                            <span className="text-[#C5451B] text-lg">✓</span>
+                          </div>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const updated = savedAvatarImages.filter(u => u !== url)
+                          setSavedAvatarImages(updated)
+                          if (avatarImageUrl === url) setAvatarImageUrl(updated[0] ?? '')
+                          const { getSupabase } = await import('@/lib/supabaseClient')
+                          await getSupabase().from('product_profiles').upsert(
+                            { product_id: productId, avatar_image_urls: updated, avatar_image_url: updated[0] ?? null },
+                            { onConflict: 'product_id' }
+                          )
+                        }}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs leading-none hidden group-hover:flex items-center justify-center hover:bg-red-600"
+                        title="Fjern bilde"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Stemme</label>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {NORWEGIAN_VOICES.map((v) => {
+                  const isSelected = voiceId === v.id
+                  const isPlaying = playingVoice === v.id
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setVoiceId(v.id)}
+                      className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${
+                        isSelected
+                          ? 'border-[#7C3AED] bg-[#F5F3FF]'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (isPlaying) {
+                            audioRef.current?.pause()
+                            setPlayingVoice(null)
+                          } else {
+                            if (audioRef.current) {
+                              audioRef.current.pause()
+                            }
+                            const audio = new Audio(v.preview)
+                            audioRef.current = audio
+                            audio.play()
+                            setPlayingVoice(v.id)
+                            audio.onended = () => setPlayingVoice(null)
+                          }
+                        }}
+                        className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                          isPlaying ? 'bg-[#7C3AED] text-white' : 'bg-gray-100 hover:bg-[#EDE9FE] text-gray-600'
+                        }`}
+                        title={isPlaying ? 'Stopp' : 'Hør stemmen'}
+                      >
+                        {isPlaying ? (
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8"/><rect x="6" y="1" width="3" height="8"/></svg>
+                        ) : (
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9"/></svg>
+                        )}
+                      </button>
+                      <div className="min-w-0">
+                        <div className={`text-sm font-medium leading-tight ${isSelected ? 'text-[#7C3AED]' : 'text-gray-900'}`}>{v.name}</div>
+                        {v.desc && <div className="text-xs text-gray-400 leading-tight truncate">{v.desc}</div>}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <input
+                type="text"
+                value={voiceId}
+                onChange={(e) => setVoiceId(e.target.value)}
+                placeholder="Eller lim inn Voice ID fra ElevenLabs…"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Velg stemme ovenfor, eller lim inn ID direkte fra{' '}
+                <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#C5451B] hover:underline">
+                  ElevenLabs voice library →
+                </a>
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Emosjon / stemmeleie</label>
+              <div className="flex flex-wrap gap-2">
+                {EMOTIONS.map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setEmotion(e.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${emotion === e.id ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED]' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
+                  >
+                    <span>{e.emoji}</span> {e.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Section 1: Context */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Innhold</h2>
@@ -624,220 +838,6 @@ export default function AvatarVideoPage() {
             </div>
           )}
 
-          {/* Section 3: Avatar + Voice */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Avatar & stemme</h2>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Avatar-bilde <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2 mb-2">
-                <label className={`flex-1 flex items-center justify-center gap-2 border-2 border-dashed rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${uploadingImage ? 'border-gray-200 text-gray-400' : 'border-[#C5451B] text-[#C5451B] hover:bg-[#F8E7DB]'}`}>
-                  {uploadingImage ? 'Laster opp…' : '📁 Last opp fra datamaskin'}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    disabled={uploadingImage}
-                    onChange={async (e) => {
-                      const file = e.currentTarget.files?.[0]
-                      if (!file) return
-                      setUploadingImage(true)
-                      setError(null)
-                      try {
-                        const formData = new FormData()
-                        formData.append('file', file)
-                        const res = await fetch('/api/avatar/upload-image', { method: 'POST', body: formData })
-                        const data = await res.json()
-                        if (!res.ok) throw new Error(data.error || 'Opplasting feilet')
-                        setAvatarImageUrl(data.url)
-                        saveAvatarImageUrl(data.url, true)
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : 'Opplasting feilet')
-                      } finally {
-                        setUploadingImage(false)
-                        e.currentTarget.value = ''
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={avatarImageUrl}
-                  onChange={(e) => setAvatarImageUrl(e.target.value)}
-                  onBlur={(e) => { if (e.target.value) saveAvatarImageUrl(e.target.value) }}
-                  placeholder="https://eksempel.com/mitt-avatar-bilde.jpg"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
-                />
-                {avatarImageUrl && (
-                  <button
-                    type="button"
-                    onClick={() => saveAvatarImageUrl(avatarImageUrl)}
-                    className={`px-3 py-2 text-xs rounded-lg transition-colors ${savedFeedback ? 'bg-green-500 text-white' : 'bg-[#C5451B] text-white hover:bg-[#1450a0]'}`}
-                  >
-                    {savedFeedback ? 'Lagret ✓' : 'Lagre'}
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 mt-1">
-                Last opp eller lim inn URL — bildet huskes til neste gang. Anbefalt: god belysning, nøytral bakgrunn, ansiktet tydelig synlig.
-              </p>
-            </div>
-
-            {/* Karakter-avatarer (flux-lora) — konsistente verter, klikk for å bruke */}
-            <div className="mb-3">
-              <p className="text-xs text-gray-500 mb-2">🧑‍🎤 Karakter-avatarer — klikk for å velge:</p>
-              <div className="flex flex-wrap gap-2">
-                {CHARACTER_AVATARS.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    title={c.name}
-                    onClick={() => { setAvatarImageUrl(c.url); saveAvatarImageUrl(c.url) }}
-                    className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === c.url ? 'border-[#C5451B] ring-2 ring-[#C5451B]' : 'border-gray-200 hover:border-gray-400'}`}
-                  >
-                    <img src={c.url} alt={c.name} className="w-20 h-20 object-cover" />
-                    <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] text-center py-0.5">{c.name.split(' ')[0]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {savedAvatarImages.length > 0 && (
-              <div>
-                <p className="text-xs text-gray-500 mb-2">Lagrede bilder — klikk for å velge:</p>
-                <div className="flex flex-wrap gap-2">
-                  {savedAvatarImages.map((url) => (
-                    <div key={url} className="relative group">
-                      <button
-                        type="button"
-                        onClick={() => { setAvatarImageUrl(url); saveAvatarImageUrl(url) }}
-                        className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === url ? 'border-[#C5451B] ring-2 ring-[#C5451B]' : 'border-gray-200 hover:border-gray-400'}`}
-                      >
-                        <img
-                          src={url}
-                          alt="Avatar"
-                          className="w-20 h-20 object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).closest('.group')!.remove() }}
-                        />
-                        {avatarImageUrl === url && (
-                          <div className="absolute inset-0 bg-[#C5451B]/10 flex items-center justify-center">
-                            <span className="text-[#C5451B] text-lg">✓</span>
-                          </div>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const updated = savedAvatarImages.filter(u => u !== url)
-                          setSavedAvatarImages(updated)
-                          if (avatarImageUrl === url) setAvatarImageUrl(updated[0] ?? '')
-                          const { getSupabase } = await import('@/lib/supabaseClient')
-                          await getSupabase().from('product_profiles').upsert(
-                            { product_id: productId, avatar_image_urls: updated, avatar_image_url: updated[0] ?? null },
-                            { onConflict: 'product_id' }
-                          )
-                        }}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs leading-none hidden group-hover:flex items-center justify-center hover:bg-red-600"
-                        title="Fjern bilde"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Stemme</label>
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                {NORWEGIAN_VOICES.map((v) => {
-                  const isSelected = voiceId === v.id
-                  const isPlaying = playingVoice === v.id
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setVoiceId(v.id)}
-                      className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${
-                        isSelected
-                          ? 'border-[#7C3AED] bg-[#F5F3FF]'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (isPlaying) {
-                            audioRef.current?.pause()
-                            setPlayingVoice(null)
-                          } else {
-                            if (audioRef.current) {
-                              audioRef.current.pause()
-                            }
-                            const audio = new Audio(v.preview)
-                            audioRef.current = audio
-                            audio.play()
-                            setPlayingVoice(v.id)
-                            audio.onended = () => setPlayingVoice(null)
-                          }
-                        }}
-                        className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                          isPlaying ? 'bg-[#7C3AED] text-white' : 'bg-gray-100 hover:bg-[#EDE9FE] text-gray-600'
-                        }`}
-                        title={isPlaying ? 'Stopp' : 'Hør stemmen'}
-                      >
-                        {isPlaying ? (
-                          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8"/><rect x="6" y="1" width="3" height="8"/></svg>
-                        ) : (
-                          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9"/></svg>
-                        )}
-                      </button>
-                      <div className="min-w-0">
-                        <div className={`text-sm font-medium leading-tight ${isSelected ? 'text-[#7C3AED]' : 'text-gray-900'}`}>{v.name}</div>
-                        {v.desc && <div className="text-xs text-gray-400 leading-tight truncate">{v.desc}</div>}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-              <input
-                type="text"
-                value={voiceId}
-                onChange={(e) => setVoiceId(e.target.value)}
-                placeholder="Eller lim inn Voice ID fra ElevenLabs…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Velg stemme ovenfor, eller lim inn ID direkte fra{' '}
-                <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#C5451B] hover:underline">
-                  ElevenLabs voice library →
-                </a>
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Emosjon / stemmeleie</label>
-              <div className="flex flex-wrap gap-2">
-                {EMOTIONS.map((e) => (
-                  <button
-                    key={e.id}
-                    type="button"
-                    onClick={() => setEmotion(e.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${emotion === e.id ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED]' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
-                  >
-                    <span>{e.emoji}</span> {e.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* Section 4: Music */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Bakgrunnsmusikk (valgfritt)</h2>
@@ -917,7 +917,7 @@ export default function AvatarVideoPage() {
                 >
                   Ingen musikk
                 </button>
-                {musicLibrary.map((m) => (
+                {musicLibrary.filter((m) => m.folder !== 'jingles').map((m) => (
                   <div
                     key={m.filename}
                     onClick={() => setMusicFile(m.filename)}
