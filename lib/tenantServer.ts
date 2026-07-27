@@ -16,6 +16,7 @@ export interface Tenant {
   icon_url: string | null
   colors: Record<string, string>
   billing_mode: 'direct' | 'invoice'
+  price_multiplier?: number
   is_active: boolean
 }
 
@@ -31,6 +32,7 @@ export const ROOT_TENANT: Tenant = {
   icon_url: null,
   colors: {},
   billing_mode: 'direct',
+  price_multiplier: 1,
   is_active: true,
 }
 

@@ -554,6 +554,8 @@ export default function DraftPage() {
 
   // Billing-flagg (UI-side; serveren håndhever autoritativt)
   const tenantInfo = useTenant()
+  // Utpris-faktor (white-label): kunden ser priser der partnerens margin er inkludert
+  const pf = tenantInfo.price_multiplier || 1
   const billingOn = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
   const [checkout, setCheckout] = useState<{ url: string; price: number; tier: string; breakdown: Array<{ label: string; nok: number }> } | null>(null)
 
@@ -1092,8 +1094,8 @@ export default function DraftPage() {
                         <span className="text-xs text-gray-500">Bevegelse:</span>
                         {[
                           { v: 'none' as const, label: 'Stillbilde', cost: 'gratis' },
-                          { v: 'move' as const, label: '🎥 Bevegelse', cost: `ca. ${fmtNok(COSTS_NOK.animate5s)}` },
-                          { v: 'talk' as const, label: '🗣️ Snakk (lip-sync)', cost: `ca. ${fmtNok(COSTS_NOK.lipsyncPerSec)}/sek` },
+                          { v: 'move' as const, label: '🎥 Bevegelse', cost: `ca. ${fmtNok(COSTS_NOK.animate5s * pf)}` },
+                          { v: 'talk' as const, label: '🗣️ Snakk (lip-sync)', cost: `ca. ${fmtNok(COSTS_NOK.lipsyncPerSec * pf)}/sek` },
                         ].map((opt) => {
                           const current = segment.motion || (segment.animate === true ? 'move' : 'none')
                           return (
@@ -1279,11 +1281,11 @@ export default function DraftPage() {
               const nImg = draft.segments.filter((s) => !s.image_url || !s.image_url.trim()).length
               return (
                 <CostMeter
-                  paalopt={Number(draft.cost_accumulated) || 0}
+                  paalopt={(Number(draft.cost_accumulated) || 0) * pf}
                   lines={[
-                    { label: `🗣️ Snakk × ${nTalk}`, amount: nTalk * COSTS_NOK.lipsyncTypical },
-                    { label: `🎥 Bevegelse × ${nMove}`, amount: nMove * COSTS_NOK.animate5s },
-                    { label: `🖼️ Bilder × ${nImg}`, amount: nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard) },
+                    { label: `🗣️ Snakk × ${nTalk}`, amount: nTalk * COSTS_NOK.lipsyncTypical * pf },
+                    { label: `🎥 Bevegelse × ${nMove}`, amount: nMove * COSTS_NOK.animate5s * pf },
+                    { label: `🖼️ Bilder × ${nImg}`, amount: nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard) * pf },
                   ]}
                 />
               )
