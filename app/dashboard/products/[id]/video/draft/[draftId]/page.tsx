@@ -26,6 +26,7 @@ interface Segment {
   image_url: string
   approved: boolean
   voiceover_url?: string
+  image_prompt?: string
 }
 
 interface Draft {
@@ -77,6 +78,7 @@ export default function DraftPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null)
+  const [openPrompts, setOpenPrompts] = useState<Set<number>>(new Set())
   const [generatingImages, setGeneratingImages] = useState<Set<number>>(new Set())
   const [imageErrors, setImageErrors] = useState<Record<number, string>>({})
   const [assets, setAssets] = useState<any[]>([])
@@ -428,7 +430,7 @@ export default function DraftPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic: segment.text,
+          topic: (segment.image_prompt && segment.image_prompt.trim()) || segment.text,
           productId,
           imageSize,
           imageStyle,
@@ -441,6 +443,13 @@ export default function DraftPage() {
       const updatedSegments = [...draft.segments]
       updatedSegments[index].image_url = data.imageUrl
       setDraft({ ...draft, segments: updatedSegments })
+      // Lagre segmentene (inkl. redigert bilde-prompt) så produksjonen bruker samme prompt/bilde
+      try {
+        const supabase = getSupabase()
+        await supabase.from('production_drafts').update({ segments: updatedSegments }).eq('id', draftId)
+      } catch (saveErr) {
+        console.warn('[regenerateImage] kunne ikke lagre segmenter:', saveErr)
+      }
     } catch (err) {
       console.error('[DraftPage] Regenerate error:', err)
       alert('Error regenerating image')
@@ -957,6 +966,38 @@ export default function DraftPage() {
                     >
                       ✂️ Del segment
                     </button>
+
+                    <button
+                      onClick={() => setOpenPrompts((prev) => {
+                        const n = new Set(prev)
+                        n.has(index) ? n.delete(index) : n.add(index)
+                        return n
+                      })}
+                      title="Juster hva bildet skal vise, og regenerer"
+                      className="px-4 py-2 rounded-lg font-medium text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 transition-colors"
+                    >
+                      {openPrompts.has(index) ? '▾ Bilde-prompt' : '✎ Bilde-prompt'}
+                    </button>
+
+                    {openPrompts.has(index) && (
+                      <div className="w-full mt-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Bilde-prompt <span className="font-normal text-gray-400">— styrer hva bildet viser. La stå tom for å bruke underteksten.</span>
+                        </label>
+                        <textarea
+                          value={segment.image_prompt ?? ''}
+                          onChange={(e) => {
+                            const segs = [...draft.segments]
+                            segs[index] = { ...segs[index], image_prompt: e.target.value }
+                            setDraft({ ...draft, segments: segs })
+                          }}
+                          placeholder={segment.text}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Trykk «{t('regenerateImage')}» etter endring for å lage nytt bilde med denne prompten (lagres automatisk).</p>
+                      </div>
+                    )}
 
                     {/* Image Bank Modal */}
                     {showImageBank === index && (
