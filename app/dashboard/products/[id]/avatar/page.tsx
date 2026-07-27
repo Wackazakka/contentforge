@@ -981,32 +981,36 @@ export default function AvatarVideoPage() {
 
             {includeOutroCard && productProfile?.logo_url && (
               <div className="space-y-3 pt-1 border-t border-gray-100">
-                {/* Duration */}
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-1.5">Varighet</label>
-                  <div className="flex gap-2">
-                    {[3, 5, 8].map(s => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setOutroDuration(s)}
-                        className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                          outroDuration === s
-                            ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
-                        }`}
-                      >
-                        {s} sek
-                      </button>
-                    ))}
+                {/* Duration — kun relevant uten jingle; med jingle varer plakaten så lenge jingelen */}
+                {!outroJingleFile ? (
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1.5">Varighet</label>
+                    <div className="flex gap-2">
+                      {[3, 5, 8].map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setOutroDuration(s)}
+                          className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                            outroDuration === s
+                              ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                          }`}
+                        >
+                          {s} sek
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-xs text-gray-500">⏱️ Varighet: plakaten står så lenge jingelen spiller (hele jingelen brukes, opptil 10 sek).</p>
+                )}
 
                 {/* Jingle */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-medium text-gray-600">
-                      Jingle (valgfritt) — de første {outroDuration} sekundene brukes
+                      Jingle (valgfritt) — plakaten varer så lenge jingelen spiller
                     </label>
                     <label className="flex items-center gap-1.5 cursor-pointer text-xs text-[#7C3AED] hover:text-[#6D28D9] font-medium">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 1v10M1 6h10"/></svg>
