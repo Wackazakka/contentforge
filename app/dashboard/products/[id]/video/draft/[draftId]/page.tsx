@@ -260,14 +260,11 @@ export default function DraftPage() {
   }, [])
 
   // Taxameter: legg påløpt kostnad (NOK, inkl. påslag) på draften — defensivt hvis kolonnen mangler
+  // Kun optimistisk visning — serveren akkumulerer autoritativt via add_draft_cost-RPC
   const addCost = (nok: number) => {
     setDraft((prev) => {
       if (!prev) return prev
-      const next = { ...prev, cost_accumulated: (Number(prev.cost_accumulated) || 0) + nok }
-      const supabase = getSupabase()
-      supabase.from('production_drafts').update({ cost_accumulated: next.cost_accumulated }).eq('id', draftId)
-        .then(({ error }: { error: any }) => { if (error) console.warn('[addCost] mangler cost_accumulated-kolonnen?', error.message) })
-      return next
+      return { ...prev, cost_accumulated: (Number(prev.cost_accumulated) || 0) + nok }
     })
   }
 
@@ -354,7 +351,7 @@ export default function DraftPage() {
           response = await fetch('/api/content/generate-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic: segment.text, productId, imageSize, imageStyle, character: character || undefined }),
+            body: JSON.stringify({ topic: segment.text, productId, imageSize, imageStyle, character: character || undefined, draftId }),
             signal: controller.signal,
           })
         } finally {
@@ -476,6 +473,7 @@ export default function DraftPage() {
           imageSize,
           imageStyle,
           character: character || undefined,
+          draftId,
         }),
       })
 

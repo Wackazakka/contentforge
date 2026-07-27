@@ -38,6 +38,21 @@ export async function POST(request: Request) {
     const audioBuffer = await elevenRes.arrayBuffer()
     console.log(`[preview-voiceover] Audio generated, size: ${audioBuffer.byteLength} bytes`)
 
+    // Server-side kost-akkumulering (atomisk RPC) — klientens addCost er kun visning
+    if (draftId) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const { COSTS_NOK } = await import('@/lib/costs')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+        await supabase.rpc('add_draft_cost', { p_draft_id: draftId, p_amount: COSTS_NOK.voiceoverPreview })
+      } catch (costErr) {
+        console.warn('[preview-voiceover] add_draft_cost feilet:', costErr)
+      }
+    }
+
     // Upload to R2
     const r2 = new S3Client({
       region: 'auto',

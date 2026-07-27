@@ -15,3 +15,16 @@ export const COSTS_NOK = {
 export function fmtNok(n: number): string {
   return n.toFixed(2).replace('.', ',') + ' kr'
 }
+
+// Prisnivåer: COSTS_NOK er allerede 2× underliggende kost (100 % påslag).
+// Registrert betaler 1,0× av dette; anonym 1,5× (= 3× kost / 200 % påslag).
+// Budskap: «Registrer deg og få 33 % rabatt» (1 − 1/1,5).
+export const TIER_MULTIPLIERS = {
+  registered: 1,
+  anonymous: 1.5,
+} as const
+
+export type PriceTier = keyof typeof TIER_MULTIPLIERS
+
+// Minstepris per produksjon (unngår gebyr-dominerte småbeløp hos Stripe)
+export const MIN_PRICE_NOK = 10
