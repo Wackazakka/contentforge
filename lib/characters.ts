@@ -26,8 +26,9 @@ export const CHARACTERS: Record<string, Character> = {
     name: 'Lawrence (Peregrine)',
     trigger: 'LK',
     loraUrl: process.env.LAWRENCE_LORA_URL,
+    // «Ung, pen»-varianten (bevist i fal-kjøringene 2026-07-13) — samme LoRA, penere formulering
     characterBlock:
-      'LK, a distinguished man in his early 60s, long grey-blond hair in a loose ponytail, black rectangular glasses, trimmed light stubble, calm confident expression, wearing a dark navy blazer over a black crew-neck sweater, dark jeans, a classic dive watch, natural relaxed posture',
+      'LK, five years younger, exceptionally well-groomed and charismatic, confident but approachable, long grey-blond hair in a loose ponytail, black rectangular glasses, wearing a perfectly tailored dark navy blazer over a premium black T-shirt, luxury watch, no tie, natural relaxed posture',
   },
   // torben: legges til når LoRA-en er trent (fal flux-lora-fast-training)
 }
