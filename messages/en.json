@@ -7,7 +7,8 @@
     "logout": "Log out",
     "credits": "{count} credits",
     "voicebank": "Voice bank",
-    "buy_credits": "Credits"
+    "buy_credits": "Credits",
+    "partners": "Partners"
   },
   "home": {
     "nav_pricing": "Pricing",

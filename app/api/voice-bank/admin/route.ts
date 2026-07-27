@@ -71,12 +71,22 @@ export async function GET(request: Request) {
         }
         return Array.from(m.entries()).map(([k, v]) => ({ key: k, ...v }))
       }
+      let royaltyCutPct: number | null = null
+      try {
+        const { data: t } = await supabase
+          .from('tenants')
+          .select('parent_tenant_id, royalty_cut_pct')
+          .eq('id', tenant.id)
+          .single()
+        if (t?.parent_tenant_id) royaltyCutPct = Number(t.royalty_cut_pct ?? 7.5)
+      } catch { /* kolonne mangler → ingen visning */ }
       return NextResponse.json({
         tenant: { id: tenant.id, name: tenant.app_name },
         actor,
         events: events.slice(0, 200),
         byMonth: agg((e) => String(e.created_at).slice(0, 7)).sort((a, b) => b.key.localeCompare(a.key)),
         byKind: agg((e) => e.meta?.kind || 'ukjent'),
+        royaltyCutPct,
       })
     }
 
@@ -110,11 +120,24 @@ export async function GET(request: Request) {
       return { actor_id: a.id, uses: mine.length, to_actor_nok: toActor, from_customers_nok: fromCustomers, cut_nok: fromCustomers - toActor }
     })
 
+    // Royalty-kaskaden: tenanten betaler royalty_cut_pct av inngående
+    // royalty-omsetning til leddet over (root betaler ingen). null = ingen cut.
+    let royaltyCutPct: number | null = null
+    try {
+      const { data: t } = await supabase
+        .from('tenants')
+        .select('parent_tenant_id, royalty_cut_pct')
+        .eq('id', tenant.id)
+        .single()
+      if (t?.parent_tenant_id) royaltyCutPct = Number(t.royalty_cut_pct ?? 7.5)
+    } catch { /* kolonne mangler → ingen visning */ }
+
     return NextResponse.json({
       tenant: { id: tenant.id, name: tenant.app_name },
       actors: actors || [],
       events,
       monthly,
+      royaltyCutPct,
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

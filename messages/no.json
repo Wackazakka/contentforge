@@ -7,7 +7,8 @@
     "logout": "Logg ut",
     "credits": "{count} kreditter",
     "voicebank": "Stemmebank",
-    "buy_credits": "Kreditter"
+    "buy_credits": "Kreditter",
+    "partners": "Partnere"
   },
   "home": {
     "nav_pricing": "Priser",
