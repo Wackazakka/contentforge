@@ -65,8 +65,8 @@ ${ctaContext}
 The script should have exactly ${segmentCount} segments.
 
 For each segment, provide:
-1. Text (what to display on screen, max 200 chars)
-2. Voiceover (what to say, max 300 chars)
+1. Text (what to display on screen, max 100 chars — one short line)
+2. Voiceover (what to say, max 85 chars / ~12 words — ONE short punchy sentence, about 4-5 seconds spoken. Never longer; short segments keep the video dynamic)
 3. Image prompt (descriptive, cinematic, for DALL-E 3 — IMPORTANT: add "no text, no words, no letters" at the end)
 
 Write in the same language as the product name, headline and body copy above. Match the language naturally.

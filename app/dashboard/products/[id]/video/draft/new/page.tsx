@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -24,6 +24,13 @@ export default function NewDraftPage() {
   const [problem, setProblem] = useState('')
   const [tone, setTone] = useState('Energisk')
   const [character, setCharacter] = useState('')
+  const [userChars, setUserChars] = useState<Array<{ id: string; name: string }>>([])
+  useEffect(() => {
+    fetch('/api/characters')
+      .then((r) => r.json())
+      .then((d) => setUserChars((d.characters || []).filter((c: any) => c.status === 'ready')))
+      .catch(() => {})
+  }, [])
   const [perspective, setPerspective] = useState<'du' | 'jeg'>('du')
   const [cta, setCta] = useState('')
   const [videoFormat, setVideoFormat] = useState('9:16')
@@ -262,8 +269,11 @@ export default function NewDraftPage() {
                     <option value="">Ingen — vanlige scenebilder</option>
                     <option value="adam">Adam (Reforhandle)</option>
                     <option value="lawrence">Lawrence (Peregrine)</option>
+                    {userChars.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name} (egen)</option>
+                    ))}
                   </select>
-                  <p className="text-xs text-gray-400 mt-1">Samme vert i alle segmentbildene (AI-persona). Torben kommer når LoRA-en er trent.</p>
+                  <p className="text-xs text-gray-400 mt-1">Samme vert i alle segmentbildene (AI-persona). <a href="/dashboard/characters" className="text-[#C5451B] hover:underline">Lag din egen karakter →</a></p>
                 </div>
               </div>
             </div>

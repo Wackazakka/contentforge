@@ -83,13 +83,31 @@ async function generateImageBuffer(topic: string, imageSize: string = '1024x1024
 
 // Karakter-modus: generer segmentbildet med fal flux-lora (trent persona) i stedet
 // for gpt-image — samme vert i alle segmenter. Trigger-ord + karakterblokk + scene.
+// Slå opp karakter: innebygd (Adam/Lawrence) eller brukerens egen (user_characters).
+async function resolveCharacter(characterId: string) {
+  const builtin = getCharacter(characterId)
+  if (builtin) return builtin
+  const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+  const { data } = await supabase.from('user_characters').select('*').eq('id', characterId).single()
+  if (data && data.status === 'ready' && data.lora_url) {
+    return {
+      id: data.id,
+      name: data.name,
+      trigger: data.trigger_word,
+      loraUrl: data.lora_url,
+      characterBlock: data.trigger_word + ', natural appearance, natural relaxed posture',
+    }
+  }
+  return null
+}
+
 async function generateCharacterImageBuffer(
   topic: string,
   characterId: string,
   imageSize: string = '1024x1536'
 ): Promise<Buffer> {
-  const ch = getCharacter(characterId)
-  if (!ch) throw new Error('Ukjent karakter: ' + characterId)
+  const ch = await resolveCharacter(characterId)
+  if (!ch) throw new Error('Ukjent eller ikke-klar karakter: ' + characterId)
   if (!ch.loraUrl) throw new Error('LoRA-URL mangler for ' + ch.name + ' (sett env ' + ch.id.toUpperCase() + '_LORA_URL i Netlify)')
   if (!FAL_KEY) throw new Error('CONTENTFORGE_FAL_KEY mangler i Netlify env')
 
