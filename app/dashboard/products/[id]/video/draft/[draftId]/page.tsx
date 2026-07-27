@@ -259,7 +259,7 @@ export default function DraftPage() {
       .then((r) => r.json())
       .then((d) => setUserChars((d.characters || []).filter((c: any) => c.status === 'ready')))
       .catch(() => {})
-    fetch('/api/voice-actors')
+    fetch('/api/voice-actors?kind=video')
       .then((r) => r.json())
       .then((d) => setActorVoices(d.voices || []))
       .catch(() => {})
