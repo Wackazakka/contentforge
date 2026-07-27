@@ -264,6 +264,18 @@ export default function DraftPage() {
       .then((d) => setActorVoices(d.voices || []))
       .catch(() => {})
   }, [])
+  const [saldo, setSaldo] = useState<number | null>(null)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        if (!token) return
+        const d = await fetch('/api/org-balance', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
+        if (typeof d.balance === 'number') setSaldo(d.balance)
+      } catch { /* ingen saldo å vise */ }
+    })()
+  }, [])
 
   // Taxameter: legg påløpt kostnad (NOK, inkl. påslag) på draften — defensivt hvis kolonnen mangler
   // Kun optimistisk visning — serveren akkumulerer autoritativt via add_draft_cost-RPC
@@ -1293,6 +1305,7 @@ export default function DraftPage() {
               const nImg = draft.segments.filter((s) => !s.image_url || !s.image_url.trim()).length
               return (
                 <CostMeter
+                  saldo={saldo}
                   paalopt={(Number(draft.cost_accumulated) || 0) * pf}
                   lines={[
                     { label: `🗣️ Snakk × ${nTalk}`, amount: nTalk * COSTS_NOK.lipsyncTypical * pf },

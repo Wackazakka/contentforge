@@ -85,6 +85,55 @@ export async function getPartnerBalance(tenantId: string): Promise<number | null
   }
 }
 
+/**
+ * Sluttkundepris-faktor for en tenant: Π(1+markup/100) over kjeden root→tenant
+ * (uten root) delt på 2 (COSTS_NOK er allerede råkost×2). Samme formel som
+ * chainPriceFactor i tenantServer, men oppslag per tenant-id — brukes ved
+ * logging så kundeprisen fryses på raden selv om påslag endres senere.
+ */
+async function chainFactorByTenantId(tenantId: string): Promise<number> {
+  try {
+    const supabase = admin()
+    let product = 1
+    let curId: string | null = tenantId
+    for (let hop = 0; hop < 4 && curId; hop++) {
+      const res: { data: { parent_tenant_id: string | null; markup_percent: number | null } | null } =
+        await supabase.from('tenants').select('parent_tenant_id, markup_percent').eq('id', curId).single()
+      if (!res.data || res.data.parent_tenant_id === null) break // root teller ikke
+      product *= 1 + Number(res.data.markup_percent ?? 100) / 100
+      curId = res.data.parent_tenant_id
+    }
+    return product / 2
+  } catch {
+    return 1
+  }
+}
+
+/**
+ * Forskuddssaldo for en SLUTTKUNDE-organisasjon (f.eks. byråets kunde):
+ * SUM(org_topups) − SUM(forbruk til kundepris). null = ingen forskuddskonto
+ * opprettet → ingen sperre (etterskudds-/innkjøringsmodus, tenantens valg).
+ */
+export async function getOrgBalance(organizationId: string): Promise<number | null> {
+  try {
+    const supabase = admin()
+    const { data: tops } = await supabase
+      .from('org_topups')
+      .select('amount_nok, bonus_nok')
+      .eq('organization_id', organizationId)
+    if (!tops || tops.length === 0) return null
+    const paidIn = tops.reduce((s, r) => s + Number(r.amount_nok) + Number(r.bonus_nok), 0)
+    const { data: usage } = await supabase
+      .from('usage_events')
+      .select('cost_nok, customer_cost_nok')
+      .eq('organization_id', organizationId)
+    const used = (usage || []).reduce((s, r) => s + Number(r.customer_cost_nok ?? r.cost_nok), 0)
+    return paidIn - used
+  } catch {
+    return null
+  }
+}
+
 // Logg en forbrukshendelse (grunnlag for partnerfaktura). Feiler stille — måling
 // skal aldri velte produksjon.
 export async function logUsageEvent(e: {
@@ -123,7 +172,10 @@ export async function logUsageEvent(e: {
         costNok = e.costNok * ((1 + ourMarkup / 100) / 2)
       }
     } catch { /* behold standard */ }
-    await supabase.from('usage_events').insert({
+    // Kundepris (hele kjedens påslag) fryses på raden — sluttkundens saldo
+    // trekkes til DERES pris, partnersaldoen til partnerpris (cost_nok)
+    const customerCostNok = e.costNok * (await chainFactorByTenantId(pt.tenantId))
+    const row = {
       tenant_id: pt.tenantId,
       organization_id: pt.organizationId,
       user_id: e.userId ?? pt.ownerId,
@@ -132,7 +184,9 @@ export async function logUsageEvent(e: {
       event_type: e.eventType,
       cost_nok: costNok,
       meta: e.meta ?? {},
-    })
+    }
+    const { error: insErr } = await supabase.from('usage_events').insert({ ...row, customer_cost_nok: customerCostNok })
+    if (insErr) await supabase.from('usage_events').insert(row) // kolonnen ikke kjørt ennå → logg uten
   } catch (err) {
     console.warn('[usage] logging feilet (ignoreres):', err)
   }
