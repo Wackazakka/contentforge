@@ -64,7 +64,7 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 // Helper: Sign up
-export async function signUp(email: string, password: string, fullName: string) {
+export async function signUp(email: string, password: string, fullName: string, tenantSlug?: string) {
   try {
     const sb = getSupabase()
     const { data, error } = await sb.auth.signUp({
@@ -73,7 +73,9 @@ export async function signUp(email: string, password: string, fullName: string) 
       options: {
         data: {
           full_name: fullName,
+          ...(tenantSlug ? { tenant_slug: tenantSlug } : {}),
         },
+        emailRedirectTo: typeof window !== 'undefined' ? window.location.origin + '/login' : undefined,
       },
     })
     return { data, error }

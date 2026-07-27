@@ -17,19 +17,35 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     )
 
-    if (billingOn) {
-      const { data: draft } = await supabase
+    // Invoice-tenants (white-label) betaler aldri per produksjon — bruken
+    // logges i usage_events og faktureres partneren månedlig.
+    let invoiceTenant = false
+    let draftProductId: string | null = null
+    {
+      const { data: d } = await supabase
         .from('production_drafts')
-        .select('payment_status')
+        .select('product_id, payment_status, segments, ai_motion')
         .eq('id', draftId)
         .single()
-      if (draft?.payment_status !== 'paid') {
-        return NextResponse.json(
-          { error: 'Betaling kreves før produksjon. Bruk /api/production-checkout.', code: 'PAYMENT_REQUIRED' },
-          { status: 402 }
-        )
+      draftProductId = d?.product_id ?? null
+      if (draftProductId) {
+        const { getProductTenant } = await import('@/lib/tenantBilling')
+        invoiceTenant = (await getProductTenant(draftProductId)).billingMode === 'invoice'
       }
-    } else if (userId) {
+
+      if (billingOn && !invoiceTenant) {
+        if (d?.payment_status !== 'paid') {
+          return NextResponse.json(
+            { error: 'Betaling kreves før produksjon. Bruk /api/production-checkout.', code: 'PAYMENT_REQUIRED' },
+            { status: 402 }
+          )
+        }
+      }
+    }
+
+    if (billingOn && !invoiceTenant) {
+      // gate håndtert over
+    } else if (!invoiceTenant && userId) {
       // Legacy kreditt-sti (kun når billing er av)
       const credit = await checkAndDeductCredits(userId, 'video_generation', `Videoproduksjon — draft ${draftId}`)
       if (!credit.ok) {
@@ -45,10 +61,26 @@ export async function POST(request: Request) {
       aiMotionEngine,
     })
 
-    if (billingOn) {
+    if (billingOn && !invoiceTenant) {
       // Konsumer betalingen — én betaling = én produksjon
       await supabase.from('production_drafts').update({ payment_status: 'consumed' }).eq('id', draftId)
     }
+
+    // Tenant-måling: bevegelses-/lipsync-kost påløper ved produksjonsstart
+    try {
+      const { logUsageEvent } = await import('@/lib/tenantBilling')
+      const { COSTS_NOK } = await import('@/lib/costs')
+      const { data: d2 } = await supabase.from('production_drafts').select('segments, ai_motion').eq('id', draftId).single()
+      let motionNok = 0
+      if (d2?.ai_motion) {
+        for (const s of (d2.segments || [])) {
+          const m = s.motion || (s.animate === true ? 'move' : 'none')
+          if (m === 'move') motionNok += COSTS_NOK.animate5s
+          else if (m === 'talk') motionNok += COSTS_NOK.lipsyncTypical
+        }
+      }
+      logUsageEvent({ productId: draftProductId, draftId, userId: userId || null, eventType: 'video_production', costNok: motionNok, meta: { jobId } })
+    } catch { /* måling velter aldri produksjon */ }
 
     return NextResponse.json({ jobId, status: 'queued' })
   } catch (err: any) {

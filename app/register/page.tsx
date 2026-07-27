@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { signUp, getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { AuthShell, AuthField, AuthSubmit, AuthBanner, AuthSwitch } from '@/components/AuthUI'
+import { useTenant } from '@/lib/tenantContext'
 
 export default function RegisterPage() {
   const t = useTranslations('register')
+  const tenant = useTenant()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [registered, setRegistered] = useState(false)
@@ -53,7 +55,8 @@ export default function RegisterPage() {
       const { data, error: signUpError } = await signUp(
         form.email,
         form.password,
-        form.fullName
+        form.fullName,
+        tenant.slug
       )
 
       if (signUpError) {
@@ -72,6 +75,8 @@ export default function RegisterPage() {
               owner_id: data.user.id,
               slug: slug.toLowerCase(),
               description: 'Default organization for ' + form.fullName,
+              // Tenant-kobling (white-label): uuid fra server-oppslaget; 'root'-fallback utelates
+              ...(/^[0-9a-f-]{36}$/i.test(tenant.id) ? { tenant_id: tenant.id } : {}),
             })
             .select()
             .single()
