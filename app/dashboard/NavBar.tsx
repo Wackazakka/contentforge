@@ -16,6 +16,7 @@ export default function NavBar() {
   const router = useRouter()
   const { signOut, session } = useAuth()
   const [credits, setCredits] = useState<number | null>(null)
+  const [voiceBankAdmin, setVoiceBankAdmin] = useState(false)
   const t = useTranslations('nav')
   const tenant = useTenant()
 
@@ -25,7 +26,17 @@ export default function NavBar() {
     { href: '/dashboard/publish', label: t('publish') },
     { href: '/dashboard/calendar', label: t('calendar') },
     ...(tenant.billing_mode === 'invoice' ? [] : [{ href: '/dashboard/billing', label: t('billing') }]),
+    ...(voiceBankAdmin ? [{ href: '/dashboard/voice-bank', label: t('voicebank') }] : []),
   ]
+
+  // Stemmebank-lenken vises kun for tenant-admins (avgjøres server-side)
+  useEffect(() => {
+    const token = session?.access_token
+    if (!token) return
+    fetch('/api/voice-bank/admin', { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => setVoiceBankAdmin(r.ok))
+      .catch(() => {})
+  }, [session])
 
   useEffect(() => {
     const userId = session?.user?.id

@@ -5,7 +5,8 @@
     "calendar": "Kalender",
     "billing": "Fakturering",
     "logout": "Logg ut",
-    "credits": "{count} kreditter"
+    "credits": "{count} kreditter",
+    "voicebank": "Stemmebank"
   },
   "home": {
     "nav_pricing": "Priser",
