@@ -92,6 +92,16 @@ export async function POST(request: Request) {
         }
       }
       logUsageEvent({ productId: draftProductId, draftId, userId: userId || null, eventType: 'video_production', costNok: motionNok, meta: { jobId } })
+      // Stemmebank: royalty-hendelse hvis produksjonens stemme er en registrert skuespiller
+      if (draftProductId) {
+        const { getProductTenant: gpt2 } = await import('@/lib/tenantBilling')
+        const { logVoiceUsage } = await import('@/lib/voiceBank')
+        const pt2 = await gpt2(draftProductId)
+        const { data: d3 } = await supabase.from('production_drafts').select('voice_id').eq('id', draftId).single()
+        if (pt2.tenantId && d3?.voice_id) {
+          logVoiceUsage({ elevenlabsVoiceId: d3.voice_id, usedByTenantId: pt2.tenantId, productId: draftProductId, draftId, jobId, meta: { kind: 'video' } })
+        }
+      }
     } catch { /* måling velter aldri produksjon */ }
 
     return NextResponse.json({ jobId, status: 'queued' })

@@ -19,6 +19,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Stemmebank: royalty-hendelse hvis stemmen er en registrert skuespiller
+    try {
+      const { getProductTenant } = await import('@/lib/tenantBilling')
+      const { logVoiceUsage } = await import('@/lib/voiceBank')
+      const pt = await getProductTenant(productId)
+      if (pt.tenantId && voiceId) {
+        logVoiceUsage({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, productId, meta: { kind: 'avatar' } })
+      }
+    } catch { /* royalty-logging velter aldri produksjon */ }
+
     const authHeader = request.headers.get('Authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 })

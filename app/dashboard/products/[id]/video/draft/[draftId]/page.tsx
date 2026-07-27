@@ -99,6 +99,7 @@ export default function DraftPage() {
   // Karakter-modus: konsistent vert (flux-lora) i alle segmentbilder — init fra ?character=
   const [character, setCharacter] = useState<string>(searchParams?.get('character') || '')
   const [userChars, setUserChars] = useState<Array<{ id: string; name: string; status: string }>>([])
+  const [actorVoices, setActorVoices] = useState<Array<{ voiceId: string; name: string; pricePerUseNok: number }>>([])
   const [musicUploading, setMusicUploading] = useState(false)
   const [musicFolder, setMusicFolder] = useState('global')
   // Sluttplakat-farger — leses fra produktprofilen, kan endres direkte her
@@ -257,6 +258,10 @@ export default function DraftPage() {
     fetch('/api/characters')
       .then((r) => r.json())
       .then((d) => setUserChars((d.characters || []).filter((c: any) => c.status === 'ready')))
+      .catch(() => {})
+    fetch('/api/voice-actors')
+      .then((r) => r.json())
+      .then((d) => setActorVoices(d.voices || []))
       .catch(() => {})
   }, [])
 
@@ -745,6 +750,13 @@ export default function DraftPage() {
                 {VOICES.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
                 ))}
+                {actorVoices.length > 0 && (
+                  <optgroup label="🎙️ Skuespillere (per bruk)">
+                    {actorVoices.map((v) => (
+                      <option key={v.voiceId} value={v.voiceId}>{v.name} — {fmtNok(v.pricePerUseNok)} per produksjon</option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
               {(() => {
                 const v = VOICES.find((x) => x.id === (draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX'))

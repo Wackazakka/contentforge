@@ -63,6 +63,10 @@ export default function AvatarVideoPage() {
   const pf = useTenant().price_multiplier || 1
   const [avatarImageUrl, setAvatarImageUrl] = useState('')
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID)
+  const [actorVoices, setActorVoices] = useState<Array<{ voiceId: string; name: string; pricePerUseNok: number; previewUrl: string | null }>>([])
+  useEffect(() => {
+    fetch('/api/voice-actors').then((r) => r.json()).then((d) => setActorVoices(d.voices || [])).catch(() => {})
+  }, [])
   const [musicFile, setMusicFile] = useState<string | null>(null)
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
@@ -604,6 +608,24 @@ export default function AvatarVideoPage() {
                   )
                 })}
               </div>
+              {actorVoices.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-gray-600 mb-1.5">🎙️ Skuespillere (stemmebank — pris per produksjon)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {actorVoices.map((v) => (
+                      <button
+                        key={v.voiceId}
+                        type="button"
+                        onClick={() => setVoiceId(v.voiceId)}
+                        className={`text-left p-2.5 rounded-lg border-2 transition-all ${voiceId === v.voiceId ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
+                      >
+                        <div className="text-sm font-medium text-gray-900">{v.name}</div>
+                        <div className="text-xs text-gray-500">{v.pricePerUseNok.toFixed(2).replace('.', ',')} kr per produksjon</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <input
                 type="text"
                 value={voiceId}

@@ -1,0 +1,92 @@
+import { createClient } from '@supabase/supabase-js'
+
+// Stemmebank: proff-klonede skuespillerstemmer eid av en tenant, tilgjengelige
+// for hele tenant-treet under eieren. Hver bruk i en produksjon logges med
+// skuespiller-sats (til skuespilleren) og kundepris (byråets cut = differansen).
+// Kvantumsrabatt (discount_tiers) beregnes ved AVREGNING, ikke ved logging —
+// enklere, og kampanjevolum telles samlet.
+
+function admin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  )
+}
+
+export interface VoiceActor {
+  id: string
+  owner_tenant_id: string
+  name: string
+  elevenlabs_voice_id: string
+  actor_rate_nok: number
+  customer_price_nok: number
+  discount_tiers: Array<{ from_uses: number; discount_pct: number }>
+  preview_url: string | null
+  is_active: boolean
+}
+
+// Tenant-kjeden oppover (egen tenant → root), maks 5 hopp
+async function tenantChainUp(tenantId: string): Promise<string[]> {
+  const supabase = admin()
+  const chain: string[] = []
+  let cur: string | null = tenantId
+  for (let i = 0; i < 5 && cur; i++) {
+    chain.push(cur)
+    const res: { data: { parent_tenant_id: string | null } | null } = await supabase
+      .from('tenants').select('parent_tenant_id').eq('id', cur).single()
+    cur = res.data?.parent_tenant_id ?? null
+  }
+  return chain
+}
+
+// Stemmer tilgjengelige for en tenant = aktive stemmer eid av tenanten selv
+// eller noen av dens forfedre (banken «arves» nedover i treet).
+export async function getAvailableVoiceActors(tenantId: string): Promise<VoiceActor[]> {
+  try {
+    const chain = await tenantChainUp(tenantId)
+    if (chain.length === 0) return []
+    const { data } = await admin()
+      .from('voice_actors')
+      .select('*')
+      .in('owner_tenant_id', chain)
+      .eq('is_active', true)
+      .order('name')
+    return (data || []) as VoiceActor[]
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Logg bruk av en skuespillerstemme i en produksjon (royalty-hendelse).
+ * Kalles ved produksjonsstart med ElevenLabs-voice-id-en produksjonen bruker;
+ * gjør ingenting hvis stemmen ikke er en registrert skuespiller. Feiler stille.
+ */
+export async function logVoiceUsage(e: {
+  elevenlabsVoiceId?: string | null
+  usedByTenantId?: string | null
+  productId?: string | null
+  draftId?: string | null
+  jobId?: string | null
+  meta?: Record<string, unknown>
+}): Promise<void> {
+  try {
+    if (!e.elevenlabsVoiceId || !e.usedByTenantId) return
+    const actors = await getAvailableVoiceActors(e.usedByTenantId)
+    const actor = actors.find((a) => a.elevenlabs_voice_id === e.elevenlabsVoiceId)
+    if (!actor) return
+    await admin().from('voice_usage_events').insert({
+      actor_id: actor.id,
+      used_by_tenant_id: e.usedByTenantId,
+      product_id: e.productId ?? null,
+      draft_id: e.draftId ?? null,
+      job_id: e.jobId ?? null,
+      actor_rate_nok: actor.actor_rate_nok,
+      customer_price_nok: actor.customer_price_nok,
+      meta: e.meta ?? {},
+    })
+    console.log(`[voiceBank] Royalty-hendelse: ${actor.name} brukt av tenant ${e.usedByTenantId}`)
+  } catch (err) {
+    console.warn('[voiceBank] logging feilet (ignoreres):', err)
+  }
+}
