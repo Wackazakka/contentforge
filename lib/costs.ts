@@ -7,6 +7,9 @@ export const COSTS_NOK = {
   voiceoverPreview: 0.5,
   animate5s: 4,
   animate8s: 8,
+  // VEED Fabric 1.0 (lip-sync): $0,15/sek 720p → ~3 kr/sek inkl. påslag.
+  lipsyncPerSec: 3,
+  lipsyncTypical: 18, // typisk snakke-segment ~6 sek
 }
 
 export function fmtNok(n: number): string {
