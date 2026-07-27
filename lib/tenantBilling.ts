@@ -106,6 +106,23 @@ export async function logUsageEvent(e: {
     const pt = await getProductTenant(productId)
     if (!pt.tenantId) return // ingen tenant-kobling (eldre data) → hopp over
     const supabase = admin()
+    // Skaler til partnerpris: COSTS_NOK er råkost×2 (100 %); hvis vårt påslag mot
+    // denne partneren er endret (markup_percent på partner-nivået), justeres grunnlaget.
+    let costNok = e.costNok
+    try {
+      const { data: t } = await supabase.from('tenants').select('id, parent_tenant_id, markup_percent').eq('id', pt.tenantId).single()
+      if (t) {
+        // finn partner-nivået (direkte barn av root): tenanten selv eller dens forelder
+        let partner = t
+        if (t.parent_tenant_id) {
+          const { data: p } = await supabase.from('tenants').select('id, parent_tenant_id, markup_percent').eq('id', t.parent_tenant_id).single()
+          if (p && p.parent_tenant_id === null) partner = t // forelder er root → t ER partner-nivå... 
+          else if (p) partner = p
+        }
+        const ourMarkup = Number(partner.markup_percent ?? 100)
+        costNok = e.costNok * ((1 + ourMarkup / 100) / 2)
+      }
+    } catch { /* behold standard */ }
     await supabase.from('usage_events').insert({
       tenant_id: pt.tenantId,
       organization_id: pt.organizationId,
@@ -113,7 +130,7 @@ export async function logUsageEvent(e: {
       product_id: e.productId,
       draft_id: e.draftId ?? null,
       event_type: e.eventType,
-      cost_nok: e.costNok,
+      cost_nok: costNok,
       meta: e.meta ?? {},
     })
   } catch (err) {
