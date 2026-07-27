@@ -48,16 +48,19 @@ export default function DashboardPage() {
           .order('created_at', { ascending: true })
 
         if (error) throw error
-        if (orgs && orgs.length > 0) {
-          let chosen = orgs[0]
-          if (orgs.length > 1) {
+        const orgList: Array<{ id: string; name: string }> = orgs || []
+        if (orgList.length > 0) {
+          let chosen = orgList[0]
+          if (orgList.length > 1) {
             const { data: prods } = await supabase
               .from('products')
               .select('id, organization_id')
-              .in('organization_id', orgs.map((o) => o.id))
+              .in('organization_id', orgList.map((o) => o.id))
             const counts = new Map<string, number>()
-            for (const p of prods || []) counts.set(p.organization_id, (counts.get(p.organization_id) || 0) + 1)
-            chosen = orgs.reduce((best, o) => ((counts.get(o.id) || 0) > (counts.get(best.id) || 0) ? o : best), orgs[0])
+            for (const p of (prods || []) as Array<{ organization_id: string }>) {
+              counts.set(p.organization_id, (counts.get(p.organization_id) || 0) + 1)
+            }
+            chosen = orgList.reduce((best, o) => ((counts.get(o.id) || 0) > (counts.get(best.id) || 0) ? o : best), orgList[0])
           }
           setOrganizationId(chosen.id)
           setOrganizationName(chosen.name)
