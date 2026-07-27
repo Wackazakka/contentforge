@@ -4,8 +4,16 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
+import CostMeter from '@/components/CostMeter'
+import { COSTS_NOK } from '@/lib/costs'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
+
+// Kanoniske karakter-portretter (flux-lora) — klikk-og-bruk som avatar
+const CHARACTER_AVATARS = [
+  { id: 'adam', name: 'Adam (Reforhandle)', url: 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/images/articles/9ab96460-a380-4b5b-9aef-700f0df55d80.png' },
+  { id: 'lawrence', name: 'Lawrence (Peregrine)', url: 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/images/articles/99660030-88da-4c2d-b23e-aad815c65963.png' },
+]
 
 const EMOTIONS = [
   { id: 'nøytral',      label: 'Nøytral',      emoji: '😐' },
@@ -147,6 +155,9 @@ export default function AvatarVideoPage() {
             setProductProfile(data)
             if (data.avatar_image_url && /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(data.avatar_image_url)) {
               setAvatarImageUrl(data.avatar_image_url)
+            } else {
+              // Ingen lagret avatar → standard: Adam (flux-lora-karakteren)
+              setAvatarImageUrl(CHARACTER_AVATARS[0].url)
             }
             if (Array.isArray(data.avatar_image_urls) && data.avatar_image_urls.length > 0) {
               setSavedAvatarImages(data.avatar_image_urls)
@@ -385,6 +396,13 @@ export default function AvatarVideoPage() {
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">Avatar Video</h1>
           <p className="text-gray-500 mt-1">Fyll inn kontekst — AI skriver manus, ElevenLabs leser det opp, fal.ai lager lip-sync video.</p>
+          {/* Flytende taxameter: estimat fra manuslengde (~15 tegn/sek tale, lip-sync per sekund) */}
+          <CostMeter
+            lines={script.trim() ? [
+              { label: `Lip-sync (~${Math.max(1, Math.ceil(script.length / 15))} sek)`, amount: Math.max(1, Math.ceil(script.length / 15)) * COSTS_NOK.lipsyncPerSec },
+              { label: 'Voiceover', amount: COSTS_NOK.voiceoverPreview },
+            ] : []}
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -712,6 +730,25 @@ export default function AvatarVideoPage() {
               <p className="text-xs text-gray-400 mt-1">
                 Last opp eller lim inn URL — bildet huskes til neste gang. Anbefalt: god belysning, nøytral bakgrunn, ansiktet tydelig synlig.
               </p>
+            </div>
+
+            {/* Karakter-avatarer (flux-lora) — konsistente verter, klikk for å bruke */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-500 mb-2">🧑‍🎤 Karakter-avatarer — klikk for å velge:</p>
+              <div className="flex flex-wrap gap-2">
+                {CHARACTER_AVATARS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    title={c.name}
+                    onClick={() => { setAvatarImageUrl(c.url); saveAvatarImageUrl(c.url) }}
+                    className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === c.url ? 'border-[#C5451B] ring-2 ring-[#C5451B]' : 'border-gray-200 hover:border-gray-400'}`}
+                  >
+                    <img src={c.url} alt={c.name} className="w-20 h-20 object-cover" />
+                    <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] text-center py-0.5">{c.name.split(' ')[0]}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {savedAvatarImages.length > 0 && (
