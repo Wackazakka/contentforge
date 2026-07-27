@@ -10,6 +10,7 @@ export interface TenantInfo {
   app_name: string
   logo_url: string | null
   billing_mode: 'direct' | 'invoice'
+  price_multiplier: number
 }
 
 const DEFAULT: TenantInfo = {
@@ -18,6 +19,7 @@ const DEFAULT: TenantInfo = {
   app_name: 'CenterForge',
   logo_url: null,
   billing_mode: 'direct',
+  price_multiplier: 1,
 }
 
 const TenantCtx = createContext<TenantInfo>(DEFAULT)

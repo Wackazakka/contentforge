@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import CostMeter from '@/components/CostMeter'
 import { COSTS_NOK } from '@/lib/costs'
+import { useTenant } from '@/lib/tenantContext'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
@@ -59,6 +60,7 @@ export default function AvatarVideoPage() {
 
   // Production fields
   const [script, setScript] = useState('')
+  const pf = useTenant().price_multiplier || 1
   const [avatarImageUrl, setAvatarImageUrl] = useState('')
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID)
   const [musicFile, setMusicFile] = useState<string | null>(null)
@@ -412,8 +414,8 @@ export default function AvatarVideoPage() {
           {/* Flytende taxameter: estimat fra manuslengde (~15 tegn/sek tale, lip-sync per sekund) */}
           <CostMeter
             lines={script.trim() ? [
-              { label: `Lip-sync (~${Math.max(1, Math.ceil(script.length / 15))} sek)`, amount: Math.max(1, Math.ceil(script.length / 15)) * COSTS_NOK.lipsyncPerSec },
-              { label: 'Voiceover', amount: COSTS_NOK.voiceoverPreview },
+              { label: `Lip-sync (~${Math.max(1, Math.ceil(script.length / 15))} sek)`, amount: Math.max(1, Math.ceil(script.length / 15)) * COSTS_NOK.lipsyncPerSec * pf },
+              { label: 'Voiceover', amount: COSTS_NOK.voiceoverPreview * pf },
             ] : []}
           />
         </div>
