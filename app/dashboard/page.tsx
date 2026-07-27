@@ -39,18 +39,28 @@ export default function DashboardPage() {
     const fetchOrganization = async () => {
       try {
         const supabase = getSupabase()
-        const { data, error } = await supabase
+        // Brukeren kan ha flere organisasjoner (f.eks. sentinel-org for anonyme
+        // produksjoner) — velg den som faktisk har produktene, ellers den eldste
+        const { data: orgs, error } = await supabase
           .from('organizations')
           .select('id, name')
           .eq('owner_id', session.user.id)
-          .order('created_at', { ascending: true }) // eldste = brukerens ekte org (sentinel-org kan finnes i tillegg)
-          .limit(1)
-          .single()
+          .order('created_at', { ascending: true })
 
         if (error) throw error
-        if (data) {
-          setOrganizationId(data.id)
-          setOrganizationName(data.name)
+        if (orgs && orgs.length > 0) {
+          let chosen = orgs[0]
+          if (orgs.length > 1) {
+            const { data: prods } = await supabase
+              .from('products')
+              .select('id, organization_id')
+              .in('organization_id', orgs.map((o) => o.id))
+            const counts = new Map<string, number>()
+            for (const p of prods || []) counts.set(p.organization_id, (counts.get(p.organization_id) || 0) + 1)
+            chosen = orgs.reduce((best, o) => ((counts.get(o.id) || 0) > (counts.get(best.id) || 0) ? o : best), orgs[0])
+          }
+          setOrganizationId(chosen.id)
+          setOrganizationName(chosen.name)
         }
       } catch (err) {
         console.error('[Dashboard] Fetch organization error:', err)
