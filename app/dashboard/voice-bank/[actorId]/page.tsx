@@ -17,6 +17,7 @@ interface ActorDetail {
   customer_price_nok: number
   rates: Record<string, { actor_rate_nok: number; customer_price_nok: number }> | null
   face_character_id: string | null
+  is_exclusive: boolean
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
   created_at: string
@@ -117,6 +118,14 @@ export default function VoiceActorPage() {
     }
   }
 
+  const toggleExclusive = async () => {
+    if (!actor) return
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, isExclusive: !(actor.is_exclusive !== false) }) })
+      if (res.ok) await refresh()
+    } catch { /* behold visning */ }
+  }
+
   const totals = byMonth.reduce(
     (s, m) => ({ uses: s.uses + m.uses, to: s.to + m.to_actor_nok, from: s.from + m.from_customers_nok }),
     { uses: 0, to: 0, from: 0 }
@@ -142,6 +151,24 @@ export default function VoiceActorPage() {
               ElevenLabs-id: <span className="font-mono">{actor.elevenlabs_voice_id}</span>
               {Number(actor.honorarium_nok) > 0 && <> · Engangshonorar: {nok(Number(actor.honorarium_nok))}</>}
             </p>
+
+            {/* Eksklusivitet */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-8 flex items-center justify-between gap-4">
+              <div>
+                <div className="font-medium text-gray-900 text-sm">
+                  {actor.is_exclusive !== false ? '🔒 Eksklusiv' : '🌐 Delt med hele plattformen'}
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {actor.is_exclusive !== false
+                    ? 'Kun deres eget kundenett kan bruke stemmen.'
+                    : 'Alle kunder på plattformen kan bruke stemmen — royaltyen tilfaller fortsatt dere.'}
+                </p>
+              </div>
+              <button onClick={toggleExclusive}
+                className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                {actor.is_exclusive !== false ? 'Del stemmen' : 'Gjør eksklusiv'}
+              </button>
+            </div>
 
             {/* Totalt generert */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
