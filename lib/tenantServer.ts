@@ -74,8 +74,8 @@ function slugFromHost(host: string): string | null {
 export const getTenant = cache(async (): Promise<Tenant> => {
   const h = await headers()
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? ''
-  const slug = slugFromHost(host)
-  if (!slug || slug === 'www' || slug === ROOT_TENANT.slug) return ROOT_TENANT
+  let slug = slugFromHost(host)
+  if (!slug || slug === 'www') slug = ROOT_TENANT.slug
 
   const hit = ttl.get(slug)
   if (hit && Date.now() - hit.t < 60_000) return hit.v

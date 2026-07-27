@@ -281,6 +281,10 @@ export async function POST(request: NextRequest) {
       } catch (costErr) {
         console.warn('[generateImage] add_draft_cost feilet:', costErr)
       }
+      // Tenant-måling (white-label-faktura)
+      const { logUsageEvent } = await import('@/lib/tenantBilling')
+      const { COSTS_NOK: C2 } = await import('@/lib/costs')
+      logUsageEvent({ productId, draftId, eventType: 'image', costNok: character ? C2.imageCharacter : C2.imageStandard, meta: { character: character || null } })
     }
 
     console.log('[generateImage] ===== DONE: ' + r2Url + ' =====')

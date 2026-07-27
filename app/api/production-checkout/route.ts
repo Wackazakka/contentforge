@@ -59,6 +59,14 @@ export async function POST(request: Request) {
       .single()
     if (dErr || !draft) return NextResponse.json({ error: 'Draft ikke funnet' }, { status: 404 })
 
+    // White-label-kunder (invoice-tenant) betaler ikke per produksjon her
+    if (draft.product_id) {
+      const { getProductTenant } = await import('@/lib/tenantBilling')
+      if ((await getProductTenant(draft.product_id)).billingMode === 'invoice') {
+        return NextResponse.json({ error: 'Dette produktet faktureres via partner — bruk vanlig produksjon.', code: 'INVOICE_TENANT' }, { status: 400 })
+      }
+    }
+
     const price = computeProductionPrice(draft, tier)
 
     const stripe = getStripe()

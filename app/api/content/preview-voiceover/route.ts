@@ -51,6 +51,9 @@ export async function POST(request: Request) {
       } catch (costErr) {
         console.warn('[preview-voiceover] add_draft_cost feilet:', costErr)
       }
+      const { logUsageEvent } = await import('@/lib/tenantBilling')
+      const { COSTS_NOK: C2 } = await import('@/lib/costs')
+      logUsageEvent({ draftId, eventType: 'voiceover', costNok: C2.voiceoverPreview })
     }
 
     // Upload to R2

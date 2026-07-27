@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { COSTS_NOK, fmtNok } from '@/lib/costs'
 import CostMeter from '@/components/CostMeter'
+import { useTenant } from '@/lib/tenantContext'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 const VOICES = [
@@ -552,6 +553,7 @@ export default function DraftPage() {
   }
 
   // Billing-flagg (UI-side; serveren håndhever autoritativt)
+  const tenantInfo = useTenant()
   const billingOn = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
   const [checkout, setCheckout] = useState<{ url: string; price: number; tier: string; breakdown: Array<{ label: string; nok: number }> } | null>(null)
 
@@ -622,7 +624,7 @@ export default function DraftPage() {
   }
 
   const startProduction = async () => {
-    if (billingOn) { startCheckout(); return }
+    if (billingOn && tenantInfo.billing_mode !== 'invoice') { startCheckout(); return }
     if (!draft || starting) return
 
     setStarting(true)
