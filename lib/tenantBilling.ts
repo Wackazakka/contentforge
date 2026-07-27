@@ -53,6 +53,38 @@ export async function getProductTenant(productId: string): Promise<ProductTenant
   }
 }
 
+/**
+ * Forskuddssaldo for en partner-tenant: SUM(påfyll+bonus) − SUM(forbruk i hele
+ * subtreet). Partnere kjøper kreditter upfront (null kredittrisiko for oss);
+ * volumrabatt gis som bonus_nok ved registrering av kjøpet.
+ * Saldo beregnes for partner-tenanten (nærmeste forfedre-tenant med topups
+ * finnes ikke i v1 — vi sjekker tenantens egen id og forelder).
+ */
+export async function getPartnerBalance(tenantId: string): Promise<number | null> {
+  try {
+    const supabase = admin()
+    // Finn partner-nivået: tenanten selv eller dens forelder (to-lags-modellen)
+    const { data: t } = await supabase.from('tenants').select('id, parent_tenant_id').eq('id', tenantId).single()
+    if (!t) return null
+    const candidates = [t.id, t.parent_tenant_id].filter(Boolean) as string[]
+
+    for (const pid of candidates) {
+      const { data: tops } = await supabase.from('partner_topups').select('amount_nok, bonus_nok').eq('tenant_id', pid)
+      if (!tops || tops.length === 0) continue
+      const paidIn = tops.reduce((s, r) => s + Number(r.amount_nok) + Number(r.bonus_nok), 0)
+      // Forbruk i hele partnerens subtre
+      const { data: subtree } = await supabase.from('tenants').select('id').or(`id.eq.${pid},parent_tenant_id.eq.${pid}`)
+      const ids = (subtree || []).map((r) => r.id)
+      const { data: usage } = await supabase.from('usage_events').select('cost_nok').in('tenant_id', ids)
+      const used = (usage || []).reduce((s, r) => s + Number(r.cost_nok), 0)
+      return paidIn - used
+    }
+    return null // ingen topups registrert → ubegrenset i v1 (før første kjøp)
+  } catch {
+    return null
+  }
+}
+
 // Logg en forbrukshendelse (grunnlag for partnerfaktura). Feiler stille — måling
 // skal aldri velte produksjon.
 export async function logUsageEvent(e: {
