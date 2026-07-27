@@ -104,6 +104,7 @@ export async function POST(request: Request) {
       imagePrompt: s.image_prompt || s.imagePrompt || '',
       imageUrl: s.image_url,
       voiceoverUrl: s.voiceover_url || null,
+      animate: s.animate === true,
     }))
 
     console.log('[start-production] Prepared segments:', {
