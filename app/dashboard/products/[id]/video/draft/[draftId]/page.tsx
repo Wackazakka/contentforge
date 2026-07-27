@@ -90,6 +90,8 @@ export default function DraftPage() {
   // Jingle er ikke lagret på draft-raden (ingen kolonne) — hold i state, init fra ?jingle=
   const [outroJingle, setOutroJingle] = useState<string | null>(searchParams?.get('jingle') || null)
   const [jingleUploading, setJingleUploading] = useState(false)
+  // Karakter-modus: konsistent vert (flux-lora) i alle segmentbilder — init fra ?character=
+  const [character, setCharacter] = useState<string>(searchParams?.get('character') || '')
   const [musicUploading, setMusicUploading] = useState(false)
   const [musicFolder, setMusicFolder] = useState('global')
   // Sluttplakat-farger — leses fra produktprofilen, kan endres direkte her
@@ -330,7 +332,7 @@ export default function DraftPage() {
           response = await fetch('/api/content/generate-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic: segment.text, productId, imageSize, imageStyle }),
+            body: JSON.stringify({ topic: segment.text, productId, imageSize, imageStyle, character: character || undefined }),
             signal: controller.signal,
           })
         } finally {
@@ -450,6 +452,7 @@ export default function DraftPage() {
           productId,
           imageSize,
           imageStyle,
+          character: character || undefined,
         }),
       })
 
@@ -800,6 +803,23 @@ export default function DraftPage() {
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-1">{colorSaving ? 'Lagrer…' : 'Lagres automatisk. Brukes på sluttplakaten (video + avatar).'}</p>
+          </div>
+
+          {/* Karakter-modus: konsistent vert i segmentbildene (flux-lora) */}
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <label className="block text-sm font-medium text-gray-700 mb-1">🧑‍🎤 Karakter</label>
+            <div className="flex items-center gap-3 flex-wrap">
+              <select
+                value={character}
+                onChange={(e) => setCharacter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+              >
+                <option value="">Ingen — vanlige scenebilder</option>
+                <option value="adam">Adam (Reforhandle)</option>
+                <option value="lawrence">Lawrence (Peregrine)</option>
+              </select>
+              <span className="text-xs text-gray-400">Brukes ved «Regenerer bilde» — samme vert i alle segmenter.</span>
+            </div>
           </div>
 
           {/* AI-bevegelse: animer stillbildene til ekte video (koster mer + tar lengre tid) */}
