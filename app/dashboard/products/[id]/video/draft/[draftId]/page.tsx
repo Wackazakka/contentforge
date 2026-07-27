@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { COSTS_NOK, fmtNok } from '@/lib/costs'
+import CostMeter from '@/components/CostMeter'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 const VOICES = [
@@ -1163,19 +1164,21 @@ export default function DraftPage() {
                 {t('waitingSegments', { count: draft.segments.filter((s) => !s.approved).length })}
               </span>
             )}
-            {/* 💰 Taxameter: påløpt + estimat for det som gjenstår */}
+            {/* 💰 Flytende taxameter (nede til høyre) — oppdateres for hvert valg */}
             {(() => {
-              const paalopt = Number(draft.cost_accumulated) || 0
               const motions = aiMotion ? draft.segments.map((s) => s.motion || (s.animate === true ? 'move' : 'none')) : []
               const nMove = motions.filter((m) => m === 'move').length
               const nTalk = motions.filter((m) => m === 'talk').length
               const nImg = draft.segments.filter((s) => !s.image_url || !s.image_url.trim()).length
-              const estimat = nMove * COSTS_NOK.animate5s + nTalk * COSTS_NOK.lipsyncTypical + nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard)
               return (
-                <div className="text-xs text-gray-500 mt-1">
-                  💰 Påløpt: <span className="font-medium">{fmtNok(paalopt)}</span>
-                  {estimat > 0 && <> · Neste produksjon: ~<span className="font-medium">{fmtNok(estimat)}</span> ({nTalk > 0 && `${nTalk} snakk · `}{nMove > 0 && `${nMove} bevegelse · `}{nImg} bilder)</>}
-                </div>
+                <CostMeter
+                  paalopt={Number(draft.cost_accumulated) || 0}
+                  lines={[
+                    { label: `🗣️ Snakk × ${nTalk}`, amount: nTalk * COSTS_NOK.lipsyncTypical },
+                    { label: `🎥 Bevegelse × ${nMove}`, amount: nMove * COSTS_NOK.animate5s },
+                    { label: `🖼️ Bilder × ${nImg}`, amount: nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard) },
+                  ]}
+                />
               )
             })()}
           </div>
