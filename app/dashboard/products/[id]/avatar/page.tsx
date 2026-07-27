@@ -67,6 +67,18 @@ export default function AvatarVideoPage() {
   useEffect(() => {
     fetch('/api/voice-actors').then((r) => r.json()).then((d) => setActorVoices(d.voices || [])).catch(() => {})
   }, [])
+  const [saldo, setSaldo] = useState<number | null>(null)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        if (!token) return
+        const d = await fetch('/api/org-balance', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
+        if (typeof d.balance === 'number') setSaldo(d.balance)
+      } catch { /* ingen saldo å vise */ }
+    })()
+  }, [])
   const [musicFile, setMusicFile] = useState<string | null>(null)
   const [musicLibrary, setMusicLibrary] = useState<Array<{ filename: string; name: string; folder?: string; url: string; size: number }>>([])
   const [selectedMusicFolder, setSelectedMusicFolder] = useState('global')
@@ -417,6 +429,7 @@ export default function AvatarVideoPage() {
           <p className="text-gray-500 mt-1">Fyll inn kontekst — AI skriver manus, ElevenLabs leser det opp, fal.ai lager lip-sync video.</p>
           {/* Flytende taxameter: estimat fra manuslengde (~15 tegn/sek tale, lip-sync per sekund) */}
           <CostMeter
+                  saldo={saldo}
             lines={script.trim() ? [
               { label: `Lip-sync (~${Math.max(1, Math.ceil(script.length / 15))} sek)`, amount: Math.max(1, Math.ceil(script.length / 15)) * COSTS_NOK.lipsyncPerSec * pf },
               { label: 'Voiceover', amount: COSTS_NOK.voiceoverPreview * pf },

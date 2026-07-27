@@ -7,13 +7,16 @@ import { fmtNok } from '@/lib/costs'
 export default function CostMeter({
   paalopt,
   lines,
+  saldo,
 }: {
   paalopt?: number
   lines: Array<{ label: string; amount: number }>
+  saldo?: number | null // forskuddssaldo; null/undefined = ingen konto → skjules
 }) {
   const visible = lines.filter((l) => l.amount > 0)
   const estimat = visible.reduce((s, l) => s + l.amount, 0)
   if (!paalopt && estimat === 0) return null
+  const dekning = typeof saldo === 'number' ? saldo >= estimat : null
 
   return (
     <div className="fixed bottom-24 right-4 z-40 bg-white/95 backdrop-blur border border-gray-200 shadow-lg rounded-xl px-4 py-3 text-sm w-56">
@@ -35,6 +38,19 @@ export default function CostMeter({
           <span>Neste produksjon</span>
           <span>~{fmtNok(estimat)}</span>
         </div>
+      )}
+      {typeof saldo === 'number' && (
+        <>
+          <div className={`flex justify-between border-t border-gray-100 mt-1 pt-1 font-medium ${dekning === false ? 'text-red-600' : 'text-green-700'}`}>
+            <span>På konto</span>
+            <span>{fmtNok(saldo)}</span>
+          </div>
+          {dekning === false && (
+            <div className="text-xs text-red-600 mt-0.5">
+              Ikke dekning for neste produksjon — kjøp mer kreditt.
+            </div>
+          )}
+        </>
       )}
     </div>
   )

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         .single()
       draftProductId = d?.product_id ?? null
       if (draftProductId) {
-        const { getProductTenant, getPartnerBalance } = await import('@/lib/tenantBilling')
+        const { getProductTenant, getPartnerBalance, getOrgBalance } = await import('@/lib/tenantBilling')
         const pt = await getProductTenant(draftProductId)
         invoiceTenant = pt.billingMode === 'invoice'
         // Forskuddsmodell: partner-tenants må ha positiv saldo (null = ingen
@@ -41,6 +41,17 @@ export async function POST(request: Request) {
               { error: 'Kontoen har ikke flere produksjonskreditter. Kontakt administratoren deres for påfyll.', code: 'PARTNER_BALANCE_EMPTY' },
               { status: 402 }
             )
+          }
+          // Sluttkundens egen forskuddskonto (org_topups) — sperres kun hvis
+          // tenanten har opprettet en konto for organisasjonen (null = etterskudd)
+          if (pt.organizationId) {
+            const orgBalance = await getOrgBalance(pt.organizationId)
+            if (orgBalance !== null && orgBalance <= 0) {
+              return NextResponse.json(
+                { error: 'Kontoen deres er tom. Kjøp mer kreditt for å fortsette å produsere.', code: 'ORG_BALANCE_EMPTY' },
+                { status: 402 }
+              )
+            }
           }
         }
       }
