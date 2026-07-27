@@ -20,9 +20,20 @@ export interface VoiceActor {
   elevenlabs_voice_id: string
   actor_rate_nok: number
   customer_price_nok: number
+  // Takster per brukstype (video/avatar/radio …) — overstyrer standardsatsene
+  rates?: Record<string, { actor_rate_nok: number; customer_price_nok: number }> | null
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   preview_url: string | null
   is_active: boolean
+}
+
+// Sats for en gitt brukstype: typens egen takst hvis satt, ellers standard
+export function ratesForKind(actor: VoiceActor, kind?: string | null): { rate: number; price: number } {
+  const o = kind && actor.rates ? actor.rates[kind] : null
+  return {
+    rate: Number(o?.actor_rate_nok ?? actor.actor_rate_nok),
+    price: Number(o?.customer_price_nok ?? actor.customer_price_nok),
+  }
 }
 
 // Tenant-kjeden oppover (egen tenant → root), maks 5 hopp
@@ -98,14 +109,16 @@ export async function logVoiceUsage(e: {
     const actors = await getAvailableVoiceActors(e.usedByTenantId)
     const actor = actors.find((a) => a.elevenlabs_voice_id === e.elevenlabsVoiceId)
     if (!actor) return
+    // Takst etter brukstype (meta.kind) — fryses på raden
+    const { rate, price } = ratesForKind(actor, typeof e.meta?.kind === 'string' ? e.meta.kind : null)
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
       product_id: e.productId ?? null,
       draft_id: e.draftId ?? null,
       job_id: e.jobId ?? null,
-      actor_rate_nok: actor.actor_rate_nok,
-      customer_price_nok: actor.customer_price_nok,
+      actor_rate_nok: rate,
+      customer_price_nok: price,
       meta: e.meta ?? {},
     })
     console.log(`[voiceBank] Royalty-hendelse: ${actor.name} brukt av tenant ${e.usedByTenantId}`)

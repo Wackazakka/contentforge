@@ -65,7 +65,7 @@ export default function AvatarVideoPage() {
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID)
   const [actorVoices, setActorVoices] = useState<Array<{ voiceId: string; name: string; pricePerUseNok: number; previewUrl: string | null }>>([])
   useEffect(() => {
-    fetch('/api/voice-actors').then((r) => r.json()).then((d) => setActorVoices(d.voices || [])).catch(() => {})
+    fetch('/api/voice-actors?kind=avatar').then((r) => r.json()).then((d) => setActorVoices(d.voices || [])).catch(() => {})
   }, [])
   const [saldo, setSaldo] = useState<number | null>(null)
   useEffect(() => {
