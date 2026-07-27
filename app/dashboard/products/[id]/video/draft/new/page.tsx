@@ -23,6 +23,7 @@ export default function NewDraftPage() {
   const [targetAudience, setTargetAudience] = useState('')
   const [problem, setProblem] = useState('')
   const [tone, setTone] = useState('Energisk')
+  const [character, setCharacter] = useState('')
   const [perspective, setPerspective] = useState<'du' | 'jeg'>('du')
   const [cta, setCta] = useState('')
   const [videoFormat, setVideoFormat] = useState('9:16')
@@ -74,7 +75,7 @@ export default function NewDraftPage() {
       }
 
       const data = await response.json()
-      router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}&format=${encodeURIComponent(videoFormat)}&outro=${includeOutroCard ? '1' : '0'}`)
+      router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}&format=${encodeURIComponent(videoFormat)}&outro=${includeOutroCard ? '1' : '0'}&character=${encodeURIComponent(character)}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -248,6 +249,21 @@ export default function NewDraftPage() {
                       {t('perspectiveI')} <span className="text-xs opacity-70 ml-1">{t('perspectiveIExample')}</span>
                     </button>
                   </div>
+                </div>
+
+                {/* Karakter (konsistent vert i alle segmentbilder via flux-lora) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">🧑‍🎤 Karakter (valgfritt)</label>
+                  <select
+                    value={character}
+                    onChange={(e) => setCharacter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  >
+                    <option value="">Ingen — vanlige scenebilder</option>
+                    <option value="adam">Adam (Reforhandle)</option>
+                    <option value="lawrence">Lawrence (Peregrine)</option>
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">Samme vert i alle segmentbildene (AI-persona). Torben kommer når LoRA-en er trent.</p>
                 </div>
               </div>
             </div>

@@ -3,8 +3,10 @@ import { randomUUID } from 'crypto'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import { compositeLogoOnImage } from '@/lib/image-logo'
+import { getCharacter } from '@/lib/characters'
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
 const R2_ENDPOINT = process.env.R2_ENDPOINT
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
@@ -23,6 +25,7 @@ interface GenerateImageRequest {
   articleIds?: string[]
   imageSize?: '1024x1024' | '1024x1536' | '1536x1024'
   imageStyle?: 'tech' | 'cinematic' | 'warm' | 'surreal' | 'manga'
+  character?: string
 }
 
 const VIDEO_STYLE_PROMPTS: Record<string, string> = {
@@ -78,6 +81,68 @@ async function generateImageBuffer(topic: string, imageSize: string = '1024x1024
   return Buffer.from(b64, 'base64')
 }
 
+// Karakter-modus: generer segmentbildet med fal flux-lora (trent persona) i stedet
+// for gpt-image — samme vert i alle segmenter. Trigger-ord + karakterblokk + scene.
+async function generateCharacterImageBuffer(
+  topic: string,
+  characterId: string,
+  imageSize: string = '1024x1536'
+): Promise<Buffer> {
+  const ch = getCharacter(characterId)
+  if (!ch) throw new Error('Ukjent karakter: ' + characterId)
+  if (!ch.loraUrl) throw new Error('LoRA-URL mangler for ' + ch.name + ' (sett env ' + ch.id.toUpperCase() + '_LORA_URL i Netlify)')
+  if (!FAL_KEY) throw new Error('CONTENTFORGE_FAL_KEY mangler i Netlify env')
+
+  const SIZE_MAP: Record<string, { width: number; height: number }> = {
+    '1024x1024': { width: 1024, height: 1024 },
+    '1024x1536': { width: 768, height: 1344 },
+    '1536x1024': { width: 1344, height: 768 },
+  }
+  const image_size = SIZE_MAP[imageSize] || SIZE_MAP['1024x1536']
+
+  const prompt =
+    ch.trigger + '. Use the trained ' + ch.trigger + ' LoRA with maximum identity fidelity. ' +
+    ch.characterBlock + '. Scene: ' + topic +
+    '. Photorealistic, professional photography, cinematic lighting. No text, letters or typography in the image.'
+
+  console.log('[generateImage] Karakter-modus (' + ch.name + ') via fal flux-lora')
+  const auth = { Authorization: 'Key ' + FAL_KEY }
+  const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-lora', {
+    method: 'POST',
+    headers: { ...auth, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      loras: [{ path: ch.loraUrl, scale: 1.0 }],
+      image_size,
+      num_images: 1,
+      output_format: 'png',
+    }),
+  })
+  const submit = await submitRes.json().catch(() => ({}))
+  if (!submitRes.ok || !submit.request_id) {
+    throw new Error('fal flux-lora submit feilet: ' + JSON.stringify(submit).slice(0, 300))
+  }
+  const statusUrl = submit.status_url || 'https://queue.fal.run/fal-ai/flux-lora/requests/' + submit.request_id + '/status'
+  const resultUrl = submit.response_url || 'https://queue.fal.run/fal-ai/flux-lora/requests/' + submit.request_id
+
+  // flux-lora er rask (~5-15s); kort poll for å holde oss under Netlifys ~26s-grense
+  const deadline = Date.now() + 22_000
+  let status = 'IN_QUEUE'
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 1500))
+    const st = await fetch(statusUrl, { headers: auth }).then((r) => r.json()).catch(() => ({}))
+    status = st.status || status
+    if (status === 'COMPLETED') break
+    if (status === 'FAILED' || status === 'ERROR') throw new Error('fal flux-lora ' + status)
+  }
+  if (status !== 'COMPLETED') throw new Error('fal flux-lora tidsavbrudd')
+
+  const result = await fetch(resultUrl, { headers: auth }).then((r) => r.json())
+  const url = result?.images?.[0]?.url || result?.data?.images?.[0]?.url
+  if (!url) throw new Error('fal flux-lora: ingen bilde-URL')
+  return Buffer.from(await (await fetch(url)).arrayBuffer())
+}
+
 async function uploadBufferToR2(imageBuffer: Buffer, fileName: string): Promise<string> {
   console.log('[generateImage] Uploading to R2 (' + imageBuffer.byteLength + ' bytes)...')
 
@@ -108,19 +173,21 @@ async function uploadBufferToR2(imageBuffer: Buffer, fileName: string): Promise<
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateImageRequest = await request.json()
-    const { topic, productId, logoUrl, articleIds, imageSize = '1024x1024', imageStyle } = body
+    const { topic, productId, logoUrl, articleIds, imageSize = '1024x1024', imageStyle, character } = body
 
     if (!topic || !productId) {
       return NextResponse.json({ error: 'Missing topic or productId' }, { status: 400 })
     }
 
-    if (!OPENAI_API_KEY) {
+    if (!OPENAI_API_KEY && !character) {
       return NextResponse.json({ error: 'OPENAI_API_KEY not set' }, { status: 500 })
     }
 
     console.log('[generateImage] ===== START:  + topic +  =====')
 
-    let imageBuffer = await generateImageBuffer(topic, imageSize, imageStyle)
+    let imageBuffer = character
+      ? await generateCharacterImageBuffer(topic, character, imageSize)
+      : await generateImageBuffer(topic, imageSize, imageStyle)
 
     // Composite product logo onto bottom-right if provided
     if (logoUrl) {
