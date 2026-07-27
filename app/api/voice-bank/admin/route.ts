@@ -179,6 +179,10 @@ export async function PATCH(request: Request) {
     const patch: Record<string, unknown> = {}
     if (typeof body.isActive === 'boolean') patch.is_active = body.isActive
     if (typeof body.isExclusive === 'boolean') patch.is_exclusive = body.isExclusive
+    if (typeof body.isPublic === 'boolean') patch.is_public = body.isPublic
+    if (body.bio !== undefined) patch.bio = body.bio ? String(body.bio).slice(0, 2000) : null
+    if (Array.isArray(body.photoUrls)) patch.photo_urls = body.photoUrls.map(String).slice(0, 12)
+    if (Array.isArray(body.sampleUrls)) patch.sample_urls = body.sampleUrls.map(String).slice(0, 12)
     if (body.actorRateNok !== undefined) {
       const v = Number(body.actorRateNok)
       if (!(v >= 0)) return NextResponse.json({ error: 'Ugyldig skuespillersats' }, { status: 400 })

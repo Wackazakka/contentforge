@@ -18,6 +18,10 @@ interface ActorDetail {
   rates: Record<string, { actor_rate_nok: number; customer_price_nok: number }> | null
   face_character_id: string | null
   is_exclusive: boolean
+  is_public: boolean
+  bio: string | null
+  photo_urls: string[]
+  sample_urls: string[]
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
   created_at: string
@@ -45,6 +49,8 @@ export default function VoiceActorPage() {
   const [editPrice, setEditPrice] = useState('')
   const [editKinds, setEditKinds] = useState<Record<string, { rate: string; price: string }>>({})
   const [editFaceId, setEditFaceId] = useState('')
+  const [editBio, setEditBio] = useState('')
+  const [uploadBusy, setUploadBusy] = useState<string | null>(null)
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
 
@@ -77,6 +83,7 @@ export default function VoiceActorPage() {
       }
       setEditKinds(ek)
       setEditFaceId(data.actor.face_character_id || '')
+      setEditBio(data.actor.bio || '')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -122,6 +129,54 @@ export default function VoiceActorPage() {
     if (!actor) return
     try {
       const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, isExclusive: !(actor.is_exclusive !== false) }) })
+      if (res.ok) await refresh()
+    } catch { /* behold visning */ }
+  }
+
+  const togglePublic = async () => {
+    if (!actor) return
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, isPublic: !actor.is_public, bio: editBio }) })
+      if (res.ok) await refresh()
+    } catch { /* behold visning */ }
+  }
+
+  const saveBio = async () => {
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, bio: editBio }) })
+      if (res.ok) await refresh()
+    } catch { /* behold visning */ }
+  }
+
+  const uploadMedia = async (kind: 'photo' | 'sample', file: File | null) => {
+    if (!file) return
+    setUploadBusy(kind)
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Ikke innlogget')
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('actorId', actorId)
+      fd.append('kind', kind)
+      const res = await fetch('/api/voice-bank/upload', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Opplasting feilet')
+      await refresh()
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setUploadBusy(null)
+    }
+  }
+
+  const removeMedia = async (kind: 'photo' | 'sample', url: string) => {
+    if (!actor) return
+    const field = kind === 'photo' ? actor.photo_urls : actor.sample_urls
+    const next = (field || []).filter((u) => u !== url)
+    const body = kind === 'photo' ? { actorId, photoUrls: next } : { actorId, sampleUrls: next }
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify(body) })
       if (res.ok) await refresh()
     } catch { /* behold visning */ }
   }
@@ -183,6 +238,68 @@ export default function VoiceActorPage() {
                   <div className="text-xl font-bold text-gray-900">{c.value}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Presentasjonsside */}
+            <h2 className="font-semibold text-gray-900 mb-3">Presentasjonsside</h2>
+            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div>
+                  <div className="font-medium text-gray-900 text-sm">{actor.is_public ? '🟢 Publisert' : '⚪ Ikke publisert'}</div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {actor.is_public
+                      ? <>Visittkortet er åpent — del lenken i innsalg: <a href={`/stemme/${actor.id}`} target="_blank" className="text-[var(--ember-deep)] hover:underline">/stemme/{actor.id.slice(0, 8)}…</a></>
+                      : 'Publiser for å få en delbar side med bilder, lydprøver og bio.'}
+                  </p>
+                </div>
+                <button onClick={togglePublic}
+                  className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                  {actor.is_public ? 'Avpubliser' : 'Publiser siden'}
+                </button>
+              </div>
+
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+              <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} rows={4}
+                placeholder="Kort om skuespilleren — erfaring, stil, hva stemmen passer til …"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2" />
+              <button onClick={saveBio} className="text-sm text-[var(--ember-deep)] hover:underline mb-4">Lagre bio</button>
+
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Bilder ({(actor.photo_urls || []).length})</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {(actor.photo_urls || []).map((url) => (
+                      <div key={url} className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+                        <button onClick={() => removeMedia('photo', url)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs leading-none">×</button>
+                      </div>
+                    ))}
+                  </div>
+                  <input type="file" accept="image/*" disabled={uploadBusy === 'photo'}
+                    onChange={(e) => { uploadMedia('photo', e.target.files?.[0] || null); e.target.value = '' }}
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white" />
+                  {uploadBusy === 'photo' && <p className="text-xs text-gray-400 mt-1">Laster opp …</p>}
+                  <p className="text-xs text-gray-400 mt-1">Første bilde brukes som hovedbilde. Flux LoRA-bilder funker fint.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Lydprøver ({(actor.sample_urls || []).length})</label>
+                  <div className="space-y-2 mb-2">
+                    {(actor.sample_urls || []).map((url, i) => (
+                      <div key={url} className="flex items-center gap-2">
+                        <audio controls preload="none" src={url} className="flex-1 h-9" />
+                        <button onClick={() => removeMedia('sample', url)} className="text-red-500 hover:text-red-700 text-sm">Fjern</button>
+                      </div>
+                    ))}
+                  </div>
+                  <input type="file" accept="audio/*" disabled={uploadBusy === 'sample'}
+                    onChange={(e) => { uploadMedia('sample', e.target.files?.[0] || null); e.target.value = '' }}
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white" />
+                  {uploadBusy === 'sample' && <p className="text-xs text-gray-400 mt-1">Laster opp …</p>}
+                  <p className="text-xs text-gray-400 mt-1">MP3/WAV — f.eks. reklamespot-demoer i ulike stiler.</p>
+                </div>
+              </div>
             </div>
 
             {/* Takster */}
