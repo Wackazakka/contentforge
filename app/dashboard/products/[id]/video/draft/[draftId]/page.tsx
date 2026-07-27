@@ -551,7 +551,78 @@ export default function DraftPage() {
     }
   }
 
+  // Billing-flagg (UI-side; serveren håndhever autoritativt)
+  const billingOn = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
+  const [checkout, setCheckout] = useState<{ url: string; price: number; tier: string; breakdown: Array<{ label: string; nok: number }> } | null>(null)
+
+  // Retur fra Stripe (?paid=1&session_id=…): poll draften til produksjonen er startet;
+  // etter ~20s uten jobb → confirm-sikkerhetsnettet (hvis webhooken uteble)
+  useEffect(() => {
+    if (searchParams?.get('paid') !== '1') return
+    const sessionId = searchParams?.get('session_id')
+    let stopped = false
+    let tries = 0
+    const poll = async () => {
+      if (stopped) return
+      tries++
+      try {
+        const supabase = getSupabase()
+        const { data } = await supabase.from('production_drafts').select('job_id, video_format').eq('id', draftId).single()
+        if (data?.job_id) {
+          window.location.href = `/dashboard/products/${productId}/video/status/${data.job_id}?format=${encodeURIComponent(data.video_format || '9:16')}`
+          return
+        }
+        if (tries === 10 && sessionId) {
+          await fetch('/api/production-checkout/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId }),
+          }).catch(() => {})
+        }
+      } catch { /* fortsett å prøve */ }
+      if (tries < 60) setTimeout(poll, 2000)
+    }
+    poll()
+    return () => { stopped = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Billing på: hent server-beregnet pris + checkout-URL, vis oppsummering
+  const startCheckout = async () => {
+    if (!draft || starting) return
+    setStarting(true)
+    try {
+      const supabase = getSupabase()
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      const res = await fetch('/api/production-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          draftId: draft.id,
+          imageStyle,
+          includeOutroCard: searchParams?.get('outro') !== '0',
+          outroJingle,
+          aiMotion,
+          aiMotionEngine,
+          character: character || null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Checkout feilet')
+      setCheckout({ url: data.url, price: data.price, tier: data.tier, breakdown: data.breakdown || [] })
+    } catch (err: any) {
+      alert('Kunne ikke starte betaling: ' + err.message)
+    } finally {
+      setStarting(false)
+    }
+  }
+
   const startProduction = async () => {
+    if (billingOn) { startCheckout(); return }
     if (!draft || starting) return
 
     setStarting(true)
@@ -1146,6 +1217,42 @@ export default function DraftPage() {
             </div>
           ))}
         </div>
+
+        {/* Betalings-oppsummering (billing på): server-beregnet pris → Stripe */}
+        {checkout && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setCheckout(null)}>
+            <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Bekreft produksjon</h3>
+              <div className="space-y-1 mb-3">
+                {checkout.breakdown.map((l) => (
+                  <div key={l.label} className="flex justify-between text-sm text-gray-600">
+                    <span>{l.label}</span><span>{fmtNok(l.nok)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-100 pt-2">
+                  <span>Totalt</span><span>{fmtNok(checkout.price)}</span>
+                </div>
+              </div>
+              {checkout.tier === 'anonymous' && (
+                <p className="text-xs text-[var(--ember-deep)] bg-[var(--ember-tint-bg)] border border-[var(--ember-tint-border)] rounded-lg px-3 py-2 mb-3">
+                  💡 <a href="/register" className="underline font-medium">Registrer deg</a> og få 33 % rabatt på alle produksjoner.
+                </p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { window.location.href = checkout.url }}
+                  className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-white bg-green-600 hover:bg-green-700"
+                >
+                  💳 Betal og produser
+                </button>
+                <button onClick={() => setCheckout(null)} className="px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700">
+                  Avbryt
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">Produksjonen starter automatisk når betalingen er bekreftet.</p>
+            </div>
+          </div>
+        )}
 
         {/* Start Production Button */}
         <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex justify-between items-center">
