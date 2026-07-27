@@ -76,24 +76,6 @@ export default function AvatarVideoPage() {
   const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string; avatar_image_url?: string; avatar_image_urls?: string[] } | null>(null)
   const [savedAvatarImages, setSavedAvatarImages] = useState<string[]>([])
 
-  // Live status for påstartet avatar-jobb — poller til done/failed
-  const [avatarJobStatus, setAvatarJobStatus] = useState<{ status?: string; videoUrl?: string } | null>(null)
-  useEffect(() => {
-    if (!jobId) { setAvatarJobStatus(null); return }
-    let stop = false
-    const poll = async () => {
-      try {
-        const d = await fetch(`/api/avatar/job-status/${jobId}`).then((r) => r.json())
-        if (stop) return
-        setAvatarJobStatus(d)
-        if (d.status === 'done' || d.status === 'failed') return
-      } catch { /* prøv igjen */ }
-      if (!stop) setTimeout(poll, 6000)
-    }
-    poll()
-    return () => { stop = true }
-  }, [jobId])
-
   const splitToSegments = (text: string, defaultEmotion: string): Segment[] => {
     const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
     const pairs: Segment[] = []
@@ -201,6 +183,25 @@ export default function AvatarVideoPage() {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
+
+  // Live status for påstartet avatar-jobb — poller til done/failed
+  const [avatarJobStatus, setAvatarJobStatus] = useState<{ status?: string; videoUrl?: string } | null>(null)
+  useEffect(() => {
+    if (!jobId) { setAvatarJobStatus(null); return }
+    let stop = false
+    const poll = async () => {
+      try {
+        const d = await fetch(`/api/avatar/job-status/${jobId}`).then((r) => r.json())
+        if (stop) return
+        setAvatarJobStatus(d)
+        if (d.status === 'done' || d.status === 'failed') return
+      } catch { /* prøv igjen */ }
+      if (!stop) setTimeout(poll, 6000)
+    }
+    poll()
+    return () => { stop = true }
+  }, [jobId])
+
 
   const handlePreviewVoice = async () => {
     if (!script.trim()) { setError('Skriv manus først.'); return }
