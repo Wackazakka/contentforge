@@ -26,7 +26,7 @@ export interface VoiceActor {
 }
 
 // Tenant-kjeden oppover (egen tenant → root), maks 5 hopp
-async function tenantChainUp(tenantId: string): Promise<string[]> {
+export async function tenantChainUp(tenantId: string): Promise<string[]> {
   const supabase = admin()
   const chain: string[] = []
   let cur: string | null = tenantId
@@ -37,6 +37,29 @@ async function tenantChainUp(tenantId: string): Promise<string[]> {
     cur = res.data?.parent_tenant_id ?? null
   }
   return chain
+}
+
+/**
+ * Admin-tilgang til en tenants adminflater: kun tenantens egne admins og
+ * admins i leddene OVER i treet (root ser alt; en tenant ser aldri oppover).
+ * admin_emails er en jsonb-liste med e-poster på tenants-raden.
+ */
+export async function isTenantAdmin(email: string | null | undefined, tenantId: string): Promise<boolean> {
+  try {
+    if (!email) return false
+    const chain = await tenantChainUp(tenantId)
+    if (chain.length === 0) return false
+    const { data } = await admin()
+      .from('tenants')
+      .select('id, admin_emails')
+      .in('id', chain)
+    const needle = email.trim().toLowerCase()
+    return (data || []).some((t) =>
+      Array.isArray(t.admin_emails) && t.admin_emails.some((e: unknown) => String(e).trim().toLowerCase() === needle)
+    )
+  } catch {
+    return false
+  }
 }
 
 // Stemmer tilgjengelige for en tenant = aktive stemmer eid av tenanten selv

@@ -5,7 +5,8 @@
     "calendar": "Calendar",
     "billing": "Billing",
     "logout": "Log out",
-    "credits": "{count} credits"
+    "credits": "{count} credits",
+    "voicebank": "Voice bank"
   },
   "home": {
     "nav_pricing": "Pricing",
