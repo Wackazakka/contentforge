@@ -94,7 +94,7 @@ export default function NewDraftPage() {
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header */}
-        <Link href={`/dashboard/products/${productId}`} className="text-[#C5451B] hover:text-[#1C1A16] mb-4 inline-block">
+        <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">
           {t('backToProduct')}
         </Link>
 
@@ -126,7 +126,7 @@ export default function NewDraftPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent"
                     placeholder={t('titlePlaceholder')}
                   />
                 </div>
@@ -138,7 +138,7 @@ export default function NewDraftPage() {
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     placeholder={t('topicPlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent"
                     rows={4}
                   />
                 </div>
@@ -149,7 +149,7 @@ export default function NewDraftPage() {
                   <select
                     value={segmentCount}
                     onChange={(e) => setSegmentCount(Number(e.target.value))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent"
                   >
                     <option value={2}>{t('seg2')}</option>
                     <option value={3}>{t('seg3')}</option>
@@ -167,7 +167,7 @@ export default function NewDraftPage() {
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
                     placeholder={t('targetAudiencePlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent"
                   />
                 </div>
 
@@ -179,7 +179,7 @@ export default function NewDraftPage() {
                     value={problem}
                     onChange={(e) => setProblem(e.target.value)}
                     placeholder={t('problemPlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent"
                   />
                 </div>
 
@@ -191,7 +191,7 @@ export default function NewDraftPage() {
                     value={cta}
                     onChange={(e) => setCta(e.target.value)}
                     placeholder={t('ctaPlaceholder')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5451B] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -273,7 +273,7 @@ export default function NewDraftPage() {
                       <option key={c.id} value={c.id}>{c.name} (egen)</option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-400 mt-1">Samme vert i alle segmentbildene (AI-persona). <a href="/dashboard/characters" className="text-[#C5451B] hover:underline">Lag din egen karakter →</a></p>
+                  <p className="text-xs text-gray-400 mt-1">Samme vert i alle segmentbildene (AI-persona). <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag din egen karakter →</a></p>
                 </div>
               </div>
             </div>
@@ -348,7 +348,7 @@ export default function NewDraftPage() {
                   type="checkbox"
                   checked={includeOutroCard}
                   onChange={(e) => setIncludeOutroCard(e.target.checked)}
-                  className="mt-1 h-4 w-4 text-[#C5451B] border-gray-300 rounded focus:ring-[#C5451B]"
+                  className="mt-1 h-4 w-4 text-[var(--ember-deep)] border-gray-300 rounded focus:ring-[var(--ember-deep)]"
                 />
                 <div>
                   <div className="text-sm font-medium text-gray-900">
@@ -368,7 +368,7 @@ export default function NewDraftPage() {
                 type="submit"
                 disabled={loading}
                 className={`flex-1 px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
-                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#C5451B] hover:bg-[#1C1A16]'
+                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--ember-deep)] hover:bg-[#1C1A16]'
                 }`}
               >
                 {loading ? t('creatingDraft') : t('createDraft')}

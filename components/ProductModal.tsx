@@ -62,7 +62,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
         <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 32, lineHeight: 1, color: '#1C1A16', margin: '0 0 22px' }}>{t('title')}</h2>
 
         {error && (
-          <div style={{ background: '#FBEAE6', border: '1px solid #F0C4B8', borderRadius: 11, padding: '13px 16px', fontFamily: HANKEN, fontSize: 14.5, fontWeight: 600, color: '#C5451B', marginBottom: 20 }}>
+          <div style={{ background: '#FBEAE6', border: '1px solid #F0C4B8', borderRadius: 11, padding: '13px 16px', fontFamily: HANKEN, fontSize: 14.5, fontWeight: 600, color: 'var(--ember-deep)', marginBottom: 20 }}>
             {error}
           </div>
         )}

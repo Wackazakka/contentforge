@@ -634,7 +634,7 @@ export default function DraftPage() {
     return (
       <div className="min-h-screen bg-[var(--paper)]">
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[#C5451B] hover:text-[#1C1A16] mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">
             {t('backToProduct')}
           </Link>
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">{error || t('draftNotFound')}</div>
@@ -648,7 +648,7 @@ export default function DraftPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[#C5451B] hover:text-[#1C1A16] mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">
             {t('backToProduct')}
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
@@ -667,7 +667,7 @@ export default function DraftPage() {
               <select
                 value={draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX'}
                 onChange={(e) => updateVoice(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
               >
                 {VOICES.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
@@ -686,7 +686,7 @@ export default function DraftPage() {
               <select
                 value={draft.music_file || ''}
                 onChange={(e) => updateMusic(e.target.value || null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
               >
                 <option value="">Ingen musikk</option>
                 {musicLibrary.filter((m) => m.folder !== 'jingles').map((m) => (
@@ -738,7 +738,7 @@ export default function DraftPage() {
                       el.value = ''
                     }
                   }}
-                  className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
+                  className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
                 />
               </div>
               <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).'}</p>
@@ -750,7 +750,7 @@ export default function DraftPage() {
               <select
                 value={outroJingle || ''}
                 onChange={(e) => updateJingle(e.target.value || null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B] bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
               >
                 <option value="">Ingen jingle</option>
                 {musicLibrary.filter((m) => m.folder === 'jingles').map((j) => (
@@ -792,7 +792,7 @@ export default function DraftPage() {
                       el.value = ''
                     }
                   }}
-                  className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
+                  className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
                 />
               </div>
               <p className="text-xs text-gray-400 mt-1">{jingleUploading ? 'Laster opp jingle…' : 'Spilles på sluttplakaten.'}</p>
@@ -854,7 +854,7 @@ export default function DraftPage() {
                   <option key={c.id} value={c.id}>{c.name} (egen)</option>
                 ))}
               </select>
-              <span className="text-xs text-gray-400">Brukes ved «Regenerer bilde» — samme vert i alle segmenter. <a href="/dashboard/characters" className="text-[#C5451B] hover:underline">Lag egen karakter →</a></span>
+              <span className="text-xs text-gray-400">Brukes ved «Regenerer bilde» — samme vert i alle segmenter. <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag egen karakter →</a></span>
             </div>
           </div>
 
@@ -910,7 +910,7 @@ export default function DraftPage() {
               <p className="text-sm font-medium text-[#1C1A16]">
                 {t('generatingImages', { done: draft.segments.length - generatingImages.size, total: draft.segments.length })}
               </p>
-              <p className="text-xs text-[#C5451B] mt-0.5">{t('generatingImagesHint')}</p>
+              <p className="text-xs text-[var(--ember-deep)] mt-0.5">{t('generatingImagesHint')}</p>
             </div>
           </div>
         )}
@@ -963,7 +963,7 @@ export default function DraftPage() {
                           updatedSegments[index].text = e.target.value
                           setDraft({ ...draft, segments: updatedSegments })
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                         rows={2}
                       />
                     </div>
@@ -978,7 +978,7 @@ export default function DraftPage() {
                           updatedSegments[index].voiceover = e.target.value
                           setDraft({ ...draft, segments: updatedSegments })
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                         rows={3}
                       />
 
@@ -1032,7 +1032,7 @@ export default function DraftPage() {
                               onClick={() => updateMotion(index, opt.v)}
                               className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                                 current === opt.v
-                                  ? 'bg-[#C5451B] text-white border-[#C5451B]'
+                                  ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]'
                                   : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                               }`}
                             >
@@ -1048,7 +1048,7 @@ export default function DraftPage() {
                       className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                         segment.approved
                           ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-[#C5451B] hover:bg-[#1C1A16] text-white'
+                          : 'bg-[var(--ember-deep)] hover:bg-[#1C1A16] text-white'
                       }`}
                     >
                       {segment.approved ? t('approvedButton') : t('approveButton')}
@@ -1103,7 +1103,7 @@ export default function DraftPage() {
                           }}
                           placeholder={segment.text}
                           rows={2}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                         />
                         <p className="text-xs text-gray-400 mt-1">Trykk «{t('regenerateImage')}» etter endring for å lage nytt bilde med denne prompten (lagres automatisk).</p>
                       </div>

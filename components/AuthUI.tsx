@@ -12,7 +12,7 @@ const SERIF = 'var(--font-serif), serif'
 export const emberLink: CSSProperties = {
   fontFamily: HANKEN,
   fontWeight: 700,
-  color: '#C5451B',
+  color: 'var(--ember-deep)',
   background: 'transparent',
   border: 'none',
   cursor: 'pointer',
@@ -149,7 +149,7 @@ export function AuthSubmit({
 export function AuthBanner({ variant = 'error', children }: { variant?: 'error' | 'success'; children: ReactNode }) {
   const palette =
     variant === 'error'
-      ? { color: '#C5451B', background: '#FBEAE6', border: '1px solid #F0C4B8' }
+      ? { color: 'var(--ember-deep)', background: '#FBEAE6', border: '1px solid #F0C4B8' }
       : { color: '#3F7A4E', background: '#E4EFE0', border: '1px solid #CADBC4' }
   return (
     <div style={{ ...palette, borderRadius: 11, padding: '12px 14px', marginBottom: 18, fontFamily: HANKEN, fontSize: 14, lineHeight: 1.5 }}>

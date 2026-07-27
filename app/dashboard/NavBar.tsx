@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { LangToggle } from '@/components/LangToggle'
+import { useTenant } from '@/lib/tenantContext'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 
@@ -16,12 +17,14 @@ export default function NavBar() {
   const { signOut, session } = useAuth()
   const [credits, setCredits] = useState<number | null>(null)
   const t = useTranslations('nav')
+  const tenant = useTenant()
 
+  // Invoice-tenants (white-label via partner) skal ikke se CenterForge-priser/billing
   const navLinks = [
     { href: '/dashboard', label: t('overview') },
     { href: '/dashboard/publish', label: t('publish') },
     { href: '/dashboard/calendar', label: t('calendar') },
-    { href: '/dashboard/billing', label: t('billing') },
+    ...(tenant.billing_mode === 'invoice' ? [] : [{ href: '/dashboard/billing', label: t('billing') }]),
   ]
 
   useEffect(() => {
@@ -61,9 +64,9 @@ export default function NavBar() {
                 style={{
                   display: 'inline-flex', alignItems: 'center', fontFamily: HANKEN, fontSize: 15,
                   fontWeight: active ? 600 : 500,
-                  color: active ? '#C5451B' : '#6B6358',
-                  background: active ? '#F8E7DB' : 'transparent',
-                  border: active ? '1px solid #EBC9B2' : '1px solid transparent',
+                  color: active ? 'var(--ember-deep)' : '#6B6358',
+                  background: active ? 'var(--ember-tint-bg)' : 'transparent',
+                  border: active ? '1px solid var(--ember-tint-border)' : '1px solid transparent',
                   borderRadius: 999, padding: '8px 16px', textDecoration: 'none',
                 }}
               >
@@ -74,13 +77,13 @@ export default function NavBar() {
         </nav>
 
         <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
-          {credits !== null && (
+          {credits !== null && tenant.billing_mode !== 'invoice' && (
             <Link
               href="/dashboard/billing"
               title="Credits remaining"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: HANKEN, fontSize: 13, fontWeight: 600,
-                color: '#C5451B', background: '#F8E7DB', border: '1px solid #EBC9B2', borderRadius: 999,
+                color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', borderRadius: 999,
                 padding: '7px 13px', textDecoration: 'none',
               }}
             >

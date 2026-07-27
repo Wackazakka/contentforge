@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { CenterForgeMark, CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { LangToggle } from '@/components/LangToggle'
+import { useTenant } from '@/lib/tenantContext'
 
 const MONO = "var(--font-cfmono), monospace"
 const SERIF = "var(--font-serif), serif"
@@ -21,13 +22,15 @@ function PlayDot() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      <svg width="10" height="11" viewBox="0 0 11 12"><path d="M0 0 L11 6 L0 12 Z" fill="#D9521C" /></svg>
+      <svg width="10" height="11" viewBox="0 0 11 12"><path d="M0 0 L11 6 L0 12 Z" fill="var(--ember)" /></svg>
     </div>
   )
 }
 
 export default function Home() {
   const t = useTranslations('home')
+  const tenant = useTenant()
+  const showPricing = tenant.billing_mode !== 'invoice'
   const stats = t.raw('stats') as Stat[]
   const tiers = t.raw('tiers') as Tier[]
 
@@ -64,13 +67,15 @@ export default function Home() {
           </a>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <LangToggle />
-            <a
-              href="#priser"
-              className="cf-nav-link"
-              style={{ fontFamily: HANKEN, fontSize: 15, fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', padding: '8px 14px' }}
-            >
-              {t('nav_pricing')}
-            </a>
+            {showPricing && (
+              <a
+                href="#priser"
+                className="cf-nav-link"
+                style={{ fontFamily: HANKEN, fontSize: 15, fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', padding: '8px 14px' }}
+              >
+                {t('nav_pricing')}
+              </a>
+            )}
             <Link
               href="/login"
               className="cf-btn-ink"
@@ -99,12 +104,12 @@ export default function Home() {
 
             {/* Left column */}
             <div style={{ flex: '1.1 1 380px', minWidth: 300 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 13px', border: '1px solid #EBC9B2', borderRadius: 999, background: '#F8E7DB', marginBottom: 24 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#D9521C' }} />
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 13px', border: '1px solid var(--ember-tint-border)', borderRadius: 999, background: 'var(--ember-tint-bg)', marginBottom: 24 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ember)' }} />
                 <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 500, letterSpacing: '0.12em', color: '#B8431A' }}>{t('badge')}</span>
               </div>
               <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(42px,5.8vw,70px)', lineHeight: 1.04, letterSpacing: '-0.01em', color: 'var(--ink)', overflowWrap: 'break-word', margin: '0 0 20px' }}>
-                {t('hero_a')}<span style={{ fontStyle: 'italic', color: '#D9521C' }}>{t('hero_em')}</span>
+                {t('hero_a')}<span style={{ fontStyle: 'italic', color: 'var(--ember)' }}>{t('hero_em')}</span>
               </h1>
               <p style={{ fontFamily: HANKEN, fontSize: 'clamp(17px,1.4vw,19px)', lineHeight: 1.6, color: 'var(--text-muted)', maxWidth: 470, margin: '0 0 32px' }}>{t('hero_sub')}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 13, marginBottom: 46 }}>
@@ -133,7 +138,7 @@ export default function Home() {
                 <div style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.16em', color: '#978B79', marginBottom: 8 }}>{t('brief_label')}</div>
                 <div style={{ background: '#F7F1E6', border: '1px solid #E6DDCC', borderRadius: 12, padding: '13px 15px', fontFamily: HANKEN, color: '#3A352C', fontSize: 13.5, lineHeight: 1.5 }}>
                   {t('brief_text')}
-                  <span className="cf-anim-blink" style={{ display: 'inline-block', width: 2, height: 14, background: '#D9521C', marginLeft: 3, verticalAlign: -2 }} />
+                  <span className="cf-anim-blink" style={{ display: 'inline-block', width: 2, height: 14, background: 'var(--ember)', marginLeft: 3, verticalAlign: -2 }} />
                 </div>
 
                 <div style={{ position: 'relative', height: 30, display: 'flex', justifyContent: 'center' }}>
@@ -201,20 +206,20 @@ export default function Home() {
             {[
               {
                 t: t('f1_t'), d: t('f1_d'),
-                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D9521C" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><rect x="3" y="6" width="18" height="14" rx="2.5" /><path d="M3 10 H21" /><path d="M7 6 L9 10 M12 6 L14 10 M16.5 6 L18.5 10" /><path d="M10.4 13 L14.6 15.5 L10.4 18 Z" fill="#D9521C" stroke="none" /></svg>),
+                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><rect x="3" y="6" width="18" height="14" rx="2.5" /><path d="M3 10 H21" /><path d="M7 6 L9 10 M12 6 L14 10 M16.5 6 L18.5 10" /><path d="M10.4 13 L14.6 15.5 L10.4 18 Z" fill="var(--ember)" stroke="none" /></svg>),
               },
               {
                 t: t('f2_t'), d: t('f2_d'),
-                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D9521C" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><path d="M6 3 H14 L18 7 V21 H6 Z" /><path d="M14 3 V7 H18" /><path d="M9 12 H15 M9 15.5 H15 M9 8.5 H11.5" /></svg>),
+                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><path d="M6 3 H14 L18 7 V21 H6 Z" /><path d="M14 3 V7 H18" /><path d="M9 12 H15 M9 15.5 H15 M9 8.5 H11.5" /></svg>),
               },
               {
                 t: t('f3_t'), d: t('f3_d'),
-                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D9521C" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><path d="M12 3 L19 5.6 V11 C19 15.6 16 19 12 21 C8 19 5 15.6 5 11 V5.6 Z" /><path d="M9 11.6 L11.2 13.8 L15.4 9.2" /></svg>),
+                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><path d="M12 3 L19 5.6 V11 C19 15.6 16 19 12 21 C8 19 5 15.6 5 11 V5.6 Z" /><path d="M9 11.6 L11.2 13.8 L15.4 9.2" /></svg>),
               },
             ].map((f) => (
               <div key={f.t} className="cf-card" style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 30, overflow: 'hidden', boxShadow: '0 1px 2px rgba(70,45,20,0.04)' }}>
                 <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(217,82,28,0.5),transparent)' }} />
-                <div style={{ width: 48, height: 48, borderRadius: 13, background: '#F8E7DB', border: '1px solid #EBC9B2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>{f.icon}</div>
+                <div style={{ width: 48, height: 48, borderRadius: 13, background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>{f.icon}</div>
                 <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 11px' }}>{f.t}</h3>
                 <p style={{ fontFamily: HANKEN, fontSize: 15.5, lineHeight: 1.6, color: '#6B6358', margin: 0 }}>{f.d}</p>
               </div>
@@ -228,6 +233,7 @@ export default function Home() {
         </section>
 
         {/* Pricing */}
+        {showPricing && (
         <section id="priser" style={{ position: 'relative', background: '#ECE3D2', borderTop: '1px solid #E0D7C6', borderBottom: '1px solid #E0D7C6' }}>
           <div style={{ maxWidth: 1180, margin: '0 auto', padding: 'clamp(56px,8vw,104px) 28px' }}>
             <div style={{ maxWidth: 680, margin: '0 auto clamp(40px,5vw,56px)', textAlign: 'center' }}>
@@ -240,7 +246,7 @@ export default function Home() {
                   {tier.popular && (
                     <>
                       <div aria-hidden="true" style={{ position: 'absolute', inset: -1, borderRadius: 20, border: '1.5px solid #E0742F', boxShadow: '0 0 40px -10px rgba(217,82,28,0.4)', pointerEvents: 'none' }} />
-                      <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#FFF4E8', background: 'linear-gradient(135deg,#E8632B,#C5451B)', padding: '5px 13px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('popular')}</div>
+                      <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#FFF4E8', background: 'linear-gradient(135deg,#E8632B,var(--ember-deep))', padding: '5px 13px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('popular')}</div>
                     </>
                   )}
                   <div style={{ position: 'relative' }}>
@@ -253,12 +259,12 @@ export default function Home() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 13, marginBottom: 28 }}>
                       {tier.feats.map((f) => (
                         <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#D9521C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none', marginTop: 1 }}><path d="M5 12.5 L10 17 L19 6.5" /></svg>
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none', marginTop: 1 }}><path d="M5 12.5 L10 17 L19 6.5" /></svg>
                           <span style={{ fontFamily: HANKEN, fontSize: 15, lineHeight: 1.4, color: '#4A4438' }}>{f}</span>
                         </div>
                       ))}
                     </div>
-                    <Link href="/register" className="cf-price-cta" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HANKEN, fontWeight: 700, fontSize: 15.5, color: '#C5451B', background: 'transparent', border: '1px solid #E3A883', borderRadius: 999, padding: '13px 20px', textDecoration: 'none' }}>{t('price_cta')}</Link>
+                    <Link href="/register" className="cf-price-cta" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HANKEN, fontWeight: 700, fontSize: 15.5, color: 'var(--ember-deep)', background: 'transparent', border: '1px solid #E3A883', borderRadius: 999, padding: '13px 20px', textDecoration: 'none' }}>{t('price_cta')}</Link>
                   </div>
                 </div>
               ))}
@@ -266,6 +272,7 @@ export default function Home() {
             <p style={{ textAlign: 'center', fontFamily: HANKEN, fontSize: 14, color: '#978B79', margin: '32px 0 0' }}>{t('fine')}</p>
           </div>
         </section>
+        )}
 
         {/* Footer */}
         <footer style={{ position: 'relative', zIndex: 2, maxWidth: 1180, margin: '0 auto', padding: 'clamp(48px,6vw,72px) 28px 48px' }}>

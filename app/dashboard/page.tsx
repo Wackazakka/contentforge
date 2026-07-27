@@ -130,7 +130,7 @@ export default function DashboardPage() {
                 { step: '3', title: t('step3Title'), desc: t('step3Desc') },
               ].map(({ step, title, desc }) => (
                 <div key={step} style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HANKEN, fontSize: 12, fontWeight: 700, color: '#C5451B', background: '#F8E7DB', border: '1px solid #EBC9B2', marginTop: 2 }}>{step}</div>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HANKEN, fontSize: 12, fontWeight: 700, color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', marginTop: 2 }}>{step}</div>
                   <div>
                     <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: '#3A352C', margin: 0 }}>{title}</p>
                     <p style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B6358', margin: '2px 0 0' }}>{desc}</p>
@@ -153,7 +153,7 @@ export default function DashboardPage() {
                   {product.name}
                 </h3>
                 {product.category && (
-                  <span style={{ display: 'inline-block', fontFamily: HANKEN, fontSize: 12, fontWeight: 600, letterSpacing: '0.02em', color: '#C5451B', background: '#F8E7DB', border: '1px solid #EBC9B2', borderRadius: 999, padding: '3px 11px', marginBottom: 14, textTransform: 'capitalize' }}>
+                  <span style={{ display: 'inline-block', fontFamily: HANKEN, fontSize: 12, fontWeight: 600, letterSpacing: '0.02em', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', borderRadius: 999, padding: '3px 11px', marginBottom: 14, textTransform: 'capitalize' }}>
                     {product.category}
                   </span>
                 )}
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                 title="Slett produkt"
                 className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-md"
                 style={{ color: '#A89C88' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#C5451B'; e.currentTarget.style.background = '#FBEAE6' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ember-deep)'; e.currentTarget.style.background = '#FBEAE6' }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#A89C88'; e.currentTarget.style.background = 'transparent' }}
               >
                 <svg width="13" height="13" viewBox="0 0 14 14" fill="none">

@@ -76,7 +76,7 @@ export default function CharactersPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <Link href="/dashboard" className="text-[#C5451B] hover:text-[#1C1A16] mb-4 inline-block">← Tilbake</Link>
+        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">← Tilbake</Link>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🧑‍🎤 Karakterer</h1>
         <p className="text-gray-600 mb-8">Tren din egen AI-karakter fra bilder. Karakteren kan så være vert i videoene dine — samme person i alle segmentbildene.</p>
 
@@ -97,7 +97,7 @@ export default function CharactersPage() {
             accept="image/jpeg,image/png,image/webp"
             multiple
             onChange={(e) => setFiles(e.target.files)}
-            className="block w-full text-sm text-gray-500 mb-1 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white"
+            className="block w-full text-sm text-gray-500 mb-1 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white"
           />
           <p className="text-xs text-gray-400 mb-4">Tips: 10-15 skarpe bilder av samme person, ulike vinkler og uttrykk, helst uten andre personer i bildet.</p>
 
@@ -111,7 +111,7 @@ export default function CharactersPage() {
           <button
             onClick={train}
             disabled={!!busy}
-            className="px-5 py-2.5 rounded-lg font-semibold text-white bg-[#C5451B] hover:bg-[#1C1A16] disabled:opacity-50 transition-colors"
+            className="px-5 py-2.5 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:bg-[#1C1A16] disabled:opacity-50 transition-colors"
           >
             {busy || 'Tren karakter (~6 min)'}
           </button>
