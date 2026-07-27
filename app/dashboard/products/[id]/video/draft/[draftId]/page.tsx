@@ -30,6 +30,7 @@ interface Segment {
   voiceover_url?: string
   image_prompt?: string
   animate?: boolean
+  motion?: 'none' | 'move' | 'talk'
 }
 
 interface Draft {
@@ -309,18 +310,18 @@ export default function DraftPage() {
     }
   }
 
-  // Velg om ET segment skal animeres (AI-bevegelse) — lagres på draften så produksjonen leser det
-  const updateAnimate = async (index: number, value: boolean) => {
+  // Velg bevegelsesnivå per segment: stillbilde / i2v-bevegelse / lip-sync — lagres på draften
+  const updateMotion = async (index: number, value: 'none' | 'move' | 'talk') => {
     if (!draft) return
     const segs = [...draft.segments]
-    segs[index] = { ...segs[index], animate: value }
+    segs[index] = { ...segs[index], motion: value, animate: value === 'move' }
     setDraft({ ...draft, segments: segs })
     try {
       const supabase = getSupabase()
       const { error } = await supabase.from('production_drafts').update({ segments: segs }).eq('id', draftId)
-      if (error) console.warn('[updateAnimate] lagring feilet:', error.message)
+      if (error) console.warn('[updateMotion] lagring feilet:', error.message)
     } catch (err) {
-      console.warn('[updateAnimate] error:', err)
+      console.warn('[updateMotion] error:', err)
     }
   }
 
@@ -598,10 +599,12 @@ export default function DraftPage() {
 
       console.log('[startProduction] Production started with jobId:', data.jobId)
 
-      // Taxameter: animasjonskostnad påløper ved produksjonsstart (5s/8s etter voiceover-lengde ukjent her → 5s-sats)
+      // Taxameter: animasjons-/lipsync-kostnad påløper ved produksjonsstart
       if (aiMotion) {
-        const nAnim = draft.segments.filter((s) => s.animate === true).length
-        if (nAnim > 0) addCost(nAnim * COSTS_NOK.animate5s)
+        const ms = draft.segments.map((s) => s.motion || (s.animate === true ? 'move' : 'none'))
+        const kost = ms.filter((m) => m === 'move').length * COSTS_NOK.animate5s
+          + ms.filter((m) => m === 'talk').length * COSTS_NOK.lipsyncTypical
+        if (kost > 0) addCost(kost)
       }
 
       // Redirect to production status page — forward video format so the
@@ -860,13 +863,25 @@ export default function DraftPage() {
               <input
                 type="checkbox"
                 checked={aiMotion}
-                onChange={(e) => setAiMotion(e.target.checked)}
+                onChange={(e) => {
+                  const on = e.target.checked
+                  setAiMotion(on)
+                  // Standardmønster første gang: første + siste segment snakker (lip-sync), resten bevegelse
+                  if (on && draft && !draft.segments.some((s) => s.motion)) {
+                    const last = draft.segments.length - 1
+                    const segs = draft.segments.map((s, i) => ({ ...s, motion: (i === 0 || i === last) ? ('talk' as const) : ('move' as const) }))
+                    setDraft({ ...draft, segments: segs })
+                    const supabase = getSupabase()
+                    supabase.from('production_drafts').update({ segments: segs }).eq('id', draftId)
+                      .then(({ error }: { error: any }) => { if (error) console.warn('[aiMotion default]', error.message) })
+                  }
+                }}
                 className="mt-1 h-4 w-4"
               />
               <div>
                 <div className="text-sm font-medium text-gray-900">🎥 AI-bevegelse (ekte video)</div>
                 <div className="text-xs text-gray-500 mt-0.5">
-                  Slår på AI-bevegelse. Huk deretter av «🎥 Animer» på de segmentene du vil animere — bare de koster (~2 kr hver). Render tar lengre tid.
+                  Standard: første og siste segment snakker (lip-sync), resten får subtil bevegelse. Overstyr per segment under — f.eks. «Snakk» på alle. Render tar lengre tid.
                 </div>
               </div>
             </label>
@@ -1001,15 +1016,30 @@ export default function DraftPage() {
                   {/* Buttons */}
                   <div className="flex gap-2 flex-wrap">
                     {aiMotion && (
-                      <label className="w-full flex items-center gap-2 mb-1 text-sm text-gray-800 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={segment.animate === true}
-                          onChange={(e) => updateAnimate(index, e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                        🎥 Animer dette segmentet <span className="text-gray-400 font-normal">(AI-bevegelse — ca. {fmtNok(COSTS_NOK.animate5s)}, opptil {fmtNok(COSTS_NOK.animate8s)} ved lange segmenter)</span>
-                      </label>
+                      <div className="w-full mb-1 flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-gray-500">Bevegelse:</span>
+                        {[
+                          { v: 'none' as const, label: 'Stillbilde', cost: 'gratis' },
+                          { v: 'move' as const, label: '🎥 Bevegelse', cost: `ca. ${fmtNok(COSTS_NOK.animate5s)}` },
+                          { v: 'talk' as const, label: '🗣️ Snakk (lip-sync)', cost: `ca. ${fmtNok(COSTS_NOK.lipsyncPerSec)}/sek` },
+                        ].map((opt) => {
+                          const current = segment.motion || (segment.animate === true ? 'move' : 'none')
+                          return (
+                            <button
+                              key={opt.v}
+                              type="button"
+                              onClick={() => updateMotion(index, opt.v)}
+                              className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                                current === opt.v
+                                  ? 'bg-[#C5451B] text-white border-[#C5451B]'
+                                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                              }`}
+                            >
+                              {opt.label} <span className="opacity-70">({opt.cost})</span>
+                            </button>
+                          )
+                        })}
+                      </div>
                     )}
                     <button
                       onClick={() => toggleApproval(index)}
@@ -1136,13 +1166,15 @@ export default function DraftPage() {
             {/* 💰 Taxameter: påløpt + estimat for det som gjenstår */}
             {(() => {
               const paalopt = Number(draft.cost_accumulated) || 0
-              const nAnim = aiMotion ? draft.segments.filter((s) => s.animate === true).length : 0
+              const motions = aiMotion ? draft.segments.map((s) => s.motion || (s.animate === true ? 'move' : 'none')) : []
+              const nMove = motions.filter((m) => m === 'move').length
+              const nTalk = motions.filter((m) => m === 'talk').length
               const nImg = draft.segments.filter((s) => !s.image_url || !s.image_url.trim()).length
-              const estimat = nAnim * COSTS_NOK.animate5s + nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard)
+              const estimat = nMove * COSTS_NOK.animate5s + nTalk * COSTS_NOK.lipsyncTypical + nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard)
               return (
                 <div className="text-xs text-gray-500 mt-1">
                   💰 Påløpt: <span className="font-medium">{fmtNok(paalopt)}</span>
-                  {estimat > 0 && <> · Neste produksjon: ~<span className="font-medium">{fmtNok(estimat)}</span>{nAnim > 0 && ' (animasjoner kan bli inntil det dobbelte ved lange segmenter)'}</>}
+                  {estimat > 0 && <> · Neste produksjon: ~<span className="font-medium">{fmtNok(estimat)}</span> ({nTalk > 0 && `${nTalk} snakk · `}{nMove > 0 && `${nMove} bevegelse · `}{nImg} bilder)</>}
                 </div>
               )
             })()}

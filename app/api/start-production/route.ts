@@ -105,6 +105,7 @@ export async function POST(request: Request) {
       imageUrl: s.image_url,
       voiceoverUrl: s.voiceover_url || null,
       animate: s.animate === true,
+      motion: s.motion || (s.animate === true ? 'move' : 'none'),
     }))
 
     console.log('[start-production] Prepared segments:', {
