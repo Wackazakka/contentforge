@@ -23,6 +23,22 @@ export async function POST(request: Request) {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
+
+      // Betalt produksjon (engangsbetaling) — egen sti, rører ikke abonnement
+      if (session.metadata?.kind === 'production') {
+        try {
+          const { fulfillProductionSession } = await import('@/lib/production')
+          await fulfillProductionSession(
+            { id: session.id, payment_intent: session.payment_intent as string, metadata: session.metadata },
+            event.id
+          )
+        } catch (err: any) {
+          console.error('[stripe/webhook] Produksjons-oppfyllelse feilet:', err.message)
+          // 200 uansett — Stripe-retry hjelper ikke; confirm-endepunktet/failed-status tar det videre
+        }
+        break
+      }
+
       const userId = session.metadata?.user_id
       const plan = session.metadata?.plan as PlanKey
 
@@ -118,6 +134,23 @@ export async function POST(request: Request) {
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
+      break
+    }
+
+    case 'checkout.session.expired': {
+      const session = event.data.object as Stripe.Checkout.Session
+      if (session.metadata?.kind === 'production') {
+        await supabase.from('production_payments')
+          .update({ status: 'expired', updated_at: new Date().toISOString() })
+          .eq('stripe_session_id', session.id)
+          .eq('status', 'pending')
+        if (session.metadata.draft_id) {
+          await supabase.from('production_drafts')
+            .update({ payment_status: 'none' })
+            .eq('id', session.metadata.draft_id)
+            .eq('payment_status', 'pending')
+        }
+      }
       break
     }
 
