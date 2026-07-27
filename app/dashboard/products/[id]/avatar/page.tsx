@@ -26,6 +26,7 @@ const EMOTIONS = [
 ]
 
 const NORWEGIAN_VOICES = [
+  { id: 'buLDb121bbD0rdxWw26y', name: 'Adam', desc: 'Reforhandle-verten (karakter-stemme)', preview: 'https://api.us.elevenlabs.io/v1/voices/buLDb121bbD0rdxWw26y/previews/audio?payload=eyJ2b2ljZV9zb3VyY2UiOiJjdXN0b20iLCJ3b3Jrc3BhY2VfaWQiOiJhODM3MTU4Y2UzYzM0MjQyODdjODhlYTg4ZDMxZDVjMSIsImZpbGVuYW1lIjoiZTdhYWNlNjQtNGU5OC00NTM3LTg5YTEtOTc4MTAwOGNiYTU5Lm1wMyIsInRpbWVzdGFtcCI6MTc4NTE0NjQwMDAwMDAwMH0%3D' },
   { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Øyvind', desc: 'Dyp og rolig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/7dc5c03caf8f40daa575fa9eacbf3de8/voices/nhvaqgRyAq6BmFs3WcdX/Z8yVliHOyn9eSmt4YEVw.mp3' },
   { id: 's2xtA7B2CTXPPlJzch1v', name: 'Dennis', desc: 'Klar og behagelig', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/15af1c0d0dcd479cb8376a767ab07b4c/voices/s2xtA7B2CTXPPlJzch1v/YB9DE4weRg6BTei8hVZ5.mp3' },
   { id: '2dhHLsmg0MVma2t041qT', name: 'Johannes', desc: 'Selvsikker', preview: 'https://storage.googleapis.com/eleven-public-prod/custom/voices/2dhHLsmg0MVma2t041qT/fX3l7ljt7bx6zRPz8VdC.mp3' },
@@ -180,9 +181,6 @@ export default function AvatarVideoPage() {
   const [previewingVoice, setPreviewingVoice] = useState(false)
   const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null)
   const previewAudioRef = useRef<HTMLAudioElement | null>(null)
-  const [previewingMinimax, setPreviewingMinimax] = useState(false)
-  const [minimaxAudioUrl, setMinimaxAudioUrl] = useState<string | null>(null)
-  const minimaxAudioRef = useRef<HTMLAudioElement | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
 
@@ -209,32 +207,6 @@ export default function AvatarVideoPage() {
       setError(err instanceof Error ? err.message : 'Forhåndsvisning feilet')
     } finally {
       setPreviewingVoice(false)
-    }
-  }
-
-  const handlePreviewMinimax = async () => {
-    if (!script.trim()) { setError('Skriv manus først.'); return }
-    setPreviewingMinimax(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/minimax/preview-voice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ script, voiceId: 'Friendly_Person', emotion }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'MiniMax feilet')
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      if (minimaxAudioUrl) URL.revokeObjectURL(minimaxAudioUrl)
-      setMinimaxAudioUrl(url)
-      setTimeout(() => minimaxAudioRef.current?.play(), 100)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'MiniMax feilet')
-    } finally {
-      setPreviewingMinimax(false)
     }
   }
 
@@ -575,23 +547,6 @@ export default function AvatarVideoPage() {
                 </button>
                 {previewAudioUrl && (
                   <audio ref={previewAudioRef} src={previewAudioUrl} controls className="flex-1 h-9" />
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handlePreviewMinimax}
-                  disabled={previewingMinimax || !script.trim()}
-                  className="flex items-center gap-2 px-4 py-2 text-sm border border-purple-400 text-purple-600 rounded-lg hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {previewingMinimax ? (
-                    <><span className="animate-spin">⏳</span> Genererer…</>
-                  ) : (
-                    <><span>🔊</span> MiniMax (test)</>
-                  )}
-                </button>
-                {minimaxAudioUrl && (
-                  <audio ref={minimaxAudioRef} src={minimaxAudioUrl} controls className="flex-1 h-9" />
                 )}
               </div>
             </div>
