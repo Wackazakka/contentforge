@@ -76,6 +76,24 @@ export default function AvatarVideoPage() {
   const [productProfile, setProductProfile] = useState<{ logo_url?: string; primary_color?: string; secondary_color?: string; website_url?: string; cta_text?: string; avatar_image_url?: string; avatar_image_urls?: string[] } | null>(null)
   const [savedAvatarImages, setSavedAvatarImages] = useState<string[]>([])
 
+  // Live status for påstartet avatar-jobb — poller til done/failed
+  const [avatarJobStatus, setAvatarJobStatus] = useState<{ status?: string; videoUrl?: string } | null>(null)
+  useEffect(() => {
+    if (!jobId) { setAvatarJobStatus(null); return }
+    let stop = false
+    const poll = async () => {
+      try {
+        const d = await fetch(`/api/avatar/job-status/${jobId}`).then((r) => r.json())
+        if (stop) return
+        setAvatarJobStatus(d)
+        if (d.status === 'done' || d.status === 'failed') return
+      } catch { /* prøv igjen */ }
+      if (!stop) setTimeout(poll, 6000)
+    }
+    poll()
+    return () => { stop = true }
+  }, [jobId])
+
   const splitToSegments = (text: string, defaultEmotion: string): Segment[] => {
     const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [text]
     const pairs: Segment[] = []
@@ -331,28 +349,50 @@ export default function AvatarVideoPage() {
   }
 
   if (jobId) {
+    const st = avatarJobStatus?.status
+    const vurl = avatarJobStatus?.videoUrl || (avatarJobStatus as any)?.video_url
+    const done = st === 'done' && vurl
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-2xl mx-auto px-4 py-10">
-          <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
-            <div className="text-4xl mb-4">🎬</div>
-            <h2 className="text-xl font-semibold text-green-800 mb-2">Produksjon startet!</h2>
-            <p className="text-green-700 text-sm mb-1">
-              Job ID: <code className="bg-green-100 px-1 rounded font-mono">{jobId}</code>
-            </p>
-            <p className="text-green-700 text-sm mb-6">
-              Videoen genereres i bakgrunn (typisk 2–5 minutter). Du finner den under{' '}
-              <Link href={`/dashboard/products/${productId}`} className="underline font-medium">
-                produktsiden
-              </Link>{' '}
-              når den er klar.
-            </p>
-            <button
-              onClick={() => { setJobId(null); setScript(''); setTopic('') }}
-              className="text-sm text-[#C5451B] hover:underline"
-            >
-              Lag en ny avatar-video
-            </button>
+          <div className={`border rounded-xl p-8 text-center ${done ? 'bg-white border-gray-200' : 'bg-green-50 border-green-200'}`}>
+            {done ? (
+              <>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">✅ Videoen er klar!</h2>
+                <video controls src={vurl} className="w-full max-w-md mx-auto rounded-lg mb-5 bg-black" />
+                <div className="flex items-center justify-center gap-4 flex-wrap">
+                  <button
+                    onClick={() => setJobId(null)}
+                    className="px-4 py-2 rounded-lg bg-[#C5451B] text-white text-sm font-medium hover:bg-[#1C1A16]"
+                  >
+                    ✏️ Tilbake til redigering
+                  </button>
+                  <a href={vurl} download className="text-sm text-[#C5451B] hover:underline">⬇️ Last ned</a>
+                  <button
+                    onClick={() => { setJobId(null); setScript(''); setTopic('') }}
+                    className="text-sm text-gray-500 hover:underline"
+                  >
+                    Lag en helt ny
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-3">«Tilbake til redigering» beholder manus, stemme, segmenter og alle valg — juster og generer på nytt.</p>
+              </>
+            ) : st === 'failed' ? (
+              <>
+                <h2 className="text-xl font-semibold text-red-700 mb-2">❌ Produksjonen feilet</h2>
+                <button onClick={() => setJobId(null)} className="mt-2 px-4 py-2 rounded-lg bg-[#C5451B] text-white text-sm font-medium">✏️ Tilbake til redigering (alt er beholdt)</button>
+              </>
+            ) : (
+              <>
+                <div className="text-4xl mb-4">🎬</div>
+                <h2 className="text-xl font-semibold text-green-800 mb-2">Produksjon i gang…</h2>
+                <p className="text-green-700 text-sm mb-2">
+                  {st === 'rendering' ? '⏳ Lager lip-sync-video…' : st === 'generating' ? '🎙️ Lager lyd…' : '⏳ Jobber…'} Siden oppdaterer seg selv (typisk 2–5 min).
+                </p>
+                <p className="text-green-700/70 text-xs mb-5">Job ID: <code className="bg-green-100 px-1 rounded font-mono">{jobId}</code></p>
+                <div className="w-6 h-6 border-[3px] border-green-500 border-t-transparent rounded-full animate-spin mx-auto" />
+              </>
+            )}
           </div>
         </div>
       </div>
