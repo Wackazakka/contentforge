@@ -156,8 +156,8 @@ export default function AdminPage() {
                         <span
                           className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold"
                           style={{
-                            backgroundColor: user.sub_status === 'active' ? '#F8E7DB' : '#FEF2F2',
-                            color: user.sub_status === 'active' ? '#C5451B' : '#DC2626',
+                            backgroundColor: user.sub_status === 'active' ? 'var(--ember-tint-bg)' : '#FEF2F2',
+                            color: user.sub_status === 'active' ? 'var(--ember-deep)' : '#DC2626',
                           }}
                         >
                           {PLANS[user.plan]?.name ?? user.plan}
@@ -179,7 +179,7 @@ export default function AdminPage() {
                           setAdjustNote('')
                         }}
                         className="text-xs font-medium hover:underline"
-                        style={{ color: '#C5451B' }}
+                        style={{ color: 'var(--ember-deep)' }}
                       >
                         {adjustingId === user.id ? 'Cancel' : 'Adjust credits'}
                       </button>
@@ -207,7 +207,7 @@ export default function AdminPage() {
                             onClick={() => handleAdjust(user.id)}
                             disabled={adjusting || !adjustAmount || parseInt(adjustAmount) === 0}
                             className="text-sm font-semibold text-white px-4 py-1.5 rounded-lg disabled:opacity-50"
-                            style={{ backgroundColor: '#C5451B' }}
+                            style={{ backgroundColor: 'var(--ember-deep)' }}
                           >
                             {adjusting ? 'Saving...' : 'Apply'}
                           </button>

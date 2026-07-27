@@ -483,7 +483,7 @@ function PublishPage() {
             ? 'bg-green-50 border-green-200 text-green-800'
             : message.startsWith('❌')
             ? 'bg-red-50 border-red-200 text-red-700'
-            : 'bg-[#F8E7DB] border-[#E3A883]'
+            : 'bg-[var(--ember-tint-bg)] border-[#E3A883]'
         }`}>
           {message}
         </div>
@@ -549,7 +549,7 @@ function PublishPage() {
                       key={v.id}
                       onClick={() => setSelectedContent(v)}
                       className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
-                        isSelected ? 'border-[#C5451B] ring-2 ring-[#EBC9B2]' : 'border-gray-200 hover:border-[#E3A883]'
+                        isSelected ? 'border-[var(--ember-deep)] ring-2 ring-[var(--ember-tint-border)]' : 'border-gray-200 hover:border-[#E3A883]'
                       }`}
                     >
                       {videoUrl ? (
@@ -633,7 +633,7 @@ function PublishPage() {
                       ref={selectedContent?.id === a.id ? selectedArticleRef : undefined}
                       onClick={() => setSelectedContent(a)}
                       className={`flex gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedContent?.id === a.id ? 'border-[#C5451B] bg-[#F8E7DB]' : 'hover:border-[#E3A883]'
+                        selectedContent?.id === a.id ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'hover:border-[#E3A883]'
                       }`}
                     >
                       <div className="shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
@@ -951,7 +951,7 @@ function PublishPage() {
             ))}
             {userId && (
               <div className="flex flex-wrap gap-2 mt-3">
-                <a href={`/api/auth/facebook?userId=${userId}`} className="text-sm text-[#C5451B] hover:underline">
+                <a href={`/api/auth/facebook?userId=${userId}`} className="text-sm text-[var(--ember-deep)] hover:underline">
                   + {t('connectFacebook')}
                 </a>
                 <a href={`/api/auth/tiktok?userId=${userId}`} className="text-sm text-gray-800 hover:underline">

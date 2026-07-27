@@ -104,7 +104,7 @@ export default function BillingPage() {
               <p style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 24, color: '#1C1A16', margin: '0 0 6px' }}>{planConfig.name}</p>
               <p style={{ fontFamily: HANKEN, fontSize: 14, color: '#6B6358', margin: '0 0 3px' }}>
                 {t('status')}:{' '}
-                <span style={{ color: subscription.status === 'active' ? '#3F7A4E' : '#C5451B', fontWeight: 600 }}>
+                <span style={{ color: subscription.status === 'active' ? '#3F7A4E' : 'var(--ember-deep)', fontWeight: 600 }}>
                   {subscription.status}
                 </span>
               </p>
@@ -151,18 +151,18 @@ export default function BillingPage() {
       <div className="cf-panel" style={{ padding: 28, marginBottom: 18 }}>
         <p style={eyebrow}>{t('creditsTitle')}</p>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 20 }}>
-          <span style={{ fontFamily: SERIF, fontSize: 52, lineHeight: 1, color: '#D9521C' }}>{balance ?? 0}</span>
+          <span style={{ fontFamily: SERIF, fontSize: 52, lineHeight: 1, color: 'var(--ember)' }}>{balance ?? 0}</span>
           <span style={{ fontFamily: HANKEN, fontSize: 16, color: '#6B6358' }}>{t('creditsRemaining')}</span>
         </div>
         {planConfig && (
-          <div style={{ background: '#F8E7DB', border: '1px solid #EBC9B2', borderRadius: 13, padding: '16px 18px' }}>
+          <div style={{ background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', borderRadius: 13, padding: '16px 18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0' }}>
               <span style={{ fontFamily: HANKEN, fontSize: 14.5, color: '#3A352C' }}>{t('videoProduction')}</span>
-              <span style={{ fontFamily: HANKEN, fontSize: 14.5, fontWeight: 700, color: '#C5451B' }}>{t('creditCost10')}</span>
+              <span style={{ fontFamily: HANKEN, fontSize: 14.5, fontWeight: 700, color: 'var(--ember-deep)' }}>{t('creditCost10')}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0' }}>
               <span style={{ fontFamily: HANKEN, fontSize: 14.5, color: '#3A352C' }}>{t('articleGeneration')}</span>
-              <span style={{ fontFamily: HANKEN, fontSize: 14.5, fontWeight: 700, color: '#C5451B' }}>{t('creditCost1')}</span>
+              <span style={{ fontFamily: HANKEN, fontSize: 14.5, fontWeight: 700, color: 'var(--ember-deep)' }}>{t('creditCost1')}</span>
             </div>
           </div>
         )}
@@ -179,7 +179,7 @@ export default function BillingPage() {
                   <p style={{ fontFamily: HANKEN, fontSize: 15, fontWeight: 600, color: '#1C1A16', margin: 0 }}>{tx.description}</p>
                   <p style={{ fontFamily: 'var(--font-cfmono), monospace', fontSize: 11, letterSpacing: '0.04em', color: '#A89C88', margin: '3px 0 0' }}>{formatDate(tx.created_at)}</p>
                 </div>
-                <span style={{ fontFamily: HANKEN, fontSize: 15, fontWeight: 700, color: tx.amount > 0 ? '#3F7A4E' : '#C5451B' }}>
+                <span style={{ fontFamily: HANKEN, fontSize: 15, fontWeight: 700, color: tx.amount > 0 ? '#3F7A4E' : 'var(--ember-deep)' }}>
                   {tx.amount > 0 ? '+' : ''}{tx.amount}
                 </span>
               </div>

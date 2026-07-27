@@ -1,8 +1,11 @@
 'use client'
 
+import { useTenant } from '@/lib/tenantContext'
+
 /**
  * CenterForge "Daylight Studio" brand mark — Logo C ("Smelteåpning" / molten aperture).
  * Two concentric stroked rings + a glowing ember core. Pairs with the Archivo wordmark.
+ * White-label: tenants med logo_url får sin egen logo; app_name brukes som wordmark.
  */
 export function CenterForgeMark({ size = 30 }: { size?: number }) {
   // Unique gradient id per size so multiple marks on a page don't collide.
@@ -38,6 +41,18 @@ export function CenterForgeLogo({
   size?: number
   wordmarkSize?: number
 }) {
+  const tenant = useTenant()
+
+  if (tenant.logo_url) {
+    // Tenant med egen logo: vis den alene (logoen inneholder som regel navnet)
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 11 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={tenant.logo_url} alt={tenant.app_name} style={{ height: size * 1.2, width: 'auto' }} />
+      </span>
+    )
+  }
+
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 11 }}>
       <CenterForgeMark size={size} />
@@ -50,7 +65,7 @@ export function CenterForgeLogo({
           color: 'var(--ink)',
         }}
       >
-        CenterForge
+        {tenant.app_name}
       </span>
     </span>
   )

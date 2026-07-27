@@ -364,11 +364,11 @@ export default function AvatarVideoPage() {
                 <div className="flex items-center justify-center gap-4 flex-wrap">
                   <button
                     onClick={() => setJobId(null)}
-                    className="px-4 py-2 rounded-lg bg-[#C5451B] text-white text-sm font-medium hover:bg-[#1C1A16]"
+                    className="px-4 py-2 rounded-lg bg-[var(--ember-deep)] text-white text-sm font-medium hover:bg-[#1C1A16]"
                   >
                     ✏️ Tilbake til redigering
                   </button>
-                  <a href={vurl} download className="text-sm text-[#C5451B] hover:underline">⬇️ Last ned</a>
+                  <a href={vurl} download className="text-sm text-[var(--ember-deep)] hover:underline">⬇️ Last ned</a>
                   <button
                     onClick={() => { setJobId(null); setScript(''); setTopic('') }}
                     className="text-sm text-gray-500 hover:underline"
@@ -381,7 +381,7 @@ export default function AvatarVideoPage() {
             ) : st === 'failed' ? (
               <>
                 <h2 className="text-xl font-semibold text-red-700 mb-2">❌ Produksjonen feilet</h2>
-                <button onClick={() => setJobId(null)} className="mt-2 px-4 py-2 rounded-lg bg-[#C5451B] text-white text-sm font-medium">✏️ Tilbake til redigering (alt er beholdt)</button>
+                <button onClick={() => setJobId(null)} className="mt-2 px-4 py-2 rounded-lg bg-[var(--ember-deep)] text-white text-sm font-medium">✏️ Tilbake til redigering (alt er beholdt)</button>
               </>
             ) : (
               <>
@@ -404,7 +404,7 @@ export default function AvatarVideoPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-10">
         <div className="mb-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[#C5451B] hover:text-[#1C1A16] text-sm mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] text-sm mb-4 inline-block">
             ← Tilbake til produkt
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">Avatar Video</h1>
@@ -429,7 +429,7 @@ export default function AvatarVideoPage() {
                 Avatar-bilde <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2 mb-2">
-                <label className={`flex-1 flex items-center justify-center gap-2 border-2 border-dashed rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${uploadingImage ? 'border-gray-200 text-gray-400' : 'border-[#C5451B] text-[#C5451B] hover:bg-[#F8E7DB]'}`}>
+                <label className={`flex-1 flex items-center justify-center gap-2 border-2 border-dashed rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${uploadingImage ? 'border-gray-200 text-gray-400' : 'border-[var(--ember-deep)] text-[var(--ember-deep)] hover:bg-[var(--ember-tint-bg)]'}`}>
                   {uploadingImage ? 'Laster opp…' : '📁 Last opp fra datamaskin'}
                   <input
                     type="file"
@@ -466,13 +466,13 @@ export default function AvatarVideoPage() {
                   onChange={(e) => setAvatarImageUrl(e.target.value)}
                   onBlur={(e) => { if (e.target.value) saveAvatarImageUrl(e.target.value) }}
                   placeholder="https://eksempel.com/mitt-avatar-bilde.jpg"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                 />
                 {avatarImageUrl && (
                   <button
                     type="button"
                     onClick={() => saveAvatarImageUrl(avatarImageUrl)}
-                    className={`px-3 py-2 text-xs rounded-lg transition-colors ${savedFeedback ? 'bg-green-500 text-white' : 'bg-[#C5451B] text-white hover:bg-[#1450a0]'}`}
+                    className={`px-3 py-2 text-xs rounded-lg transition-colors ${savedFeedback ? 'bg-green-500 text-white' : 'bg-[var(--ember-deep)] text-white hover:bg-[#1450a0]'}`}
                   >
                     {savedFeedback ? 'Lagret ✓' : 'Lagre'}
                   </button>
@@ -493,7 +493,7 @@ export default function AvatarVideoPage() {
                     type="button"
                     title={c.name}
                     onClick={() => { setAvatarImageUrl(c.url); saveAvatarImageUrl(c.url) }}
-                    className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === c.url ? 'border-[#C5451B] ring-2 ring-[#C5451B]' : 'border-gray-200 hover:border-gray-400'}`}
+                    className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === c.url ? 'border-[var(--ember-deep)] ring-2 ring-[var(--ember-deep)]' : 'border-gray-200 hover:border-gray-400'}`}
                   >
                     <img src={c.url} alt={c.name} className="w-20 h-20 object-cover" />
                     <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] text-center py-0.5">{c.name.split(' ')[0]}</span>
@@ -511,7 +511,7 @@ export default function AvatarVideoPage() {
                       <button
                         type="button"
                         onClick={() => { setAvatarImageUrl(url); saveAvatarImageUrl(url) }}
-                        className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === url ? 'border-[#C5451B] ring-2 ring-[#C5451B]' : 'border-gray-200 hover:border-gray-400'}`}
+                        className={`relative rounded-lg overflow-hidden border-2 transition-all ${avatarImageUrl === url ? 'border-[var(--ember-deep)] ring-2 ring-[var(--ember-deep)]' : 'border-gray-200 hover:border-gray-400'}`}
                       >
                         <img
                           src={url}
@@ -520,8 +520,8 @@ export default function AvatarVideoPage() {
                           onError={(e) => { (e.target as HTMLImageElement).closest('.group')!.remove() }}
                         />
                         {avatarImageUrl === url && (
-                          <div className="absolute inset-0 bg-[#C5451B]/10 flex items-center justify-center">
-                            <span className="text-[#C5451B] text-lg">✓</span>
+                          <div className="absolute inset-0 bg-[var(--ember-deep)]/10 flex items-center justify-center">
+                            <span className="text-[var(--ember-deep)] text-lg">✓</span>
                           </div>
                         )}
                       </button>
@@ -607,11 +607,11 @@ export default function AvatarVideoPage() {
                 value={voiceId}
                 onChange={(e) => setVoiceId(e.target.value)}
                 placeholder="Eller lim inn Voice ID fra ElevenLabs…"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Velg stemme ovenfor, eller lim inn ID direkte fra{' '}
-                <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#C5451B] hover:underline">
+                <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[var(--ember-deep)] hover:underline">
                   ElevenLabs voice library →
                 </a>
               </p>
@@ -645,7 +645,7 @@ export default function AvatarVideoPage() {
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
                 placeholder="F.eks. «Produktlansering mai»"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
               />
             </div>
 
@@ -658,7 +658,7 @@ export default function AvatarVideoPage() {
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="F.eks. «Slik sparer du 10 000 kr på bilkjøpet» eller «5 grunner til å velge oss»"
                 rows={3}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B] resize-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] resize-none"
               />
             </div>
 
@@ -670,7 +670,7 @@ export default function AvatarVideoPage() {
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value)}
                   placeholder="F.eks. «Førstegangskjøpere 25–40 år»"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                 />
               </div>
               <div>
@@ -680,7 +680,7 @@ export default function AvatarVideoPage() {
                   value={problem}
                   onChange={(e) => setProblem(e.target.value)}
                   placeholder="F.eks. «Usikker på hva bilen er verdt»"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                 />
               </div>
             </div>
@@ -692,7 +692,7 @@ export default function AvatarVideoPage() {
                 value={cta}
                 onChange={(e) => setCta(e.target.value)}
                 placeholder="F.eks. «Gå til nettsiden vår» eller «Book gratis vurdering»"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
               />
             </div>
 
@@ -748,7 +748,7 @@ export default function AvatarVideoPage() {
                     onClick={() => setDuration(d.value)}
                     className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                       duration === d.value
-                        ? 'bg-[#C5451B] text-white border-[#C5451B]'
+                        ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                     }`}
                   >
@@ -763,7 +763,7 @@ export default function AvatarVideoPage() {
               type="button"
               onClick={handleGenerateScript}
               disabled={generating || !topic.trim()}
-              className="w-full border-2 border-[#C5451B] text-[#C5451B] hover:bg-[#F8E7DB] disabled:border-gray-300 disabled:text-gray-400 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
+              className="w-full border-2 border-[var(--ember-deep)] text-[var(--ember-deep)] hover:bg-[var(--ember-tint-bg)] disabled:border-gray-300 disabled:text-gray-400 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
             >
               {generating ? 'Genererer manus…' : '✨ Generer manus'}
             </button>
@@ -783,7 +783,7 @@ export default function AvatarVideoPage() {
               onChange={(e) => { setScript(e.target.value); setPreviewAudioUrl(null) }}
               placeholder="Klikk «Generer manus» ovenfor, eller skriv manus direkte her…"
               rows={10}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B] resize-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] resize-none"
             />
 
             <div className="space-y-2 pt-1">
@@ -792,7 +792,7 @@ export default function AvatarVideoPage() {
                   type="button"
                   onClick={handlePreviewVoice}
                   disabled={previewingVoice || !script.trim()}
-                  className="flex items-center gap-2 px-4 py-2 text-sm border border-[#C5451B] text-[#C5451B] rounded-lg hover:bg-[#F8E7DB] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 text-sm border border-[var(--ember-deep)] text-[var(--ember-deep)] rounded-lg hover:bg-[var(--ember-tint-bg)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {previewingVoice ? (
                     <><span className="animate-spin">⏳</span> Genererer…</>
@@ -821,7 +821,7 @@ export default function AvatarVideoPage() {
                     if (!segmentMode) setSegments(splitToSegments(script, emotion))
                     setSegmentMode(v => !v)
                   }}
-                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${segmentMode ? 'bg-[#C5451B]' : 'bg-gray-200'}`}
+                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${segmentMode ? 'bg-[var(--ember-deep)]' : 'bg-gray-200'}`}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${segmentMode ? 'translate-x-4' : ''}`} />
                 </button>
@@ -836,7 +836,7 @@ export default function AvatarVideoPage() {
                           value={seg.text}
                           onChange={e => setSegments(prev => prev.map((s, j) => j === i ? { ...s, text: e.target.value, audioUrl: null, audioBlob: null } : s))}
                           rows={2}
-                          className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none bg-white focus:outline-none focus:ring-1 focus:ring-[#C5451B]"
+                          className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none bg-white focus:outline-none focus:ring-1 focus:ring-[var(--ember-deep)]"
                         />
                       </div>
                       <div className="flex flex-wrap gap-1 pl-7">
@@ -857,7 +857,7 @@ export default function AvatarVideoPage() {
                           type="button"
                           onClick={() => generateSegmentAudio(i)}
                           disabled={seg.generating || !seg.text.trim()}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[#C5451B] text-white hover:bg-[#1C1A16] disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[var(--ember-deep)] text-white hover:bg-[#1C1A16] disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                         >
                           {seg.generating ? '⏳ Genererer…' : seg.audioBlob ? '↻ Regenerer' : '▶ Generer tale'}
                         </button>
@@ -937,7 +937,7 @@ export default function AvatarVideoPage() {
                       }
                       input.value = ''
                     }}
-                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
                   />
                 </label>
               </div>
@@ -952,7 +952,7 @@ export default function AvatarVideoPage() {
                   onClick={() => setMusicFile(null)}
                   className={`w-full text-left p-3 border-2 rounded-lg text-sm transition-colors ${
                     musicFile === null
-                      ? 'border-[#C5451B] bg-[#F8E7DB] text-[#C5451B] font-medium'
+                      ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)] text-[var(--ember-deep)] font-medium'
                       : 'border-gray-200 text-gray-500 hover:border-gray-300'
                   }`}
                 >
@@ -1140,7 +1140,7 @@ export default function AvatarVideoPage() {
                 onClick={() => setIncludeUrlBanner((v) => !v)}
                 disabled={!(productProfile as any)?.website_url}
                 className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
-                  includeUrlBanner && (productProfile as any)?.website_url ? 'bg-[#C5451B]' : 'bg-gray-200'
+                  includeUrlBanner && (productProfile as any)?.website_url ? 'bg-[var(--ember-deep)]' : 'bg-gray-200'
                 } disabled:opacity-40`}
               >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
@@ -1159,7 +1159,7 @@ export default function AvatarVideoPage() {
           <button
             type="submit"
             disabled={loading || uploadingSegments || !script.trim() || !avatarImageUrl.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
-            className="w-full bg-[#C5451B] hover:bg-[#1C1A16] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            className="w-full bg-[var(--ember-deep)] hover:bg-[#1C1A16] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
           >
             {uploadingSegments ? 'Laster opp segmenter…' : loading ? 'Starter produksjon…' : 'Generer avatar-video'}
           </button>

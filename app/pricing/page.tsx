@@ -116,8 +116,8 @@ export default function PricingPage() {
                   disabled={loading === plan}
                   className={`w-full py-3 rounded-xl font-semibold transition-colors disabled:opacity-60 ${
                     isPro
-                      ? 'bg-[#E3A883] hover:bg-[#C5451B] text-white'
-                      : 'bg-[#1C1A16] hover:bg-[#C5451B] text-white'
+                      ? 'bg-[#E3A883] hover:bg-[var(--ember-deep)] text-white'
+                      : 'bg-[#1C1A16] hover:bg-[var(--ember-deep)] text-white'
                   }`}
                 >
                   {loading === plan ? 'Loading...' : session ? 'Get started' : 'Sign up'}

@@ -44,19 +44,19 @@ const PLATFORMS = ['All', 'facebook', 'instagram', 'linkedin', 'tiktok', 'x', 'y
 const STATUSES = ['All', 'scheduled', 'published', 'failed']
 
 const statusColor: Record<string, string> = {
-  scheduled: '#C5451B',
+  scheduled: 'var(--ember-deep)',
   published: '#3F7A4E',
-  failed: '#C5451B',
+  failed: 'var(--ember-deep)',
 }
 
 const statusBg: Record<string, string> = {
-  scheduled: '#F8E7DB',
+  scheduled: 'var(--ember-tint-bg)',
   published: '#E4EFE0',
   failed: '#FBEAE6',
 }
 
 const statusBorder: Record<string, string> = {
-  scheduled: '#EBC9B2',
+  scheduled: 'var(--ember-tint-border)',
   published: '#CADBC4',
   failed: '#F0C4B8',
 }
@@ -167,8 +167,8 @@ export default function CalendarPage() {
 
   const segStyle = (active: boolean): React.CSSProperties => ({
     fontFamily: HANKEN, fontSize: 14, fontWeight: active ? 600 : 500,
-    color: active ? '#C5451B' : '#6B6358', background: active ? '#F8E7DB' : 'transparent',
-    border: active ? '1px solid #EBC9B2' : '1px solid transparent', borderRadius: 999,
+    color: active ? 'var(--ember-deep)' : '#6B6358', background: active ? 'var(--ember-tint-bg)' : 'transparent',
+    border: active ? '1px solid var(--ember-tint-border)' : '1px solid transparent', borderRadius: 999,
     padding: '7px 16px', cursor: 'pointer',
   })
 
@@ -241,7 +241,7 @@ export default function CalendarPage() {
                       <button
                         onClick={() => handleDelete(entry)}
                         disabled={deleting === entry.id}
-                        style={{ fontFamily: HANKEN, fontSize: 12.5, fontWeight: 600, color: '#C5451B', background: '#FBEAE6', border: '1px solid #F0C4B8', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
+                        style={{ fontFamily: HANKEN, fontSize: 12.5, fontWeight: 600, color: 'var(--ember-deep)', background: '#FBEAE6', border: '1px solid #F0C4B8', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}
                       >
                         {deleting === entry.id ? '...' : t('deleteButton')}
                       </button>
@@ -275,7 +275,7 @@ export default function CalendarPage() {
               const isToday = new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year
               return (
                 <div key={day} style={{ position: 'relative', minHeight: 62, background: '#F7F1E6', border: '1px solid #EFE7D8', borderRadius: 9, padding: 8 }}>
-                  <div style={{ fontFamily: HANKEN, fontSize: 13, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', ...(isToday ? { background: '#D9521C', color: '#fff', fontWeight: 600 } : { color: '#6B6358' }) }}>
+                  <div style={{ fontFamily: HANKEN, fontSize: 13, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', ...(isToday ? { background: 'var(--ember)', color: '#fff', fontWeight: 600 } : { color: '#6B6358' }) }}>
                     {day}
                   </div>
                   {dayEntries.slice(0, 3).map(e => (

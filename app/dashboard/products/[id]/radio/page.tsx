@@ -192,7 +192,7 @@ export default function RadioAdPage() {
               MP3-filen er klar om ca. 30–60 sekunder. Last den ned fra{' '}
               <Link href={`/dashboard/products/${productId}`} className="underline font-medium">produktsiden</Link>.
             </p>
-            <button onClick={() => { setJobId(null); setScript(''); setTopic('') }} className="text-sm text-[#C5451B] hover:underline">
+            <button onClick={() => { setJobId(null); setScript(''); setTopic('') }} className="text-sm text-[var(--ember-deep)] hover:underline">
               Lag en ny radioreklame
             </button>
           </div>
@@ -205,7 +205,7 @@ export default function RadioAdPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-10">
         <div className="mb-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[#C5451B] hover:text-[#1C1A16] text-sm mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] text-sm mb-4 inline-block">
             ← Tilbake til produkt
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">Radioreklame</h1>
@@ -222,7 +222,7 @@ export default function RadioAdPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Navn på produksjon (valgfritt)</label>
               <input type="text" value={campaignName} onChange={(e) => setCampaignName(e.target.value)}
                 placeholder="F.eks. «Sommarkampanje mai»"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]" />
             </div>
 
             <div>
@@ -231,7 +231,7 @@ export default function RadioAdPage() {
               </label>
               <textarea value={topic} onChange={(e) => setTopic(e.target.value)} rows={3}
                 placeholder="F.eks. «Sommerens beste biltilbud — 0% rente og gratis service i ett år»"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B] resize-none" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] resize-none" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -239,13 +239,13 @@ export default function RadioAdPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Målgruppe</label>
                 <input type="text" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)}
                   placeholder="F.eks. «Bilkjøpere 30–55 år»"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Call-to-action</label>
                 <input type="text" value={cta} onChange={(e) => setCta(e.target.value)}
                   placeholder="F.eks. «Ring oss på 815 00 000»"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B]" />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]" />
               </div>
             </div>
 
@@ -280,7 +280,7 @@ export default function RadioAdPage() {
                 {DURATIONS.map((d) => (
                   <button key={d.value} type="button" onClick={() => setDuration(d.value)}
                     className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                      duration === d.value ? 'bg-[#C5451B] text-white border-[#C5451B]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                      duration === d.value ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                     }`}>
                     {d.label}
                     <span className="block text-xs font-normal opacity-70">{d.hint}</span>
@@ -290,7 +290,7 @@ export default function RadioAdPage() {
             </div>
 
             <button type="button" onClick={handleGenerateScript} disabled={generating || !topic.trim()}
-              className="w-full border-2 border-[#C5451B] text-[#C5451B] hover:bg-[#F8E7DB] disabled:border-gray-300 disabled:text-gray-400 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm">
+              className="w-full border-2 border-[var(--ember-deep)] text-[var(--ember-deep)] hover:bg-[var(--ember-tint-bg)] disabled:border-gray-300 disabled:text-gray-400 font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm">
               {generating ? 'Genererer manus…' : '✨ Generer manus'}
             </button>
           </div>
@@ -303,7 +303,7 @@ export default function RadioAdPage() {
             </div>
             <textarea id="radio-script-textarea" value={script} onChange={(e) => setScript(e.target.value)} rows={8}
               placeholder="Klikk «Generer manus» ovenfor, eller skriv direkte her…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C5451B] resize-none" />
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] resize-none" />
           </div>
 
           {/* Section: Lysjekk per segment */}
@@ -430,11 +430,11 @@ export default function RadioAdPage() {
               value={voiceId}
               onChange={(e) => setVoiceId(e.target.value)}
               placeholder="Eller lim inn Voice ID fra ElevenLabs…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#C5451B]"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
             />
             <p className="text-xs text-gray-400 mt-1">
               Velg stemme ovenfor, eller lim inn ID direkte fra{' '}
-              <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[#C5451B] hover:underline">
+              <a href="https://elevenlabs.io/voice-library" target="_blank" rel="noopener noreferrer" className="text-[var(--ember-deep)] hover:underline">
                 ElevenLabs voice library →
               </a>
             </p>
@@ -490,7 +490,7 @@ export default function RadioAdPage() {
                       } catch { alert('Opplasting feilet.') }
                       input.value = ''
                     }}
-                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[#C5451B] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
                   />
                 </label>
               </div>
@@ -502,7 +502,7 @@ export default function RadioAdPage() {
               <div className="space-y-2">
                 <button type="button" onClick={() => setMusicFile(null)}
                   className={`w-full text-left p-3 border-2 rounded-lg text-sm transition-colors ${
-                    musicFile === null ? 'border-[#C5451B] bg-[#F8E7DB] text-[#C5451B] font-medium' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    musicFile === null ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)] text-[var(--ember-deep)] font-medium' : 'border-gray-200 text-gray-500 hover:border-gray-300'
                   }`}>
                   Ingen musikk
                 </button>
@@ -575,7 +575,7 @@ export default function RadioAdPage() {
               <div className="space-y-2">
                 <button type="button" onClick={() => setJingleFile(null)}
                   className={`w-full text-left p-3 border-2 rounded-lg text-sm transition-colors ${
-                    jingleFile === null ? 'border-[#C5451B] bg-[#F8E7DB] text-[#C5451B] font-medium' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    jingleFile === null ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)] text-[var(--ember-deep)] font-medium' : 'border-gray-200 text-gray-500 hover:border-gray-300'
                   }`}>
                   Ingen jingle
                 </button>
@@ -602,7 +602,7 @@ export default function RadioAdPage() {
 
           <button type="submit"
             disabled={loading || uploadingSegments || !script.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
-            className="w-full bg-[#C5451B] hover:bg-[#1C1A16] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+            className="w-full bg-[var(--ember-deep)] hover:bg-[#1C1A16] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
             {uploadingSegments ? 'Laster opp segmenter…' : loading ? 'Starter produksjon…' : '🎙️ Produser radioreklame'}
           </button>
 
