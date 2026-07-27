@@ -27,6 +27,7 @@ interface Segment {
   approved: boolean
   voiceover_url?: string
   image_prompt?: string
+  animate?: boolean
 }
 
 interface Draft {
@@ -283,6 +284,21 @@ export default function DraftPage() {
       if (error) console.warn('[updateJingle] lagring feilet (mangler outro_jingle-kolonnen?):', error.message)
     } catch (err) {
       console.warn('[updateJingle] error:', err)
+    }
+  }
+
+  // Velg om ET segment skal animeres (AI-bevegelse) — lagres på draften så produksjonen leser det
+  const updateAnimate = async (index: number, value: boolean) => {
+    if (!draft) return
+    const segs = [...draft.segments]
+    segs[index] = { ...segs[index], animate: value }
+    setDraft({ ...draft, segments: segs })
+    try {
+      const supabase = getSupabase()
+      const { error } = await supabase.from('production_drafts').update({ segments: segs }).eq('id', draftId)
+      if (error) console.warn('[updateAnimate] lagring feilet:', error.message)
+    } catch (err) {
+      console.warn('[updateAnimate] error:', err)
     }
   }
 
@@ -798,7 +814,7 @@ export default function DraftPage() {
               <div>
                 <div className="text-sm font-medium text-gray-900">🎥 AI-bevegelse (ekte video)</div>
                 <div className="text-xs text-gray-500 mt-0.5">
-                  Animer hvert bilde med bevegelse i stedet for stillbilder. Koster mer og tar lengre tid (~15-25 min render).
+                  Slår på AI-bevegelse. Huk deretter av «🎥 Animer» på de segmentene du vil animere — bare de koster (~2 kr hver). Render tar lengre tid.
                 </div>
               </div>
             </label>
@@ -932,6 +948,17 @@ export default function DraftPage() {
 
                   {/* Buttons */}
                   <div className="flex gap-2 flex-wrap">
+                    {aiMotion && (
+                      <label className="w-full flex items-center gap-2 mb-1 text-sm text-gray-800 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={segment.animate === true}
+                          onChange={(e) => updateAnimate(index, e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        🎥 Animer dette segmentet <span className="text-gray-400 font-normal">(AI-bevegelse — koster ~2 kr)</span>
+                      </label>
+                    )}
                     <button
                       onClick={() => toggleApproval(index)}
                       disabled={generatingImages.has(index)}
