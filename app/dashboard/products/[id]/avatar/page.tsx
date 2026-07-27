@@ -1048,18 +1048,27 @@ export default function AvatarVideoPage() {
                           <p className="text-xs text-gray-400 px-1 py-2">Ingen jingler lastet opp ennå — bruk knappen ovenfor.</p>
                         ) : (
                           jingles.map(m => (
-                            <button
+                            <div
                               key={m.filename}
-                              type="button"
                               onClick={() => setOutroJingleFile(m.filename)}
-                              className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
+                              className={`w-full px-3 py-2 rounded-lg border text-sm transition-colors cursor-pointer ${
                                 outroJingleFile === m.filename
                                   ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED] font-medium'
                                   : 'border-gray-200 text-gray-700 hover:border-gray-300'
                               }`}
                             >
-                              {m.name}
-                            </button>
+                              <div className="flex items-center justify-between gap-2">
+                                <span>{m.name}</span>
+                                {outroJingleFile === m.filename && <span>✓</span>}
+                              </div>
+                              <audio
+                                controls
+                                preload="none"
+                                src={`/api/music/${encodeURIComponent(m.filename)}`}
+                                className="mt-1 w-full h-8"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
                           ))
                         )}
                       </div>
