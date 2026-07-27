@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       .from('organizations')
       .select('id')
       .eq('owner_id', userId)
+      .order('created_at', { ascending: true })
       .limit(1)
       .single()
     if (!org) return NextResponse.json({ balance: null })

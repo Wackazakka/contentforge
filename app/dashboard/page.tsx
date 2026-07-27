@@ -43,6 +43,8 @@ export default function DashboardPage() {
           .from('organizations')
           .select('id, name')
           .eq('owner_id', session.user.id)
+          .order('created_at', { ascending: true }) // eldste = brukerens ekte org (sentinel-org kan finnes i tillegg)
+          .limit(1)
           .single()
 
         if (error) throw error

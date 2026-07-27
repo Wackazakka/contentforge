@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       .from('organizations')
       .select('id, tenant_id')
       .eq('owner_id', userId)
+      .order('created_at', { ascending: true })
       .limit(1)
       .single()
     if (!org) return NextResponse.json({ error: 'Fant ingen organisasjon' }, { status: 404 })
