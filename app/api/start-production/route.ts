@@ -29,8 +29,20 @@ export async function POST(request: Request) {
         .single()
       draftProductId = d?.product_id ?? null
       if (draftProductId) {
-        const { getProductTenant } = await import('@/lib/tenantBilling')
-        invoiceTenant = (await getProductTenant(draftProductId)).billingMode === 'invoice'
+        const { getProductTenant, getPartnerBalance } = await import('@/lib/tenantBilling')
+        const pt = await getProductTenant(draftProductId)
+        invoiceTenant = pt.billingMode === 'invoice'
+        // Forskuddsmodell: partner-tenants må ha positiv saldo (null = ingen
+        // topups registrert ennå → ubegrenset i innkjøringsfasen)
+        if (invoiceTenant && pt.tenantId) {
+          const balance = await getPartnerBalance(pt.tenantId)
+          if (balance !== null && balance <= 0) {
+            return NextResponse.json(
+              { error: 'Kontoen har ikke flere produksjonskreditter. Kontakt administratoren deres for påfyll.', code: 'PARTNER_BALANCE_EMPTY' },
+              { status: 402 }
+            )
+          }
+        }
       }
 
       if (billingOn && !invoiceTenant) {

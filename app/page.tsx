@@ -116,6 +116,9 @@ export default function Home() {
                 <Link href="/register" className="cf-btn-ink" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: '#F4EEE2', background: '#1C1A16', borderRadius: 999, padding: '15px 28px', textDecoration: 'none', boxShadow: '0 12px 30px -12px rgba(28,26,22,0.5)' }}>
                   {t('cta_primary')} →
                 </Link>
+                <Link href="/start" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: 'var(--ember-deep)', background: 'transparent', border: '1px solid var(--ember-tint-border)', borderRadius: 999, padding: '15px 28px', textDecoration: 'none' }}>
+                  🎬 Prøv uten konto
+                </Link>
                 <a href="#features" className="cf-btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', fontFamily: HANKEN, fontWeight: 600, fontSize: 16, color: 'var(--ink)', background: 'transparent', border: '1px solid #D2C7B2', borderRadius: 999, padding: '15px 26px', textDecoration: 'none' }}>
                   {t('cta_secondary')}
                 </a>
