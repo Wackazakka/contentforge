@@ -72,6 +72,33 @@ function slugFromHost(host: string): string | null {
   return null // basedomene, netlify-URL, ukjent → root
 }
 
+/**
+ * Visningsfaktor relativt til COSTS_NOK (som er råkost × 2):
+ * pris hos tenant T = råkost × Π (1 + markup_i/100) for kjeden root→T (uten root).
+ * Faktor = Π / 2. Root/direktebrukere → 1 (dagens tall).
+ * Eksempel: VoiceBank (vårt påslag 100 %) → 2/2 = 1; deres kunde (+100 %) → 4/2 = 2.
+ */
+async function chainPriceFactor(t: Tenant): Promise<number> {
+  if (!t.parent_tenant_id) return 1
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    let product = 1
+    let cur: any = t
+    for (let hop = 0; hop < 4 && cur; hop++) {
+      product *= 1 + (Number(cur.markup_percent ?? 100) / 100)
+      if (!cur.parent_tenant_id) break
+      const { data } = await supabase.from('tenants').select('id, parent_tenant_id, markup_percent').eq('id', cur.parent_tenant_id).single()
+      cur = data && data.parent_tenant_id !== null ? data : null // root (parent=null) teller ikke
+    }
+    return product / 2
+  } catch {
+    return 1
+  }
+}
+
 // cache() = per-request dedupe (layout + generateMetadata deler ett oppslag)
 export const getTenant = cache(async (): Promise<Tenant> => {
   const h = await headers()
@@ -82,7 +109,10 @@ export const getTenant = cache(async (): Promise<Tenant> => {
   const hit = ttl.get(slug)
   if (hit && Date.now() - hit.t < 60_000) return hit.v
 
-  const tenant = (await lookupTenant(slug)) ?? ROOT_TENANT
+  let tenant = (await lookupTenant(slug)) ?? ROOT_TENANT
+  if (tenant !== ROOT_TENANT) {
+    tenant = { ...tenant, price_multiplier: await chainPriceFactor(tenant) }
+  }
   ttl.set(slug, { t: Date.now(), v: tenant })
   return tenant
 })
