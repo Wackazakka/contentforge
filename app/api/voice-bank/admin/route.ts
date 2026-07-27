@@ -178,6 +178,7 @@ export async function PATCH(request: Request) {
 
     const patch: Record<string, unknown> = {}
     if (typeof body.isActive === 'boolean') patch.is_active = body.isActive
+    if (typeof body.isExclusive === 'boolean') patch.is_exclusive = body.isExclusive
     if (body.actorRateNok !== undefined) {
       const v = Number(body.actorRateNok)
       if (!(v >= 0)) return NextResponse.json({ error: 'Ugyldig skuespillersats' }, { status: 400 })

@@ -25,6 +25,8 @@ export interface VoiceActor {
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   preview_url: string | null
   is_active: boolean
+  // Eksklusiv (default): kun eierens eget kundenett. Av = delt med hele plattformen.
+  is_exclusive?: boolean
 }
 
 // Sats for en gitt brukstype: typens egen takst hvis satt, ellers standard
@@ -74,18 +76,27 @@ export async function isTenantAdmin(email: string | null | undefined, tenantId: 
 }
 
 // Stemmer tilgjengelige for en tenant = aktive stemmer eid av tenanten selv
-// eller noen av dens forfedre (banken «arves» nedover i treet).
+// eller noen av dens forfedre (banken «arves» nedover i treet) — pluss
+// IKKE-eksklusive stemmer fra resten av plattformen (eieren har valgt å dele).
 export async function getAvailableVoiceActors(tenantId: string): Promise<VoiceActor[]> {
   try {
     const chain = await tenantChainUp(tenantId)
     if (chain.length === 0) return []
-    const { data } = await admin()
+    const { data, error } = await admin()
       .from('voice_actors')
       .select('*')
-      .in('owner_tenant_id', chain)
       .eq('is_active', true)
+      .or(`owner_tenant_id.in.(${chain.join(',')}),is_exclusive.eq.false`)
       .order('name')
-    return (data || []) as VoiceActor[]
+    if (!error) return (data || []) as VoiceActor[]
+    // is_exclusive-kolonnen ikke kjørt ennå → fall tilbake til ren kjede-arv
+    const { data: fallback } = await admin()
+      .from('voice_actors')
+      .select('*')
+      .eq('is_active', true)
+      .in('owner_tenant_id', chain)
+      .order('name')
+    return (fallback || []) as VoiceActor[]
   } catch {
     return []
   }
