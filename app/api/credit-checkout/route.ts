@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getStripe } from '@/lib/stripe'
-import { CREDIT_PACKAGES } from '@/lib/creditPackages'
+import { CREDIT_PACKAGES, creditRate, creditsFor, CREDIT_VALUE_NOK } from '@/lib/creditPackages'
 
 function admin() {
   return createClient(
@@ -21,6 +21,8 @@ export async function POST(request: Request) {
     const { packageId } = await request.json()
     const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId)
     if (!pkg) return NextResponse.json({ error: 'Ukjent pakke' }, { status: 400 })
+    const credits = creditsFor(pkg.amount)
+    const ledgerNok = Math.round(credits * CREDIT_VALUE_NOK * 100) / 100 // saldoverdi (katalogkurs 0,10)
 
     const supabase = admin()
     const auth = request.headers.get('authorization')
@@ -54,11 +56,11 @@ export async function POST(request: Request) {
         price_data: {
           currency: 'nok',
           unit_amount: pkg.amount * 100,
-          product_data: { name: `${(pkg.amount + pkg.bonus).toLocaleString('nb-NO')} kreditter (${pkg.amount.toLocaleString('nb-NO')} kr${pkg.bonus ? ` + ${pkg.bonus.toLocaleString('nb-NO')} bonus` : ''})` },
+          product_data: { name: `${credits.toLocaleString('nb-NO')} kreditter (kurs ${creditRate(pkg.amount).toFixed(3).replace('.', ',')} kr/kreditt)` },
         },
         quantity: 1,
       }],
-      metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(pkg.amount), bonus_nok: String(pkg.bonus) },
+      metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(ledgerNok), bonus_nok: '0', paid_nok: String(pkg.amount), credits: String(credits), rate: creditRate(pkg.amount).toFixed(4) },
       success_url: `${origin}/dashboard/credits?paid=1`,
       cancel_url: `${origin}/dashboard/credits`,
     })

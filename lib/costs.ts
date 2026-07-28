@@ -16,10 +16,14 @@ export function fmtNok(n: number): string {
   return n.toFixed(2).replace('.', ',') + ' kr'
 }
 
-// Kundevendt visning: 1 kreditt = 1 krone. Valutanøytralt for utenlandske
-// sluttkunder — ekte betalinger (Stripe) vises fortsatt i kroner.
-export function fmtCredits(n: number): string {
-  return n.toFixed(2).replace('.', ',') + ' kreditter'
+// Kundevendt visning i kreditter: katalogkursen er 1 kreditt = 0,10 kr,
+// så kreditter = kroner × 10. Valutanøytralt for utenlandske sluttkunder —
+// ekte betalinger (Stripe) vises fortsatt i kroner.
+export function fmtCredits(nok: number): string {
+  const c = nok * 10
+  const rounded = Math.round(c * 10) / 10
+  const txt = Number.isInteger(rounded) ? rounded.toLocaleString('nb-NO') : rounded.toFixed(1).replace('.', ',')
+  return txt + ' kreditter'
 }
 
 // Prisnivåer: COSTS_NOK er allerede 2× underliggende kost (100 % påslag).

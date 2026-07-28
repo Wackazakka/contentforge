@@ -1,9 +1,25 @@
-// Kredittpakker for sluttkunder (white-label). 1 kreditt = 1 krone —
-// beløpet + bonusen blir saldo (kreditter), og rabatten stiger med størrelsen.
+// Kredittkurs-modellen (Lars 2026-07-28): beste kurs er 1 kreditt = 0,10 kr —
+// den får man ved kjøp på 100 000 kr. Ved 1 000 kr er kursen 0,135, og
+// glidningen imellom er logaritmisk (jevn opplevd rabatt per størrelsesorden).
+// Katalogprisene er satt i bestekursen: kreditter = kroner × 10.
+export const CREDIT_VALUE_NOK = 0.1 // intern verdi: 1 kreditt = 0,10 kr saldo
+export const RATE_BEST = 0.1 // ved 100 000 kr
+export const RATE_MIN_PURCHASE = 0.135 // ved 1 000 kr
+
+export function creditRate(amountNok: number): number {
+  const a = Math.min(100000, Math.max(1000, amountNok))
+  const t = (Math.log(a) - Math.log(1000)) / (Math.log(100000) - Math.log(1000))
+  return RATE_MIN_PURCHASE + t * (RATE_BEST - RATE_MIN_PURCHASE)
+}
+
+export function creditsFor(amountNok: number): number {
+  return Math.floor(amountNok / creditRate(amountNok))
+}
+
 export const CREDIT_PACKAGES = [
-  { id: 'starter', amount: 1000, bonus: 0 },      //  0 %
-  { id: 'medium', amount: 5000, bonus: 250 },     //  5 %
-  { id: 'stor', amount: 10000, bonus: 1000 },     // 10 %
-  { id: 'proff', amount: 50000, bonus: 7500 },    // 15 %
-  { id: 'byraa', amount: 100000, bonus: 20000 },  // 20 %
+  { id: 'starter', amount: 1000 },
+  { id: 'medium', amount: 5000 },
+  { id: 'stor', amount: 10000 },
+  { id: 'proff', amount: 50000 },
+  { id: 'byraa', amount: 100000 },
 ] as const
