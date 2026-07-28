@@ -216,6 +216,11 @@ export async function PATCH(request: Request) {
       if (!(v >= 0)) return NextResponse.json({ error: 'Ugyldig kundepris' }, { status: 400 })
       patch.customer_price_nok = v
     }
+    if (body.actorEmail !== undefined) {
+      // E-post for godkjenningsvarsler (magisk lenke); tom = ingen varsling mulig
+      const v = String(body.actorEmail).trim()
+      patch.actor_email = v && v.includes('@') ? v : null
+    }
     if (body.faceCharacterId !== undefined) {
       // Kobling til skuespillerens ansikt (LoRA-karakter); tom streng fjerner koblingen
       patch.face_character_id = body.faceCharacterId ? String(body.faceCharacterId).trim() : null
