@@ -94,7 +94,7 @@
         ]
       }
     ],
-    "footer": "CenterForge © {year} — Wackazakka",
+    "footer": "{name} © {year}",
     "foot_whitelabel": "Bli white-label-partner",
     "f4_t": "Egne AI-karakterer",
     "f4_d": "Tren din egen visuelle karakter fra bilder — samme vert i alle videoene dine.",

@@ -94,7 +94,7 @@
         ]
       }
     ],
-    "footer": "CenterForge © {year} — Wackazakka",
+    "footer": "{name} © {year}",
     "foot_whitelabel": "Become a white-label partner",
     "f4_t": "Your own AI characters",
     "f4_d": "Train your own visual character from photos — the same host in every video.",
