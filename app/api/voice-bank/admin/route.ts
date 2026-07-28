@@ -31,6 +31,36 @@ async function guard(request: Request): Promise<{ tenant?: Awaited<ReturnType<ty
   return { tenant }
 }
 
+// To-sats avregning: tenanten betaler oppover 3 % av DIREKTE margininntekt
+// (egne kunder) og 7,5 % av INDIREKTE (under-white-labels' bruk). Beregnes på
+// MARGIN (kundepris − skuespillersats), klassifisert per hendelse via
+// used_by_tenant_id. Root betaler ingen avgift.
+async function getFees(tenantId: string): Promise<{ directPct: number; indirectPct: number } | null> {
+  try {
+    const { data: t } = await admin()
+      .from('tenants')
+      .select('parent_tenant_id, fee_direct_pct, fee_indirect_pct')
+      .eq('id', tenantId)
+      .single()
+    if (!t?.parent_tenant_id) return null
+    return { directPct: Number(t.fee_direct_pct ?? 3), indirectPct: Number(t.fee_indirect_pct ?? 7.5) }
+  } catch {
+    return null
+  }
+}
+
+function feeForEvents(events: Array<{ used_by_tenant_id?: string; customer_price_nok: number; actor_rate_nok: number }>, ownTenantId: string, fees: { directPct: number; indirectPct: number } | null): number {
+  if (!fees) return 0
+  let fee = 0
+  for (const e of events) {
+    const margin = Number(e.customer_price_nok) - Number(e.actor_rate_nok)
+    if (margin <= 0) continue
+    const pct = e.used_by_tenant_id === ownTenantId ? fees.directPct : fees.indirectPct
+    fee += margin * (pct / 100)
+  }
+  return Math.round(fee * 100) / 100
+}
+
 // Stemmebank-admin for gjeldende tenant (host-basert). Tilgang: tenantens egne
 // admins + admins i leddene over (admin_emails på tenants, sjekkes oppover).
 // Viser tenantens EGNE skuespillere med full sats-info + royalty-loggen deres.
@@ -54,7 +84,7 @@ export async function GET(request: Request) {
       if (!actor) return NextResponse.json({ error: 'Skuespilleren finnes ikke i denne banken' }, { status: 404 })
       const { data: ev } = await supabase
         .from('voice_usage_events')
-        .select('id, actor_rate_nok, customer_price_nok, meta, created_at')
+        .select('id, used_by_tenant_id, actor_rate_nok, customer_price_nok, meta, created_at')
         .eq('actor_id', actorId)
         .order('created_at', { ascending: false })
         .limit(1000)
@@ -71,22 +101,15 @@ export async function GET(request: Request) {
         }
         return Array.from(m.entries()).map(([k, v]) => ({ key: k, ...v }))
       }
-      let royaltyCutPct: number | null = null
-      try {
-        const { data: t } = await supabase
-          .from('tenants')
-          .select('parent_tenant_id, royalty_cut_pct')
-          .eq('id', tenant.id)
-          .single()
-        if (t?.parent_tenant_id) royaltyCutPct = Number(t.royalty_cut_pct ?? 7.5)
-      } catch { /* kolonne mangler → ingen visning */ }
+      const fees = await getFees(tenant.id)
       return NextResponse.json({
         tenant: { id: tenant.id, name: tenant.app_name },
         actor,
         events: events.slice(0, 200),
         byMonth: agg((e) => String(e.created_at).slice(0, 7)).sort((a, b) => b.key.localeCompare(a.key)),
         byKind: agg((e) => e.meta?.kind || 'ukjent'),
-        royaltyCutPct,
+        fees,
+        totalFeeNok: feeForEvents(events as any, tenant.id, fees),
       })
     }
 
@@ -120,24 +143,19 @@ export async function GET(request: Request) {
       return { actor_id: a.id, uses: mine.length, to_actor_nok: toActor, from_customers_nok: fromCustomers, cut_nok: fromCustomers - toActor }
     })
 
-    // Royalty-kaskaden: tenanten betaler royalty_cut_pct av inngående
-    // royalty-omsetning til leddet over (root betaler ingen). null = ingen cut.
-    let royaltyCutPct: number | null = null
-    try {
-      const { data: t } = await supabase
-        .from('tenants')
-        .select('parent_tenant_id, royalty_cut_pct')
-        .eq('id', tenant.id)
-        .single()
-      if (t?.parent_tenant_id) royaltyCutPct = Number(t.royalty_cut_pct ?? 7.5)
-    } catch { /* kolonne mangler → ingen visning */ }
+    const fees = await getFees(tenant.id)
+    const monthStart2 = new Date()
+    monthStart2.setUTCDate(1)
+    monthStart2.setUTCHours(0, 0, 0, 0)
+    const monthEvents = events.filter((e) => new Date(e.created_at) >= monthStart2)
 
     return NextResponse.json({
       tenant: { id: tenant.id, name: tenant.app_name },
       actors: actors || [],
       events,
       monthly,
-      royaltyCutPct,
+      fees,
+      monthFeeNok: feeForEvents(monthEvents as any, tenant.id, fees),
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
