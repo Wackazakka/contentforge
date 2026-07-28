@@ -45,7 +45,8 @@ export default function VoiceBankAdminPage() {
   const [actors, setActors] = useState<Actor[]>([])
   const [events, setEvents] = useState<UsageEvent[]>([])
   const [monthly, setMonthly] = useState<Monthly[]>([])
-  const [royaltyPct, setRoyaltyPct] = useState<number | null>(null)
+  const [fees, setFees] = useState<{ directPct: number; indirectPct: number } | null>(null)
+  const [monthFeeNok, setMonthFeeNok] = useState(0)
 
   // Legg til skuespiller-skjemaet
   const [showForm, setShowForm] = useState(false)
@@ -78,7 +79,8 @@ export default function VoiceBankAdminPage() {
       setActors(data.actors || [])
       setEvents(data.events || [])
       setMonthly(data.monthly || [])
-      setRoyaltyPct(typeof data.royaltyCutPct === 'number' ? data.royaltyCutPct : null)
+      setFees(data.fees || null)
+      setMonthFeeNok(Number(data.monthFeeNok) || 0)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -157,8 +159,8 @@ export default function VoiceBankAdminPage() {
                 { label: 'Bruk denne måneden', value: String(totals.uses) },
                 { label: 'Fra kundene', value: nok(totals.from) },
                 { label: 'Til skuespillerne', value: nok(totals.to) },
-                ...(royaltyPct !== null ? [{ label: `Royalty oppover (${royaltyPct} %)`, value: nok(totals.from * royaltyPct / 100) }] : []),
-                { label: royaltyPct !== null ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.cut - (royaltyPct !== null ? totals.from * royaltyPct / 100 : 0)) },
+                ...(fees ? [{ label: `Avgift oppover (${fees.directPct} % dir. / ${fees.indirectPct} % indir.)`, value: nok(monthFeeNok) }] : []),
+                { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.cut - monthFeeNok) },
               ].map((c) => (
                 <div key={c.label} className="bg-white rounded-lg border border-gray-200 p-4">
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>

@@ -15,7 +15,8 @@ interface Partner {
   logo_url: string | null
   colors: Record<string, string>
   markup_percent: number
-  royalty_cut_pct: number
+  fee_direct_pct: number
+  fee_indirect_pct: number
   billing_mode: string
 }
 
@@ -31,7 +32,7 @@ export default function PartnersPage() {
   const [error, setError] = useState<string | null>(null)
   const [tenantName, setTenantName] = useState('')
   const [partners, setPartners] = useState<Partner[]>([])
-  const [edits, setEdits] = useState<Record<string, { markup: string; royalty: string; name: string; logo: string; colors: Record<string, string> }>>({})
+  const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; name: string; logo: string; colors: Record<string, string> }>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
 
@@ -57,7 +58,7 @@ export default function PartnersPage() {
       for (const p of data.partners || []) {
         const colors: Record<string, string> = {}
         for (const f of COLOR_FIELDS) colors[f.key] = p.colors?.[f.key] || f.fallback
-        e[p.id] = { markup: String(p.markup_percent), royalty: String(p.royalty_cut_pct), name: p.app_name, logo: p.logo_url || '', colors }
+        e[p.id] = { markup: String(p.markup_percent), feeDirect: String(p.fee_direct_pct ?? 3), feeIndirect: String(p.fee_indirect_pct ?? 7.5), name: p.app_name, logo: p.logo_url || '', colors }
       }
       setEdits(e)
     } catch (err: any) {
@@ -72,7 +73,7 @@ export default function PartnersPage() {
   const save = async (p: Partner) => {
     const e = edits[p.id]
     if (!e) return
-    if (isNaN(Number(e.markup)) || isNaN(Number(e.royalty))) { setError('Påslag og royalty må være tall.'); return }
+    if (isNaN(Number(e.markup)) || isNaN(Number(e.feeDirect)) || isNaN(Number(e.feeIndirect))) { setError('Påslag og avgifter må være tall.'); return }
     setBusy(p.id); setSaved(null); setError(null)
     try {
       const res = await authedFetch({
@@ -80,7 +81,8 @@ export default function PartnersPage() {
         body: JSON.stringify({
           tenantId: p.id,
           markupPercent: Number(e.markup),
-          royaltyCutPct: Number(e.royalty),
+          feeDirectPct: Number(e.feeDirect),
+          feeIndirectPct: Number(e.feeIndirect),
           appName: e.name,
           logoUrl: e.logo || null,
           colors: e.colors,
@@ -141,10 +143,16 @@ export default function PartnersPage() {
                     <p className="text-xs text-gray-400 mt-1">0–500. Partnerens innpris = vår kost + dette påslaget. 100 = standard.</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Royalty-sats oppover (%)</label>
-                    <input value={e.royalty} onChange={(ev) => setEdit(p.id, 'royalty', ev.target.value)} inputMode="decimal"
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Avgift, direkte margin (%)</label>
+                    <input value={e.feeDirect} onChange={(ev) => setEdit(p.id, 'feeDirect', ev.target.value)} inputMode="decimal"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                    <p className="text-xs text-gray-400 mt-1">Andelen av partnerens inngående stemme-royalty som betales videre opp. Standard 7,5.</p>
+                    <p className="text-xs text-gray-400 mt-1">Andel av det partneren tjener på EGNE kunder. Standard 3.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Avgift, indirekte margin (%)</label>
+                    <input value={e.feeIndirect} onChange={(ev) => setEdit(p.id, 'feeIndirect', ev.target.value)} inputMode="decimal"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <p className="text-xs text-gray-400 mt-1">Andel av det partneren tjener på sine white-labels' bruk. Standard 7,5.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Visningsnavn</label>

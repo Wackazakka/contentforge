@@ -46,7 +46,8 @@ export default function VoiceActorPage() {
   const [events, setEvents] = useState<Array<{ id: number; actor_rate_nok: number; customer_price_nok: number; meta: { kind?: string }; created_at: string }>>([])
   const [byMonth, setByMonth] = useState<Agg[]>([])
   const [byKind, setByKind] = useState<Agg[]>([])
-  const [royaltyPct, setRoyaltyPct] = useState<number | null>(null)
+  const [fees, setFees] = useState<{ directPct: number; indirectPct: number } | null>(null)
+  const [totalFeeNok, setTotalFeeNok] = useState(0)
 
   // Takst-redigering: standard + per brukstype ('' = bruk standard)
   const [editRate, setEditRate] = useState('')
@@ -86,7 +87,8 @@ export default function VoiceActorPage() {
       setEvents(data.events || [])
       setByMonth(data.byMonth || [])
       setByKind(data.byKind || [])
-      setRoyaltyPct(typeof data.royaltyCutPct === 'number' ? data.royaltyCutPct : null)
+      setFees(data.fees || null)
+      setTotalFeeNok(Number(data.totalFeeNok) || 0)
       setEditRate(String(data.actor.actor_rate_nok))
       setEditPrice(String(data.actor.customer_price_nok))
       const ek: Record<string, { rate: string; price: string }> = {}
@@ -315,8 +317,8 @@ export default function VoiceActorPage() {
                 { label: 'Bruk totalt', value: String(totals.uses) },
                 { label: 'Generert fra kundene', value: nok(totals.from) },
                 { label: 'Opptjent til skuespilleren', value: nok(totals.to) },
-                ...(royaltyPct !== null ? [{ label: `Royalty oppover (${royaltyPct} %)`, value: nok(totals.from * royaltyPct / 100) }] : []),
-                { label: royaltyPct !== null ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.from - totals.to - (royaltyPct !== null ? totals.from * royaltyPct / 100 : 0)) },
+                ...(fees ? [{ label: `Avgift oppover (${fees.directPct} % dir. / ${fees.indirectPct} % indir.)`, value: nok(totalFeeNok) }] : []),
+                { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.from - totals.to - totalFeeNok) },
               ].map((c) => (
                 <div key={c.label} className="bg-white rounded-lg border border-gray-200 p-4">
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>

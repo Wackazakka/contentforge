@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     if (g.fail) return g.fail
     const { data: children } = await admin()
       .from('tenants')
-      .select('id, slug, app_name, logo_url, colors, markup_percent, royalty_cut_pct, billing_mode')
+      .select('id, slug, app_name, logo_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, billing_mode')
       .eq('parent_tenant_id', g.tenant!.id)
       .order('app_name')
     return NextResponse.json({ tenant: { id: g.tenant!.id, name: g.tenant!.app_name }, partners: children || [] })
@@ -46,7 +46,7 @@ export async function PATCH(request: Request) {
   try {
     const g = await guard(request)
     if (g.fail) return g.fail
-    const { tenantId, markupPercent, royaltyCutPct, appName, logoUrl, colors } = await request.json()
+    const { tenantId, markupPercent, feeDirectPct, feeIndirectPct, appName, logoUrl, colors } = await request.json()
     if (!tenantId) return NextResponse.json({ error: 'Mangler tenantId' }, { status: 400 })
 
     const patch: Record<string, unknown> = {}
@@ -72,10 +72,15 @@ export async function PATCH(request: Request) {
       if (!(v >= 0 && v <= 500)) return NextResponse.json({ error: 'Påslaget må være mellom 0 og 500 %' }, { status: 400 })
       patch.markup_percent = v
     }
-    if (royaltyCutPct !== undefined) {
-      const v = Number(royaltyCutPct)
-      if (!(v >= 0 && v <= 50)) return NextResponse.json({ error: 'Royalty-satsen må være mellom 0 og 50 %' }, { status: 400 })
-      patch.royalty_cut_pct = v
+    if (feeDirectPct !== undefined) {
+      const v = Number(feeDirectPct)
+      if (!(v >= 0 && v <= 50)) return NextResponse.json({ error: 'Direkte-avgiften må være mellom 0 og 50 %' }, { status: 400 })
+      patch.fee_direct_pct = v
+    }
+    if (feeIndirectPct !== undefined) {
+      const v = Number(feeIndirectPct)
+      if (!(v >= 0 && v <= 50)) return NextResponse.json({ error: 'Indirekte-avgiften må være mellom 0 og 50 %' }, { status: 400 })
+      patch.fee_indirect_pct = v
     }
     if (Object.keys(patch).length === 0) return NextResponse.json({ error: 'Ingenting å oppdatere' }, { status: 400 })
 
