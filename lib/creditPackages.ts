@@ -16,10 +16,12 @@ export function creditsFor(amountNok: number): number {
   return Math.floor(amountNok / creditRate(amountNok))
 }
 
+// Runde kredittall per pakke (Lars 2026-07-28) — implisitt kurs = amount/credits,
+// forankret i beste kurs 0,10 ved 100 000 kr.
 export const CREDIT_PACKAGES = [
-  { id: 'starter', amount: 1000 },
-  { id: 'medium', amount: 5000 },
-  { id: 'stor', amount: 10000 },
-  { id: 'proff', amount: 50000 },
-  { id: 'byraa', amount: 100000 },
+  { id: 'starter', amount: 1000, credits: 7400 },
+  { id: 'medium', amount: 5000, credits: 40000 },
+  { id: 'stor', amount: 10000, credits: 85000 },
+  { id: 'proff', amount: 50000, credits: 475000 },
+  { id: 'byraa', amount: 100000, credits: 1000000 },
 ] as const
