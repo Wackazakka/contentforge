@@ -254,3 +254,13 @@ body {
   background: #f8e7db;
   border-color: #ebc9b2;
 }
+
+/* Hero-illustrasjonens bølgeform — subtil puls, av ved redusert bevegelse */
+.vb-wave-bar { transform-origin: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .vb-wave-bar { animation: vbwave 1.6s ease-in-out infinite; }
+}
+@keyframes vbwave {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.55); }
+}
