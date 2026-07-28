@@ -216,6 +216,12 @@ export async function PATCH(request: Request) {
       if (!(v >= 0)) return NextResponse.json({ error: 'Ugyldig kundepris' }, { status: 400 })
       patch.customer_price_nok = v
     }
+    if (typeof body.libraryEnabled === 'boolean') patch.library_enabled = body.libraryEnabled
+    if (body.librarySharePct !== undefined) {
+      const v = Number(body.librarySharePct)
+      if (!(v >= 0 && v <= 100)) return NextResponse.json({ error: 'Skuespillerens andel må være 0-100 %' }, { status: 400 })
+      patch.library_share_pct = v
+    }
     if (body.actorEmail !== undefined) {
       // E-post for godkjenningsvarsler (magisk lenke); tom = ingen varsling mulig
       const v = String(body.actorEmail).trim()

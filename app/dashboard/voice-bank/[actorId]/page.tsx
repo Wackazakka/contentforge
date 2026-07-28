@@ -23,6 +23,8 @@ interface ActorDetail {
   photo_urls: string[]
   sample_urls: string[]
   actor_email: string | null
+  library_enabled: boolean
+  library_share_pct: number
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
   created_at: string
@@ -55,6 +57,11 @@ export default function VoiceActorPage() {
   const [editEmail, setEditEmail] = useState('')
   const [customers, setCustomers] = useState<Array<{ id: string; name: string; mode: string; timeoutHours: number }>>([])
   const [apprBusy, setApprBusy] = useState<string | null>(null)
+  const [earnings, setEarnings] = useState<Array<{ id: number; source: string; period: string; gross_nok: number; note: string | null }>>([])
+  const [editLibShare, setEditLibShare] = useState('70')
+  const [earnPeriod, setEarnPeriod] = useState('')
+  const [earnGross, setEarnGross] = useState('')
+  const [earnBusy, setEarnBusy] = useState(false)
   const [uploadBusy, setUploadBusy] = useState<string | null>(null)
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
@@ -100,6 +107,16 @@ export default function VoiceActorPage() {
           if (ar.ok) setCustomers(ad.customers || [])
         }
       } catch { /* godkjenningsdata er valgfritt */ }
+      setEditLibShare(String(data.actor.library_share_pct ?? 70))
+      try {
+        const { data: sess3 } = await getSupabase().auth.getSession()
+        const t3 = sess3?.session?.access_token
+        if (t3) {
+          const er = await fetch(`/api/voice-bank/external-earnings?actorId=${actorId}`, { headers: { Authorization: `Bearer ${t3}` } })
+          const ed = await er.json()
+          if (er.ok) setEarnings(ed.earnings || [])
+        }
+      } catch { /* eksterne inntekter er valgfritt */ }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -213,6 +230,38 @@ export default function VoiceActorPage() {
       }
     } catch { /* behold visning */ } finally {
       setApprBusy(null)
+    }
+  }
+
+  const patchLibrary = async (fields: Record<string, unknown>) => {
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, ...fields }) })
+      if (res.ok) await refresh()
+    } catch { /* behold visning */ }
+  }
+
+  const addEarning = async () => {
+    if (!/^\d{4}-\d{2}$/.test(earnPeriod) || isNaN(Number(earnGross)) || Number(earnGross) <= 0) {
+      alert('Fyll ut periode (ÅÅÅÅ-MM) og et beløp større enn 0.'); return
+    }
+    setEarnBusy(true)
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Ikke innlogget')
+      const res = await fetch('/api/voice-bank/external-earnings', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actorId, period: earnPeriod, grossNok: Number(earnGross) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Kunne ikke registrere')
+      setEarnPeriod(''); setEarnGross('')
+      await refresh()
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setEarnBusy(false)
     }
   }
 
@@ -429,6 +478,72 @@ export default function VoiceActorPage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* ElevenLabs Voice Library */}
+            <h2 className="font-semibold text-gray-900 mb-3">ElevenLabs Voice Library</h2>
+            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div>
+                  <div className="font-medium text-gray-900 text-sm">
+                    {actor.library_enabled ? '🌍 Tilgjengelig i Voice Library' : '⚪ Ikke i Voice Library'}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {actor.library_enabled
+                      ? 'Stemmen er delt i ElevenLabs\u2019 globale bibliotek. Utbetalingene lander på vår konto og fordeles i avregningen.'
+                      : 'Skuespilleren kan velge å dele stemmen i ElevenLabs\u2019 globale bibliotek — ekstra inntekt fra brukere verden over.'}
+                  </p>
+                </div>
+                <button onClick={() => patchLibrary({ libraryEnabled: !actor.library_enabled })}
+                  className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                  {actor.library_enabled ? 'Skru av' : 'Skru på'}
+                </button>
+              </div>
+              {actor.library_enabled && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                  Husk: selve delingen aktiveres manuelt i ElevenLabs-dashbordet (stemmen ligger på vår konto). Denne bryteren styrer avtale- og pengesporet hos oss.
+                </p>
+              )}
+
+              <div className="flex items-center gap-2 text-sm mb-5">
+                <span className="text-gray-700">Skuespillerens andel av eksterne inntekter:</span>
+                <input value={editLibShare} onChange={(e) => setEditLibShare(e.target.value)} inputMode="decimal"
+                  className="w-16 px-2 py-1.5 border border-gray-300 rounded-lg" />
+                <span className="text-gray-600">%</span>
+                <button onClick={() => patchLibrary({ librarySharePct: Number(editLibShare) })}
+                  className="text-[var(--ember-deep)] hover:underline ml-1">Lagre</button>
+              </div>
+
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Registrerte utbetalinger</h3>
+              {earnings.length === 0 ? (
+                <p className="text-sm text-gray-400 mb-3">Ingen eksterne utbetalinger registrert ennå.</p>
+              ) : (
+                <div className="space-y-1.5 mb-3">
+                  {earnings.map((e) => {
+                    const share = Number(actor.library_share_pct) || 70
+                    const toActor = Math.round(e.gross_nok * share) / 100
+                    return (
+                      <div key={e.id} className="flex flex-wrap gap-x-4 text-sm border-t border-gray-100 pt-1.5 first:border-0 first:pt-0">
+                        <span className="font-medium text-gray-900 w-16">{e.period}</span>
+                        <span className="text-gray-600">{e.source}</span>
+                        <span className="text-gray-900">{nok(e.gross_nok)} brutto</span>
+                        <span className="text-green-700">{nok(toActor)} til skuespilleren ({share} %)</span>
+                        <span className="text-gray-500">{nok(e.gross_nok - toActor)} igjen (kaskade trekkes ved avregning)</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <input value={earnPeriod} onChange={(e) => setEarnPeriod(e.target.value)} placeholder="2026-07"
+                  className="w-24 px-2 py-1.5 border border-gray-300 rounded-lg" />
+                <input value={earnGross} onChange={(e) => setEarnGross(e.target.value)} placeholder="brutto kr" inputMode="decimal"
+                  className="w-28 px-2 py-1.5 border border-gray-300 rounded-lg" />
+                <button onClick={addEarning} disabled={earnBusy}
+                  className="px-4 py-1.5 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
+                  {earnBusy ? 'Registrerer …' : 'Registrer utbetaling'}
+                </button>
+              </div>
             </div>
 
             {/* Per brukstype */}
