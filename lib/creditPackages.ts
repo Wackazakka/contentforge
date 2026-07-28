@@ -25,3 +25,14 @@ export const CREDIT_PACKAGES = [
   { id: 'proff', amount: 50000, credits: 475000 },
   { id: 'byraa', amount: 100000, credits: 1000000 },
 ] as const
+
+// Forbrukerpakker (/for-deg): flat kurs 1 kr = 10 kreditter (Lars 2026-07-28).
+// Bedre kurs enn bedriftskurven — derfor gates privat-* til voicebank-tenanten
+// i credit-checkout.
+export const CONSUMER_CREDIT_PACKAGES = [
+  { id: 'privat-liten', amount: 200, credits: 2000 },
+  { id: 'privat-mellom', amount: 500, credits: 5000 },
+  { id: 'privat-stor', amount: 1000, credits: 10000 },
+] as const
+
+export const ALL_CREDIT_PACKAGES = [...CREDIT_PACKAGES, ...CONSUMER_CREDIT_PACKAGES]

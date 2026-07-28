@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { signUp, getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { AuthShell, AuthField, AuthSubmit, AuthBanner, AuthSwitch } from '@/components/AuthUI'
@@ -9,6 +10,11 @@ import { useTenant } from '@/lib/tenantContext'
 export default function RegisterPage() {
   const t = useTranslations('register')
   const tenant = useTenant()
+  const searchParams = useSearchParams()
+  // Valgfri intern retur-sti (?next=…) tråkles videre til login-lenkene
+  const rawNext = searchParams?.get('next')
+  const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null
+  const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : '/login'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [registered, setRegistered] = useState(false)
@@ -110,7 +116,7 @@ export default function RegisterPage() {
           <p style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6B6358', margin: '0 0 22px' }}>
             {t('checkEmailText', { email: registeredEmail })}
           </p>
-          <AuthSwitch linkLabel={t('backToSignIn')} href="/login" />
+          <AuthSwitch linkLabel={t('backToSignIn')} href={loginHref} />
         </div>
       </AuthShell>
     )
@@ -165,7 +171,7 @@ export default function RegisterPage() {
         <AuthSubmit loading={loading} loadingLabel={t('creatingAccount')}>{t('createAccount')}</AuthSubmit>
       </form>
 
-      <AuthSwitch prompt={t('alreadyHaveAccount')} linkLabel={t('signIn')} href="/login" />
+      <AuthSwitch prompt={t('alreadyHaveAccount')} linkLabel={t('signIn')} href={loginHref} />
     </AuthShell>
   )
 }

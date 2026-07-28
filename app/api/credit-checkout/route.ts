@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getStripe } from '@/lib/stripe'
-import { CREDIT_PACKAGES, creditRate, creditsFor, CREDIT_VALUE_NOK } from '@/lib/creditPackages'
+import { ALL_CREDIT_PACKAGES, CREDIT_VALUE_NOK } from '@/lib/creditPackages'
 
 function admin() {
   return createClient(
@@ -18,8 +18,8 @@ export async function POST(request: Request) {
     if (process.env.BILLING_ENABLED !== 'true') {
       return NextResponse.json({ error: 'Kortbetaling er ikke åpnet ennå. Kontakt byrået deres for påfyll.', code: 'BILLING_OFF' }, { status: 400 })
     }
-    const { packageId } = await request.json()
-    const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId)
+    const { packageId, returnPath } = await request.json()
+    const pkg = ALL_CREDIT_PACKAGES.find((p) => p.id === packageId)
     if (!pkg) return NextResponse.json({ error: 'Ukjent pakke' }, { status: 400 })
     const credits = pkg.credits
     const ledgerNok = Math.round(credits * CREDIT_VALUE_NOK * 100) / 100 // saldoverdi (katalogkurs 0,10)
@@ -40,15 +40,21 @@ export async function POST(request: Request) {
       .single()
     if (!org) return NextResponse.json({ error: 'Fant ingen organisasjon' }, { status: 404 })
     const { data: tenant } = org.tenant_id
-      ? await supabase.from('tenants').select('billing_mode').eq('id', org.tenant_id).single()
+      ? await supabase.from('tenants').select('billing_mode, slug').eq('id', org.tenant_id).single()
       : { data: null }
     if (tenant?.billing_mode !== 'invoice') {
       return NextResponse.json({ error: 'Kredittkjøp gjelder kun white-label-kunder' }, { status: 400 })
+    }
+    // Privatpakkene har bedre kurs enn bedriftskurven — kun for voicebank-tenanten
+    if (packageId.startsWith('privat-') && tenant.slug !== 'voicebank') {
+      return NextResponse.json({ error: 'Ukjent pakke' }, { status: 400 })
     }
 
     // Tilbake til tenantens eget domene etter betaling
     const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || ''
     const origin = host ? `https://${host}` : (process.env.NEXT_PUBLIC_BASE_URL || 'https://contentforge-610.netlify.app')
+    const RETURN_PATHS = ['/dashboard/credits', '/for-deg/kreditt']
+    const backTo = RETURN_PATHS.includes(returnPath) ? returnPath : '/dashboard/credits'
 
     const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
@@ -61,8 +67,8 @@ export async function POST(request: Request) {
         quantity: 1,
       }],
       metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(ledgerNok), bonus_nok: '0', paid_nok: String(pkg.amount), credits: String(credits), rate: (pkg.amount / pkg.credits).toFixed(4) },
-      success_url: `${origin}/dashboard/credits?paid=1`,
-      cancel_url: `${origin}/dashboard/credits`,
+      success_url: `${origin}${backTo}?paid=1`,
+      cancel_url: `${origin}${backTo}`,
     })
     return NextResponse.json({ url: session.url })
   } catch (err: any) {

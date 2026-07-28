@@ -14,7 +14,7 @@ export default function GlobalFooter() {
   const t = useTranslations('home')
   const tenant = useTenant()
 
-  if (pathname === '/') return null
+  if (pathname === '/' || pathname === '/for-deg' || pathname.startsWith('/for-deg/')) return null
 
   return (
     <footer

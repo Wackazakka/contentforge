@@ -45,7 +45,11 @@ export function LoginForm() {
     try {
       const { data, error: signInError } = await signIn(form.email, form.password)
       if (signInError) { setError(signInError.message); return }
-      if (data.session) router.push('/dashboard')
+      if (data.session) {
+        // Valgfri intern retur-sti (?next=/for-deg/kreditt) — kun relative stier
+        const next = searchParams?.get('next')
+        router.push(next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard')
+      }
     } catch (err) {
       setError(t('errorUnexpected'))
       console.error(err)

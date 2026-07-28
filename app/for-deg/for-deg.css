@@ -1,0 +1,302 @@
+/* /for-deg — egen folkelig identitet, uavhengig av tenant-tokens (som injiseres
+   på <html> og overstyrer --paper/--ink). Alt her er navnerommet --fd-*. */
+
+.fd-root {
+  --fd-paper: #FFF7EE;
+  --fd-card: #FFFDF8;
+  --fd-ink: #2B2028;
+  --fd-ink-soft: #5C4E55;
+  --fd-ink-muted: #8A7A80;
+  --fd-rule: #EFE1D0;
+  --fd-rule-strong: #DCC9B5;
+  --fd-terracotta: #D9552F;
+  --fd-terracotta-dark: #B0421F;
+  --fd-mustard: #E9B44C;
+  --fd-mustard-dark: #D9A23C;
+  --fd-green: #2F6B52;
+  --fd-panel: #382A32;
+  --fd-panel-rule: #4A3A42;
+  --fd-on-dark: #C9B9BF;
+  --fd-on-dark-muted: #A8969C;
+  --fd-pill-bg: #F3E4D3;
+  --fd-pill-text: #8A6A4E;
+
+  --fd-sand-bg: #FCEBD8; --fd-sand-border: #F0D6B8; --fd-sand-text: #7A5A3C; --fd-sand-strong: #A3502F;
+  --fd-green-bg: #E8F1EC; --fd-green-border: #CBE0D4; --fd-green-text: #3D6B55; --fd-green-strong: #3D6B55;
+  --fd-rose-bg: #FDE9E3; --fd-rose-border: #F5D2C7; --fd-rose-text: #A3502F; --fd-rose-strong: #A3502F;
+  --fd-lilac-bg: #EDEBF6; --fd-lilac-border: #D7D3EC; --fd-lilac-text: #55508A; --fd-lilac-strong: #55508A;
+
+  --fd-display: var(--font-bricolage), system-ui, sans-serif;
+  --fd-body: var(--font-hanken), system-ui, sans-serif;
+
+  min-height: 100vh;
+  background: var(--fd-paper);
+  color: var(--fd-ink);
+  font-family: var(--fd-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.fd-root *, .fd-root *::before, .fd-root *::after { box-sizing: border-box; }
+
+.fd-band { max-width: 1240px; margin: 0 auto; padding: 0 40px; }
+.fd-num { font-variant-numeric: tabular-nums; }
+
+.fd-root a { color: inherit; text-decoration: none; }
+.fd-root :is(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--fd-terracotta);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ---------- 1. Header ---------- */
+.fd-header { display: flex; align-items: center; gap: 24px; padding: 26px 40px; max-width: 1240px; margin: 0 auto; }
+.fd-logo-box {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 34px; height: 34px; border-radius: 10px; background: var(--fd-ink);
+  color: var(--fd-paper); font-family: var(--fd-display); font-weight: 700; font-size: 17px;
+  overflow: hidden;
+}
+.fd-logo-box img { width: 100%; height: 100%; object-fit: cover; }
+.fd-wordmark { font-family: var(--fd-display); font-weight: 600; font-size: 19px; letter-spacing: -0.01em; }
+.fd-header-pill {
+  background: var(--fd-pill-bg); color: var(--fd-pill-text);
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  border-radius: 999px; padding: 5px 11px; white-space: nowrap;
+}
+.fd-nav { margin-left: auto; display: flex; align-items: center; gap: 26px; font-size: 15px; color: #6B5C63; }
+.fd-nav-cta {
+  background: var(--fd-ink); color: var(--fd-paper) !important;
+  border-radius: 999px; padding: 10px 18px; font-weight: 600;
+  transition: background 150ms ease-out;
+}
+.fd-nav-cta:hover { background: #000000; }
+
+/* ---------- 2. Hero ---------- */
+.fd-hero {
+  display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 64px;
+  align-items: center; padding: 56px 40px 72px; max-width: 1240px; margin: 0 auto;
+}
+.fd-hero-left { display: flex; flex-direction: column; gap: 28px; }
+.fd-h1 {
+  margin: 0; font-family: var(--fd-display); font-weight: 600;
+  font-size: 68px; line-height: 1.03; letter-spacing: -0.028em;
+}
+.fd-ingress { margin: 0; font-size: 20px; line-height: 1.55; color: var(--fd-ink-soft); max-width: 470px; }
+.fd-chips { display: flex; flex-wrap: wrap; gap: 9px; max-width: 520px; }
+.fd-chip { padding: 9px 15px; border-radius: 999px; font-size: 14px; }
+.fd-chip-sand { background: var(--fd-sand-bg); border: 1px solid var(--fd-sand-border); color: var(--fd-sand-text); }
+.fd-chip-green { background: var(--fd-green-bg); border: 1px solid var(--fd-green-border); color: var(--fd-green-text); }
+.fd-chip-rose { background: var(--fd-rose-bg); border: 1px solid var(--fd-rose-border); color: var(--fd-rose-text); }
+.fd-chip-lilac { background: var(--fd-lilac-bg); border: 1px solid var(--fd-lilac-border); color: var(--fd-lilac-text); }
+.fd-cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.fd-cta {
+  display: inline-block; padding: 17px 30px; border-radius: 999px;
+  background: var(--fd-terracotta); color: var(--fd-paper) !important;
+  font-size: 17px; font-weight: 600; transition: background 150ms ease-out;
+}
+.fd-cta:hover { background: var(--fd-terracotta-dark); }
+.fd-cta-mustard { background: var(--fd-mustard); color: var(--fd-ink) !important; }
+.fd-cta-mustard:hover { background: var(--fd-mustard-dark); }
+.fd-cta-ghost {
+  display: inline-block; padding: 17px 26px; border-radius: 999px;
+  border: 1.5px solid var(--fd-rule-strong); color: var(--fd-ink);
+  font-size: 17px; font-weight: 500; transition: border-color 150ms ease-out;
+}
+.fd-cta-ghost:hover { border-color: var(--fd-ink-muted); }
+.fd-hero-note { font-size: 15px; color: var(--fd-ink-muted); }
+
+/* Telefonen */
+.fd-hero-right { display: flex; justify-content: center; }
+.fd-phone-wrap { position: relative; }
+.fd-phone {
+  width: 306px; padding: 12px; border-radius: 38px; background: var(--fd-ink);
+  box-shadow: 0 40px 90px -40px rgba(43, 32, 40, 0.55);
+}
+.fd-screen {
+  position: relative; aspect-ratio: 9 / 16; border-radius: 28px; overflow: hidden;
+  background: linear-gradient(160deg, #C9A27C 0%, #8A5A40 55%, #4A2E28 100%);
+}
+.fd-screen video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fd-screen-plate {
+  position: absolute; left: 26px; right: 26px; bottom: 34px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  pointer-events: none;
+}
+.fd-screen-pill {
+  background: rgba(255, 247, 238, 0.92); color: #A3502F;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  border-radius: 999px; padding: 4px 10px;
+}
+.fd-screen-title {
+  margin: 0; font-family: var(--fd-display); font-weight: 700; font-size: 26px;
+  line-height: 1.1; color: var(--fd-paper); text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+  white-space: pre-line;
+}
+.fd-screen-detail {
+  margin: 0; font-size: 15px; line-height: 1.35; color: var(--fd-paper);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+  white-space: pre-line;
+}
+.fd-note-card {
+  position: absolute; left: -18px; top: 44px; width: 194px; padding: 15px 17px;
+  background: var(--fd-card); border: 1px solid #EDDCC8; border-radius: 16px;
+  box-shadow: 0 18px 40px -22px rgba(43, 32, 40, 0.35);
+}
+.fd-note-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #A8968E; margin: 0 0 6px; }
+.fd-note-quote { margin: 0; font-style: italic; font-size: 15px; line-height: 1.45; }
+/* bottom: 196px er bevisst — lavere verdi legger badgen oppå invitasjonsteksten i skjermen */
+.fd-badge {
+  position: absolute; right: -14px; bottom: 196px;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--fd-card); border: 1px solid #EDDCC8; border-radius: 16px;
+  padding: 12px 15px; box-shadow: 0 18px 40px -22px rgba(43, 32, 40, 0.35);
+}
+.fd-badge-check {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 28px; height: 28px; border-radius: 999px; background: var(--fd-green);
+  color: #ffffff; font-size: 14px;
+}
+.fd-badge-title { font-size: 14px; font-weight: 600; margin: 0; }
+.fd-badge-sub { font-size: 13px; color: var(--fd-ink-muted); margin: 0; }
+.fd-play-btn {
+  position: absolute; inset: 0; margin: auto; width: 62px; height: 62px;
+  border: 0; border-radius: 999px; background: rgba(255, 247, 238, 0.92);
+  color: var(--fd-ink); font-size: 22px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ---------- 3. Eksempelgalleri ---------- */
+.fd-section { border-top: 1px solid var(--fd-rule); padding: 64px 40px; max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 34px; }
+.fd-section-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px; }
+.fd-h2 { margin: 0; font-family: var(--fd-display); font-weight: 600; font-size: 40px; letter-spacing: -0.02em; max-width: 560px; }
+.fd-section-side { font-size: 17px; color: #6B5C63; max-width: 400px; margin: 0; }
+.fd-gallery { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+.fd-tile { display: flex; flex-direction: column; gap: 12px; }
+.fd-tile-media {
+  position: relative; width: 100%; aspect-ratio: 9 / 16; border-radius: 18px;
+  overflow: hidden; transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+}
+.fd-tile:hover .fd-tile-media { transform: translateY(-2px); box-shadow: 0 22px 44px -24px rgba(43, 32, 40, 0.4); }
+.fd-tile-media video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fd-tile-caption {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: rgba(43, 32, 40, 0.45); text-align: center; padding: 14px;
+}
+.fd-tile-title { font-size: 15px; font-weight: 600; }
+.fd-tile-meta { font-size: 14px; color: var(--fd-ink-muted); }
+.fd-audio-tile {
+  background: var(--fd-ink); padding: 18px; display: flex; flex-direction: column;
+  justify-content: space-between; cursor: pointer; border: 0; text-align: left;
+  font-family: inherit;
+}
+.fd-wave { display: flex; align-items: flex-end; gap: 3px; height: 46px; }
+.fd-wave span { width: 4px; border-radius: 2px; background: var(--fd-mustard); }
+.fd-audio-title {
+  margin: 0; font-family: var(--fd-display); font-weight: 600; font-size: 19px;
+  line-height: 1.25; color: var(--fd-paper); white-space: pre-line;
+}
+@keyframes fd-wave-bounce {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.45); }
+}
+.fd-audio-tile.fd-playing .fd-wave span {
+  animation: fd-wave-bounce 1.6s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* ---------- 4. Slik gjør du det ---------- */
+.fd-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.fd-step {
+  display: flex; flex-direction: column; gap: 16px; padding: 30px;
+  background: var(--fd-card); border: 1px solid var(--fd-rule); border-radius: 22px;
+}
+.fd-step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; border-radius: 999px;
+  font-family: var(--fd-display); font-weight: 700; font-size: 19px;
+}
+.fd-h3 { margin: 0; font-family: var(--fd-display); font-weight: 600; font-size: 23px; letter-spacing: -0.015em; }
+.fd-step p { margin: 0; font-size: 16px; line-height: 1.55; color: var(--fd-ink-soft); }
+
+/* ---------- 5. Pris og CTA ---------- */
+.fd-price-outer { padding: 64px 40px 72px; max-width: 1240px; margin: 0 auto; border-top: 1px solid var(--fd-rule); }
+.fd-price-panel {
+  background: var(--fd-panel); border-radius: 28px; padding: 56px;
+  display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; color: var(--fd-paper);
+}
+.fd-price-h2 { margin: 0; font-family: var(--fd-display); font-weight: 600; font-size: 44px; line-height: 1.08; letter-spacing: -0.022em; }
+.fd-price-body { margin: 0; font-size: 18px; line-height: 1.6; color: var(--fd-on-dark); max-width: 480px; }
+.fd-price-cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.fd-price-fine { font-size: 15px; color: var(--fd-on-dark-muted); }
+.fd-price-list { background: #382A32; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 14px; align-self: start; }
+.fd-price-label { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--fd-on-dark-muted); }
+.fd-price-row { display: flex; align-items: baseline; gap: 12px; font-size: 16px; }
+.fd-price-row .fd-amount { margin-left: auto; }
+.fd-price-divider { height: 1px; background: var(--fd-panel-rule); }
+
+/* ---------- 6. Footer ---------- */
+.fd-footer {
+  border-top: 1px solid var(--fd-rule); padding: 30px 40px 56px;
+  max-width: 1240px; margin: 0 auto; font-size: 15px; color: var(--fd-ink-muted);
+  display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: baseline; justify-content: space-between;
+}
+.fd-footer-links { display: flex; flex-wrap: wrap; gap: 20px; }
+.fd-footer a:hover { color: var(--fd-ink); }
+.fd-ai-line { width: 100%; font-size: 13.5px; color: var(--fd-ink-muted); }
+
+/* ---------- Kredittsiden ---------- */
+.fd-kreditt { max-width: 860px; margin: 0 auto; padding: 26px 40px 72px; display: flex; flex-direction: column; gap: 34px; }
+.fd-card-panel { background: var(--fd-card); border: 1px solid var(--fd-rule); border-radius: 22px; padding: 30px; }
+.fd-packages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.fd-package {
+  display: flex; flex-direction: column; gap: 10px; padding: 26px;
+  background: var(--fd-card); border: 1px solid var(--fd-rule); border-radius: 22px;
+}
+.fd-package-price { font-family: var(--fd-display); font-weight: 600; font-size: 36px; }
+.fd-package-credits { font-size: 15px; color: var(--fd-ink-soft); }
+.fd-package-help { font-size: 14px; color: var(--fd-ink-muted); flex: 1; }
+.fd-package button {
+  border: 0; cursor: pointer; font-family: inherit;
+}
+.fd-banner-green {
+  background: var(--fd-green-bg); border: 1px solid var(--fd-green-border);
+  color: var(--fd-green-text); border-radius: 16px; padding: 16px 20px; font-size: 15px;
+}
+
+/* ---------- Responsivt ---------- */
+@media (max-width: 1120px) {
+  .fd-h1 { font-size: 54px; }
+  .fd-phone { width: 260px; }
+  .fd-gallery { grid-template-columns: repeat(3, 1fr); }
+  .fd-steps { grid-template-columns: repeat(3, 1fr); }
+  .fd-step { padding: 24px; }
+}
+
+@media (max-width: 880px) {
+  .fd-hero { grid-template-columns: 1fr; gap: 40px; padding-bottom: 56px; }
+  .fd-hero-right { flex-direction: column; align-items: center; gap: 18px; }
+  .fd-note-card, .fd-badge { position: static; width: auto; max-width: 306px; }
+  .fd-gallery { grid-template-columns: repeat(2, 1fr); }
+  .fd-steps { grid-template-columns: 1fr; }
+  .fd-price-panel { grid-template-columns: 1fr; padding: 32px; gap: 32px; }
+  .fd-packages { grid-template-columns: 1fr; }
+  .fd-nav { gap: 16px; }
+  .fd-nav a:not(.fd-nav-cta) { display: none; }
+}
+
+@media (max-width: 520px) {
+  .fd-header { flex-wrap: wrap; gap: 12px; }
+  .fd-h1 { font-size: 40px; }
+  .fd-h2 { font-size: 30px; }
+  .fd-price-h2 { font-size: 30px; }
+  .fd-gallery { gap: 12px; }
+  .fd-cta, .fd-cta-ghost { width: 100%; text-align: center; }
+  .fd-header { padding: 20px 24px; }
+  .fd-hero, .fd-section, .fd-price-outer, .fd-footer, .fd-kreditt { padding-left: 24px; padding-right: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fd-audio-tile.fd-playing .fd-wave span { animation: none; }
+  .fd-tile:hover .fd-tile-media { transform: none; }
+}
