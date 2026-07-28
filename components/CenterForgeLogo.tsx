@@ -48,7 +48,7 @@ export function CenterForgeLogo({
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 11 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={tenant.logo_url} alt={tenant.app_name} style={{ height: size * 1.2, width: 'auto' }} />
+        <img src={tenant.logo_url} alt={tenant.app_name} style={{ height: size * 2.4, width: 'auto' }} />
         <span
           style={{
             fontFamily: 'var(--font-archivo), sans-serif',
