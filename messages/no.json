@@ -43,7 +43,7 @@
     "feat_title": "Én plattform, hele produksjonen",
     "feat_sub": "Fra brief til publisert innhold — uten separate verktøy eller designkompetanse.",
     "f1_t": "Video med AI-bevegelse",
-    "f1_d": "Manus, bilder, voiceover, AI-bevegelse og lip-sync. 16:9, 9:16 og 1:1 — klar på under et minutt.",
+    "f1_d": "Manus, bilder, voiceover, AI-bevegelse og lip-sync. 16:9, 9:16 og 1:1 — klar på minuttet.",
     "f2_t": "Artikler og publisering",
     "f2_d": "AI-skrevne artikler med bilder, publisert rett til Facebook, Instagram, LinkedIn og YouTube — med kalender og planlegging.",
     "f3_t": "Avatar- og radiospotter",
@@ -155,7 +155,8 @@
     "ill2_s_video": "VIDEO",
     "ill2_s_avatar": "AVATAR",
     "ill2_s_radio": "RADIOSPOT",
-    "ill2_s_article": "ARTIKKEL"
+    "ill2_s_article": "ARTIKKEL",
+    "ill2_audio": "https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/assets/hero-voice-no.mp3"
   },
   "login": {
     "title": "Velkommen tilbake",

@@ -43,7 +43,7 @@
     "feat_title": "One platform, the whole production",
     "feat_sub": "From brief to published content — no separate tools, no design skills needed.",
     "f1_t": "Video with AI motion",
-    "f1_d": "Script, images, voiceover, AI motion and lip-sync. 16:9, 9:16 and 1:1 — ready in under a minute.",
+    "f1_d": "Script, images, voiceover, AI motion and lip-sync. 16:9, 9:16 and 1:1 — ready in a minute.",
     "f2_t": "Articles and publishing",
     "f2_d": "AI-written articles with images, published straight to Facebook, Instagram, LinkedIn and YouTube — with calendar and scheduling.",
     "f3_t": "Avatar and radio spots",
@@ -155,7 +155,8 @@
     "ill2_s_video": "VIDEO",
     "ill2_s_avatar": "AVATAR",
     "ill2_s_radio": "RADIO SPOT",
-    "ill2_s_article": "ARTICLE"
+    "ill2_s_article": "ARTICLE",
+    "ill2_audio": "https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/assets/hero-voice-en.mp3"
   },
   "login": {
     "title": "Welcome back",
