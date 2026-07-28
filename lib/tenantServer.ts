@@ -13,6 +13,7 @@ export interface Tenant {
   name: string
   app_name: string
   logo_url: string | null
+  default_locale?: string | null
   icon_url: string | null
   colors: Record<string, string>
   billing_mode: 'direct' | 'invoice'
