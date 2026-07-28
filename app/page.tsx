@@ -12,7 +12,6 @@ const SERIF = "var(--font-serif), serif"
 const HANKEN = "var(--font-hanken), sans-serif"
 
 type Stat = { v: string; l: string }
-type Tier = { name: string; price: string; popular: boolean; feats: string[] }
 
 function PlayDot() {
   return (
@@ -31,7 +30,7 @@ function PlayDot() {
 export default function Home() {
   const t = useTranslations('home')
   const tenant = useTenant()
-  const showPricing = tenant.billing_mode !== 'invoice'
+  const isDirect = tenant.billing_mode !== 'invoice'
   const stats = t.raw('stats') as Stat[]
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [voicePlaying, setVoicePlaying] = useState(false)
@@ -48,7 +47,6 @@ export default function Home() {
       audioRef.current.play().then(() => setVoicePlaying(true)).catch(() => {})
     }
   }
-  const tiers = t.raw('tiers') as Tier[]
 
   return (
     <div
@@ -83,15 +81,6 @@ export default function Home() {
           </a>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <LangToggle />
-            {showPricing && (
-              <a
-                href="#priser"
-                className="cf-nav-link"
-                style={{ fontFamily: HANKEN, fontSize: 15, fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', padding: '8px 14px' }}
-              >
-                {t('nav_pricing')}
-              </a>
-            )}
             <Link
               href="/login"
               className="cf-btn-ink"
@@ -232,7 +221,7 @@ export default function Home() {
 
           </div>
 
-          {showPricing && (<>
+          {isDirect && (<>
           {/* Trust strip */}
           <div style={{ marginTop: 'clamp(54px,7vw,84px)', textAlign: 'center' }}>
             <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#A89C88', marginBottom: 16 }}>{t('trust')}</div>
@@ -330,7 +319,7 @@ export default function Home() {
             <div className="cf-card" style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 32, overflow: 'hidden' }}>
               <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(var(--glow,217,82,28),0.5),transparent)' }} />
               <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 11px' }}>{t('pf1_t')}</h3>
-              <p style={{ fontFamily: HANKEN, fontSize: 15.5, lineHeight: 1.6, color: '#6B6358', margin: '0 0 22px' }}>{showPricing ? t('pf1_d') : t('pf1_d_partner')}</p>
+              <p style={{ fontFamily: HANKEN, fontSize: 15.5, lineHeight: 1.6, color: '#6B6358', margin: '0 0 22px' }}>{isDirect ? t('pf1_d') : t('pf1_d_partner')}</p>
               <Link href="/white-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 700, fontSize: 15.5, color: 'var(--ember-deep)', border: '1px solid var(--ember-tint-border)', background: 'var(--ember-tint-bg)', borderRadius: 999, padding: '12px 22px', textDecoration: 'none' }}>{t('pf1_cta')} →</Link>
             </div>
             <div className="cf-card" style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 32, overflow: 'hidden' }}>
@@ -341,48 +330,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        {/* Pricing */}
-        {showPricing && (
-        <section id="priser" style={{ position: 'relative', background: '#ECE3D2', borderTop: '1px solid #E0D7C6', borderBottom: '1px solid #E0D7C6' }}>
-          <div style={{ maxWidth: 1180, margin: '0 auto', padding: 'clamp(56px,8vw,104px) 28px' }}>
-            <div style={{ maxWidth: 680, margin: '0 auto clamp(40px,5vw,56px)', textAlign: 'center' }}>
-              <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4.3vw,50px)', lineHeight: 1.06, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 14px' }}>{t('price_title')}</h2>
-              <p style={{ fontFamily: HANKEN, fontSize: 18, lineHeight: 1.6, color: 'var(--text-muted)', margin: 0 }}>{t('price_sub')}</p>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(270px,1fr))', gap: 18, alignItems: 'start', maxWidth: 1000, margin: '0 auto' }}>
-              {tiers.map((tier) => (
-                <div key={tier.name} style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 20, padding: '30px 28px', boxShadow: '0 2px 6px rgba(70,45,20,0.05)' }}>
-                  {tier.popular && (
-                    <>
-                      <div aria-hidden="true" style={{ position: 'absolute', inset: -1, borderRadius: 20, border: '1.5px solid #E0742F', boxShadow: '0 0 40px -10px rgba(var(--glow,217,82,28),0.4)', pointerEvents: 'none' }} />
-                      <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#FFF4E8', background: 'linear-gradient(135deg,var(--orb-mid,#E8632B),var(--ember-deep))', padding: '5px 13px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('popular')}</div>
-                    </>
-                  )}
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 18, letterSpacing: '0.01em', color: 'var(--ink)', marginBottom: 14 }}>{tier.name}</div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginBottom: 22 }}>
-                      <span style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 42, lineHeight: 1, color: 'var(--ink)' }}>{tier.price}</span>
-                      <span style={{ fontFamily: HANKEN, fontSize: 15, color: '#978B79' }}>{t('per')}</span>
-                    </div>
-                    <div style={{ height: 1, background: '#E6DDCC', marginBottom: 20 }} />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 13, marginBottom: 28 }}>
-                      {tier.feats.map((f) => (
-                        <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none', marginTop: 1 }}><path d="M5 12.5 L10 17 L19 6.5" /></svg>
-                          <span style={{ fontFamily: HANKEN, fontSize: 15, lineHeight: 1.4, color: '#4A4438' }}>{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Link href="/register" className="cf-price-cta" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HANKEN, fontWeight: 700, fontSize: 15.5, color: 'var(--ember-deep)', background: 'transparent', border: '1px solid #E3A883', borderRadius: 999, padding: '13px 20px', textDecoration: 'none' }}>{t('price_cta')}</Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p style={{ textAlign: 'center', fontFamily: HANKEN, fontSize: 14, color: '#978B79', margin: '32px 0 0' }}>{t('fine')}</p>
-          </div>
-        </section>
-        )}
 
         {/* Footer */}
         <footer style={{ position: 'relative', zIndex: 2, maxWidth: 1180, margin: '0 auto', padding: 'clamp(48px,6vw,72px) 28px 48px' }}>
