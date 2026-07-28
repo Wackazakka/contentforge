@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
+import { useTenant } from '@/lib/tenantContext'
 import { CONSUMER_CREDIT_PACKAGES } from '@/lib/creditPackages'
 
 // Kredittkjøp for privat og forening (/for-deg): små pakker, flat kurs 1 kr = 10 kreditter.
@@ -18,6 +19,7 @@ const PACKAGE_HELP: Record<string, string> = {
 
 export default function KredittClient() {
   const searchParams = useSearchParams()
+  const tenant = useTenant()
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [saldo, setSaldo] = useState<number | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -72,7 +74,12 @@ export default function KredittClient() {
   return (
     <div className="fd-kreditt">
       <header className="fd-header" style={{ padding: '26px 0' }}>
-        <span className="fd-logo-box">V</span>
+        {tenant.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={tenant.logo_url} alt="" className="fd-logo-img" />
+        ) : (
+          <span className="fd-logo-box">V</span>
+        )}
         <span className="fd-wordmark">VoiceBank</span>
         <nav className="fd-nav">
           <Link href="/for-deg">← Tilbake</Link>
