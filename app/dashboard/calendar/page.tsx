@@ -113,7 +113,10 @@ export default function CalendarPage() {
         : supabase.from('products').select('id,name,organization_id, organizations!inner(tenant_id)').eq('organizations.tenant_id', tenant.id).order('name')),
     ])
 
-    const published: CalendarEntry[] = (pubRes.data || []).map((p: Publication) => ({
+    // Utenfor rot-tenanten: ingen produkter i tenanten => ingen planlagte
+    // innslag (hindrer at CenterForge-kalenderen blir med til white-labels)
+    const pubRows = tenant.slug !== 'centerforge' && (prodRes.data || []).length === 0 ? [] : (pubRes.data || [])
+    const published: CalendarEntry[] = pubRows.map((p: Publication) => ({
       id: p.id,
       platform: p.platform,
       status: (p.status as CalendarEntry['status']) || 'published',
