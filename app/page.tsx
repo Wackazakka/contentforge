@@ -209,7 +209,7 @@ export default function Home() {
             {[
               {
                 t: t('f1_t'), d: t('f1_d'),
-                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><rect x="3" y="6" width="18" height="14" rx="2.5" /><path d="M3 10 H21" /><path d="M7 6 L9 10 M12 6 L14 10 M16.5 6 L18.5 10" /><path d="M10.4 13 L14.6 15.5 L10.4 18 Z" fill="var(--ember)" stroke="none" /></svg>),
+                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><rect x="3" y="6" width="18" height="14" rx="2.5" /><path d="M3 10 H21" /><path d="M10.4 13 L14.6 15.5 L10.4 18 Z" fill="var(--ember)" stroke="none" /></svg>),
               },
               {
                 t: t('f2_t'), d: t('f2_d'),
@@ -217,7 +217,19 @@ export default function Home() {
               },
               {
                 t: t('f3_t'), d: t('f3_d'),
-                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><path d="M12 3 L19 5.6 V11 C19 15.6 16 19 12 21 C8 19 5 15.6 5 11 V5.6 Z" /><path d="M9 11.6 L11.2 13.8 L15.4 9.2" /></svg>),
+                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11 C5 15 8 17.5 12 17.5 C16 17.5 19 15 19 11" /><path d="M12 17.5 V21" /></svg>),
+              },
+              {
+                t: t('f4_t'), d: t('f4_d'),
+                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><circle cx="12" cy="8.5" r="3.5" /><path d="M5 20 C5 16 8 14 12 14 C16 14 19 16 19 20" /></svg>),
+              },
+              {
+                t: t('f5_t'), d: t('f5_d'),
+                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><path d="M4 14 A8 8 0 0 1 20 14" /><path d="M12 14 L16 9" /><path d="M4 18 H20" /></svg>),
+              },
+              {
+                t: t('f6_t'), d: t('f6_d'),
+                icon: (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2" /><rect x="13" y="3.5" width="7.5" height="7.5" rx="2" /><rect x="3.5" y="13" width="7.5" height="7.5" rx="2" /><rect x="13" y="13" width="7.5" height="7.5" rx="2" /></svg>),
               },
             ].map((f) => (
               <div key={f.t} className="cf-card" style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 30, overflow: 'hidden', boxShadow: '0 1px 2px rgba(70,45,20,0.04)' }}>
@@ -232,6 +244,55 @@ export default function Home() {
             <Link href="/register" className="cf-btn-ink" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: '#F4EEE2', background: '#1C1A16', borderRadius: 999, padding: '15px 30px', textDecoration: 'none', boxShadow: '0 12px 30px -12px rgba(28,26,22,0.5)' }}>
               {t('mid_cta')} →
             </Link>
+          </div>
+        </section>
+
+        {/* Stemmebanken */}
+        <section id="stemmebank" style={{ position: 'relative', background: '#ECE3D2', borderTop: '1px solid #E0D7C6', borderBottom: '1px solid #E0D7C6' }}>
+          <div style={{ maxWidth: 1180, margin: '0 auto', padding: 'clamp(56px,8vw,104px) 28px' }}>
+            <div style={{ maxWidth: 720, margin: '0 auto clamp(40px,5vw,56px)', textAlign: 'center' }}>
+              <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4.3vw,50px)', lineHeight: 1.06, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 14px' }}>{t('vb_title')}</h2>
+              <p style={{ fontFamily: HANKEN, fontSize: 18, lineHeight: 1.6, color: 'var(--text-muted)', margin: 0 }}>{t('vb_sub')}</p>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 18, maxWidth: 1100, margin: '0 auto' }}>
+              {[
+                { t: t('vb1_t'), d: t('vb1_d') },
+                { t: t('vb2_t'), d: t('vb2_d') },
+                { t: t('vb3_t'), d: t('vb3_d') },
+                { t: t('vb4_t'), d: t('vb4_d') },
+              ].map((f) => (
+                <div key={f.t} style={{ background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: '26px 26px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ember)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none' }}><path d="M5 12.5 L10 17 L19 6.5" /></svg>
+                    <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em', color: 'var(--ink)', margin: 0 }}>{f.t}</h3>
+                  </div>
+                  <p style={{ fontFamily: HANKEN, fontSize: 15, lineHeight: 1.6, color: '#6B6358', margin: 0 }}>{f.d}</p>
+                </div>
+              ))}
+            </div>
+            <p style={{ textAlign: 'center', fontFamily: HANKEN, fontSize: 15, color: 'var(--ember-deep)', margin: '30px auto 0', maxWidth: 620 }}>{t('vb_note')}</p>
+          </div>
+        </section>
+
+        {/* Plattformen: white-label + API */}
+        <section id="plattform" style={{ position: 'relative', maxWidth: 1180, margin: '0 auto', padding: 'clamp(56px,8vw,104px) 28px' }}>
+          <div style={{ maxWidth: 680, margin: '0 auto clamp(40px,5vw,56px)', textAlign: 'center' }}>
+            <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4.3vw,50px)', lineHeight: 1.06, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 14px' }}>{t('pf_title')}</h2>
+            <p style={{ fontFamily: HANKEN, fontSize: 18, lineHeight: 1.6, color: 'var(--text-muted)', margin: 0 }}>{t('pf_sub')}</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 18, maxWidth: 1000, margin: '0 auto' }}>
+            <div className="cf-card" style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 32, overflow: 'hidden' }}>
+              <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(var(--glow,217,82,28),0.5),transparent)' }} />
+              <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 11px' }}>{t('pf1_t')}</h3>
+              <p style={{ fontFamily: HANKEN, fontSize: 15.5, lineHeight: 1.6, color: '#6B6358', margin: '0 0 22px' }}>{t('pf1_d')}</p>
+              <Link href="/white-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 700, fontSize: 15.5, color: 'var(--ember-deep)', border: '1px solid var(--ember-tint-border)', background: 'var(--ember-tint-bg)', borderRadius: 999, padding: '12px 22px', textDecoration: 'none' }}>{t('pf1_cta')} →</Link>
+            </div>
+            <div className="cf-card" style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 32, overflow: 'hidden' }}>
+              <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(var(--glow,217,82,28),0.5),transparent)' }} />
+              <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 11px' }}>{t('pf2_t')}</h3>
+              <p style={{ fontFamily: HANKEN, fontSize: 15.5, lineHeight: 1.6, color: '#6B6358', margin: '0 0 18px' }}>{t('pf2_d')}</p>
+              <code style={{ display: 'block', fontFamily: MONO, fontSize: 12.5, lineHeight: 1.7, color: '#4A4438', background: '#F7F1E6', border: '1px solid #E6DDCC', borderRadius: 10, padding: '12px 14px', overflowX: 'auto', whiteSpace: 'pre' }}>{'POST /gateway/v1/speech\n{ "assetId": "ast_kari", "text": "…" }'}</code>
+            </div>
           </div>
         </section>
 
