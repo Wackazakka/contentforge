@@ -400,7 +400,10 @@ export default function Home() {
             </div>
           </div>
           <div style={{ height: 1, background: '#E0D7C6', margin: '28px 0 18px' }} />
-          <div style={{ fontFamily: MONO, fontSize: 11.5, letterSpacing: '0.04em', color: '#A89C88' }}>{t('footer', { year: new Date().getFullYear(), name: tenant.app_name })}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8, fontFamily: MONO, fontSize: 11.5, letterSpacing: '0.04em', color: '#A89C88' }}>
+            <span>{t('footer', { year: new Date().getFullYear(), name: tenant.app_name })}</span>
+            {tenant.billing_mode === 'invoice' && <span>Powered by Norditech</span>}
+          </div>
         </footer>
 
       </main>
