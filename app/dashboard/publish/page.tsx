@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
+import { useTenant } from '@/lib/tenantContext'
 import { useTranslations } from 'next-intl'
 
 interface SocialConnection {
@@ -30,6 +31,7 @@ function PublishPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = getSupabase()
+  const tenant = useTenant()
   const t = useTranslations('publish')
 
   const [connections, setConnections] = useState<SocialConnection[]>([])
@@ -95,7 +97,13 @@ function PublishPage() {
     // Fetch products
     const fetchProducts = async () => {
       try {
-        const { data, error } = await supabase.from('products').select('*')
+        let oq = supabase.from('organizations').select('id')
+        oq = tenant.slug === 'centerforge' ? oq.or(`tenant_id.eq.${tenant.id},tenant_id.is.null`) : oq.eq('tenant_id', tenant.id)
+        const { data: orgs } = await oq
+        const orgIds = (orgs || []).map((o: { id: string }) => o.id)
+        const { data, error } = orgIds.length
+          ? await supabase.from('products').select('*').in('organization_id', orgIds)
+          : { data: [], error: null }
         console.log('[publish] products:', data, 'error:', error)
         setProducts(data || [])
       } catch (err) {

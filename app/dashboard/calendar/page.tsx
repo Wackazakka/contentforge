@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
+import { useTenant } from '@/lib/tenantContext'
 
 type Publication = {
   id: string
@@ -91,6 +92,7 @@ function Badge({ status }: { status: string }) {
 
 export default function CalendarPage() {
   const t = useTranslations('calendar')
+  const tenant = useTenant()
   const [entries, setEntries] = useState<CalendarEntry[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -106,7 +108,9 @@ export default function CalendarPage() {
     const [pubRes, schedRes, prodRes] = await Promise.all([
       supabase.from('publications').select('id,platform,status,content_type,created_at,product_id').order('created_at', { ascending: false }).limit(200),
       supabase.from('scheduled_publications').select('id,platform,content_type,scheduled_at,production_id').order('scheduled_at', { ascending: true }).limit(200),
-      supabase.from('products').select('id,name').order('name'),
+      (tenant.slug === 'centerforge'
+        ? supabase.from('products').select('id,name,organization_id, organizations!inner(tenant_id)').order('name')
+        : supabase.from('products').select('id,name,organization_id, organizations!inner(tenant_id)').eq('organizations.tenant_id', tenant.id).order('name')),
     ])
 
     const published: CalendarEntry[] = (pubRes.data || []).map((p: Publication) => ({
