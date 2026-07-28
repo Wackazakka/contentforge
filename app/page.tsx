@@ -134,7 +134,7 @@ export default function Home() {
             </div>
 
             {/* Right column — godkjenningskortet m/taxameter-lapp (ClaudeDesign, valgt variant) */}
-            <div style={{ flex: '1 1 380px', minWidth: 320, position: 'relative', paddingBottom: 120 }}>
+            <div className="vb-illu" style={{ flex: '1 1 380px', minWidth: 320, position: 'relative' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: 28, background: '#FFFDF8', border: '1px solid #E4DCCC', borderRadius: 24, boxShadow: '0 24px 60px -30px rgba(20,17,15,0.28)' }}>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
@@ -167,7 +167,7 @@ export default function Home() {
                   <span style={{ padding: '9px 16px', borderRadius: 999, border: '1px solid #C9D9F4', background: '#E7EEFB', fontFamily: HANKEN, fontSize: 15, color: '#1C1A16' }}>{t('ill2_talk')} <span style={{ color: '#3B5FA8', fontWeight: 600 }}>{t('ill2_talk_price')}</span></span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 14, background: '#14110F', marginRight: 220 }}>
+                <div className="vb-strip" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 14, background: '#14110F' }}>
                   <span aria-hidden="true" style={{ color: '#7FE0A8', fontSize: 13 }}>✓</span>
                   <span style={{ fontFamily: HANKEN, fontSize: 13.5, color: '#F6F1E7', whiteSpace: 'nowrap' }}>{t('ill2_approve')}</span>
                 </div>
@@ -175,7 +175,7 @@ export default function Home() {
               </div>
 
               {/* Taxameter-lappen — utenfor nedre høyre hjørne */}
-              <div style={{ position: 'absolute', right: -16, bottom: 0, width: 'min(252px, 68%)', background: '#FFFDF8', border: '1px solid #EDE5D6', borderRadius: 20, padding: '18px 22px', boxShadow: '0 24px 60px -30px rgba(20,17,15,0.35)' }}>
+              <div className="vb-taxi" style={{ background: '#FFFDF8', border: '1px solid #EDE5D6', borderRadius: 20, padding: '18px 22px', boxShadow: '0 24px 60px -30px rgba(20,17,15,0.35)' }}>
                 <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478', marginBottom: 10 }}>{t('ill2_taxi')}</div>
                 {[
                   { l: t('ill2_paalopt'), v: t('ill2_paalopt_v') },

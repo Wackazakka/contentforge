@@ -264,3 +264,15 @@ body {
   0%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(0.55); }
 }
+
+/* Hero-illustrasjonen: taxameter-lappen henger utenfor hjørnet på brede
+   skjermer, legger seg under kortet på smale (unngår horisontal overflow) */
+.vb-illu { padding-bottom: 120px; }
+.vb-strip { margin-right: 220px; }
+.vb-strip > span:last-child { white-space: nowrap; }
+.vb-taxi { position: absolute; right: -16px; bottom: 0; width: min(252px, 68%); }
+@media (max-width: 760px) {
+  .vb-illu { padding-bottom: 0; }
+  .vb-strip { margin-right: 0; }
+  .vb-taxi { position: static; width: 100%; margin-top: 14px; }
+}
