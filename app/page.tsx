@@ -143,8 +143,27 @@ export default function Home() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 20 }}>
-                  <div style={{ width: '38%', maxWidth: 190, flexShrink: 0, aspectRatio: '9 / 16', borderRadius: 14, background: 'linear-gradient(165deg, #DFE3F7, #D7D5F0)', display: 'flex', alignItems: 'flex-end', padding: 12 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: '#6A6C95' }}>{t('ill2_img')}</span>
+                  <div className="vb-slides" style={{ width: '38%', maxWidth: 190, flexShrink: 0, aspectRatio: '9 / 16', borderRadius: 14, position: 'relative', overflow: 'hidden' }}>
+                    <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #DFE3F7, #D7D5F0)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 46, height: 46, borderRadius: 999, background: 'rgba(255,253,248,0.9)', color: '#1C1A16', fontSize: 15 }}>▶</span>
+                      <span className="vb-slide-cap" style={{ color: '#6A6C95' }}>{t('ill2_s_video')}</span>
+                    </div>
+                    <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #F0E4FA, #E2D3F4)', flexDirection: 'column', gap: 8 }}>
+                      <span style={{ width: 52, height: 52, borderRadius: 999, background: '#B092DC' }} />
+                      <span style={{ width: 92, height: 40, borderRadius: '20px 20px 8px 8px', background: '#C4ABE6' }} />
+                      <span className="vb-slide-cap" style={{ color: '#7A5EA8' }}>{t('ill2_s_avatar')}</span>
+                    </div>
+                    <div className="vb-slide" style={{ background: '#14110F', gap: 3 }}>
+                      <i style={{ width: 4, height: '38%', borderRadius: 3, background: '#2A93E0' }} /><i style={{ width: 4, height: '66%', borderRadius: 3, background: '#3A85E4' }} /><i style={{ width: 4, height: '92%', borderRadius: 3, background: '#5273E6' }} /><i style={{ width: 4, height: '58%', borderRadius: 3, background: '#7658E9' }} /><i style={{ width: 4, height: '80%', borderRadius: 3, background: '#8B49E8' }} /><i style={{ width: 4, height: '46%', borderRadius: 3, background: '#7658E9' }} /><i style={{ width: 4, height: '62%', borderRadius: 3, background: '#5273E6' }} />
+                      <span className="vb-slide-cap" style={{ color: '#9FC9F5' }}>{t('ill2_s_radio')}</span>
+                    </div>
+                    <div className="vb-slide" style={{ background: '#F1EBDF', flexDirection: 'column', gap: 7 }}>
+                      <span style={{ width: '64%', height: 5, borderRadius: 3, background: '#C9BFA9' }} />
+                      <span style={{ width: '72%', height: 4, borderRadius: 3, background: '#DDD5C6' }} />
+                      <span style={{ width: '58%', height: 4, borderRadius: 3, background: '#DDD5C6' }} />
+                      <span style={{ width: '66%', height: 4, borderRadius: 3, background: '#DDD5C6' }} />
+                      <span className="vb-slide-cap" style={{ color: '#6B655C' }}>{t('ill2_s_article')}</span>
+                    </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478' }}>{t('ill2_vo')}</span>

@@ -151,7 +151,11 @@
     "ill2_bev": "Bevegelse × 2",
     "ill2_bev_v": "~8,00 kr",
     "ill2_next": "Neste produksjon",
-    "ill2_next_v": "~44 kr"
+    "ill2_next_v": "~44 kr",
+    "ill2_s_video": "VIDEO",
+    "ill2_s_avatar": "AVATAR",
+    "ill2_s_radio": "RADIOSPOT",
+    "ill2_s_article": "ARTIKKEL"
   },
   "login": {
     "title": "Velkommen tilbake",
