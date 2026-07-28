@@ -60,7 +60,7 @@ export async function PATCH(request: Request) {
       // Fargeprofil: kun CSS-variabler med hex-verdier slipper gjennom
       const clean: Record<string, string> = {}
       for (const [k, v] of Object.entries(colors || {})) {
-        if (/^--[a-z0-9-]+$/.test(k) && /^#[0-9a-fA-F]{3,8}$/.test(String(v))) clean[k] = String(v)
+        if (/^--[a-z0-9-]+$/.test(k) && (/^#[0-9a-fA-F]{3,8}$/.test(String(v)) || /^\d{1,3},\d{1,3},\d{1,3}$/.test(String(v)))) clean[k] = String(v)
       }
       patch.colors = clean
     }

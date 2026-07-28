@@ -18,7 +18,7 @@ function PlayDot() {
     <div
       style={{
         width: 30, height: 30, borderRadius: '50%',
-        background: 'rgba(255,253,248,0.78)', border: '1px solid rgba(217,82,28,0.35)',
+        background: 'rgba(255,253,248,0.78)', border: '1px solid rgba(var(--glow,217,82,28),0.35)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
@@ -96,7 +96,7 @@ export default function Home() {
             style={{
               position: 'absolute', top: -70, left: '50%', transform: 'translateX(-50%)',
               width: 'min(880px,92%)', height: 480,
-              background: 'radial-gradient(48% 50% at 50% 34%,rgba(217,82,28,0.13),rgba(217,82,28,0.03) 55%,transparent 72%)',
+              background: 'radial-gradient(48% 50% at 50% 34%,rgba(var(--glow,217,82,28),0.13),rgba(var(--glow,217,82,28),0.03) 55%,transparent 72%)',
               pointerEvents: 'none',
             }}
           />
@@ -106,7 +106,7 @@ export default function Home() {
             <div style={{ flex: '1.1 1 380px', minWidth: 300 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 13px', border: '1px solid var(--ember-tint-border)', borderRadius: 999, background: 'var(--ember-tint-bg)', marginBottom: 24 }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ember)' }} />
-                <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 500, letterSpacing: '0.12em', color: '#B8431A' }}>{t('badge')}</span>
+                <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 500, letterSpacing: '0.12em', color: 'var(--orb-lo,#B8431A)' }}>{t('badge')}</span>
               </div>
               <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(42px,5.8vw,70px)', lineHeight: 1.04, letterSpacing: '-0.01em', color: 'var(--ink)', overflowWrap: 'break-word', margin: '0 0 20px' }}>
                 {t('hero_a')}<span style={{ fontStyle: 'italic', color: 'var(--ember)' }}>{t('hero_em')}</span>
@@ -135,7 +135,7 @@ export default function Home() {
 
             {/* Right column — forge visualization */}
             <div style={{ flex: '1 1 380px', minWidth: 320, position: 'relative' }}>
-              <div aria-hidden="true" style={{ position: 'absolute', inset: '-8% -6%', background: 'radial-gradient(50% 44% at 50% 40%,rgba(217,82,28,0.16),transparent 70%)', pointerEvents: 'none' }} />
+              <div aria-hidden="true" style={{ position: 'absolute', inset: '-8% -6%', background: 'radial-gradient(50% 44% at 50% 40%,rgba(var(--glow,217,82,28),0.16),transparent 70%)', pointerEvents: 'none' }} />
               <div style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 22, padding: 22, boxShadow: '0 40px 70px -45px rgba(70,45,20,0.4)' }}>
 
                 <div style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.16em', color: '#978B79', marginBottom: 8 }}>{t('brief_label')}</div>
@@ -145,14 +145,14 @@ export default function Home() {
                 </div>
 
                 <div style={{ position: 'relative', height: 30, display: 'flex', justifyContent: 'center' }}>
-                  <div style={{ width: 2, height: '100%', background: 'linear-gradient(rgba(217,82,28,0.12),rgba(217,82,28,0.6))' }} />
-                  <div className="cf-anim-spark" style={{ position: 'absolute', left: '50%', marginLeft: -3, width: 6, height: 6, borderRadius: '50%', background: '#F0954E', boxShadow: '0 0 9px 2px rgba(217,82,28,0.6)' }} />
+                  <div style={{ width: 2, height: '100%', background: 'linear-gradient(rgba(var(--glow,217,82,28),0.12),rgba(var(--glow,217,82,28),0.6))' }} />
+                  <div className="cf-anim-spark" style={{ position: 'absolute', left: '50%', marginLeft: -3, width: 6, height: 6, borderRadius: '50%', background: '#F0954E', boxShadow: '0 0 9px 2px rgba(var(--glow,217,82,28),0.6)' }} />
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9 }}>
                   <div style={{ position: 'relative', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div className="cf-anim-glow" style={{ position: 'absolute', inset: -15, borderRadius: '50%', background: 'radial-gradient(circle,rgba(217,82,28,0.4),transparent 66%)' }} />
-                    <div className="cf-anim-pulse" style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', background: 'radial-gradient(circle at 38% 30%,#FFC079,#E8632B 52%,#B8431A)', boxShadow: 'inset 0 0 16px rgba(255,210,150,0.6),0 0 26px rgba(217,82,28,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="cf-anim-glow" style={{ position: 'absolute', inset: -15, borderRadius: '50%', background: 'radial-gradient(circle,rgba(var(--glow,217,82,28),0.4),transparent 66%)' }} />
+                    <div className="cf-anim-pulse" style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', background: 'radial-gradient(circle at 38% 30%,var(--orb-hi,#FFC079),var(--orb-mid,#E8632B) 52%,var(--orb-lo,#B8431A))', boxShadow: 'inset 0 0 16px rgba(255,210,150,0.6),0 0 26px rgba(var(--glow,217,82,28),0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <svg width="27" height="27" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5 Q17.8 14.2 27 16 Q17.8 17.8 16 27 Q14.2 17.8 5 16 Q14.2 14.2 16 5 Z" fill="#FFF6E8" /></svg>
                     </div>
                   </div>
@@ -160,15 +160,15 @@ export default function Home() {
                 </div>
 
                 <div style={{ position: 'relative', height: 26, display: 'flex', justifyContent: 'center' }}>
-                  <div style={{ width: 2, height: '100%', background: 'linear-gradient(rgba(217,82,28,0.6),rgba(217,82,28,0.1))' }} />
+                  <div style={{ width: 2, height: '100%', background: 'linear-gradient(rgba(var(--glow,217,82,28),0.6),rgba(var(--glow,217,82,28),0.1))' }} />
                 </div>
 
                 <div style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.16em', color: '#978B79', marginBottom: 10 }}>{t('output_label')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   {[
-                    { ratio: '16:9', bg: 'linear-gradient(135deg,#F1DDC4,#E6B58E)' },
-                    { ratio: '9:16', bg: 'linear-gradient(135deg,#EFD9CE,#E0A98F)' },
-                    { ratio: '1:1', bg: 'linear-gradient(135deg,#EFE1C5,#DFC089)' },
+                    { ratio: '16:9', bg: 'linear-gradient(135deg,var(--tile1-a,#F1DDC4),var(--tile1-b,#E6B58E))' },
+                    { ratio: '9:16', bg: 'linear-gradient(135deg,var(--tile2-a,#EFD9CE),var(--tile2-b,#E0A98F))' },
+                    { ratio: '1:1', bg: 'linear-gradient(135deg,var(--tile3-a,#EFE1C5),var(--tile3-b,#DFC089))' },
                   ].map((tile) => (
                     <div key={tile.ratio} style={{ position: 'relative', border: '1px solid #E6DDCC', borderRadius: 11, overflow: 'hidden', height: 76, background: tile.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ position: 'absolute', top: 7, left: 7, fontFamily: MONO, fontSize: 9, letterSpacing: '0.08em', color: '#5A3B22', background: 'rgba(255,253,248,0.75)', padding: '2px 6px', borderRadius: 5 }}>{tile.ratio}</span>
@@ -176,7 +176,7 @@ export default function Home() {
                     </div>
                   ))}
                   <div style={{ position: 'relative', border: '1px solid #E6DDCC', borderRadius: 11, overflow: 'hidden', height: 76, background: '#F7F1E6', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, padding: '0 14px' }}>
-                    <span style={{ position: 'absolute', top: 7, left: 7, fontFamily: MONO, fontSize: 9, letterSpacing: '0.08em', color: '#B8431A', background: '#F3E0D2', padding: '2px 6px', borderRadius: 5 }}>{t('out_article')}</span>
+                    <span style={{ position: 'absolute', top: 7, left: 7, fontFamily: MONO, fontSize: 9, letterSpacing: '0.08em', color: 'var(--orb-lo,#B8431A)', background: '#F3E0D2', padding: '2px 6px', borderRadius: 5 }}>{t('out_article')}</span>
                     <div style={{ height: 5, width: '86%', borderRadius: 3, background: 'rgba(28,26,22,0.16)', marginTop: 14 }} />
                     <div style={{ height: 5, width: '62%', borderRadius: 3, background: 'rgba(28,26,22,0.10)' }} />
                     <div style={{ height: 5, width: '74%', borderRadius: 3, background: 'rgba(28,26,22,0.10)' }} />
@@ -221,7 +221,7 @@ export default function Home() {
               },
             ].map((f) => (
               <div key={f.t} className="cf-card" style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 30, overflow: 'hidden', boxShadow: '0 1px 2px rgba(70,45,20,0.04)' }}>
-                <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(217,82,28,0.5),transparent)' }} />
+                <div aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(var(--glow,217,82,28),0.5),transparent)' }} />
                 <div style={{ width: 48, height: 48, borderRadius: 13, background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>{f.icon}</div>
                 <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 11px' }}>{f.t}</h3>
                 <p style={{ fontFamily: HANKEN, fontSize: 15.5, lineHeight: 1.6, color: '#6B6358', margin: 0 }}>{f.d}</p>
@@ -248,8 +248,8 @@ export default function Home() {
                 <div key={tier.name} style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 20, padding: '30px 28px', boxShadow: '0 2px 6px rgba(70,45,20,0.05)' }}>
                   {tier.popular && (
                     <>
-                      <div aria-hidden="true" style={{ position: 'absolute', inset: -1, borderRadius: 20, border: '1.5px solid #E0742F', boxShadow: '0 0 40px -10px rgba(217,82,28,0.4)', pointerEvents: 'none' }} />
-                      <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#FFF4E8', background: 'linear-gradient(135deg,#E8632B,var(--ember-deep))', padding: '5px 13px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('popular')}</div>
+                      <div aria-hidden="true" style={{ position: 'absolute', inset: -1, borderRadius: 20, border: '1.5px solid #E0742F', boxShadow: '0 0 40px -10px rgba(var(--glow,217,82,28),0.4)', pointerEvents: 'none' }} />
+                      <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontFamily: MONO, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#FFF4E8', background: 'linear-gradient(135deg,var(--orb-mid,#E8632B),var(--ember-deep))', padding: '5px 13px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t('popular')}</div>
                     </>
                   )}
                   <div style={{ position: 'relative' }}>
