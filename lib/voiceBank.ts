@@ -105,6 +105,46 @@ export async function getAvailableVoiceActors(tenantId: string): Promise<VoiceAc
 }
 
 /**
+ * Preview-royalty: når kunden EKSPERIMENTERER med en skuespillerstemme i
+ * editoren (tester tekster), får skuespilleren en liten tegnbasert betaling —
+ * på nivå med ElevenLabs' Voice Library-satser. Per 1000 tegn, forholdsmessig.
+ * Kan overstyres per skuespiller via rates['preview'] (tolkes som per 1000 tegn).
+ */
+export const PREVIEW_ROYALTY_PER_1000 = { actor: 0.35, customer: 0.7 }
+
+export async function logPreviewRoyalty(e: {
+  elevenlabsVoiceId?: string | null
+  usedByTenantId?: string | null
+  chars: number
+  draftId?: string | null
+  meta?: Record<string, unknown>
+}): Promise<{ actorNok: number; customerNok: number } | null> {
+  try {
+    if (!e.elevenlabsVoiceId || !e.usedByTenantId || !(e.chars > 0)) return null
+    const actors = await getAvailableVoiceActors(e.usedByTenantId)
+    const actor = actors.find((a) => a.elevenlabs_voice_id === e.elevenlabsVoiceId)
+    if (!actor) return null
+    const o = actor.rates?.preview
+    const perActor = Number(o?.actor_rate_nok ?? PREVIEW_ROYALTY_PER_1000.actor)
+    const perCustomer = Number(o?.customer_price_nok ?? PREVIEW_ROYALTY_PER_1000.customer)
+    const actorNok = Math.max(0.01, Math.round((e.chars / 1000) * perActor * 100) / 100)
+    const customerNok = Math.max(0.02, Math.round((e.chars / 1000) * perCustomer * 100) / 100)
+    await admin().from('voice_usage_events').insert({
+      actor_id: actor.id,
+      used_by_tenant_id: e.usedByTenantId,
+      draft_id: e.draftId ?? null,
+      actor_rate_nok: actorNok,
+      customer_price_nok: customerNok,
+      asset_type: 'voice',
+      meta: { kind: 'preview', chars: e.chars, ...(e.meta ?? {}) },
+    })
+    return { actorNok, customerNok }
+  } catch {
+    return null
+  }
+}
+
+/**
  * Logg bruk av en skuespillers ANSIKT (Flux LoRA-karakter) i en produksjon.
  * Kobling: voice_actors.face_character_id → user_characters.id. Takst =
  * 'face'-taksten hvis satt, ellers standardsatsene. Samme hovedbok som

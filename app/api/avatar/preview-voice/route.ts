@@ -47,6 +47,17 @@ export async function POST(request: NextRequest) {
     }
 
     const audioBuffer = await res.arrayBuffer()
+
+    // Skuespiller-preview → liten tegnbasert royalty (tenant fra host)
+    try {
+      const { getTenant } = await import('@/lib/tenantServer')
+      const tenant = await getTenant()
+      if (tenant.id !== 'root') {
+        const { logPreviewRoyalty } = await import('@/lib/voiceBank')
+        await logPreviewRoyalty({ elevenlabsVoiceId: voiceId, usedByTenantId: tenant.id, chars: String(script).length, meta: { source: 'avatar_preview' } })
+      }
+    } catch { /* royalty velter aldri preview */ }
+
     return new NextResponse(audioBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',

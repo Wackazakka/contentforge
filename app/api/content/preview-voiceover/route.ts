@@ -56,6 +56,33 @@ export async function POST(request: Request) {
       logUsageEvent({ draftId, eventType: 'voiceover', costNok: C2.voiceoverPreview })
     }
 
+    // Skuespiller-preview? Da får skuespilleren en liten tegnbasert royalty
+    // (à la ElevenLabs-satsene), og kundens taxameter belastes tilsvarende.
+    let actorExtraNok = 0
+    if (draftId && voiceId) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+        const { data: d } = await supabase.from('production_drafts').select('product_id').eq('id', draftId).single()
+        if (d?.product_id) {
+          const { getProductTenant, logUsageEvent: logUE } = await import('@/lib/tenantBilling')
+          const pt = await getProductTenant(d.product_id)
+          if (pt.tenantId) {
+            const { logPreviewRoyalty } = await import('@/lib/voiceBank')
+            const r = await logPreviewRoyalty({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, chars: String(text).length, draftId })
+            if (r) {
+              actorExtraNok = r.customerNok
+              await supabase.rpc('add_draft_cost', { p_draft_id: draftId, p_amount: r.customerNok })
+              logUE({ draftId, eventType: 'voiceover_actor_preview', costNok: r.customerNok })
+            }
+          }
+        }
+      } catch { /* royalty velter aldri preview */ }
+    }
+
     // Upload to R2
     const r2 = new S3Client({
       region: 'auto',
@@ -82,7 +109,7 @@ export async function POST(request: Request) {
     const url = `${R2_PUBLIC_URL}/${key}`
     console.log(`[preview-voiceover] Success: ${url}`)
 
-    return NextResponse.json({ url })
+    return NextResponse.json({ url, actorExtraNok })
   } catch (err: any) {
     console.error(`[preview-voiceover] Error:`, err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

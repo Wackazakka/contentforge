@@ -543,7 +543,7 @@ export default function DraftPage() {
       })
       const data = await res.json()
       if (data.url) {
-        addCost(COSTS_NOK.voiceoverPreview)
+        addCost(COSTS_NOK.voiceoverPreview + (Number(data.actorExtraNok) || 0))
         setVoicePreviews((prev) => ({ ...prev, [index]: data.url }))
 
         // Persist R2 URL on the segment so production can reuse the approved file
