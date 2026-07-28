@@ -24,9 +24,12 @@ export default async function ForDegPage() {
     <div>
       {/* 1. Header */}
       <header className="fd-header">
-        <span className="fd-logo-box">
-          {tenant.icon_url ? <img src={tenant.icon_url} alt="" /> : 'V'}
-        </span>
+        {tenant.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={tenant.logo_url} alt="" className="fd-logo-img" />
+        ) : (
+          <span className="fd-logo-box">V</span>
+        )}
         <span className="fd-wordmark">VoiceBank</span>
         <span className="fd-header-pill">FOR PRIVAT OG FORENING</span>
         <nav className="fd-nav">
