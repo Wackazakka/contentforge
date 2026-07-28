@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
-import { CREDIT_PACKAGES, creditRate, creditsFor } from '@/lib/creditPackages'
+import { CREDIT_PACKAGES } from '@/lib/creditPackages'
 
 // Selvbetjent kredittkjøp for white-label-sluttkunder: se saldo, kjøp pakke.
 // Saldoen trekkes automatisk for hver produksjon (vises også i taxameteret).
@@ -94,10 +94,10 @@ export default function CreditsPage() {
               disabled={!!busy}
               className="bg-white rounded-xl border border-gray-200 p-5 text-left hover:border-[var(--ember-deep)] disabled:opacity-50 transition-colors"
             >
-              <div className="text-2xl font-bold text-gray-900">{creditsFor(p.amount).toLocaleString('nb-NO')} kreditter</div>
-              <div className="text-sm text-gray-500 mb-1">for {nok(p.amount)}</div>
+              <div className="text-2xl font-bold text-gray-900">{nok(p.amount)}</div>
+              <div className="text-base font-semibold text-gray-700 mb-1">{p.credits.toLocaleString('nb-NO')} kreditter</div>
               <div className={`text-sm font-medium mb-2 ${p.amount >= 100000 ? 'text-green-700' : 'text-gray-500'}`}>
-                kurs {creditRate(p.amount).toFixed(3).replace('.', ',')} kr/kreditt{p.amount >= 100000 ? ' — beste kurs' : ''}
+                kurs {(p.amount / p.credits).toFixed(3).replace('.', ',')} kr/kreditt{p.amount >= 100000 ? ' — beste kurs' : ''}
               </div>
               <div className="text-sm text-[var(--ember-deep)] font-semibold">
                 {busy === p.id ? 'Åpner betaling …' : 'Kjøp →'}

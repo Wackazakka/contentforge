@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const { packageId } = await request.json()
     const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId)
     if (!pkg) return NextResponse.json({ error: 'Ukjent pakke' }, { status: 400 })
-    const credits = creditsFor(pkg.amount)
+    const credits = pkg.credits
     const ledgerNok = Math.round(credits * CREDIT_VALUE_NOK * 100) / 100 // saldoverdi (katalogkurs 0,10)
 
     const supabase = admin()
@@ -56,11 +56,11 @@ export async function POST(request: Request) {
         price_data: {
           currency: 'nok',
           unit_amount: pkg.amount * 100,
-          product_data: { name: `${credits.toLocaleString('nb-NO')} kreditter (kurs ${creditRate(pkg.amount).toFixed(3).replace('.', ',')} kr/kreditt)` },
+          product_data: { name: `${credits.toLocaleString('nb-NO')} kreditter (kurs ${(pkg.amount / pkg.credits).toFixed(3).replace('.', ',')} kr/kreditt)` },
         },
         quantity: 1,
       }],
-      metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(ledgerNok), bonus_nok: '0', paid_nok: String(pkg.amount), credits: String(credits), rate: creditRate(pkg.amount).toFixed(4) },
+      metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(ledgerNok), bonus_nok: '0', paid_nok: String(pkg.amount), credits: String(credits), rate: (pkg.amount / pkg.credits).toFixed(4) },
       success_url: `${origin}/dashboard/credits?paid=1`,
       cancel_url: `${origin}/dashboard/credits`,
     })
