@@ -259,10 +259,14 @@ export default function DraftPage() {
       .then((r) => r.json())
       .then((d) => setUserChars((d.characters || []).filter((c: any) => c.status === 'ready')))
       .catch(() => {})
-    fetch('/api/voice-actors?kind=video')
-      .then((r) => r.json())
-      .then((d) => setActorVoices(d.voices || []))
-      .catch(() => {})
+    ;(async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        const d = await fetch('/api/voice-actors?kind=video', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+        setActorVoices(d.voices || [])
+      } catch { /* ingen skuespillere å vise */ }
+    })()
   }, [])
   const [saldo, setSaldo] = useState<number | null>(null)
   useEffect(() => {

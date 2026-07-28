@@ -65,7 +65,14 @@ export default function AvatarVideoPage() {
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID)
   const [actorVoices, setActorVoices] = useState<Array<{ voiceId: string; name: string; pricePerUseNok: number; previewUrl: string | null }>>([])
   useEffect(() => {
-    fetch('/api/voice-actors?kind=avatar').then((r) => r.json()).then((d) => setActorVoices(d.voices || [])).catch(() => {})
+    ;(async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        const d = await fetch('/api/voice-actors?kind=avatar', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+        setActorVoices(d.voices || [])
+      } catch { /* ingen skuespillere å vise */ }
+    })()
   }, [])
   const [saldo, setSaldo] = useState<number | null>(null)
   useEffect(() => {

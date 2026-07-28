@@ -18,6 +18,10 @@ export interface ApprovalMode {
 // = dagens oppførsel; byrået setter 'review' der skuespilleravtalen krever det).
 export async function getApprovalMode(actorId: string, organizationId: string): Promise<ApprovalMode> {
   try {
+    // Voice Library-delte stemmer: åpen distribusjon er allerede samtykket —
+    // godkjenning per bruk gjelder ikke (koblingen står i skuespilleravtalen)
+    const { data: a } = await admin().from('voice_actors').select('library_enabled').eq('id', actorId).single()
+    if (a?.library_enabled) return { mode: 'auto', timeoutHours: 24 }
     const { data } = await admin()
       .from('actor_approval_settings')
       .select('mode, timeout_hours')

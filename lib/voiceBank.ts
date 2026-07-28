@@ -88,7 +88,7 @@ export async function getAvailableVoiceActors(tenantId: string): Promise<VoiceAc
       .from('voice_actors')
       .select('*')
       .eq('is_active', true)
-      .or(`owner_tenant_id.in.(${chain.join(',')}),is_exclusive.eq.false`)
+      .or(`owner_tenant_id.in.(${chain.join(',')}),is_exclusive.eq.false,library_enabled.eq.true`)
       .order('name')
     if (!error) return (data || []) as VoiceActor[]
     // is_exclusive-kolonnen ikke kjørt ennå → fall tilbake til ren kjede-arv

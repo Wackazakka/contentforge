@@ -13,7 +13,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ voices: [] })
     }
     const kind = new URL(request.url).searchParams.get('kind')
-    const actors = await getAvailableVoiceActors(tenant.id)
+    let actors = await getAvailableVoiceActors(tenant.id)
+
+    // Drop-in-porten: uinnloggede ser kun skuespillere som har åpnet for
+    // Voice Library (= samtykket til åpen distribusjon). Innloggede kunder
+    // ser hele bankens utvalg.
+    let loggedIn = false
+    const auth = request.headers.get('authorization')
+    if (auth?.startsWith('Bearer ')) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '')
+        const { data } = await sb.auth.getUser(auth.slice(7))
+        loggedIn = !!data?.user
+      } catch { /* behandles som drop-in */ }
+    }
+    if (!loggedIn) actors = actors.filter((a) => (a as { library_enabled?: boolean }).library_enabled === true)
     const pf = Number(tenant.price_multiplier) || 1
     return NextResponse.json({
       voices: actors.map((a) => ({
