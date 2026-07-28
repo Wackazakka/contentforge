@@ -200,6 +200,16 @@ function PublishPage() {
     const fetchConnections = async () => {
       try {
         setLoading(true)
+        // Koblinger vises kun der brukeren faktisk hører hjemme: har brukeren
+        // ingen organisasjon i DETTE domenets tenant, vises ingen kontoer
+        // (hindrer at CenterForge-koblinger blir med over til white-labels)
+        let oq = supabase.from('organizations').select('id')
+        oq = tenant.slug === 'centerforge' ? oq.or(`tenant_id.eq.${tenant.id},tenant_id.is.null`) : oq.eq('tenant_id', tenant.id)
+        const { data: tenantOrgs } = await oq
+        if (!tenantOrgs || tenantOrgs.length === 0) {
+          setConnections([])
+          return
+        }
         const { data, error } = await supabase
           .from('social_connections')
           .select('*')
