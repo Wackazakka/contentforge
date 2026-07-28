@@ -156,7 +156,7 @@ export default function Home() {
                       <svg width="27" height="27" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5 Q17.8 14.2 27 16 Q17.8 17.8 16 27 Q14.2 17.8 5 16 Q14.2 14.2 16 5 Z" fill="#FFF6E8" /></svg>
                     </div>
                   </div>
-                  <div style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.16em', color: '#C0531F' }}>{t('forge_label')}…</div>
+                  <div style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.16em', color: 'var(--ember-alt,#C0531F)' }}>{t('forge_label')}…</div>
                 </div>
 
                 <div style={{ position: 'relative', height: 26, display: 'flex', justifyContent: 'center' }}>
