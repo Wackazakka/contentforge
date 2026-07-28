@@ -119,7 +119,17 @@
     "pf1_d": "Hele plattformen på ditt domene, med dine farger og dine priser — i så mange ledd du vil. Partnerne dine kan selge videre til sine kunder.",
     "pf1_cta": "Bli white-label-partner",
     "pf2_t": "API for dine egne verktøy",
-    "pf2_d": "Bruk stemmene og ansiktene fra dine egne systemer med én API-nøkkel per kunde. All bruk logges, prises og kan stenges på sekundet."
+    "pf2_d": "Bruk stemmene og ansiktene fra dine egne systemer med én API-nøkkel per kunde. All bruk logges, prises og kan stenges på sekundet.",
+    "ill_label_voice": "STEMME",
+    "ill_voice_name": "Øyvind — dyp og rolig",
+    "ill_voice_note": "Lisensiert skuespiller · hver bruk loggføres",
+    "ill_divider": "SAMME PRODUKSJON, TRE FORMAT",
+    "ill_cap_916": "REELS · SHORTS",
+    "ill_cap_169": "YOUTUBE",
+    "ill_cap_11": "FEED",
+    "ill_pill_article": "ARTIKKEL",
+    "ill_ledger": "Hver bruk loggført med sats og tidspunkt",
+    "ill_uses": "{count} BRUK"
   },
   "login": {
     "title": "Velkommen tilbake",

@@ -133,54 +133,70 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right column — forge visualization */}
+            {/* Right column — stemme → tre format → hovedbok (ClaudeDesign-handoff) */}
             <div style={{ flex: '1 1 380px', minWidth: 320, position: 'relative' }}>
-              <div aria-hidden="true" style={{ position: 'absolute', inset: '-8% -6%', background: 'radial-gradient(50% 44% at 50% 40%,rgba(var(--glow,217,82,28),0.16),transparent 70%)', pointerEvents: 'none' }} />
-              <div style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 22, padding: 22, boxShadow: '0 40px 70px -45px rgba(70,45,20,0.4)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: 28, background: '#FFFDF8', border: '1px solid #E4DCCC', borderRadius: 20, boxShadow: '0 24px 60px -30px rgba(20,17,15,0.28)' }}>
 
-                <div style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.16em', color: '#978B79', marginBottom: 8 }}>{t('brief_label')}</div>
-                <div style={{ background: '#F7F1E6', border: '1px solid #E6DDCC', borderRadius: 12, padding: '13px 15px', fontFamily: HANKEN, color: '#3A352C', fontSize: 13.5, lineHeight: 1.5 }}>
-                  {t('brief_text')}
-                  <span className="cf-anim-blink" style={{ display: 'inline-block', width: 2, height: 14, background: 'var(--ember)', marginLeft: 3, verticalAlign: -2 }} />
+                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478' }}>{t('ill_label_voice')}</span>
+
+                {/* Stemme-raden — speiler stemmevelgeren i produksjon */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', border: '1px solid #D8E3F6', borderRadius: 14, background: '#F7FAFF' }}>
+                  <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 999, background: '#14110F', color: '#FFFDF8', fontSize: 11, flexShrink: 0 }}>▶</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                    <span style={{ fontFamily: HANKEN, fontSize: 16, fontWeight: 600, color: '#14110F' }}>{t('ill_voice_name')}</span>
+                    <span style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B655C' }}>{t('ill_voice_note')}</span>
+                  </div>
+                  <div className="vb-wave" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 2, height: 26 }}>
+                    <b key={0} className="vb-wave-bar" style={{ width: 2, height: '40%', borderRadius: 2, background: '#2A93E0', animationDelay: '0ms' }} />
+                    <b key={1} className="vb-wave-bar" style={{ width: 2, height: '75%', borderRadius: 2, background: '#3A85E4', animationDelay: '80ms' }} />
+                    <b key={2} className="vb-wave-bar" style={{ width: 2, height: '100%', borderRadius: 2, background: '#5273E6', animationDelay: '160ms' }} />
+                    <b key={3} className="vb-wave-bar" style={{ width: 2, height: '55%', borderRadius: 2, background: '#7658E9', animationDelay: '240ms' }} />
+                    <b key={4} className="vb-wave-bar" style={{ width: 2, height: '85%', borderRadius: 2, background: '#8B49E8', animationDelay: '320ms' }} />
+                    <b key={5} className="vb-wave-bar" style={{ width: 2, height: '45%', borderRadius: 2, background: '#7658E9', animationDelay: '400ms' }} />
+                    <b key={6} className="vb-wave-bar" style={{ width: 2, height: '70%', borderRadius: 2, background: '#5273E6', animationDelay: '480ms' }} />
+                    <b key={7} className="vb-wave-bar" style={{ width: 2, height: '35%', borderRadius: 2, background: '#2A93E0', animationDelay: '560ms' }} />
+                  </div>
                 </div>
 
-                <div style={{ position: 'relative', height: 30, display: 'flex', justifyContent: 'center' }}>
-                  <div style={{ width: 2, height: '100%', background: 'linear-gradient(rgba(var(--glow,217,82,28),0.12),rgba(var(--glow,217,82,28),0.6))' }} />
-                  <div className="cf-anim-spark" style={{ position: 'absolute', left: '50%', marginLeft: -3, width: 6, height: 6, borderRadius: '50%', background: '#F0954E', boxShadow: '0 0 9px 2px rgba(var(--glow,217,82,28),0.6)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ flex: 1, height: 1, background: '#EDE5D6' }} />
+                  <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.12em', color: '#8A8478' }}>{t('ill_divider')}</span>
+                  <div style={{ flex: 1, height: 1, background: '#EDE5D6' }} />
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9 }}>
-                  <div style={{ position: 'relative', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div className="cf-anim-glow" style={{ position: 'absolute', inset: -15, borderRadius: '50%', background: 'radial-gradient(circle,rgba(var(--glow,217,82,28),0.4),transparent 66%)' }} />
-                    <div className="cf-anim-pulse" style={{ position: 'relative', width: 64, height: 64, borderRadius: '50%', background: 'radial-gradient(circle at 38% 30%,var(--orb-hi,#FFC079),var(--orb-mid,#E8632B) 52%,var(--orb-lo,#B8431A))', boxShadow: 'inset 0 0 16px rgba(255,210,150,0.6),0 0 26px rgba(var(--glow,217,82,28),0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="27" height="27" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5 Q17.8 14.2 27 16 Q17.8 17.8 16 27 Q14.2 17.8 5 16 Q14.2 14.2 16 5 Z" fill="#FFF6E8" /></svg>
+                {/* Format-rutene — ekte aspect ratios */}
+                <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: 151, flexShrink: 0, aspectRatio: '9 / 16', padding: 10, borderRadius: 14, background: 'linear-gradient(150deg, #E7DDF9, #DBCDF5)' }}>
+                    <span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.85)', fontFamily: MONO, fontSize: 10, color: '#6B3FB0' }}>9:16</span>
+                    <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.06em', color: '#5A4680' }}>{t('ill_cap_916')}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', aspectRatio: '16 / 9', padding: 10, borderRadius: 14, background: 'linear-gradient(150deg, #DCE7FA, #CFDCF6)' }}>
+                      <span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.85)', fontFamily: MONO, fontSize: 10, color: '#3B5FA8' }}>16:9</span>
+                      <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.06em', color: '#46507A' }}>{t('ill_cap_169')}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, flex: 1 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: 96, flexShrink: 0, aspectRatio: '1 / 1', padding: 10, borderRadius: 14, background: 'linear-gradient(150deg, #DFE9F6, #E4DEF3)' }}>
+                        <span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.85)', fontFamily: MONO, fontSize: 10, color: '#46507A' }}>1:1</span>
+                        <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.06em', color: '#46507A' }}>{t('ill_cap_11')}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, minWidth: 0, padding: 10, borderRadius: 14, background: '#F1EBDF' }}>
+                        <span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: '#FFFDF8', fontFamily: MONO, fontSize: 10, color: '#6B655C' }}>{t('ill_pill_article')}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ height: 3, borderRadius: 2, background: '#DDD5C6' }} />
+                          <div style={{ height: 3, borderRadius: 2, background: '#DDD5C6' }} />
+                          <div style={{ height: 3, width: '58%', borderRadius: 2, background: '#DDD5C6' }} />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.16em', color: 'var(--ember-alt,#C0531F)' }}>{t('forge_label')}…</div>
                 </div>
 
-                <div style={{ position: 'relative', height: 26, display: 'flex', justifyContent: 'center' }}>
-                  <div style={{ width: 2, height: '100%', background: 'linear-gradient(rgba(var(--glow,217,82,28),0.6),rgba(var(--glow,217,82,28),0.1))' }} />
-                </div>
-
-                <div style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.16em', color: '#978B79', marginBottom: 10 }}>{t('output_label')}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {[
-                    { ratio: '16:9', bg: 'linear-gradient(135deg,var(--tile1-a,#F1DDC4),var(--tile1-b,#E6B58E))' },
-                    { ratio: '9:16', bg: 'linear-gradient(135deg,var(--tile2-a,#EFD9CE),var(--tile2-b,#E0A98F))' },
-                    { ratio: '1:1', bg: 'linear-gradient(135deg,var(--tile3-a,#EFE1C5),var(--tile3-b,#DFC089))' },
-                  ].map((tile) => (
-                    <div key={tile.ratio} style={{ position: 'relative', border: '1px solid #E6DDCC', borderRadius: 11, overflow: 'hidden', height: 76, background: tile.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ position: 'absolute', top: 7, left: 7, fontFamily: MONO, fontSize: 9, letterSpacing: '0.08em', color: '#5A3B22', background: 'rgba(255,253,248,0.75)', padding: '2px 6px', borderRadius: 5 }}>{tile.ratio}</span>
-                      <PlayDot />
-                    </div>
-                  ))}
-                  <div style={{ position: 'relative', border: '1px solid #E6DDCC', borderRadius: 11, overflow: 'hidden', height: 76, background: '#F7F1E6', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, padding: '0 14px' }}>
-                    <span style={{ position: 'absolute', top: 7, left: 7, fontFamily: MONO, fontSize: 9, letterSpacing: '0.08em', color: 'var(--orb-lo,#B8431A)', background: '#F3E0D2', padding: '2px 6px', borderRadius: 5 }}>{t('out_article')}</span>
-                    <div style={{ height: 5, width: '86%', borderRadius: 3, background: 'rgba(28,26,22,0.16)', marginTop: 14 }} />
-                    <div style={{ height: 5, width: '62%', borderRadius: 3, background: 'rgba(28,26,22,0.10)' }} />
-                    <div style={{ height: 5, width: '74%', borderRadius: 3, background: 'rgba(28,26,22,0.10)' }} />
-                  </div>
+                {/* Hovedbok-stripen — differensiatoren, holdes på én linje */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px', borderRadius: 14, background: '#14110F' }}>
+                  <span aria-hidden="true" style={{ color: '#7FE0A8', fontSize: 13 }}>✓</span>
+                  <span style={{ fontFamily: HANKEN, fontSize: 14, color: '#F6F1E7' }}>{t('ill_ledger')}</span>
+                  <span style={{ marginLeft: 'auto', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: 12, color: '#9FC9F5', fontVariantNumeric: 'tabular-nums' }}>{t('ill_uses', { count: 4 })}</span>
                 </div>
 
               </div>

@@ -119,7 +119,17 @@
     "pf1_d": "The whole platform on your domain, with your colors and your prices — in as many tiers as you like. Your partners can resell to their own clients.",
     "pf1_cta": "Become a white-label partner",
     "pf2_t": "API for your own tools",
-    "pf2_d": "Use the voices and faces from your own systems with one API key per client. Every use is logged, priced and can be shut off in seconds."
+    "pf2_d": "Use the voices and faces from your own systems with one API key per client. Every use is logged, priced and can be shut off in seconds.",
+    "ill_label_voice": "VOICE",
+    "ill_voice_name": "Øyvind — deep and calm",
+    "ill_voice_note": "Licensed actor · every use is logged",
+    "ill_divider": "ONE PRODUCTION, THREE FORMATS",
+    "ill_cap_916": "REELS · SHORTS",
+    "ill_cap_169": "YOUTUBE",
+    "ill_cap_11": "FEED",
+    "ill_pill_article": "ARTICLE",
+    "ill_ledger": "Every use logged with rate and timestamp",
+    "ill_uses": "{count} USES"
   },
   "login": {
     "title": "Welcome back",
