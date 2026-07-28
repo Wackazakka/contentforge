@@ -91,7 +91,7 @@ export async function getPartnerBalance(tenantId: string): Promise<number | null
  * chainPriceFactor i tenantServer, men oppslag per tenant-id — brukes ved
  * logging så kundeprisen fryses på raden selv om påslag endres senere.
  */
-async function chainFactorByTenantId(tenantId: string): Promise<number> {
+export async function chainFactorByTenantId(tenantId: string): Promise<number> {
   try {
     const supabase = admin()
     let product = 1

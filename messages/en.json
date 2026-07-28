@@ -8,7 +8,8 @@
     "credits": "{count} credits",
     "voicebank": "Voice bank",
     "buy_credits": "Credits",
-    "partners": "Partners"
+    "partners": "Partners",
+    "apikeys": "API keys"
   },
   "home": {
     "nav_pricing": "Pricing",

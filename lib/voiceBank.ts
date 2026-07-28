@@ -27,6 +27,8 @@ export interface VoiceActor {
   is_active: boolean
   // Eksklusiv (default): kun eierens eget kundenett. Av = delt med hele plattformen.
   is_exclusive?: boolean
+  // Kobling til skuespillerens ansikt (LoRA-karakter) — muliggjør /image i gatewayen
+  face_character_id?: string | null
 }
 
 // Sats for en gitt brukstype: typens egen takst hvis satt, ellers standard
