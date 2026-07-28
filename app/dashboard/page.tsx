@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from "next/link"
 import { useAuth } from "@/lib/authContext"
 import { getSupabase } from "@/lib/supabaseClient"
+import { useTenant } from '@/lib/tenantContext'
 import { useProducts } from "@/lib/useProducts"
 import { ProductModal } from "@/components/ProductModal"
 import { useTranslations } from 'next-intl'
@@ -31,6 +32,7 @@ export default function DashboardPage() {
   const [showProductModal, setShowProductModal] = useState(false)
   const [creatingProduct, setCreatingProduct] = useState(false)
 
+  const tenant = useTenant()
   const { products, loading: productsLoading, createProduct, deleteProduct } = useProducts(organizationId)
 
   useEffect(() => {
@@ -41,11 +43,14 @@ export default function DashboardPage() {
         const supabase = getSupabase()
         // Brukeren kan ha flere organisasjoner (f.eks. sentinel-org for anonyme
         // produksjoner) — velg den som faktisk har produktene, ellers den eldste
-        const { data: orgs, error } = await supabase
+        // Kun organisasjoner som hører til DETTE domenets tenant — produkter
+        // skal ikke følge brukeren på tvers av white-labels
+        let q = supabase
           .from('organizations')
           .select('id, name')
           .eq('owner_id', session.user.id)
-          .order('created_at', { ascending: true })
+        q = tenant.slug === 'centerforge' ? q.or(`tenant_id.eq.${tenant.id},tenant_id.is.null`) : q.eq('tenant_id', tenant.id)
+        const { data: orgs, error } = await q.order('created_at', { ascending: true })
 
         if (error) throw error
         const orgList: Array<{ id: string; name: string }> = orgs || []
