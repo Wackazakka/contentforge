@@ -134,7 +134,7 @@ export default function Home() {
             </div>
 
             {/* Right column — godkjenningskortet m/taxameter-lapp (ClaudeDesign, valgt variant) */}
-            <div style={{ flex: '1 1 380px', minWidth: 320, position: 'relative', paddingBottom: 56 }}>
+            <div style={{ flex: '1 1 380px', minWidth: 320, position: 'relative', paddingBottom: 120 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: 28, background: '#FFFDF8', border: '1px solid #E4DCCC', borderRadius: 24, boxShadow: '0 24px 60px -30px rgba(20,17,15,0.28)' }}>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
@@ -175,7 +175,7 @@ export default function Home() {
               </div>
 
               {/* Taxameter-lappen — utenfor nedre høyre hjørne */}
-              <div style={{ position: 'absolute', right: -18, bottom: 0, width: 'min(300px, 78%)', background: '#FFFDF8', border: '1px solid #EDE5D6', borderRadius: 20, padding: '18px 22px', boxShadow: '0 24px 60px -30px rgba(20,17,15,0.35)' }}>
+              <div style={{ position: 'absolute', right: -16, bottom: 0, width: 'min(285px, 74%)', background: '#FFFDF8', border: '1px solid #EDE5D6', borderRadius: 20, padding: '18px 22px', boxShadow: '0 24px 60px -30px rgba(20,17,15,0.35)' }}>
                 <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478', marginBottom: 10 }}>{t('ill2_taxi')}</div>
                 {[
                   { l: t('ill2_paalopt'), v: t('ill2_paalopt_v') },
