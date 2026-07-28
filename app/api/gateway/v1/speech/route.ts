@@ -58,9 +58,23 @@ export async function POST(request: Request) {
     const key = `gateway/${auth.organizationId}/speech-${actor.id}-${Date.now()}.mp3`
     await r2.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET_NAME || 'contentforge-assets', Key: key, Body: audio, ContentType: 'audio/mpeg' }))
     const url = `${R2_PUBLIC_URL}/${key}`
+    const { rate, price } = ratesForKind(actor, 'speech')
+
+    // Krever skuespilleren å godkjenne bruk for denne kunden? Da holdes leveringen
+    // tilbake, skuespilleren varsles, og innholdet frigis ved godkjenning/frist.
+    const { getApprovalMode, createPendingApproval } = await import('@/lib/approvals')
+    const approval = await getApprovalMode(actor.id, auth.organizationId)
+    if (approval.mode === 'review') {
+      const pending = await createPendingApproval({
+        actorId: actor.id, organizationId: auth.organizationId, tenantId: auth.tenantId,
+        assetType: 'voice', kind: 'speech', contentUrl: url, detail: text,
+        actorRateNok: rate, customerPriceNok: price, timeoutHours: approval.timeoutHours,
+      })
+      if (!pending) return NextResponse.json({ error: 'Kunne ikke opprette godkjenning' }, { status: 500 })
+      return NextResponse.json({ status: 'pending_approval', reviewId: pending.id, expiresAt: pending.expiresAt })
+    }
 
     // Royalty-hendelse i samme hovedbok (frosne satser, merket som gateway-bruk)
-    const { rate, price } = ratesForKind(actor, 'speech')
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: auth.tenantId,

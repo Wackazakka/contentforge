@@ -22,6 +22,7 @@ interface ActorDetail {
   bio: string | null
   photo_urls: string[]
   sample_urls: string[]
+  actor_email: string | null
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
   created_at: string
@@ -51,6 +52,9 @@ export default function VoiceActorPage() {
   const [editKinds, setEditKinds] = useState<Record<string, { rate: string; price: string }>>({})
   const [editFaceId, setEditFaceId] = useState('')
   const [editBio, setEditBio] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [customers, setCustomers] = useState<Array<{ id: string; name: string; mode: string; timeoutHours: number }>>([])
+  const [apprBusy, setApprBusy] = useState<string | null>(null)
   const [uploadBusy, setUploadBusy] = useState<string | null>(null)
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
@@ -86,6 +90,16 @@ export default function VoiceActorPage() {
       setEditKinds(ek)
       setEditFaceId(data.actor.face_character_id || '')
       setEditBio(data.actor.bio || '')
+      setEditEmail(data.actor.actor_email || '')
+      try {
+        const { data: sess2 } = await getSupabase().auth.getSession()
+        const t2 = sess2?.session?.access_token
+        if (t2) {
+          const ar = await fetch(`/api/voice-bank/approvals?actorId=${actorId}`, { headers: { Authorization: `Bearer ${t2}` } })
+          const ad = await ar.json()
+          if (ar.ok) setCustomers(ad.customers || [])
+        }
+      } catch { /* godkjenningsdata er valgfritt */ }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -114,7 +128,7 @@ export default function VoiceActorPage() {
     try {
       const res = await authedFetch({
         method: 'PATCH',
-        body: JSON.stringify({ actorId, actorRateNok: Number(editRate), customerPriceNok: Number(editPrice), rates, faceCharacterId: editFaceId.trim() }),
+        body: JSON.stringify({ actorId, actorRateNok: Number(editRate), customerPriceNok: Number(editPrice), rates, faceCharacterId: editFaceId.trim(), actorEmail: editEmail.trim() }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Lagring feilet')
@@ -181,6 +195,25 @@ export default function VoiceActorPage() {
       const res = await authedFetch({ method: 'PATCH', body: JSON.stringify(body) })
       if (res.ok) await refresh()
     } catch { /* behold visning */ }
+  }
+
+  const setApproval = async (orgId: string, mode: string, timeoutHours: number) => {
+    setApprBusy(orgId)
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Ikke innlogget')
+      const res = await fetch('/api/voice-bank/approvals', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actorId, organizationId: orgId, mode, timeoutHours }),
+      })
+      if (res.ok) {
+        setCustomers((prev) => prev.map((c) => c.id === orgId ? { ...c, mode, timeoutHours } : c))
+      }
+    } catch { /* behold visning */ } finally {
+      setApprBusy(null)
+    }
   }
 
   const totals = byMonth.reduce(
@@ -337,6 +370,11 @@ export default function VoiceActorPage() {
                 ))}
               </div>
 
+              <label className="block text-sm font-medium text-gray-700 mb-1">Skuespillerens e-post</label>
+              <p className="text-xs text-gray-400 mb-2">Brukes til godkjenningsvarsler når en kunde krever forhåndsgodkjenning.</p>
+              <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="skuespiller@example.com" type="email"
+                className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
+
               <p className="text-sm font-medium text-gray-700 mb-1">Ansikt (valgfritt)</p>
               <p className="text-xs text-gray-400 mb-2">Lim inn karakter-id-en fra karaktertreningen hvis skuespilleren også har lisensiert ansiktet sitt (Flux LoRA). Produksjoner som bruker karakteren logges da med «Ansikt»-taksten over — eller standardsatsene hvis den står tom.</p>
               <input value={editFaceId} onChange={(e) => setEditFaceId(e.target.value)} placeholder="Karakter-id (tom = ingen ansiktslisens)"
@@ -352,6 +390,45 @@ export default function VoiceActorPage() {
                 {saveBusy ? 'Lagrer …' : 'Lagre takster'}
               </button>
               <p className="text-xs text-gray-400 mt-2">Nye takster gjelder fra neste bruk — historikken beholder satsene som gjaldt da.</p>
+            </div>
+
+            {/* Godkjenningskrav per kunde */}
+            <h2 className="font-semibold text-gray-900 mb-3">Godkjenning per kunde</h2>
+            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+              <p className="text-xs text-gray-400 mb-4">
+                «Fritt» = kunden kan bruke stemmen/ansiktet uten forhåndsgodkjenning. «Må godkjennes» = skuespilleren
+                varsles på e-post og må godkjenne hver bruk — svarer de ikke innen fristen, godkjennes bruken automatisk.
+              </p>
+              {customers.length === 0 ? (
+                <p className="text-sm text-gray-500">Ingen kunder i kundenettet ennå.</p>
+              ) : (
+                <div className="space-y-3">
+                  {customers.map((c) => (
+                    <div key={c.id} className="flex flex-wrap items-center gap-3 text-sm border-t border-gray-100 pt-3 first:border-0 first:pt-0">
+                      <span className="font-medium text-gray-900 flex-1 min-w-[140px]">{c.name}</span>
+                      <select value={c.mode} disabled={apprBusy === c.id}
+                        onChange={(e) => setApproval(c.id, e.target.value, c.timeoutHours)}
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white">
+                        <option value="auto">Fritt (carte blanche)</option>
+                        <option value="review">Må godkjennes</option>
+                      </select>
+                      {c.mode === 'review' && (
+                        <label className="flex items-center gap-1.5 text-gray-600">
+                          Frist:
+                          <input value={c.timeoutHours} disabled={apprBusy === c.id} inputMode="numeric"
+                            onChange={(e) => {
+                              const v = Number(e.target.value)
+                              setCustomers((prev) => prev.map((x) => x.id === c.id ? { ...x, timeoutHours: v } : x))
+                            }}
+                            onBlur={() => setApproval(c.id, 'review', c.timeoutHours)}
+                            className="w-16 px-2 py-1.5 border border-gray-300 rounded-lg" />
+                          timer
+                        </label>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Per brukstype */}
