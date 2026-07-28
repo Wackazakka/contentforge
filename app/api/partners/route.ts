@@ -62,7 +62,10 @@ export async function PATCH(request: Request) {
       for (const [k, v] of Object.entries(colors || {})) {
         if (/^--[a-z0-9-]+$/.test(k) && (/^#[0-9a-fA-F]{3,8}$/.test(String(v)) || /^\d{1,3},\d{1,3},\d{1,3}$/.test(String(v)))) clean[k] = String(v)
       }
-      patch.colors = clean
+      // FLETT med eksisterende tokens — adminskjemaet sender bare hovedfargene,
+      // og illustrasjons-tokens (--glow, --orb-*, --tile-*) skal overleve lagring
+      const { data: existing } = await admin().from('tenants').select('colors').eq('id', tenantId).single()
+      patch.colors = { ...((existing?.colors as Record<string, string>) || {}), ...clean }
     }
     if (markupPercent !== undefined) {
       const v = Number(markupPercent)
