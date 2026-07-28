@@ -54,7 +54,7 @@ export async function POST(request: Request) {
         price_data: {
           currency: 'nok',
           unit_amount: pkg.amount * 100,
-          product_data: { name: `Kredittpakke ${pkg.amount} kr${pkg.bonus ? ` (+${pkg.bonus} kr bonus)` : ''}` },
+          product_data: { name: `${(pkg.amount + pkg.bonus).toLocaleString('nb-NO')} kreditter (${pkg.amount.toLocaleString('nb-NO')} kr${pkg.bonus ? ` + ${pkg.bonus.toLocaleString('nb-NO')} bonus` : ''})` },
         },
         quantity: 1,
       }],

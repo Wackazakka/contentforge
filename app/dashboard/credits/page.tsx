@@ -78,7 +78,7 @@ export default function CreditsPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-5 mb-8">
           <div className="text-xs text-gray-500 mb-1">På konto nå</div>
           <div className="text-3xl font-bold text-gray-900">
-            {loading ? '…' : saldo === null ? '—' : nok(Math.round(saldo * 100) / 100)}
+            {loading ? '…' : saldo === null ? '—' : `${Math.round(saldo).toLocaleString('nb-NO')} kreditter`}
           </div>
           {saldo === null && !loading && (
             <p className="text-xs text-gray-400 mt-1">Ingen forskuddskonto ennå — den opprettes automatisk ved første kjøp.</p>
@@ -94,9 +94,10 @@ export default function CreditsPage() {
               disabled={!!busy}
               className="bg-white rounded-xl border border-gray-200 p-5 text-left hover:border-[var(--ember-deep)] disabled:opacity-50 transition-colors"
             >
-              <div className="text-2xl font-bold text-gray-900 mb-1">{nok(p.amount)}</div>
+              <div className="text-2xl font-bold text-gray-900">{(p.amount + p.bonus).toLocaleString('nb-NO')} kreditter</div>
+              <div className="text-sm text-gray-500 mb-1">for {nok(p.amount)}</div>
               {p.bonus > 0
-                ? <div className="text-sm font-medium text-green-700 mb-2">+ {nok(p.bonus)} bonus</div>
+                ? <div className="text-sm font-medium text-green-700 mb-2">+ {p.bonus.toLocaleString('nb-NO')} i bonus ({Math.round(p.bonus / p.amount * 100)} % rabatt)</div>
                 : <div className="text-sm text-gray-400 mb-2">&nbsp;</div>}
               <div className="text-sm text-[var(--ember-deep)] font-semibold">
                 {busy === p.id ? 'Åpner betaling …' : 'Kjøp →'}
@@ -104,7 +105,7 @@ export default function CreditsPage() {
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-400 mb-4">Betaling med kort. Bonusen legges på saldoen sammen med beløpet.</p>
+        <p className="text-xs text-gray-400 mb-4">Betaling med kort. 1 kreditt = 1 krone — taxameteret i editoren viser alltid hva en produksjon vil trekke fra saldoen.</p>
 
         {error && <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
       </div>
