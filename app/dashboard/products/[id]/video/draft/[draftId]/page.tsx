@@ -1309,6 +1309,7 @@ export default function DraftPage() {
                   saldo={saldo}
                   paalopt={(Number(draft.cost_accumulated) || 0) * pf}
                   lines={[
+                    { label: '🎙️ Skuespillerstemme (per bruk)', amount: actorVoices.find((v) => v.voiceId === draft.voice_id)?.pricePerUseNok || 0 },
                     { label: `🗣️ Snakk × ${nTalk}`, amount: nTalk * COSTS_NOK.lipsyncTypical * pf },
                     { label: `🎥 Bevegelse × ${nMove}`, amount: nMove * COSTS_NOK.animate5s * pf },
                     { label: `🖼️ Bilder × ${nImg}`, amount: nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard) * pf },

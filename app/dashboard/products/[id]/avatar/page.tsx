@@ -431,6 +431,7 @@ export default function AvatarVideoPage() {
           <CostMeter
                   saldo={saldo}
             lines={script.trim() ? [
+              { label: '🎙️ Skuespillerstemme (per bruk)', amount: actorVoices.find((v) => v.voiceId === voiceId)?.pricePerUseNok || 0 },
               { label: `Lip-sync (~${Math.max(1, Math.ceil(script.length / 15))} sek)`, amount: Math.max(1, Math.ceil(script.length / 15)) * COSTS_NOK.lipsyncPerSec * pf },
               { label: 'Voiceover', amount: COSTS_NOK.voiceoverPreview * pf },
             ] : []}
