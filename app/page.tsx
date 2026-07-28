@@ -133,72 +133,65 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right column — stemme → tre format → hovedbok (ClaudeDesign-handoff) */}
-            <div style={{ flex: '1 1 380px', minWidth: 320, position: 'relative' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: 28, background: '#FFFDF8', border: '1px solid #E4DCCC', borderRadius: 20, boxShadow: '0 24px 60px -30px rgba(20,17,15,0.28)' }}>
+            {/* Right column — godkjenningskortet m/taxameter-lapp (ClaudeDesign, valgt variant) */}
+            <div style={{ flex: '1 1 380px', minWidth: 320, position: 'relative', paddingBottom: 56 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: 28, background: '#FFFDF8', border: '1px solid #E4DCCC', borderRadius: 24, boxShadow: '0 24px 60px -30px rgba(20,17,15,0.28)' }}>
 
-                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478' }}>{t('ill_label_voice')}</span>
-
-                {/* Stemme-raden — speiler stemmevelgeren i produksjon */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', border: '1px solid #D8E3F6', borderRadius: 14, background: '#F7FAFF' }}>
-                  <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 999, background: '#14110F', color: '#FFFDF8', fontSize: 11, flexShrink: 0 }}>▶</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                    <span style={{ fontFamily: HANKEN, fontSize: 16, fontWeight: 600, color: '#14110F' }}>{t('ill_voice_name')}</span>
-                    <span style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B655C' }}>{t('ill_voice_note')}</span>
-                  </div>
-                  <div className="vb-wave" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 2, height: 26 }}>
-                    <b key={0} className="vb-wave-bar" style={{ width: 2, height: '40%', borderRadius: 2, background: '#2A93E0', animationDelay: '0ms' }} />
-                    <b key={1} className="vb-wave-bar" style={{ width: 2, height: '75%', borderRadius: 2, background: '#3A85E4', animationDelay: '80ms' }} />
-                    <b key={2} className="vb-wave-bar" style={{ width: 2, height: '100%', borderRadius: 2, background: '#5273E6', animationDelay: '160ms' }} />
-                    <b key={3} className="vb-wave-bar" style={{ width: 2, height: '55%', borderRadius: 2, background: '#7658E9', animationDelay: '240ms' }} />
-                    <b key={4} className="vb-wave-bar" style={{ width: 2, height: '85%', borderRadius: 2, background: '#8B49E8', animationDelay: '320ms' }} />
-                    <b key={5} className="vb-wave-bar" style={{ width: 2, height: '45%', borderRadius: 2, background: '#7658E9', animationDelay: '400ms' }} />
-                    <b key={6} className="vb-wave-bar" style={{ width: 2, height: '70%', borderRadius: 2, background: '#5273E6', animationDelay: '480ms' }} />
-                    <b key={7} className="vb-wave-bar" style={{ width: 2, height: '35%', borderRadius: 2, background: '#2A93E0', animationDelay: '560ms' }} />
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478' }}>{t('ill2_head')}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#6B655C' }}>{t('ill2_seg')}</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ flex: 1, height: 1, background: '#EDE5D6' }} />
-                  <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.12em', color: '#8A8478' }}>{t('ill_divider')}</span>
-                  <div style={{ flex: 1, height: 1, background: '#EDE5D6' }} />
-                </div>
-
-                {/* Format-rutene — ekte aspect ratios */}
-                <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: 151, flexShrink: 0, aspectRatio: '9 / 16', padding: 10, borderRadius: 14, background: 'linear-gradient(150deg, #E7DDF9, #DBCDF5)' }}>
-                    <span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.85)', fontFamily: MONO, fontSize: 10, color: '#6B3FB0' }}>9:16</span>
-                    <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.06em', color: '#5A4680' }}>{t('ill_cap_916')}</span>
+                <div style={{ display: 'flex', gap: 20 }}>
+                  <div style={{ width: '38%', maxWidth: 190, flexShrink: 0, aspectRatio: '9 / 16', borderRadius: 14, background: 'linear-gradient(165deg, #DFE3F7, #D7D5F0)', display: 'flex', alignItems: 'flex-end', padding: 12 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: '#6A6C95' }}>{t('ill2_img')}</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', aspectRatio: '16 / 9', padding: 10, borderRadius: 14, background: 'linear-gradient(150deg, #DCE7FA, #CFDCF6)' }}>
-                      <span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.85)', fontFamily: MONO, fontSize: 10, color: '#3B5FA8' }}>16:9</span>
-                      <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.06em', color: '#46507A' }}>{t('ill_cap_169')}</span>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478' }}>{t('ill2_vo')}</span>
+                    <div style={{ border: '1px solid #E8E0CE', borderRadius: 16, padding: '16px 18px', fontFamily: HANKEN, fontSize: 17, lineHeight: 1.45, color: '#1C1A16' }}>
+                      {t('ill2_text')}
                     </div>
-                    <div style={{ display: 'flex', gap: 12, flex: 1 }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: 96, flexShrink: 0, aspectRatio: '1 / 1', padding: 10, borderRadius: 14, background: 'linear-gradient(150deg, #DFE9F6, #E4DEF3)' }}>
-                        <span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.85)', fontFamily: MONO, fontSize: 10, color: '#46507A' }}>1:1</span>
-                        <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.06em', color: '#46507A' }}>{t('ill_cap_11')}</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, minWidth: 0, padding: 10, borderRadius: 14, background: '#F1EBDF' }}>
-                        <span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: '#FFFDF8', fontFamily: MONO, fontSize: 10, color: '#6B655C' }}>{t('ill_pill_article')}</span>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <div style={{ height: 3, borderRadius: 2, background: '#DDD5C6' }} />
-                          <div style={{ height: 3, borderRadius: 2, background: '#DDD5C6' }} />
-                          <div style={{ height: 3, width: '58%', borderRadius: 2, background: '#DDD5C6' }} />
-                        </div>
-                      </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 999, background: '#EDE4FA', fontFamily: HANKEN, fontSize: 15, fontWeight: 600, color: '#6B3FB0' }}>▶ {t('ill2_play')}</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '9px 16px', borderRadius: 999, background: '#F9F0D4', fontFamily: MONO, fontSize: 11.5, letterSpacing: '0.08em', color: '#9A7B18' }}>{t('ill2_wait')}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Hovedbok-stripen — differensiatoren, holdes på én linje */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px', borderRadius: 14, background: '#14110F' }}>
+                <div style={{ height: 1, background: '#E8E0CE' }} />
+
+                <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478' }}>{t('ill2_motion')}</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  <span style={{ padding: '9px 16px', borderRadius: 999, border: '1px solid #DDD5C6', fontFamily: HANKEN, fontSize: 15, color: '#6B655C' }}>{t('ill2_still')}</span>
+                  <span style={{ padding: '9px 16px', borderRadius: 999, border: '1px solid #DDD5C6', fontFamily: HANKEN, fontSize: 15, color: '#6B655C' }}>{t('ill2_move')}</span>
+                  <span style={{ padding: '9px 16px', borderRadius: 999, border: '1px solid #C9D9F4', background: '#E7EEFB', fontFamily: HANKEN, fontSize: 15, color: '#1C1A16' }}>{t('ill2_talk')} <span style={{ color: '#3B5FA8', fontWeight: 600 }}>{t('ill2_talk_price')}</span></span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 18px', borderRadius: 14, background: '#14110F', marginRight: '30%' }}>
                   <span aria-hidden="true" style={{ color: '#7FE0A8', fontSize: 13 }}>✓</span>
-                  <span style={{ fontFamily: HANKEN, fontSize: 14, color: '#F6F1E7' }}>{t('ill_ledger')}</span>
-                  <span style={{ marginLeft: 'auto', whiteSpace: 'nowrap', fontFamily: MONO, fontSize: 12, color: '#9FC9F5', fontVariantNumeric: 'tabular-nums' }}>{t('ill_uses', { count: 4 })}</span>
+                  <span style={{ fontFamily: HANKEN, fontSize: 15, color: '#F6F1E7', whiteSpace: 'nowrap' }}>{t('ill2_approve')}</span>
                 </div>
 
+              </div>
+
+              {/* Taxameter-lappen — utenfor nedre høyre hjørne */}
+              <div style={{ position: 'absolute', right: -18, bottom: 0, width: 'min(300px, 78%)', background: '#FFFDF8', border: '1px solid #EDE5D6', borderRadius: 20, padding: '18px 22px', boxShadow: '0 24px 60px -30px rgba(20,17,15,0.35)' }}>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478', marginBottom: 10 }}>{t('ill2_taxi')}</div>
+                {[
+                  { l: t('ill2_paalopt'), v: t('ill2_paalopt_v') },
+                  { l: t('ill2_snakk'), v: t('ill2_snakk_v') },
+                  { l: t('ill2_bev'), v: t('ill2_bev_v') },
+                ].map((r) => (
+                  <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', fontFamily: HANKEN, fontSize: 15.5, color: '#3A352C' }}>
+                    <span>{r.l}</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{r.v}</span>
+                  </div>
+                ))}
+                <div style={{ height: 1, background: '#E8E0CE', margin: '10px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontFamily: HANKEN, fontSize: 16, color: '#1C1A16' }}>{t('ill2_next')}</span>
+                  <span style={{ fontFamily: SERIF, fontSize: 26, color: '#1C1A16', fontVariantNumeric: 'tabular-nums' }}>{t('ill2_next_v')}</span>
+                </div>
               </div>
             </div>
 
