@@ -16,6 +16,12 @@ export function fmtNok(n: number): string {
   return n.toFixed(2).replace('.', ',') + ' kr'
 }
 
+// Kundevendt visning: 1 kreditt = 1 krone. Valutanøytralt for utenlandske
+// sluttkunder — ekte betalinger (Stripe) vises fortsatt i kroner.
+export function fmtCredits(n: number): string {
+  return n.toFixed(2).replace('.', ',') + ' kreditter'
+}
+
 // Prisnivåer: COSTS_NOK er allerede 2× underliggende kost (100 % påslag).
 // Registrert betaler 1,0× av dette; anonym 1,5× (= 3× kost / 200 % påslag).
 // Budskap: «Registrer deg og få 33 % rabatt» (1 − 1/1,5).

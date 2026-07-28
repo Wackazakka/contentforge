@@ -634,7 +634,7 @@ export default function AvatarVideoPage() {
                         className={`text-left p-2.5 rounded-lg border-2 transition-all ${voiceId === v.voiceId ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
                       >
                         <div className="text-sm font-medium text-gray-900">{v.name}</div>
-                        <div className="text-xs text-gray-500">{v.pricePerUseNok.toFixed(2).replace('.', ',')} kr per produksjon</div>
+                        <div className="text-xs text-gray-500">{v.pricePerUseNok.toFixed(2).replace('.', ',')} kreditter per produksjon</div>
                       </button>
                     ))}
                   </div>

@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
-import { COSTS_NOK, fmtNok } from '@/lib/costs'
+import { COSTS_NOK, fmtNok, fmtCredits } from '@/lib/costs'
 import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
 
@@ -766,7 +766,7 @@ export default function DraftPage() {
                 {actorVoices.length > 0 && (
                   <optgroup label="🎙️ Skuespillere (per bruk)">
                     {actorVoices.map((v) => (
-                      <option key={v.voiceId} value={v.voiceId}>{v.name} — {fmtNok(v.pricePerUseNok)} per produksjon</option>
+                      <option key={v.voiceId} value={v.voiceId}>{v.name} — {fmtCredits(v.pricePerUseNok)} per produksjon</option>
                     ))}
                   </optgroup>
                 )}
@@ -1119,8 +1119,8 @@ export default function DraftPage() {
                         <span className="text-xs text-gray-500">Bevegelse:</span>
                         {[
                           { v: 'none' as const, label: 'Stillbilde', cost: 'gratis' },
-                          { v: 'move' as const, label: '🎥 Bevegelse', cost: `ca. ${fmtNok(COSTS_NOK.animate5s * pf)}` },
-                          { v: 'talk' as const, label: '🗣️ Snakk (lip-sync)', cost: `ca. ${fmtNok(COSTS_NOK.lipsyncPerSec * pf)}/sek` },
+                          { v: 'move' as const, label: '🎥 Bevegelse', cost: `ca. ${fmtCredits(COSTS_NOK.animate5s * pf)}` },
+                          { v: 'talk' as const, label: '🗣️ Snakk (lip-sync)', cost: `ca. ${fmtCredits(COSTS_NOK.lipsyncPerSec * pf)}/sek` },
                         ].map((opt) => {
                           const current = segment.motion || (segment.animate === true ? 'move' : 'none')
                           return (
