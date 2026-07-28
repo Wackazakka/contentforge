@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { CenterForgeMark, CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { LangToggle } from '@/components/LangToggle'
@@ -32,6 +33,21 @@ export default function Home() {
   const tenant = useTenant()
   const showPricing = tenant.billing_mode !== 'invoice'
   const stats = t.raw('stats') as Stat[]
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [voicePlaying, setVoicePlaying] = useState(false)
+  const toggleVoice = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(t('ill2_audio'))
+      audioRef.current.onended = () => setVoicePlaying(false)
+    }
+    if (voicePlaying) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+      setVoicePlaying(false)
+    } else {
+      audioRef.current.play().then(() => setVoicePlaying(true)).catch(() => {})
+    }
+  }
   const tiers = t.raw('tiers') as Tier[]
 
   return (
@@ -171,7 +187,7 @@ export default function Home() {
                       {t('ill2_text')}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 999, background: '#EDE4FA', fontFamily: HANKEN, fontSize: 15, fontWeight: 600, color: '#6B3FB0' }}>▶ {t('ill2_play')}</span>
+                      <button onClick={toggleVoice} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 999, border: 'none', cursor: 'pointer', background: voicePlaying ? '#DCC9F5' : '#EDE4FA', fontFamily: HANKEN, fontSize: 15, fontWeight: 600, color: '#6B3FB0' }}>{voicePlaying ? '⏸' : '▶'} {t('ill2_play')}</button>
                       <span style={{ display: 'inline-flex', alignItems: 'center', padding: '9px 16px', borderRadius: 999, background: '#F9F0D4', fontFamily: MONO, fontSize: 11.5, letterSpacing: '0.08em', color: '#9A7B18' }}>{t('ill2_wait')}</span>
                     </div>
                   </div>
