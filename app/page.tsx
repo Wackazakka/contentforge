@@ -188,6 +188,7 @@ export default function Home() {
 
           </div>
 
+          {showPricing && (<>
           {/* Trust strip */}
           <div style={{ marginTop: 'clamp(54px,7vw,84px)', textAlign: 'center' }}>
             <div style={{ fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#A89C88', marginBottom: 16 }}>{t('trust')}</div>
@@ -197,6 +198,7 @@ export default function Home() {
               <span style={{ fontFamily: 'var(--font-archivo), sans-serif', fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em', color: '#8A7F6D' }}>SinglePicker</span>
             </div>
           </div>
+          </>)}
         </section>
 
         {/* Features */}
@@ -278,7 +280,7 @@ export default function Home() {
         <section id="plattform" style={{ position: 'relative', maxWidth: 1180, margin: '0 auto', padding: 'clamp(56px,8vw,104px) 28px' }}>
           <div style={{ maxWidth: 680, margin: '0 auto clamp(40px,5vw,56px)', textAlign: 'center' }}>
             <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4.3vw,50px)', lineHeight: 1.06, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 14px' }}>{t('pf_title')}</h2>
-            <p style={{ fontFamily: HANKEN, fontSize: 18, lineHeight: 1.6, color: 'var(--text-muted)', margin: 0 }}>{t('pf_sub')}</p>
+            <p style={{ fontFamily: HANKEN, fontSize: 18, lineHeight: 1.6, color: 'var(--text-muted)', margin: 0 }}>{t('pf_sub', { name: tenant.app_name })}</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 18, maxWidth: 1000, margin: '0 auto' }}>
             <div className="cf-card" style={{ position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 32, overflow: 'hidden' }}>
@@ -343,8 +345,7 @@ export default function Home() {
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
             <div style={{ maxWidth: 340 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12 }}>
-                <CenterForgeMark size={26} />
-                <span style={{ fontFamily: 'var(--font-archivo), sans-serif', fontWeight: 800, fontSize: 18, letterSpacing: '-0.02em', color: 'var(--ink)' }}>CenterForge</span>
+                <CenterForgeLogo size={22} wordmarkSize={17} />
               </div>
               <p style={{ fontFamily: HANKEN, fontSize: 14, lineHeight: 1.5, color: '#978B79', margin: 0 }}>{t('foot_tag')}</p>
             </div>
