@@ -1,6 +1,6 @@
 'use client'
 
-import { fmtNok } from '@/lib/costs'
+import { fmtCredits } from '@/lib/costs'
 
 // Flytende taxameter — fast nede til høyre, følger deg rundt på siden og
 // oppdateres live for hvert valg. Brukes på manus-editoren og avatar-siden.
@@ -24,26 +24,26 @@ export default function CostMeter({
       {typeof paalopt === 'number' && paalopt > 0 && (
         <div className="flex justify-between text-gray-600">
           <span>Påløpt</span>
-          <span className="font-medium">{fmtNok(paalopt)}</span>
+          <span className="font-medium">{fmtCredits(paalopt)}</span>
         </div>
       )}
       {visible.map((l) => (
         <div key={l.label} className="flex justify-between text-gray-600">
           <span>{l.label}</span>
-          <span>~{fmtNok(l.amount)}</span>
+          <span>~{fmtCredits(l.amount)}</span>
         </div>
       ))}
       {estimat > 0 && (
         <div className="flex justify-between border-t border-gray-100 mt-1 pt-1 text-gray-900 font-medium">
           <span>Neste produksjon</span>
-          <span>~{fmtNok(estimat)}</span>
+          <span>~{fmtCredits(estimat)}</span>
         </div>
       )}
       {typeof saldo === 'number' && (
         <>
           <div className={`flex justify-between border-t border-gray-100 mt-1 pt-1 font-medium ${dekning === false ? 'text-red-600' : 'text-green-700'}`}>
             <span>På konto</span>
-            <span>{fmtNok(saldo)}</span>
+            <span>{fmtCredits(saldo)}</span>
           </div>
           {dekning === false && (
             <div className="text-xs text-red-600 mt-0.5">
