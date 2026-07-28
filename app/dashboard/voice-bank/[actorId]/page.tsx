@@ -492,7 +492,7 @@ export default function VoiceActorPage() {
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {actor.library_enabled
-                      ? 'Stemmen er delt i ElevenLabs\u2019 globale bibliotek. Utbetalingene lander på vår konto og fordeles i avregningen.'
+                      ? 'Stemmen er delt i ElevenLabs\u2019 globale bibliotek — og dermed også åpen for drop-in-kunder på plattformen, uten godkjenning per bruk (jf. skuespilleravtalen). Utbetalingene lander på vår konto og fordeles i avregningen.'
                       : 'Skuespilleren kan velge å dele stemmen i ElevenLabs\u2019 globale bibliotek — ekstra inntekt fra brukere verden over.'}
                   </p>
                 </div>
