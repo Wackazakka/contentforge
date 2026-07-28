@@ -276,3 +276,23 @@ body {
   .vb-strip { margin-right: 0; }
   .vb-taxi { position: static; width: 100%; margin-top: 14px; }
 }
+
+/* 9:16-feltet i hero-kortet: stille slideshow av innholdstypene.
+   Redusert bevegelse => statisk førstebilde. */
+.vb-slide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; }
+.vb-slide:first-child { opacity: 1; }
+.vb-slide-cap { position: absolute; bottom: 12px; left: 12px; font-family: var(--font-cfmono), monospace; font-size: 10px; letter-spacing: 0.1em; }
+@media (prefers-reduced-motion: no-preference) {
+  .vb-slide { animation: vbslide 16s ease-in-out infinite; }
+  .vb-slide:nth-child(1) { animation-delay: 0s; }
+  .vb-slide:nth-child(2) { animation-delay: 4s; }
+  .vb-slide:nth-child(3) { animation-delay: 8s; }
+  .vb-slide:nth-child(4) { animation-delay: 12s; }
+}
+@keyframes vbslide {
+  0% { opacity: 0; }
+  3% { opacity: 1; }
+  25% { opacity: 1; }
+  31% { opacity: 0; }
+  100% { opacity: 0; }
+}
