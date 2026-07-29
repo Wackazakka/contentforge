@@ -17,7 +17,17 @@
     "serviceAreaLabel": "Område",
     "serviceAreaPlaceholder": "F.eks. Follo",
     "createProduct": "Lagre bedriften",
-    "errorNameRequired": "Bedriftsnavn er påkrevd"
+    "errorNameRequired": "Bedriftsnavn er påkrevd",
+    "websiteLabel": "Nettside",
+    "websitePlaceholder": "f.eks. bakkenbygg.no",
+    "phoneLabel": "Telefon",
+    "phonePlaceholder": "f.eks. 912 34 567",
+    "addressLabel": "Adresse",
+    "addressPlaceholder": "f.eks. Bakkeveien 12, 1400 Ski",
+    "logoLabel": "Logo (valgfritt)",
+    "logoHint": "PNG, JPG, SVG eller WebP — maks 4 MB. Brukes på sluttplakaten i videoene.",
+    "errorPhoneInvalid": "Telefonnummeret ser ikke riktig ut — bruk siffer, gjerne med +47.",
+    "errorLogoTooBig": "Logofilen er for stor (maks 4 MB)."
   },
   "dashboard": {
     "yourProducts": "Bedriften din",
@@ -32,7 +42,12 @@
   },
   "product": {
     "serviceAreaLabel": "Område",
-    "serviceAreaPlaceholder": "F.eks. Follo"
+    "serviceAreaPlaceholder": "F.eks. Follo",
+    "phoneLabel": "Telefon",
+    "phonePlaceholder": "f.eks. 912 34 567",
+    "phoneHint": "Vises på sluttplakaten i videoene.",
+    "addressLabel": "Adresse",
+    "addressPlaceholder": "f.eks. Bakkeveien 12, 1400 Ski"
   },
   "newDraft": {
     "titlePlaceholder": "F.eks. Ledig kapasitet i høst",

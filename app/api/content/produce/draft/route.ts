@@ -172,25 +172,12 @@ export async function POST(request: NextRequest) {
 
     // Fetch website_url (+ service_area) from product profile to enrich CTA/context
     const supabaseForProfile = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-    let profile: { website_url?: string | null; service_area?: string | null } | null = null
-    {
-      // service_area-kolonnen kan mangle (migrasjon kjøres separat) — fall tilbake til kun website_url
-      const res = await supabaseForProfile
-        .from('product_profiles')
-        .select('website_url, service_area')
-        .eq('product_id', productId)
-        .maybeSingle()
-      if (res.error) {
-        const fallback = await supabaseForProfile
-          .from('product_profiles')
-          .select('website_url')
-          .eq('product_id', productId)
-          .maybeSingle()
-        profile = fallback.data
-      } else {
-        profile = res.data
-      }
-    }
+    // select('*') tåler at valgfrie kolonner (service_area/phone/address) mangler
+    const { data: profile } = await supabaseForProfile
+      .from('product_profiles')
+      .select('*')
+      .eq('product_id', productId)
+      .maybeSingle()
     const websiteUrl = profile?.website_url || null
     // Use explicit CTA if provided, otherwise fall back to website URL
     const effectiveCta = cta?.trim() || (websiteUrl ? `Besøk ${websiteUrl}` : '')
@@ -208,6 +195,9 @@ export async function POST(request: NextRequest) {
       productRow?.description ? `About the sender: ${productRow.description}` : '',
       productRow?.category ? `Sender category/trade: ${productRow.category}` : '',
       profile?.service_area ? `Sender service area: ${profile.service_area}` : '',
+      profile?.phone ? `Sender phone: ${profile.phone}` : '',
+      profile?.address ? `Sender address: ${profile.address}` : '',
+      websiteUrl ? `Sender website: ${websiteUrl}` : '',
     ].filter(Boolean).join('\n')
 
     // Step 1: Generate script with Claude (NO IMAGE GENERATION)

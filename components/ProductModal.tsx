@@ -4,14 +4,27 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useTenant } from '@/lib/tenantContext'
 import { verticalConfig } from '@/lib/verticals'
+import { normalizeUrl, normalizePhone } from '@/lib/validate'
+import { getSupabase } from '@/lib/supabaseClient'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
 
+export interface CreateProductFormInput {
+  name: string
+  description: string
+  category: string
+  serviceArea?: string
+  websiteUrl?: string
+  phone?: string
+  address?: string
+}
+
 interface ProductModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (name: string, description: string, category: string, serviceArea?: string) => Promise<void>
+  // Returnerer det opprettede produktet så logo-fasen kan kjøre mot id-en
+  onSubmit: (input: CreateProductFormInput) => Promise<{ id: string } | null>
   isLoading?: boolean
 }
 
@@ -25,6 +38,11 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState(vcfg ? vcfg.categoryOptions[0].value : 'product')
   const [serviceArea, setServiceArea] = useState('')
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,14 +53,51 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
       setError(t('errorNameRequired'))
       return
     }
+    if (phone.trim() && !normalizePhone(phone)) {
+      setError(t('errorPhoneInvalid'))
+      return
+    }
 
     try {
-      await onSubmit(name, description, category, serviceArea.trim() || undefined)
+      const created = await onSubmit({
+        name,
+        description,
+        category,
+        serviceArea: serviceArea.trim() || undefined,
+        websiteUrl: normalizeUrl(websiteUrl) || undefined,
+        phone: normalizePhone(phone) || undefined,
+        address: address.trim() || undefined,
+      })
+
+      // Logo-fase (valgfri, ikke-fatal): bedriften er alt lagret — feiler
+      // opplastingen kan logoen legges til på bedriftssiden etterpå.
+      if (created?.id && logoFile) {
+        setLogoUploading(true)
+        try {
+          const { data: sess } = await getSupabase().auth.getSession()
+          const token = sess?.session?.access_token
+          const fd = new FormData()
+          fd.append('file', logoFile)
+          fd.append('productId', created.id)
+          await fetch('/api/products/upload-logo', {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            body: fd,
+          })
+        } catch { /* logo kan legges til senere */ } finally {
+          setLogoUploading(false)
+        }
+      }
+
       // Reset form
       setName('')
       setDescription('')
       setCategory(vcfg ? vcfg.categoryOptions[0].value : 'product')
       setServiceArea('')
+      setWebsiteUrl('')
+      setPhone('')
+      setAddress('')
+      setLogoFile(null)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errorCreating'))
@@ -129,9 +184,68 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
                 onChange={(e) => setServiceArea(e.target.value)}
                 disabled={isLoading}
                 className="cf-input"
-                style={{ marginBottom: 28 }}
+                style={{ marginBottom: vcfg?.contactFields ? 20 : 28 }}
                 placeholder={t('serviceAreaPlaceholder')}
               />
+            </>
+          )}
+
+          {vcfg?.contactFields && (
+            <>
+              <label style={labelStyle}>{t('websiteLabel')}</label>
+              <input
+                type="text"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                disabled={isLoading}
+                className="cf-input"
+                style={{ marginBottom: 20 }}
+                placeholder={t('websitePlaceholder')}
+              />
+              <label style={labelStyle}>{t('phoneLabel')}</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={isLoading}
+                className="cf-input"
+                style={{ marginBottom: 20 }}
+                placeholder={t('phonePlaceholder')}
+              />
+              <label style={labelStyle}>{t('addressLabel')}</label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                disabled={isLoading}
+                className="cf-input"
+                style={{ marginBottom: vcfg?.logoUpload ? 20 : 28 }}
+                placeholder={t('addressPlaceholder')}
+              />
+            </>
+          )}
+
+          {vcfg?.logoUpload && (
+            <>
+              <label style={labelStyle}>{t('logoLabel')}</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                disabled={isLoading || logoUploading}
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null
+                  if (f && f.size > 4 * 1024 * 1024) {
+                    setError(t('errorLogoTooBig'))
+                    e.target.value = ''
+                    return
+                  }
+                  setError(null)
+                  setLogoFile(f)
+                }}
+                className="cf-input"
+                style={{ marginBottom: 8 }}
+              />
+              <p style={{ fontFamily: HANKEN, fontSize: 13, color: '#8C8272', margin: '0 0 28px' }}>{t('logoHint')}</p>
             </>
           )}
 

@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/authContext"
 import { getSupabase } from "@/lib/supabaseClient"
 import { useTenant } from '@/lib/tenantContext'
 import { useProducts } from "@/lib/useProducts"
-import { ProductModal } from "@/components/ProductModal"
+import { ProductModal, type CreateProductFormInput } from "@/components/ProductModal"
 import { useTranslations } from 'next-intl'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
@@ -80,13 +80,14 @@ export default function DashboardPage() {
     fetchOrganization()
   }, [session?.user?.id])
 
-  const handleCreateProduct = async (name: string, description: string, category: string, serviceArea?: string) => {
+  const handleCreateProduct = async (input: CreateProductFormInput) => {
     setCreatingProduct(true)
     try {
       // Uten org på DETTE domenet kan ingenting lagres — si det, ikke lukk stille
       if (!organizationId) throw new Error(t('errorNoOrgOnDomain'))
-      const created = await createProduct({ name, description, category, serviceArea })
+      const created = await createProduct(input)
       if (!created) throw new Error(t('errorCreateFailed'))
+      return created
     } finally {
       setCreatingProduct(false)
     }

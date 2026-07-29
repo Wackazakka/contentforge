@@ -106,14 +106,16 @@ export default async function handler(req) {
       try {
         const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
         const { data: p } = await sb.from('products').select('name, description, category').eq('id', productId).maybeSingle()
-        let area = null
-        const prof = await sb.from('product_profiles').select('service_area').eq('product_id', productId).maybeSingle()
-        if (!prof.error) area = prof.data?.service_area || null
+        // select('*') tåler at valgfrie kolonner (service_area/phone/address) mangler
+        const prof = await sb.from('product_profiles').select('*').eq('product_id', productId).maybeSingle()
+        const pr = prof.error ? null : prof.data
         senderContext = [
           p?.name ? `Sender (the business/product this article promotes): ${p.name}` : '',
           p?.description ? `About the sender: ${p.description}` : '',
           p?.category ? `Sender category/trade: ${p.category}` : '',
-          area ? `Sender service area: ${area}` : '',
+          pr?.service_area ? `Sender service area: ${pr.service_area}` : '',
+          pr?.phone ? `Sender phone: ${pr.phone}` : '',
+          pr?.address ? `Sender address: ${pr.address}` : '',
         ].filter(Boolean).join('\n')
       } catch { /* kontekst er valgfri */ }
     }
