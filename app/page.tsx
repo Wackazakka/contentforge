@@ -5,6 +5,7 @@ import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { CenterForgeMark, CenterForgeLogo } from '@/components/CenterForgeLogo'
 import BombazaLanding from '@/components/BombazaLanding'
+import BadeOgLanding from '@/components/BadeOgLanding'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
 
@@ -51,6 +52,8 @@ export default function Home() {
 
   // Bombaza: håndverker-vertikalen ER merket — egen forside i stedet for plattform-landingen
   if (tenant.slug === 'bombaza') return <BombazaLanding />
+  // Både Og: stemmeforvaltning i front (badeog.no-uttrykket), ikke innholdsproduksjon
+  if (tenant.slug === 'badeog') return <BadeOgLanding />
 
   return (
     <div
