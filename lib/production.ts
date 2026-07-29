@@ -50,11 +50,11 @@ export async function startProductionForDraft(
   const aiMotion = opts.aiMotion ?? draft.ai_motion ?? false
   const aiMotionEngine = opts.aiMotionEngine ?? draft.ai_motion_engine ?? 'pixverse'
 
-  // Produktprofil for logo/farger
+  // Produktprofil for logo/farger (select * tåler at valgfrie kolonner mangler)
   const [{ data: productProfile }, { data: product }] = await Promise.all([
     supabase
       .from('product_profiles')
-      .select('logo_url, website_url, primary_color, secondary_color')
+      .select('*')
       .eq('product_id', draft.product_id)
       .single(),
     supabase.from('products').select('logo_url').eq('id', draft.product_id).single(),
@@ -71,6 +71,9 @@ export async function startProductionForDraft(
         secondaryColor: productProfile?.secondary_color || '#ffffff',
         durationSeconds: 3,
         jingleFile: outroJingle || null,
+        // Kontaktlinje på sluttplakaten («url · tlf») — rendres av droplet-python
+        // når den er oppdatert; ukjente felter ignoreres trygt av eldre renderer
+        phone: (productProfile as any)?.phone || null,
       }
     : null
 

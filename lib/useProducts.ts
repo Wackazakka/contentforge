@@ -17,7 +17,11 @@ export interface CreateProductInput {
   name: string
   description?: string
   category?: string
-  serviceArea?: string // vertikal-felt (f.eks. håndverker-«Område») → product_profiles.service_area
+  // Vertikal-felter (f.eks. håndverker) → product_profiles
+  serviceArea?: string
+  websiteUrl?: string
+  phone?: string
+  address?: string
 }
 
 export function useProducts(organizationId: string | null) {
@@ -79,15 +83,21 @@ export function useProducts(organizationId: string | null) {
 
       if (insertError) throw insertError
 
-      // Vertikal-felt: Område → product_profiles. Ikke-fatal (kolonnen kan
-      // mangle før migrasjonen er kjørt) — produktet er alt opprettet.
-      if (data && input.serviceArea?.trim()) {
+      // Vertikal-felter → product_profiles. Ikke-fatal (kolonner kan mangle
+      // før migrasjonen er kjørt) — produktet er alt opprettet.
+      const profileExtras: Record<string, string> = {}
+      if (input.serviceArea?.trim()) profileExtras.service_area = input.serviceArea.trim()
+      if (input.websiteUrl?.trim()) profileExtras.website_url = input.websiteUrl.trim()
+      if (input.phone?.trim()) profileExtras.phone = input.phone.trim()
+      if (input.address?.trim()) profileExtras.address = input.address.trim()
+      if (data && Object.keys(profileExtras).length > 0) {
         try {
-          await supabase
+          const { error: profErr } = await supabase
             .from('product_profiles')
-            .upsert({ product_id: data.id, service_area: input.serviceArea.trim() }, { onConflict: 'product_id' })
-        } catch (areaErr) {
-          console.warn('[useProducts] service_area ble ikke lagret:', areaErr)
+            .upsert({ product_id: data.id, ...profileExtras }, { onConflict: 'product_id' })
+          if (profErr) console.warn('[useProducts] profil-felter ble ikke lagret:', profErr.message)
+        } catch (profCatch) {
+          console.warn('[useProducts] profil-felter ble ikke lagret:', profCatch)
         }
       }
 

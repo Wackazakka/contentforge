@@ -11,6 +11,8 @@ export interface VerticalCategoryOption {
 export interface VerticalConfig {
   categoryOptions: VerticalCategoryOption[]
   serviceAreaField: boolean // vis «Område»-felt (product_profiles.service_area)
+  contactFields?: boolean // vis Nettside/Telefon/Adresse i registreringen (product_profiles)
+  logoUpload?: boolean // vis logoopplasting i registreringen (to-fase via upload-logo)
 }
 
 export const VERTICALS: Record<string, VerticalConfig> = {
@@ -26,6 +28,8 @@ export const VERTICALS: Record<string, VerticalConfig> = {
       { value: 'annet', labelKey: 'categoryAnnet' },
     ],
     serviceAreaField: true,
+    contactFields: true,
+    logoUpload: true,
   },
 }
 

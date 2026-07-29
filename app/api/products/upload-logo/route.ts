@@ -10,6 +10,15 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'contentforge-assets'
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
+const MAX_BYTES = 4 * 1024 * 1024
+// MIME → trygg filendelse (endelsen hentes ALDRI fra filnavnet)
+const ALLOWED_TYPES: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/svg+xml': 'svg',
+  'image/webp': 'webp',
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
@@ -22,11 +31,33 @@ export async function POST(request: Request) {
     if (!file || !productId) {
       return NextResponse.json({ error: 'Missing file or productId' }, { status: 400 })
     }
+    if (file.size > MAX_BYTES) {
+      return NextResponse.json({ error: 'Filen er for stor (maks 4 MB)' }, { status: 413 })
+    }
+    const ext = ALLOWED_TYPES[file.type]
+    if (!ext) {
+      return NextResponse.json({ error: 'Kun PNG, JPG, SVG eller WebP' }, { status: 415 })
+    }
+
+    // Auth + eierskap: sjekken gjøres med BRUKERENS token mot RLS —
+    // products-select-policyen er eier-av-org, så raden er kun synlig for eieren.
+    const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
+    const auth = request.headers.get('authorization')
+    if (!auth?.startsWith('Bearer ')) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    const token = auth.slice(7)
+    const { data: u } = await supabase.auth.getUser(token)
+    if (!u?.user?.id) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    const asUser = createClient(SUPABASE_URL || '', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '', {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    })
+    const { data: prod } = await asUser.from('products').select('id').eq('id', productId).maybeSingle()
+    if (!prod) {
+      return NextResponse.json({ error: 'Ingen tilgang til dette produktet' }, { status: 403 })
+    }
 
     console.log(`[upload-logo] Uploading ${field} for product ${productId}, size: ${file.size} bytes`)
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const ext = file.name.split('.').pop()
     const key = `logos/${productId}/${isArticleLogo ? 'article-logo' : 'logo'}.${ext}`
 
     const r2 = new S3Client({
@@ -51,7 +82,6 @@ export async function POST(request: Request) {
     console.log(`[upload-logo] Uploaded to R2: ${url}`)
 
     // Update product and product_profiles in Supabase
-    const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
     const { error } = await supabase.from('products').update({ [field]: url }).eq('id', productId)
 
     if (error) {

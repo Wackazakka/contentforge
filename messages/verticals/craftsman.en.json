@@ -17,7 +17,17 @@
     "serviceAreaLabel": "Service area",
     "serviceAreaPlaceholder": "E.g. Follo",
     "createProduct": "Save business",
-    "errorNameRequired": "Business name is required"
+    "errorNameRequired": "Business name is required",
+    "websiteLabel": "Website",
+    "websitePlaceholder": "e.g. bakkenbygg.no",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "e.g. 912 34 567",
+    "addressLabel": "Address",
+    "addressPlaceholder": "e.g. Bakkeveien 12, 1400 Ski",
+    "logoLabel": "Logo (optional)",
+    "logoHint": "PNG, JPG, SVG or WebP — max 4 MB. Used on the end card in your videos.",
+    "errorPhoneInvalid": "That phone number does not look right — use digits, optionally with +47.",
+    "errorLogoTooBig": "The logo file is too large (max 4 MB)."
   },
   "dashboard": {
     "yourProducts": "Your business",
@@ -32,7 +42,12 @@
   },
   "product": {
     "serviceAreaLabel": "Service area",
-    "serviceAreaPlaceholder": "E.g. Follo"
+    "serviceAreaPlaceholder": "E.g. Follo",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "e.g. 912 34 567",
+    "phoneHint": "Shown on the end card in your videos.",
+    "addressLabel": "Address",
+    "addressPlaceholder": "e.g. Bakkeveien 12, 1400 Ski"
   },
   "newDraft": {
     "titlePlaceholder": "E.g. Available capacity this autumn",

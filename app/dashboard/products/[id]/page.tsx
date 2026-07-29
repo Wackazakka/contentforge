@@ -140,6 +140,8 @@ export default function ProductPage() {
     website_url: '',
     cta_text: '',
     service_area: '',
+    phone: '',
+    address: '',
   })
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
@@ -199,6 +201,8 @@ export default function ProductPage() {
         website_url: (profile as any).website_url || '',
         cta_text: (profile as any).cta_text || '',
         service_area: (profile as any).service_area || '',
+        phone: (profile as any).phone || '',
+        address: (profile as any).address || '',
       })
     }
   }, [profile])
@@ -226,8 +230,12 @@ export default function ProductPage() {
             brand_guidelines: profileForm.brand_guidelines || null,
             website_url: (profileForm as any).website_url || null,
             cta_text: (profileForm as any).cta_text || null,
-            // service_area kun for vertikal-tenants — kolonnen kan mangle i basen ellers
+            // Vertikal-felter kun for vertikal-tenants — kolonnene kan mangle i basen ellers
             ...(vcfg?.serviceAreaField ? { service_area: (profileForm as any).service_area || null } : {}),
+            ...(vcfg?.contactFields ? {
+              phone: (profileForm as any).phone || null,
+              address: (profileForm as any).address || null,
+            } : {}),
           },
           { onConflict: 'product_id' }
         )
@@ -261,8 +269,11 @@ export default function ProductPage() {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('productId', productId)
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
       const res = await fetch('/api/products/upload-logo', {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       })
       const data = await res.json()
@@ -286,8 +297,11 @@ export default function ProductPage() {
       formData.append('file', file)
       formData.append('productId', productId)
       formData.append('logoType', 'article')
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
       const res = await fetch('/api/products/upload-logo', {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       })
       const data = await res.json()
@@ -306,8 +320,12 @@ export default function ProductPage() {
     if (!productId) return
     const supabase = getSupabase()
     await supabase.from('products').update({ logo_url: null }).eq('id', productId)
+    // Også profilen — video-outroen leser product_profiles.logo_url FØRST,
+    // så uten denne blir gammel logo hengende på sluttplakaten
+    await supabase.from('product_profiles').update({ logo_url: null }).eq('product_id', productId)
     setProduct((prev) => (prev ? { ...prev, logo_url: null } : null))
     setProfile((prev) => (prev ? { ...prev, logo_url: null } : null))
+    setProfileForm((prev) => ({ ...prev, logo_url: '' }))
   }
 
   const handleDeleteJob = async (id: string) => {
@@ -746,6 +764,32 @@ export default function ProductPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                 />
               </div>
+            )}
+
+            {vcfg?.contactFields && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('phoneLabel')}</label>
+                  <input
+                    type="tel"
+                    value={(profileForm as any).phone || ''}
+                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value } as any)}
+                    placeholder={t('phonePlaceholder')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{t('phoneHint')}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('addressLabel')}</label>
+                  <input
+                    type="text"
+                    value={(profileForm as any).address || ''}
+                    onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value } as any)}
+                    placeholder={t('addressPlaceholder')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                  />
+                </div>
+              </>
             )}
 
             <div>
