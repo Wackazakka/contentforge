@@ -242,7 +242,9 @@
     "step3Title": "Koble til og publiser",
     "step3Desc": "Koble til dine sosiale medier-kontoer og publiser direkte fra {name}.",
     "deleteConfirm": "Er du sikker på at du vil slette dette produktet?",
-    "created": "Opprettet {date}"
+    "created": "Opprettet {date}",
+    "errorNoOrgOnDomain": "Kontoen din hører ikke til dette domenet. Registrer deg på dette domenet for å komme i gang.",
+    "errorCreateFailed": "Kunne ikke lagre. Prøv igjen — og si fra hvis det fortsetter."
   },
   "productModal": {
     "title": "Nytt produkt",

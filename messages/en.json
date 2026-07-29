@@ -242,7 +242,9 @@
     "step3Title": "Connect & publish",
     "step3Desc": "Link your social media accounts and publish directly from {name}.",
     "deleteConfirm": "Are you sure you want to delete this product?",
-    "created": "Created {date}"
+    "created": "Created {date}",
+    "errorNoOrgOnDomain": "Your account does not belong to this domain. Sign up on this domain to get started.",
+    "errorCreateFailed": "Could not save. Try again — and let us know if it keeps happening."
   },
   "productModal": {
     "title": "New product",
