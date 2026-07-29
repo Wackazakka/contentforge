@@ -162,7 +162,7 @@
   "login": {
     "title": "Welcome back",
     "loading": "Loading...",
-    "subtitle": "Sign in to your CenterForge account.",
+    "subtitle": "Sign in to your {name} account.",
     "emailLabel": "Email",
     "emailPlaceholder": "you@example.com",
     "passwordLabel": "Password",
@@ -231,7 +231,7 @@
     "yourProducts": "Your products",
     "newProduct": "+ New product",
     "loadingProducts": "Loading products...",
-    "welcomeTitle": "Welcome to CenterForge!",
+    "welcomeTitle": "Welcome to {name}!",
     "welcomeSubtitle": "Create your first product to start generating AI-powered articles and videos.",
     "createFirstProduct": "+ Create first product",
     "howItWorksTitle": "How it works",
@@ -240,7 +240,7 @@
     "step2Title": "Generate content",
     "step2Desc": "Create articles and short-form videos with one click using AI.",
     "step3Title": "Connect & publish",
-    "step3Desc": "Link your social media accounts and publish directly from CenterForge.",
+    "step3Desc": "Link your social media accounts and publish directly from {name}.",
     "deleteConfirm": "Are you sure you want to delete this product?",
     "created": "Created {date}"
   },

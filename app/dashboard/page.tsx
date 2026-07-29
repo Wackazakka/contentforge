@@ -133,7 +133,7 @@ export default function DashboardPage() {
         <div style={{ background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 32, boxShadow: '0 1px 2px rgba(70,45,20,0.04)' }}>
           <div style={{ maxWidth: 380, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
-            <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 20, color: '#1C1A16', margin: '0 0 8px' }}>{t('welcomeTitle')}</h3>
+            <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 20, color: '#1C1A16', margin: '0 0 8px' }}>{t('welcomeTitle', { name: tenant.app_name })}</h3>
             <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: '#6B6358', margin: '0 0 26px' }}>{t('welcomeSubtitle')}</p>
             <button
               onClick={() => setShowProductModal(true)}
@@ -147,7 +147,7 @@ export default function DashboardPage() {
               {[
                 { step: '1', title: t('step1Title'), desc: t('step1Desc') },
                 { step: '2', title: t('step2Title'), desc: t('step2Desc') },
-                { step: '3', title: t('step3Title'), desc: t('step3Desc') },
+                { step: '3', title: t('step3Title'), desc: t('step3Desc', { name: tenant.app_name }) },
               ].map(({ step, title, desc }) => (
                 <div key={step} style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
                   <div style={{ width: 24, height: 24, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HANKEN, fontSize: 12, fontWeight: 700, color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', marginTop: 2 }}>{step}</div>
