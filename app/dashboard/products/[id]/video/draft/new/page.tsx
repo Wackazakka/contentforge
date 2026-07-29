@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { useTenant } from '@/lib/tenantContext'
 
 const VIDEO_FORMATS = [
   { value: '9:16', label: 'Portrait (TikTok)', color: 'blue' },
@@ -15,6 +16,7 @@ export default function NewDraftPage() {
   const router = useRouter()
   const params = useParams()
   const t = useTranslations('newDraft')
+  const tenant = useTenant()
   const productId = params?.id as string
 
   const [topic, setTopic] = useState('')
@@ -267,7 +269,8 @@ export default function NewDraftPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                   >
                     <option value="">Ingen — vanlige scenebilder</option>
-                    <option value="adam">Adam (Reforhandle)</option>
+                    {/* Adam er eksklusiv for rot-tenanten (lib/characters.ts håndhever server-side) */}
+                    {tenant.slug === 'centerforge' && <option value="adam">Adam (Reforhandle)</option>}
                     <option value="lawrence">Lawrence (Peregrine)</option>
                     {userChars.map((c) => (
                       <option key={c.id} value={c.id}>{c.name} (egen)</option>

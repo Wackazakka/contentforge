@@ -90,7 +90,15 @@ async function generateImageBuffer(topic: string, imageSize: string = '1024x1024
 // Slå opp karakter: innebygd (Adam/Lawrence) eller brukerens egen (user_characters).
 async function resolveCharacter(characterId: string) {
   const builtin = getCharacter(characterId)
-  if (builtin) return builtin
+  if (builtin) {
+    // Eksklusivitet håndheves server-side: begrenset karakter avvises på feil tenant
+    if (builtin.restrictToTenantSlug) {
+      const { getTenant } = await import('@/lib/tenantServer')
+      const tenant = await getTenant()
+      if (tenant.slug !== builtin.restrictToTenantSlug) return null
+    }
+    return builtin
+  }
   const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
   const { data } = await supabase.from('user_characters').select('*').eq('id', characterId).single()
   if (data && data.status === 'ready' && data.lora_url) {

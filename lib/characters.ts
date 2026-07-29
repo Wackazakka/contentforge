@@ -10,6 +10,9 @@ export interface Character {
   trigger: string
   loraUrl?: string
   characterBlock: string
+  // Eksklusivitet: karakteren tilbys/godtas kun på denne tenant-sluggen.
+  // undefined = åpen for alle tenants (Lars 2026-07-29: Adam eksklusiv, Lawrence åpen).
+  restrictToTenantSlug?: string
 }
 
 export const CHARACTERS: Record<string, Character> = {
@@ -17,6 +20,7 @@ export const CHARACTERS: Record<string, Character> = {
     id: 'adam',
     name: 'Adam (Reforhandle)',
     trigger: 'ADAMKEY',
+    restrictToTenantSlug: 'centerforge', // Reforhandle-innhold produseres på rot — Adam skal ikke tilbys hos white-labels
     loraUrl: process.env.ADAM_LORA_URL,
     characterBlock:
       'ADAMKEY, a friendly approachable man in a dark blazer over a light shirt, warm genuine smile, slim face, lean features, defined jawline, natural relaxed posture',
@@ -36,4 +40,12 @@ export const CHARACTERS: Record<string, Character> = {
 export function getCharacter(id?: string | null): Character | null {
   if (!id) return null
   return CHARACTERS[id] || null
+}
+
+// Innebygde karakterer som skal tilbys på gitt tenant (brukes av nedtrekkslistene
+// og håndheves server-side i generate-image).
+export function builtinCharactersForTenant(tenantSlug: string): Character[] {
+  return Object.values(CHARACTERS).filter(
+    (c) => !c.restrictToTenantSlug || c.restrictToTenantSlug === tenantSlug
+  )
 }
