@@ -1,13 +1,14 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Bombaza-merket: snakkeboble m/lydstolper (annonser + stemme) og et smell i hjørnet -->
-  <rect x="2" y="2" width="60" height="60" rx="17" fill="#0A5CFF"/>
-  <path d="M15 20 a6 6 0 0 1 6 -6 h22 a6 6 0 0 1 6 6 v16 a6 6 0 0 1 -6 6 h-16 l-9 8 v-8 h-3 a6 6 0 0 1 -6 -6 z" fill="#FFFFFF" transform="translate(0,1)"/>
-  <rect x="22" y="21" width="4.6" height="12" rx="2.3" fill="#0A5CFF"/>
-  <rect x="30" y="17.5" width="4.6" height="19" rx="2.3" fill="#0846C4"/>
-  <rect x="38" y="24" width="4.6" height="9" rx="2.3" fill="#0A5CFF"/>
-  <g stroke="#FFB020" stroke-width="3.4" stroke-linecap="round">
-    <line x1="50" y1="10" x2="53.5" y2="6.5"/>
-    <line x1="54" y1="17" x2="59" y2="16"/>
-    <line x1="45" y1="7.5" x2="45.8" y2="3"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  
+  <defs>
+    <linearGradient id="b" x1="90" y1="50" x2="400" y2="455" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#165DFF"/><stop offset="1" stop-color="#0E49D8"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="384" height="384" rx="102" fill="url(#b)"/>
+  <path d="M148 169c0-23 19-42 42-42h157c23 0 42 19 42 42v112c0 23-19 42-42 42H245l-73 62 12-62c-21-3-36-20-36-42V169Z" fill="#FFFFFF"/>
+  <rect x="208" y="197" width="28" height="83" rx="14" fill="#165DFF"/>
+  <rect x="256" y="174" width="28" height="129" rx="14" fill="#165DFF"/>
+  <rect x="304" y="207" width="28" height="63" rx="14" fill="#165DFF"/>
+  <path d="M366 98l16-35M391 113l35-16M354 84l-2-38" stroke="#FFC82E" stroke-width="18" stroke-linecap="round"/>
 </svg>
