@@ -162,7 +162,7 @@
   "login": {
     "title": "Velkommen tilbake",
     "loading": "Laster...",
-    "subtitle": "Logg inn på CenterForge-kontoen din.",
+    "subtitle": "Logg inn på {name}-kontoen din.",
     "emailLabel": "E-post",
     "emailPlaceholder": "deg@eksempel.no",
     "passwordLabel": "Passord",
@@ -231,7 +231,7 @@
     "yourProducts": "Dine produkter",
     "newProduct": "+ Nytt produkt",
     "loadingProducts": "Laster produkter...",
-    "welcomeTitle": "Velkommen til CenterForge!",
+    "welcomeTitle": "Velkommen til {name}!",
     "welcomeSubtitle": "Opprett ditt første produkt for å begynne å generere AI-drevne artikler og videoer.",
     "createFirstProduct": "+ Opprett første produkt",
     "howItWorksTitle": "Slik fungerer det",
@@ -240,7 +240,7 @@
     "step2Title": "Generer innhold",
     "step2Desc": "Opprett artikler og kortformatvideoer med ett klikk ved hjelp av AI.",
     "step3Title": "Koble til og publiser",
-    "step3Desc": "Koble til dine sosiale medier-kontoer og publiser direkte fra CenterForge.",
+    "step3Desc": "Koble til dine sosiale medier-kontoer og publiser direkte fra {name}.",
     "deleteConfirm": "Er du sikker på at du vil slette dette produktet?",
     "created": "Opprettet {date}"
   },

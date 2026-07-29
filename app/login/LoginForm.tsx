@@ -6,11 +6,13 @@ import Link from 'next/link'
 import { signIn } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { AuthShell, AuthField, AuthSubmit, AuthBanner, AuthSwitch, emberLink } from '@/components/AuthUI'
+import { useTenant } from '@/lib/tenantContext'
 
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const t = useTranslations('login')
+  const tenant = useTenant()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -59,7 +61,7 @@ export function LoginForm() {
   }
 
   return (
-    <AuthShell title={t('title')} subtitle={t('subtitle')}>
+    <AuthShell title={t('title')} subtitle={t('subtitle', { name: tenant.app_name })}>
       {message && <AuthBanner variant="success">{message}</AuthBanner>}
       {error && <AuthBanner variant="error">{error}</AuthBanner>}
 
