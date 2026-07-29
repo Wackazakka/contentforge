@@ -73,6 +73,8 @@ export default function BombazaLanding() {
 
       {/* Header */}
       <header className="bz-band" style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 24, paddingBottom: 24 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/bombaza-mark.svg" alt="" style={{ width: 38, height: 38, flex: 'none' }} />
         <span style={{ fontFamily: ARCHIVO, fontWeight: 800, fontSize: 23, letterSpacing: '-0.02em' }}>
           Bombaza<span style={{ color: BLUE }}>.</span>
         </span>

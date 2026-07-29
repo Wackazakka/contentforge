@@ -1,0 +1,13 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bombaza-merket: snakkeboble m/lydstolper (annonser + stemme) og et smell i hjørnet -->
+  <rect x="2" y="2" width="60" height="60" rx="17" fill="#0A5CFF"/>
+  <path d="M15 20 a6 6 0 0 1 6 -6 h22 a6 6 0 0 1 6 6 v16 a6 6 0 0 1 -6 6 h-16 l-9 8 v-8 h-3 a6 6 0 0 1 -6 -6 z" fill="#FFFFFF" transform="translate(0,1)"/>
+  <rect x="22" y="21" width="4.6" height="12" rx="2.3" fill="#0A5CFF"/>
+  <rect x="30" y="17.5" width="4.6" height="19" rx="2.3" fill="#0846C4"/>
+  <rect x="38" y="24" width="4.6" height="9" rx="2.3" fill="#0A5CFF"/>
+  <g stroke="#FFB020" stroke-width="3.4" stroke-linecap="round">
+    <line x1="50" y1="10" x2="53.5" y2="6.5"/>
+    <line x1="54" y1="17" x2="59" y2="16"/>
+    <line x1="45" y1="7.5" x2="45.8" y2="3"/>
+  </g>
+</svg>
