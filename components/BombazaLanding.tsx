@@ -11,16 +11,17 @@ const ARCHIVO = 'var(--font-archivo), sans-serif'
 const HANKEN = 'var(--font-hanken), sans-serif'
 const MONO = 'var(--font-cfmono), monospace'
 
-const BLUE = '#0A5CFF'
-const BLUE_DEEP = '#0846C4'
-const TINT = '#E5EDFF'
-const TINT_BORDER = '#BFD2F8'
+// Palett fra Bombaza-logopakken (README i pakken er fasit)
+const BLUE = '#165DFF'
+const BLUE_DEEP = '#0E49D8'
+const TINT = '#E7EEFF'
+const TINT_BORDER = '#C2D3FB'
 const PAPER = '#F6F8FC'
 const CARD = '#FFFFFF'
-const INK = '#101623'
+const INK = '#0D1424'
 const INK_SOFT = '#3D4657'
 const INK_MUTED = '#6E7889'
-const AMBER = '#FFB020'
+const AMBER = '#FFC82E'
 
 const FAG = ['Rørlegger', 'Elektriker', 'Snekker', 'Maler', 'Murer', 'Taktekker']
 
@@ -74,10 +75,7 @@ export default function BombazaLanding() {
       {/* Header */}
       <header className="bz-band" style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 24, paddingBottom: 24 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/bombaza-mark.svg" alt="" style={{ width: 38, height: 38, flex: 'none' }} />
-        <span style={{ fontFamily: ARCHIVO, fontWeight: 800, fontSize: 23, letterSpacing: '-0.02em' }}>
-          Bombaza<span style={{ color: BLUE }}>.</span>
-        </span>
+        <img src="/bombaza-logo.png" alt="Bombaza" style={{ height: 42, width: 'auto', flex: 'none' }} />
         <span style={{ background: TINT, color: BLUE_DEEP, fontFamily: HANKEN, fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', borderRadius: 999, padding: '5px 11px' }}>FOR HÅNDVERKERE</span>
         <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 18 }}>
           <Link href="/login" style={{ fontFamily: HANKEN, fontSize: 15, color: INK_SOFT, textDecoration: 'none' }}>Logg inn</Link>
