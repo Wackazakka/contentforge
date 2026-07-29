@@ -99,6 +99,7 @@ export default function DraftPage() {
   // Karakter-modus: konsistent vert (flux-lora) i alle segmentbilder — init fra ?character=
   const [character, setCharacter] = useState<string>(searchParams?.get('character') || '')
   const [userChars, setUserChars] = useState<Array<{ id: string; name: string; status: string }>>([])
+  const [faceActors, setFaceActors] = useState<Array<{ id: string; name: string; faceCharacterId: string; pricePerUseNok: number }>>([])
   const [actorVoices, setActorVoices] = useState<Array<{ voiceId: string; name: string; pricePerUseNok: number }>>([])
   const [musicUploading, setMusicUploading] = useState(false)
   const [musicFolder, setMusicFolder] = useState('global')
@@ -255,10 +256,22 @@ export default function DraftPage() {
       .then((r) => r.json())
       .then((d) => setMusicLibrary(d.files || []))
       .catch((err) => console.error('[DraftPage] Music fetch error:', err))
-    fetch('/api/characters')
-      .then((r) => r.json())
-      .then((d) => setUserChars((d.characters || []).filter((c: any) => c.status === 'ready')))
-      .catch(() => {})
+    ;(async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        const d = await fetch('/api/characters', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+        setUserChars((d.characters || []).filter((c: any) => c.status === 'ready'))
+      } catch { /* karakterer utilgjengelige */ }
+    })()
+    ;(async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        const d = await fetch('/api/face-actors', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+        setFaceActors((d.faces || []).filter((f: any) => f.faceCharacterId))
+      } catch { /* ansiktsbank utilgjengelig */ }
+    })()
     ;(async () => {
       try {
         const { data: sess } = await getSupabase().auth.getSession()
@@ -960,6 +973,13 @@ export default function DraftPage() {
                 {userChars.map((c) => (
                   <option key={c.id} value={c.id}>{c.name} (egen)</option>
                 ))}
+                {faceActors.length > 0 && (
+                  <optgroup label="🧑 Skuespiller-ansikter (per bruk)">
+                    {faceActors.map((f) => (
+                      <option key={f.faceCharacterId} value={f.faceCharacterId}>{f.name} — {f.pricePerUseNok.toLocaleString('nb-NO')} kr per produksjon</option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
               <span className="text-xs text-gray-400">Brukes ved «Regenerer bilde» — samme vert i alle segmenter. <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag egen karakter →</a></span>
             </div>

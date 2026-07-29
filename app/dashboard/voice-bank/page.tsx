@@ -10,13 +10,14 @@ import { getSupabase } from '@/lib/supabaseClient'
 interface Actor {
   id: string
   name: string
-  elevenlabs_voice_id: string
+  elevenlabs_voice_id: string | null
   honorarium_nok: number
   actor_rate_nok: number
   customer_price_nok: number
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
   is_exclusive?: boolean | null
+  face_character_id?: string | null
 }
 
 interface UsageEvent {
@@ -49,7 +50,7 @@ interface Monthly {
 }
 
 const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('nb-NO')} kr`
-const KIND_LABEL: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio' }
+const KIND_LABEL: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt', preview: 'Preview' }
 
 export default function VoiceBankAdminPage() {
   const [loading, setLoading] = useState(true)
@@ -74,6 +75,10 @@ export default function VoiceBankAdminPage() {
   const [fPrice, setFPrice] = useState('')
   const [fTiers, setFTiers] = useState<Array<{ from_uses: string; discount_pct: string }>>([])
   const [fExclusive, setFExclusive] = useState(true)
+  const [fHasVoice, setFHasVoice] = useState(true)
+  const [fHasFace, setFHasFace] = useState(false)
+  const [fFaceCharId, setFFaceCharId] = useState('')
+  const [ownChars, setOwnChars] = useState<Array<{ id: string; name: string }>>([])
   const [fBusy, setFBusy] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [fError, setFError] = useState<string | null>(null)
@@ -102,6 +107,12 @@ export default function VoiceBankAdminPage() {
       setFees(data.fees || null)
       setMonthFeeNok(Number(data.monthFeeNok) || 0)
       try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        const cd = await fetch('/api/characters', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+        setOwnChars((cd.characters || []).filter((c: any) => c.status === 'ready').map((c: any) => ({ id: c.id, name: c.name })))
+      } catch { /* karakterliste utilgjengelig */ }
+      try {
         const ares = await authedFetchTo('/api/voice-bank/applications')
         const adata = await ares.json()
         if (ares.ok) {
@@ -121,7 +132,10 @@ export default function VoiceBankAdminPage() {
 
   const addActor = async () => {
     setFError(null)
-    if (!fName.trim() || !fVoiceId.trim()) { setFError('Navn og ElevenLabs voice-id må fylles ut.'); return }
+    if (!fName.trim()) { setFError('Navn må fylles ut.'); return }
+    if (!fHasVoice && !fHasFace) { setFError('Velg minst ett aktivum: stemme eller ansikt.'); return }
+    if (fHasVoice && !fVoiceId.trim()) { setFError('ElevenLabs voice-id må fylles ut når raden har stemme.'); return }
+    if (fHasFace && !fFaceCharId.trim()) { setFError('Velg karakteren (ansiktet) raden skal forvalte.'); return }
     if (fRate === '' || fPrice === '' || isNaN(Number(fRate)) || isNaN(Number(fPrice))) {
       setFError('Fyll ut begge satsene som tall.'); return
     }
@@ -137,11 +151,14 @@ export default function VoiceBankAdminPage() {
           customerPriceNok: Number(fPrice),
           discountTiers: fTiers.map((t) => ({ from_uses: Number(t.from_uses), discount_pct: Number(t.discount_pct) })),
           isExclusive: fExclusive,
+          hasVoice: fHasVoice,
+          faceCharacterId: fHasFace ? fFaceCharId.trim() : null,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Kunne ikke legge til skuespilleren')
       setFName(''); setFVoiceId(''); setFHonorar(''); setFRate(''); setFPrice(''); setFTiers([]); setFExclusive(true)
+      setFHasVoice(true); setFHasFace(false); setFFaceCharId('')
       setShowForm(false)
       await refresh()
     } catch (err: any) {
@@ -261,17 +278,41 @@ export default function VoiceBankAdminPage() {
 
             {showForm && (
               <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                <div className="flex gap-5 mb-4 text-sm text-gray-700">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={fHasVoice} onChange={(e) => setFHasVoice(e.target.checked)} />
+                    🎙️ Stemme
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={fHasFace} onChange={(e) => setFHasFace(e.target.checked)} />
+                    🧑 Ansikt
+                  </label>
+                  <span className="text-xs text-gray-400 self-center">Én rad = én forvaltningsavtale — stemme, ansikt eller begge.</span>
+                </div>
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Navn</label>
                     <input value={fName} onChange={(e) => setFName(e.target.value)} placeholder="F.eks. «Kari Nordmann»"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ElevenLabs voice-id</label>
-                    <input value={fVoiceId} onChange={(e) => setFVoiceId(e.target.value)} placeholder="Fra ElevenLabs etter kloning"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
-                  </div>
+                  {fHasVoice && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ElevenLabs voice-id</label>
+                      <input value={fVoiceId} onChange={(e) => setFVoiceId(e.target.value)} placeholder="Fra ElevenLabs etter kloning"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+                    </div>
+                  )}
+                  {fHasFace && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ansikt (karakter)</label>
+                      <select value={fFaceCharId} onChange={(e) => setFFaceCharId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="">Velg trent karakter …</option>
+                        {ownChars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <p className="text-xs text-gray-400 mt-1">Karakteren må være trent i denne banken (<a href="/dashboard/characters" className="underline">tren ny</a>).</p>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Engangshonorar (kr)</label>
                     <input value={fHonorar} onChange={(e) => setFHonorar(e.target.value)} placeholder="0" inputMode="decimal"
@@ -349,6 +390,7 @@ export default function VoiceBankAdminPage() {
                       <th className="px-4 py-2">Kundepris</th>
                       <th className="px-4 py-2">Rabatt-trapper</th>
                       <th className="px-4 py-2">Bruk (mnd)</th>
+                      <th className="px-4 py-2">Aktiva</th>
                       <th className="px-4 py-2">Tilgang</th>
                       <th className="px-4 py-2">Status</th>
                     </tr>
@@ -369,6 +411,9 @@ export default function VoiceBankAdminPage() {
                               : a.discount_tiers.map((t) => `${t.discount_pct} % fra ${t.from_uses} bruk`).join(', ')}
                           </td>
                           <td className="px-4 py-2">{m?.uses ?? 0}</td>
+                          <td className="px-4 py-2">
+                            {a.elevenlabs_voice_id && a.face_character_id ? '🎙️🧑' : a.elevenlabs_voice_id ? '🎙️' : a.face_character_id ? '🧑' : '⏳ venter kloning'}
+                          </td>
                           <td className="px-4 py-2" title={a.is_exclusive !== false ? 'Kun vårt kundenett' : 'Delt med hele plattformen'}>
                             {a.is_exclusive !== false ? '🔒 Eksklusiv' : '🌐 Delt'}
                           </td>

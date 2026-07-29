@@ -167,10 +167,30 @@ export async function POST(request: Request) {
     const body = await request.json()
     const name = String(body.name || '').trim()
     const voiceId = String(body.elevenlabsVoiceId || '').trim()
+    const faceCharacterId = body.faceCharacterId ? String(body.faceCharacterId).trim() : null
     const actorRate = Number(body.actorRateNok)
     const customerPrice = Number(body.customerPriceNok)
     const honorarium = Number(body.honorariumNok || 0)
-    if (!name || !voiceId) return NextResponse.json({ error: 'Navn og ElevenLabs voice-id må fylles ut' }, { status: 400 })
+    if (!name) return NextResponse.json({ error: 'Navn må fylles ut' }, { status: 400 })
+    // Én rad = én forvaltningsavtale: stemme, ansikt eller begge — minst ett aktivum
+    if (!voiceId && !faceCharacterId) {
+      return NextResponse.json({ error: 'Raden må ha minst ett aktivum: ElevenLabs voice-id og/eller ansikt (karakter)' }, { status: 400 })
+    }
+    if (faceCharacterId) {
+      const { data: ch, error: chErr } = await admin()
+        .from('user_characters')
+        .select('id, owner_tenant_id')
+        .eq('id', faceCharacterId)
+        .maybeSingle()
+      if (!ch && !chErr) return NextResponse.json({ error: 'Fant ingen karakter med den id-en' }, { status: 400 })
+      if (ch?.owner_tenant_id) {
+        const { tenantChainUp } = await import('@/lib/voiceBank')
+        const chain = await tenantChainUp(tenant.id)
+        if (!chain.includes(ch.owner_tenant_id)) {
+          return NextResponse.json({ error: 'Karakteren tilhører en annen bank' }, { status: 403 })
+        }
+      }
+    }
     if (!(actorRate >= 0) || !(customerPrice >= 0)) {
       return NextResponse.json({ error: 'Satsene må være tall (0 eller høyere)' }, { status: 400 })
     }
@@ -185,7 +205,8 @@ export async function POST(request: Request) {
       .insert({
         owner_tenant_id: tenant.id,
         name,
-        elevenlabs_voice_id: voiceId,
+        elevenlabs_voice_id: voiceId || null,
+        face_character_id: faceCharacterId,
         honorarium_nok: honorarium >= 0 ? honorarium : 0,
         actor_rate_nok: actorRate,
         customer_price_nok: customerPrice,
@@ -266,8 +287,26 @@ export async function PATCH(request: Request) {
       patch.actor_email = v && v.includes('@') ? v : null
     }
     if (body.faceCharacterId !== undefined) {
-      // Kobling til skuespillerens ansikt (LoRA-karakter); tom streng fjerner koblingen
-      patch.face_character_id = body.faceCharacterId ? String(body.faceCharacterId).trim() : null
+      // Kobling til skuespillerens ansikt (LoRA-karakter); tom streng fjerner koblingen.
+      // Karakteren må finnes og (når eierskap er migrert) tilhøre egen kjede —
+      // hindrer å koble andres LoRA-ansikt til egen bankrad.
+      const fcid = body.faceCharacterId ? String(body.faceCharacterId).trim() : null
+      if (fcid) {
+        const { data: ch, error: chErr } = await admin()
+          .from('user_characters')
+          .select('id, owner_tenant_id')
+          .eq('id', fcid)
+          .maybeSingle()
+        if (!ch && !chErr) return NextResponse.json({ error: 'Fant ingen karakter med den id-en' }, { status: 400 })
+        if (ch?.owner_tenant_id) {
+          const { tenantChainUp } = await import('@/lib/voiceBank')
+          const chain = await tenantChainUp(tenant.id)
+          if (!chain.includes(ch.owner_tenant_id)) {
+            return NextResponse.json({ error: 'Karakteren tilhører en annen bank' }, { status: 403 })
+          }
+        }
+      }
+      patch.face_character_id = fcid
     }
     if (body.rates !== undefined) {
       // Takster per brukstype: {video:{actor_rate_nok,customer_price_nok},…} — kun gyldige tall beholdes

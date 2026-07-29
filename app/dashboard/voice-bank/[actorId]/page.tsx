@@ -283,13 +283,13 @@ export default function VoiceActorPage() {
         {!loading && !error && actor && (
           <>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-bold text-gray-900">🎙️ {actor.name}</h1>
+              <h1 className="text-3xl font-bold text-gray-900">{actor.elevenlabs_voice_id && actor.face_character_id ? '🎙️🧑' : actor.face_character_id && !actor.elevenlabs_voice_id ? '🧑' : '🎙️'} {actor.name}</h1>
               <span className={`text-sm font-medium ${actor.is_active ? 'text-green-700' : 'text-gray-400'}`}>
                 {actor.is_active ? 'Aktiv' : 'Inaktiv'}
               </span>
             </div>
             <p className="text-gray-500 mb-8">
-              ElevenLabs-id: <span className="font-mono">{actor.elevenlabs_voice_id}</span>
+              {actor.elevenlabs_voice_id ? <>ElevenLabs-id: <span className="font-mono">{actor.elevenlabs_voice_id}</span></> : <span className="text-amber-700">⏳ Venter på stemme-kloning — sett voice-id i takstkortet når klonen er klar</span>}
               {Number(actor.honorarium_nok) > 0 && <> · Engangshonorar: {nok(Number(actor.honorarium_nok))}</>}
             </p>
 
@@ -301,7 +301,7 @@ export default function VoiceActorPage() {
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {actor.is_exclusive !== false
-                    ? 'Kun deres eget kundenett kan bruke stemmen.'
+                    ? 'Kun deres eget kundenett kan bruke ' + (actor.face_character_id && !actor.elevenlabs_voice_id ? 'ansiktet.' : actor.face_character_id ? 'aktivaene.' : 'stemmen.')
                     : 'Alle kunder på plattformen kan bruke stemmen — royaltyen tilfaller fortsatt dere.'}
                 </p>
               </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getTenant } from '@/lib/tenantServer'
-import { getAvailableVoiceActors, ratesForKind } from '@/lib/voiceBank'
+import { getAvailableVoiceActors, ratesForKind, actorHasVoice } from '@/lib/voiceBank'
 
 // Stemmebanken for gjeldende tenant (host-basert): egne + arvede skuespillerstemmer.
 // Prisen som eksponeres er kundeprisen × tenantens kjede-faktor (utpris).
@@ -13,7 +13,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ voices: [] })
     }
     const kind = new URL(request.url).searchParams.get('kind')
-    let actors = await getAvailableVoiceActors(tenant.id)
+    // Kun rader MED stemme — ansikts-rader hører hjemme i /api/face-actors
+    let actors = (await getAvailableVoiceActors(tenant.id)).filter(actorHasVoice)
 
     // Drop-in-porten: uinnloggede ser kun skuespillere som har åpnet for
     // Voice Library (= samtykket til åpen distribusjon). Innloggede kunder

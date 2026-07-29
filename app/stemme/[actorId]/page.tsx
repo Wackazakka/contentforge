@@ -78,7 +78,7 @@ export default async function ActorPresentationPage({ params }: { params: Promis
               className="w-40 h-40 rounded-full object-cover mx-auto mb-6 border-4 border-white shadow-lg" />
           )}
           <h1 className="text-4xl font-bold text-[var(--ink,#1C1A16)] mb-2">{actor.name}</h1>
-          <p className="text-sm uppercase tracking-widest text-gray-500">Stemmeskuespiller · {tenantName}</p>
+          <p className="text-sm uppercase tracking-widest text-gray-500">Skuespiller · {tenantName}</p>
         </div>
 
         {/* Bio */}
@@ -115,7 +115,7 @@ export default async function ActorPresentationPage({ params }: { params: Promis
         )}
 
         <div className="text-center text-sm text-gray-400 border-t border-gray-200 pt-6">
-          Stemmen leveres gjennom {tenantName} — kontakt oss for bruk i din produksjon.
+          Leveres gjennom {tenantName} — kontakt oss for bruk i din produksjon.
         </div>
       </div>
     </div>

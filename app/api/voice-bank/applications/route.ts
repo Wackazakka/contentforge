@@ -99,14 +99,16 @@ export async function PATCH(request: Request) {
     if (decision === 'approved') {
       // Opprett INAKTIV skuespiller: satser + ElevenLabs-kloning gjøres på
       // skuespillersiden før aktivering (PVC-onboardingen er manuell = samtykkemodellen)
-      const kontakt = [`Drop-in-søknad ${String(app.created_at).slice(0, 10)}`, app.phone ? `Tlf: ${app.phone}` : '', app.wants_face ? 'Vil også tilby ansiktet.' : '']
+      const aktiva = [app.offers_voice !== false ? 'stemme' : '', app.wants_face ? 'ansikt' : ''].filter(Boolean).join(' + ')
+      const kontakt = [`Drop-in-søknad ${String(app.created_at).slice(0, 10)} (${aktiva || 'stemme'})`, app.phone ? `Tlf: ${app.phone}` : '']
         .filter(Boolean).join(' · ')
       const { data: actor, error: createErr } = await admin()
         .from('voice_actors')
         .insert({
           owner_tenant_id: tenant.id,
           name: app.name,
-          elevenlabs_voice_id: 'PENDING-KLONING',
+          // Ingen sentinel: raden venter på kloning (stemme) og/eller karakter-kobling (ansikt)
+          elevenlabs_voice_id: null,
           honorarium_nok: 0,
           actor_rate_nok: 0,
           customer_price_nok: 0,
