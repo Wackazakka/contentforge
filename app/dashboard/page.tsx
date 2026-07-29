@@ -53,7 +53,35 @@ export default function DashboardPage() {
         const { data: orgs, error } = await q.order('created_at', { ascending: true })
 
         if (error) throw error
-        const orgList: Array<{ id: string; name: string }> = orgs || []
+        let orgList: Array<{ id: string; name: string }> = orgs || []
+
+        // Selvreparasjon: registreringens org-insert blokkeres av RLS når
+        // e-postbekreftelse er på (ingen sesjon ennå). Har brukeren INGEN
+        // organisasjoner i det hele tatt, opprettes den her — nå finnes
+        // sesjonen, så RLS godtar insert-en. Gjelder kun helt ferske kontoer.
+        if (orgList.length === 0) {
+          const { count } = await supabase
+            .from('organizations')
+            .select('id', { count: 'exact', head: true })
+            .eq('owner_id', session.user.id)
+          if ((count ?? 0) === 0) {
+            const fullName = (session.user.user_metadata as any)?.full_name || session.user.email?.split('@')[0] || 'Min'
+            const { data: newOrg, error: createErr } = await supabase
+              .from('organizations')
+              .insert({
+                name: fullName + "'s Organization",
+                owner_id: session.user.id,
+                slug: (session.user.email?.split('@')[0] || 'org').toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + session.user.id.substring(0, 8),
+                description: 'Default organization for ' + fullName,
+                ...(/^[0-9a-f-]{36}$/i.test(tenant.id) ? { tenant_id: tenant.id } : {}),
+              })
+              .select('id, name')
+              .single()
+            if (createErr) console.error('[Dashboard] Selvreparasjon av org feilet:', createErr.message)
+            else if (newOrg) orgList = [newOrg]
+          }
+        }
+
         if (orgList.length > 0) {
           let chosen = orgList[0]
           if (orgList.length > 1) {
