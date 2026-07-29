@@ -1,0 +1,44 @@
+{
+  "productModal": {
+    "title": "Your business",
+    "productNameLabel": "Business name *",
+    "productNamePlaceholder": "e.g. Bakken Bygg AS",
+    "descriptionLabel": "What do you do?",
+    "descriptionPlaceholder": "E.g. We install heating cables and renovate bathrooms across Follo. Free inspection.",
+    "descriptionHint": "This becomes the raw material for your ads — the more specific, the better.",
+    "categoryLabel": "Trade",
+    "categoryRorlegger": "Plumber",
+    "categoryElektriker": "Electrician",
+    "categorySnekker": "Carpenter",
+    "categoryMaler": "Painter",
+    "categoryMurer": "Mason",
+    "categoryTaktekker": "Roofer",
+    "categoryAnnet": "Other trade",
+    "serviceAreaLabel": "Service area",
+    "serviceAreaPlaceholder": "E.g. Follo",
+    "createProduct": "Save business",
+    "errorNameRequired": "Business name is required"
+  },
+  "dashboard": {
+    "yourProducts": "Your business",
+    "newProduct": "+ Add business",
+    "welcomeSubtitle": "Add your business and we will create ads and videos that win you jobs.",
+    "createFirstProduct": "+ Add your business",
+    "step1Title": "Tell us about the business",
+    "step1Desc": "Name, trade and what you do — two sentences is enough.",
+    "step2Title": "Get the ads made",
+    "step2Desc": "Video with voice, images and copy — you approve everything before anything costs.",
+    "step3Desc": "Connect Facebook and Instagram and publish straight from {name}."
+  },
+  "product": {
+    "serviceAreaLabel": "Service area",
+    "serviceAreaPlaceholder": "E.g. Follo"
+  },
+  "newDraft": {
+    "titlePlaceholder": "E.g. Available capacity this autumn",
+    "topicPlaceholder": "E.g. We have capacity for bathroom renovations this autumn — free inspection",
+    "targetAudiencePlaceholder": "E.g. Homeowners in Follo considering a renovation",
+    "problemPlaceholder": "E.g. Hard to find a tradesperson who answers and shows up on time",
+    "ctaPlaceholder": "E.g. Call us today — free inspection"
+  }
+}

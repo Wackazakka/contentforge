@@ -17,6 +17,7 @@ export interface CreateProductInput {
   name: string
   description?: string
   category?: string
+  serviceArea?: string // vertikal-felt (f.eks. håndverker-«Område») → product_profiles.service_area
 }
 
 export function useProducts(organizationId: string | null) {
@@ -77,6 +78,18 @@ export function useProducts(organizationId: string | null) {
         .single()
 
       if (insertError) throw insertError
+
+      // Vertikal-felt: Område → product_profiles. Ikke-fatal (kolonnen kan
+      // mangle før migrasjonen er kjørt) — produktet er alt opprettet.
+      if (data && input.serviceArea?.trim()) {
+        try {
+          await supabase
+            .from('product_profiles')
+            .upsert({ product_id: data.id, service_area: input.serviceArea.trim() }, { onConflict: 'product_id' })
+        } catch (areaErr) {
+          console.warn('[useProducts] service_area ble ikke lagret:', areaErr)
+        }
+      }
 
       // Add to local state
       if (data) {

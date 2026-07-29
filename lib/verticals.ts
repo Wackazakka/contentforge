@@ -1,0 +1,34 @@
+// Vertikal-registeret: strukturelle forskjeller per tenant-vertikal
+// (tenants.vertical). Copy-forskjeller ligger IKKE her — de flettes inn via
+// messages/verticals/{vertical}.{locale}.json i i18n.ts. Ny vertikal = én
+// oppføring her + én meldingsfil per språk; null komponentendringer.
+
+export interface VerticalCategoryOption {
+  value: string // lagres i products.category
+  labelKey: string // nøkkel i productModal-namespacet
+}
+
+export interface VerticalConfig {
+  categoryOptions: VerticalCategoryOption[]
+  serviceAreaField: boolean // vis «Område»-felt (product_profiles.service_area)
+}
+
+export const VERTICALS: Record<string, VerticalConfig> = {
+  // Bombaza: håndverkere som promoterer egen bedrift
+  craftsman: {
+    categoryOptions: [
+      { value: 'rorlegger', labelKey: 'categoryRorlegger' },
+      { value: 'elektriker', labelKey: 'categoryElektriker' },
+      { value: 'snekker', labelKey: 'categorySnekker' },
+      { value: 'maler', labelKey: 'categoryMaler' },
+      { value: 'murer', labelKey: 'categoryMurer' },
+      { value: 'taktekker', labelKey: 'categoryTaktekker' },
+      { value: 'annet', labelKey: 'categoryAnnet' },
+    ],
+    serviceAreaField: true,
+  },
+}
+
+export function verticalConfig(vertical: string | null | undefined): VerticalConfig | null {
+  return (vertical && VERTICALS[vertical]) || null
+}

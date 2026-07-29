@@ -11,6 +11,7 @@ export interface TenantInfo {
   logo_url: string | null
   billing_mode: 'direct' | 'invoice'
   price_multiplier: number
+  vertical: string | null
 }
 
 const DEFAULT: TenantInfo = {
@@ -20,6 +21,7 @@ const DEFAULT: TenantInfo = {
   logo_url: null,
   billing_mode: 'direct',
   price_multiplier: 1,
+  vertical: null,
 }
 
 const TenantCtx = createContext<TenantInfo>(DEFAULT)

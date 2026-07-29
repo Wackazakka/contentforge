@@ -18,6 +18,7 @@ export interface Tenant {
   colors: Record<string, string>
   billing_mode: 'direct' | 'invoice'
   price_multiplier?: number
+  vertical?: string | null // f.eks. 'craftsman' (Bombaza) — styrer copy/felt-overstyringer
   is_active: boolean
 }
 
@@ -34,6 +35,7 @@ export const ROOT_TENANT: Tenant = {
   colors: {},
   billing_mode: 'direct',
   price_multiplier: 1,
+  vertical: null,
   is_active: true,
 }
 
