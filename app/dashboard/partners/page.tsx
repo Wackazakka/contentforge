@@ -34,6 +34,7 @@ export default function PartnersPage() {
   const [tenantName, setTenantName] = useState('')
   const [partners, setPartners] = useState<Partner[]>([])
   const [income, setIncome] = useState<Record<string, { grossNok: number; licenseNok: number; uses: number }>>({})
+  const [infraIncome, setInfraIncome] = useState<Array<{ tenantName: string; uses: number; grossNok: number; infraNok: number }> | null>(null)
   const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; license: string; name: string; logo: string; colors: Record<string, string> }>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -57,6 +58,7 @@ export default function PartnersPage() {
       setTenantName(data.tenant?.name || '')
       setPartners(data.partners || [])
       setIncome(data.income || {})
+      setInfraIncome(data.infraIncome ?? null)
       const e: typeof edits = {}
       for (const p of data.partners || []) {
         const colors: Record<string, string> = {}
@@ -121,6 +123,41 @@ export default function PartnersPage() {
 
         {!loading && partners.length === 0 && !error && (
           <p className="text-sm text-gray-500">Ingen partnere under dette leddet ennå.</p>
+        )}
+
+        {infraIncome && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+            <h2 className="font-semibold text-gray-900 mb-1">Infrastrukturinntekter denne måneden</h2>
+            <p className="text-xs text-gray-400 mb-3">Plattformens 3 % av stemme- og ansiktsomsetningen i ALLE banker i treet — rettighetshåndtering, logging og utbetaling.</p>
+            {infraIncome.length === 0 ? (
+              <p className="text-sm text-gray-500">Ingen aktiva-omsetning i treet denne måneden ennå.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
+                    <th className="py-2">Bank</th>
+                    <th className="py-2">Bruk</th>
+                    <th className="py-2">Aktiva-omsetning</th>
+                    <th className="py-2 text-right">Til plattformen (3 %)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {infraIncome.map((r) => (
+                    <tr key={r.tenantName} className="border-b border-gray-100 last:border-0">
+                      <td className="py-2 font-medium">{r.tenantName}</td>
+                      <td className="py-2">{r.uses}</td>
+                      <td className="py-2">{r.grossNok.toLocaleString('nb-NO')} kr</td>
+                      <td className="py-2 text-right font-semibold text-green-700">{r.infraNok.toLocaleString('nb-NO')} kr</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td className="py-2 font-semibold" colSpan={3}>Sum</td>
+                    <td className="py-2 text-right font-bold text-green-700">{infraIncome.reduce((s2, r) => s2 + r.infraNok, 0).toLocaleString('nb-NO')} kr</td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
+          </div>
         )}
 
         {Object.keys(income).length > 0 && (

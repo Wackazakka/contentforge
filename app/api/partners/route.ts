@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
-import { isTenantAdmin } from '@/lib/voiceBank'
+import { isTenantAdmin, PLATFORM_RIGHTS_FEE_PCT } from '@/lib/voiceBank'
 
 function admin() {
   return createClient(
@@ -80,7 +80,52 @@ export async function GET(request: Request) {
       }
     } catch { /* inntektstall er tilleggsinfo */ }
 
-    return NextResponse.json({ tenant: { id: g.tenant!.id, name: g.tenant!.app_name }, partners: children || [], income })
+    // ROT-VISNINGEN: er dette leddet plattformen selv (ingen forelder), vis
+    // INFRASTRUKTURINNTEKTENE (3 %) over HELE treet — per bank, denne måneden.
+    // Rotens egne skuespillere betaler ikke avgift og holdes utenfor.
+    let infraIncome: Array<{ tenantName: string; uses: number; grossNok: number; infraNok: number }> | null = null
+    try {
+      const { data: self } = await admin().from('tenants').select('parent_tenant_id').eq('id', g.tenant!.id).single()
+      if (self && !self.parent_tenant_id) {
+        const { data: allTenants } = await admin().from('tenants').select('id, app_name').neq('id', g.tenant!.id)
+        const navn = new Map((allTenants || []).map((t) => [t.id, t.app_name]))
+        const { data: actors } = await admin()
+          .from('voice_actors')
+          .select('id, owner_tenant_id')
+          .in('owner_tenant_id', Array.from(navn.keys()))
+        const actorOwner = new Map((actors || []).map((a) => [a.id, a.owner_tenant_id]))
+        if (actorOwner.size > 0) {
+          const monthStart = new Date()
+          monthStart.setUTCDate(1)
+          monthStart.setUTCHours(0, 0, 0, 0)
+          const { data: events } = await admin()
+            .from('voice_usage_events')
+            .select('actor_id, customer_price_nok, created_at')
+            .in('actor_id', Array.from(actorOwner.keys()))
+            .gte('created_at', monthStart.toISOString())
+            .limit(5000)
+          const perBank = new Map<string, { uses: number; grossNok: number }>()
+          for (const e of events || []) {
+            const owner = actorOwner.get(e.actor_id)
+            if (!owner) continue
+            const row = perBank.get(owner) || { uses: 0, grossNok: 0 }
+            row.uses++
+            row.grossNok += Number(e.customer_price_nok)
+            perBank.set(owner, row)
+          }
+          infraIncome = Array.from(perBank.entries()).map(([tid, v]) => ({
+            tenantName: navn.get(tid) || 'Ukjent bank',
+            uses: v.uses,
+            grossNok: Math.round(v.grossNok * 100) / 100,
+            infraNok: Math.round(v.grossNok * PLATFORM_RIGHTS_FEE_PCT) / 100,
+          })).sort((a, b) => b.infraNok - a.infraNok)
+        } else {
+          infraIncome = []
+        }
+      }
+    } catch { /* rot-visningen er tilleggsinfo */ }
+
+    return NextResponse.json({ tenant: { id: g.tenant!.id, name: g.tenant!.app_name }, partners: children || [], income, infraIncome })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
