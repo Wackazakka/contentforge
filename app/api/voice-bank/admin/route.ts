@@ -191,6 +191,8 @@ export async function POST(request: Request) {
         customer_price_nok: customerPrice,
         discount_tiers: tiers,
         notes: body.notes ? String(body.notes) : null,
+        // Eksplisitt (var tidligere DB-default): eksklusiv med mindre skjemaet sier delt
+        is_exclusive: body.isExclusive !== false,
       })
       .select('id')
       .single()
@@ -209,6 +211,29 @@ export async function PATCH(request: Request) {
     const tenant = g.tenant!
 
     const body = await request.json()
+
+    // Bulk: sett eksklusivitet for mange skuespillere i ett kall (Både Og-skala).
+    // KUN isExclusive i bulk — owner-scope + antallsverifisering hindrer at
+    // fremmede rader treffes.
+    if (Array.isArray(body.actorIds)) {
+      if (typeof body.isExclusive !== 'boolean') {
+        return NextResponse.json({ error: 'Bulk støtter kun isExclusive' }, { status: 400 })
+      }
+      const ids = body.actorIds.map(String).slice(0, 200)
+      if (ids.length === 0) return NextResponse.json({ error: 'Tom liste' }, { status: 400 })
+      const { data, error } = await admin()
+        .from('voice_actors')
+        .update({ is_exclusive: body.isExclusive })
+        .in('id', ids)
+        .eq('owner_tenant_id', tenant.id)
+        .select('id')
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if ((data || []).length !== ids.length) {
+        return NextResponse.json({ error: `Oppdaterte ${(data || []).length} av ${ids.length} — noen tilhører ikke denne banken`, updated: (data || []).length }, { status: 409 })
+      }
+      return NextResponse.json({ ok: true, updated: data!.length })
+    }
+
     const actorId = body.actorId
     if (!actorId) return NextResponse.json({ error: 'Mangler actorId' }, { status: 400 })
 
