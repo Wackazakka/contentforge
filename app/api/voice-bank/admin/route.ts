@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
-import { isTenantAdmin } from '@/lib/voiceBank'
+import { isTenantAdmin, PLATFORM_RIGHTS_FEE_PCT } from '@/lib/voiceBank'
 
 function admin() {
   return createClient(
@@ -31,32 +31,30 @@ async function guard(request: Request): Promise<{ tenant?: Awaited<ReturnType<ty
   return { tenant }
 }
 
-// To-sats avregning: tenanten betaler oppover 3 % av DIREKTE margininntekt
-// (egne kunder) og 7,5 % av INDIREKTE (under-white-labels' bruk). Beregnes på
-// MARGIN (kundepris − skuespillersats), klassifisert per hendelse via
-// used_by_tenant_id. Root betaler ingen avgift.
-async function getFees(tenantId: string): Promise<{ directPct: number; indirectPct: number } | null> {
+// Rettighetsavgift (Lars 2026-07-29, ERSTATTER to-sats-marginmodellen):
+// plattformen tar flat PLATFORM_RIGHTS_FEE_PCT av BRUTTO stemmeomsetning
+// (kundepris, alle kinds) i alle ledd — betaling for rettighetshåndtering,
+// logging og utbetaling. Root betaler ingen avgift (den ER plattformen).
+// fee_direct_pct/fee_indirect_pct-kolonnene ligger sovende (som royalty_cut_pct).
+async function getFees(tenantId: string): Promise<{ rightsPct: number } | null> {
   try {
     const { data: t } = await admin()
       .from('tenants')
-      .select('parent_tenant_id, fee_direct_pct, fee_indirect_pct')
+      .select('parent_tenant_id')
       .eq('id', tenantId)
       .single()
     if (!t?.parent_tenant_id) return null
-    return { directPct: Number(t.fee_direct_pct ?? 3), indirectPct: Number(t.fee_indirect_pct ?? 7.5) }
+    return { rightsPct: PLATFORM_RIGHTS_FEE_PCT }
   } catch {
     return null
   }
 }
 
-function feeForEvents(events: Array<{ used_by_tenant_id?: string; customer_price_nok: number; actor_rate_nok: number }>, ownTenantId: string, fees: { directPct: number; indirectPct: number } | null): number {
+function feeForEvents(events: Array<{ customer_price_nok: number }>, _ownTenantId: string, fees: { rightsPct: number } | null): number {
   if (!fees) return 0
   let fee = 0
   for (const e of events) {
-    const margin = Number(e.customer_price_nok) - Number(e.actor_rate_nok)
-    if (margin <= 0) continue
-    const pct = e.used_by_tenant_id === ownTenantId ? fees.directPct : fees.indirectPct
-    fee += margin * (pct / 100)
+    fee += Number(e.customer_price_nok) * (fees.rightsPct / 100)
   }
   return Math.round(fee * 100) / 100
 }
@@ -127,7 +125,7 @@ export async function GET(request: Request) {
         .select('id, actor_id, used_by_tenant_id, actor_rate_nok, customer_price_nok, meta, created_at')
         .in('actor_id', actorIds)
         .order('created_at', { ascending: false })
-        .limit(200)
+        .limit(1000)
       events = ev || []
     }
 
@@ -144,10 +142,7 @@ export async function GET(request: Request) {
     })
 
     const fees = await getFees(tenant.id)
-    const monthStart2 = new Date()
-    monthStart2.setUTCDate(1)
-    monthStart2.setUTCHours(0, 0, 0, 0)
-    const monthEvents = events.filter((e) => new Date(e.created_at) >= monthStart2)
+    const monthEvents = events.filter((e) => new Date(e.created_at) >= monthStart)
 
     return NextResponse.json({
       tenant: { id: tenant.id, name: tenant.app_name },

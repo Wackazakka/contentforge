@@ -46,7 +46,7 @@ export default function VoiceActorPage() {
   const [events, setEvents] = useState<Array<{ id: number; actor_rate_nok: number; customer_price_nok: number; meta: { kind?: string }; created_at: string }>>([])
   const [byMonth, setByMonth] = useState<Agg[]>([])
   const [byKind, setByKind] = useState<Agg[]>([])
-  const [fees, setFees] = useState<{ directPct: number; indirectPct: number } | null>(null)
+  const [fees, setFees] = useState<{ rightsPct: number } | null>(null)
   const [totalFeeNok, setTotalFeeNok] = useState(0)
 
   // Takst-redigering: standard + per brukstype ('' = bruk standard)
@@ -317,7 +317,7 @@ export default function VoiceActorPage() {
                 { label: 'Bruk totalt', value: String(totals.uses) },
                 { label: 'Generert fra kundene', value: nok(totals.from) },
                 { label: 'Opptjent til skuespilleren', value: nok(totals.to) },
-                ...(fees ? [{ label: `Avgift oppover (${fees.directPct} % dir. / ${fees.indirectPct} % indir.)`, value: nok(totalFeeNok) }] : []),
+                ...(fees ? [{ label: `Rettighetsavgift til plattformen (${fees.rightsPct} %)`, value: nok(totalFeeNok) }] : []),
                 { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.from - totals.to - totalFeeNok) },
               ].map((c) => (
                 <div key={c.label} className="bg-white rounded-lg border border-gray-200 p-4">
@@ -530,7 +530,7 @@ export default function VoiceActorPage() {
                         <span className="text-gray-600">{e.source}</span>
                         <span className="text-gray-900">{nok(e.gross_nok)} brutto</span>
                         <span className="text-green-700">{nok(toActor)} til skuespilleren ({share} %)</span>
-                        <span className="text-gray-500">{nok(e.gross_nok - toActor)} igjen (kaskade trekkes ved avregning)</span>
+                        <span className="text-gray-500">{nok(e.gross_nok - toActor)} igjen (fordeling skjer ved avregning)</span>
                       </div>
                     )
                   })}
