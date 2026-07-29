@@ -950,7 +950,8 @@ export default function DraftPage() {
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
               >
                 <option value="">Ingen — vanlige scenebilder</option>
-                <option value="adam">Adam (Reforhandle)</option>
+                {/* Adam er eksklusiv for rot-tenanten (lib/characters.ts håndhever server-side) */}
+                {tenant.slug === 'centerforge' && <option value="adam">Adam (Reforhandle)</option>}
                 <option value="lawrence">Lawrence (Peregrine)</option>
                 {userChars.map((c) => (
                   <option key={c.id} value={c.id}>{c.name} (egen)</option>
