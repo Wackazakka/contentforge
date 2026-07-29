@@ -83,7 +83,10 @@ export default function DashboardPage() {
   const handleCreateProduct = async (name: string, description: string, category: string, serviceArea?: string) => {
     setCreatingProduct(true)
     try {
-      await createProduct({ name, description, category, serviceArea })
+      // Uten org på DETTE domenet kan ingenting lagres — si det, ikke lukk stille
+      if (!organizationId) throw new Error(t('errorNoOrgOnDomain'))
+      const created = await createProduct({ name, description, category, serviceArea })
+      if (!created) throw new Error(t('errorCreateFailed'))
     } finally {
       setCreatingProduct(false)
     }
