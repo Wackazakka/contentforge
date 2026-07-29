@@ -31,32 +31,49 @@ async function guard(request: Request): Promise<{ tenant?: Awaited<ReturnType<ty
   return { tenant }
 }
 
-// Rettighetsavgift (Lars 2026-07-29, ERSTATTER to-sats-marginmodellen):
-// plattformen tar flat PLATFORM_RIGHTS_FEE_PCT av BRUTTO stemmeomsetning
-// (kundepris, alle kinds) i alle ledd — betaling for rettighetshåndtering,
-// logging og utbetaling. Root betaler ingen avgift (den ER plattformen).
-// fee_direct_pct/fee_indirect_pct-kolonnene ligger sovende (som royalty_cut_pct).
-async function getFees(tenantId: string): Promise<{ rightsPct: number } | null> {
+// To navngitte avgifter på brutto aktiva-omsetning (kundepris, stemme OG ansikt):
+// 1) INFRASTRUKTURAVGIFT — plattformens faste PLATFORM_RIGHTS_FEE_PCT i alle ledd
+//    (rettighetshåndtering, logging, utbetaling). Ikke forhandlingsbar.
+// 2) LISENSAVGIFT — det DIREKTE morleddets forhandlede prosent (tenants.license_fee_pct
+//    på PARTNERENS rad, satt av forelderen i Partnere-adminen; 0 = ingen).
+//    Gjelder ikke når forelderen er root (plattformens del ER infrastrukturavgiften).
+// Root betaler ingen avgifter. fee_direct/indirect-kolonnene ligger sovende.
+type Fees = { infraPct: number; licensePct: number; licenseTo: string | null }
+
+async function getFees(tenantId: string): Promise<Fees | null> {
   try {
     const { data: t } = await admin()
       .from('tenants')
-      .select('parent_tenant_id')
+      .select('parent_tenant_id, license_fee_pct')
       .eq('id', tenantId)
       .single()
     if (!t?.parent_tenant_id) return null
-    return { rightsPct: PLATFORM_RIGHTS_FEE_PCT }
+    let licensePct = 0
+    let licenseTo: string | null = null
+    const { data: parent } = await admin()
+      .from('tenants')
+      .select('app_name, parent_tenant_id')
+      .eq('id', t.parent_tenant_id)
+      .single()
+    // Lisensavgift kun til mellomledd (forelder som selv har en forelder)
+    if (parent?.parent_tenant_id) {
+      licensePct = Number((t as { license_fee_pct?: number }).license_fee_pct ?? 0)
+      licenseTo = licensePct > 0 ? parent.app_name : null
+    }
+    return { infraPct: PLATFORM_RIGHTS_FEE_PCT, licensePct: licenseTo ? licensePct : 0, licenseTo }
   } catch {
     return null
   }
 }
 
-function feeForEvents(events: Array<{ customer_price_nok: number }>, _ownTenantId: string, fees: { rightsPct: number } | null): number {
-  if (!fees) return 0
-  let fee = 0
-  for (const e of events) {
-    fee += Number(e.customer_price_nok) * (fees.rightsPct / 100)
+function feeForEvents(events: Array<{ customer_price_nok: number }>, _ownTenantId: string, fees: Fees | null): { infraNok: number; licenseNok: number } {
+  if (!fees) return { infraNok: 0, licenseNok: 0 }
+  let gross = 0
+  for (const e of events) gross += Number(e.customer_price_nok)
+  return {
+    infraNok: Math.round(gross * fees.infraPct) / 100,
+    licenseNok: Math.round(gross * fees.licensePct) / 100,
   }
-  return Math.round(fee * 100) / 100
 }
 
 // Stemmebank-admin for gjeldende tenant (host-basert). Tilgang: tenantens egne
@@ -107,7 +124,7 @@ export async function GET(request: Request) {
         byMonth: agg((e) => String(e.created_at).slice(0, 7)).sort((a, b) => b.key.localeCompare(a.key)),
         byKind: agg((e) => e.meta?.kind || 'ukjent'),
         fees,
-        totalFeeNok: feeForEvents(events as any, tenant.id, fees),
+        ...(() => { const f = feeForEvents(events as any, tenant.id, fees); return { totalInfraNok: f.infraNok, totalLicenseNok: f.licenseNok, totalFeeNok: Math.round((f.infraNok + f.licenseNok) * 100) / 100 } })(),
       })
     }
 
@@ -150,7 +167,7 @@ export async function GET(request: Request) {
       events,
       monthly,
       fees,
-      monthFeeNok: feeForEvents(monthEvents as any, tenant.id, fees),
+      ...(() => { const f = feeForEvents(monthEvents as any, tenant.id, fees); return { monthInfraNok: f.infraNok, monthLicenseNok: f.licenseNok, monthFeeNok: Math.round((f.infraNok + f.licenseNok) * 100) / 100 } })(),
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

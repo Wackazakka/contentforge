@@ -59,8 +59,9 @@ export default function VoiceBankAdminPage() {
   const [actors, setActors] = useState<Actor[]>([])
   const [events, setEvents] = useState<UsageEvent[]>([])
   const [monthly, setMonthly] = useState<Monthly[]>([])
-  const [fees, setFees] = useState<{ rightsPct: number } | null>(null)
-  const [monthFeeNok, setMonthFeeNok] = useState(0)
+  const [fees, setFees] = useState<{ infraPct: number; licensePct: number; licenseTo: string | null } | null>(null)
+  const [monthInfraNok, setMonthInfraNok] = useState(0)
+  const [monthLicenseNok, setMonthLicenseNok] = useState(0)
   const [applications, setApplications] = useState<VoiceApplication[]>([])
   const [acceptApps, setAcceptApps] = useState(false)
   const [appsMigrated, setAppsMigrated] = useState(true)
@@ -105,7 +106,8 @@ export default function VoiceBankAdminPage() {
       setEvents(data.events || [])
       setMonthly(data.monthly || [])
       setFees(data.fees || null)
-      setMonthFeeNok(Number(data.monthFeeNok) || 0)
+      setMonthInfraNok(Number(data.monthInfraNok) || 0)
+      setMonthLicenseNok(Number(data.monthLicenseNok) || 0)
       try {
         const { data: sess } = await getSupabase().auth.getSession()
         const token = sess?.session?.access_token
@@ -255,8 +257,9 @@ export default function VoiceBankAdminPage() {
                 { label: 'Bruk denne måneden', value: String(totals.uses) },
                 { label: 'Fra kundene', value: nok(totals.from) },
                 { label: 'Til skuespillerne', value: nok(totals.to) },
-                ...(fees ? [{ label: `Rettighetsavgift til plattformen (${fees.rightsPct} %)`, value: nok(monthFeeNok) }] : []),
-                { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.cut - monthFeeNok) },
+                ...(fees ? [{ label: `Infrastrukturavgift (${fees.infraPct} %)`, value: nok(monthInfraNok) }] : []),
+                ...(fees?.licenseTo ? [{ label: `Lisensavgift til ${fees.licenseTo} (${fees.licensePct} %)`, value: nok(monthLicenseNok) }] : []),
+                { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.cut - monthInfraNok - monthLicenseNok) },
               ].map((c) => (
                 <div key={c.label} className="bg-white rounded-lg border border-gray-200 p-4">
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>
