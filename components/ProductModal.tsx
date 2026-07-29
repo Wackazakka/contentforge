@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useTenant } from '@/lib/tenantContext'
 import { verticalConfig } from '@/lib/verticals'
@@ -44,6 +44,12 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const errorRef = useRef<HTMLDivElement | null>(null)
+
+  // Dialogen scroller — sørg for at feilmeldingen faktisk kommer i synsfeltet
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [error])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -123,7 +129,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
         <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 32, lineHeight: 1, color: '#1C1A16', margin: '0 0 22px' }}>{t('title')}</h2>
 
         {error && (
-          <div style={{ background: '#FBEAE6', border: '1px solid #F0C4B8', borderRadius: 11, padding: '13px 16px', fontFamily: HANKEN, fontSize: 14.5, fontWeight: 600, color: 'var(--ember-deep)', marginBottom: 20 }}>
+          <div ref={errorRef} style={{ background: '#FBEAE6', border: '1px solid #F0C4B8', borderRadius: 11, padding: '13px 16px', fontFamily: HANKEN, fontSize: 14.5, fontWeight: 600, color: 'var(--ember-deep)', marginBottom: 20 }}>
             {error}
           </div>
         )}
