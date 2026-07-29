@@ -143,16 +143,11 @@ export default function PartnersPage() {
                     <p className="text-xs text-gray-400 mt-1">0–500. Partnerens innpris = vår kost + dette påslaget. 100 = standard.</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Avgift, direkte margin (%)</label>
-                    <input value={e.feeDirect} onChange={(ev) => setEdit(p.id, 'feeDirect', ev.target.value)} inputMode="decimal"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                    <p className="text-xs text-gray-400 mt-1">Andel av det partneren tjener på EGNE kunder. Standard 3.</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Avgift, indirekte margin (%)</label>
-                    <input value={e.feeIndirect} onChange={(ev) => setEdit(p.id, 'feeIndirect', ev.target.value)} inputMode="decimal"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                    <p className="text-xs text-gray-400 mt-1">Andel av det partneren tjener på sine white-labels' bruk. Standard 7,5.</p>
+                    {/* To-sats-avgiften er erstattet av plattformens rettighetsavgift (flat, lik for alle) */}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Rettighetsavgift</label>
+                    <p className="text-sm text-gray-600 border border-gray-200 rounded-lg px-3 py-2 bg-gray-50">
+                      3 % av stemmeomsetning går til plattformen — lik for alle ledd. Påslaget over setter du selv.
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Visningsnavn</label>
