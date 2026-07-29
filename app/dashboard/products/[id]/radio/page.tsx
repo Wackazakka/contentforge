@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
+import { useTenant } from '@/lib/tenantContext'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
@@ -37,6 +38,7 @@ const DURATIONS = [
 export default function RadioAdPage() {
   const params = useParams()
   const productId = params.id as string
+  const tenantInfo = useTenant()
 
   const [campaignName, setCampaignName] = useState('')
   const [topic, setTopic] = useState('')
@@ -506,7 +508,7 @@ export default function RadioAdPage() {
                   }`}>
                   Ingen musikk
                 </button>
-                {musicLibrary.map((m) => (
+                {musicLibrary.filter((m) => !(m.folder || '').startsWith('jingles')).map((m) => (
                   <div key={m.filename} onClick={() => setMusicFile(m.filename)}
                     className={`w-full text-left p-3 border-2 rounded-lg transition-colors cursor-pointer ${
                       musicFile === m.filename ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
@@ -556,7 +558,7 @@ export default function RadioAdPage() {
                     const formData = new FormData()
                     formData.append('file', file)
                     try {
-                      const res = await fetch('/api/music/upload?folder=jingles', { method: 'POST', body: formData })
+                      const res = await fetch(`/api/music/upload?folder=jingles-${productId}`, { method: 'POST', body: formData })
                       if (res.ok) { await refreshMusicLibrary(); alert('Lastet opp!') }
                       else alert('Opplasting feilet: ' + await res.text())
                     } catch { alert('Opplasting feilet.') }
@@ -568,7 +570,8 @@ export default function RadioAdPage() {
             </div>
 
             {(() => {
-              const jingles = musicLibrary.filter(m => m.folder === 'jingles')
+              // Kun produktets egne jingler; gamle felles-jingler kun på rot-tenanten
+              const jingles = musicLibrary.filter(m => m.folder === `jingles-${productId}` || (m.folder === 'jingles' && tenantInfo.slug === 'centerforge'))
               return jingles.length === 0 ? (
               <p className="text-sm text-gray-400">Ingen jingles lastet opp ennå.</p>
             ) : (

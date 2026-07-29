@@ -791,7 +791,7 @@ export default function DraftPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
               >
                 <option value="">Ingen musikk</option>
-                {musicLibrary.filter((m) => m.folder !== 'jingles').map((m) => (
+                {musicLibrary.filter((m) => !(m.folder || '').startsWith('jingles')).map((m) => (
                   <option key={m.filename} value={m.filename}>{m.name}</option>
                 ))}
               </select>
@@ -855,9 +855,13 @@ export default function DraftPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
               >
                 <option value="">Ingen jingle</option>
-                {musicLibrary.filter((m) => m.folder === 'jingles').map((j) => (
-                  <option key={j.filename} value={j.filename}>{j.name}</option>
-                ))}
+                {/* Jingler er merkevare-eiendeler: kun produktets egne (jingles-<produktId>).
+                    De gamle felles-jinglene (BilDeal/Reforhandle) vises kun på rot-tenanten. */}
+                {musicLibrary
+                  .filter((m) => m.folder === `jingles-${productId}` || (m.folder === 'jingles' && tenantInfo.slug === 'centerforge'))
+                  .map((j) => (
+                    <option key={j.filename} value={j.filename}>{j.name}</option>
+                  ))}
               </select>
               {outroJingle && (
                 <audio controls preload="none" src={`/api/music/${encodeURIComponent(outroJingle)}`} className="mt-2 w-full" />
@@ -878,7 +882,7 @@ export default function DraftPage() {
                     setJingleUploading(true)
                     try {
                       const fd = new FormData(); fd.append('file', file)
-                      const res = await fetch('/api/music/upload?folder=jingles', { method: 'POST', body: fd })
+                      const res = await fetch(`/api/music/upload?folder=jingles-${productId}`, { method: 'POST', body: fd })
                       if (res.ok) {
                         const up = await res.json()
                         const data = await fetch('/api/music').then((r) => r.json())

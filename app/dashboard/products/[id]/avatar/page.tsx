@@ -47,6 +47,7 @@ const DURATIONS = [
 export default function AvatarVideoPage() {
   const params = useParams()
   const productId = params.id as string
+  const tenantSlug = useTenant().slug
 
   // Context fields
   const [campaignName, setCampaignName] = useState('')
@@ -1003,7 +1004,7 @@ export default function AvatarVideoPage() {
                 >
                   Ingen musikk
                 </button>
-                {musicLibrary.filter((m) => m.folder !== 'jingles').map((m) => (
+                {musicLibrary.filter((m) => !(m.folder || '').startsWith('jingles')).map((m) => (
                   <div
                     key={m.filename}
                     onClick={() => setMusicFile(m.filename)}
@@ -1111,7 +1112,7 @@ export default function AvatarVideoPage() {
                           if (file.size > 4 * 1024 * 1024) { alert('Maks 4 MB'); e.currentTarget.value = ''; return }
                           const fd = new FormData()
                           fd.append('file', file)
-                          const res = await fetch('/api/music/upload?folder=jingles', { method: 'POST', body: fd })
+                          const res = await fetch(`/api/music/upload?folder=jingles-${productId}`, { method: 'POST', body: fd })
                           if (res.ok) { await refreshMusicLibrary(); alert('Jingle lastet opp!') }
                           else alert('Opplasting feilet')
                           e.currentTarget.value = ''
@@ -1120,7 +1121,8 @@ export default function AvatarVideoPage() {
                     </label>
                   </div>
                   {(() => {
-                    const jingles = musicLibrary.filter(m => m.folder === 'jingles')
+                    // Kun produktets egne jingler; gamle felles-jingler kun på rot-tenanten
+                    const jingles = musicLibrary.filter(m => m.folder === `jingles-${productId}` || (m.folder === 'jingles' && tenantSlug === 'centerforge'))
                     return (
                       <div className="space-y-1 max-h-40 overflow-y-auto">
                         <button
