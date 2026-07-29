@@ -36,7 +36,51 @@ export async function GET(request: Request) {
       .select('id, slug, app_name, logo_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, license_fee_pct, billing_mode')
       .eq('parent_tenant_id', g.tenant!.id)
       .order('app_name')
-    return NextResponse.json({ tenant: { id: g.tenant!.id, name: g.tenant!.app_name }, partners: children || [] })
+
+    // Partnerinntekter denne måneden (mottakersiden av lisensavgiften):
+    // brutto aktiva-omsetning per partner = kundeprisene i hovedboken for
+    // skuespillere partneren EIER; din lisensinntekt = brutto × partnerens sats.
+    // Speiler nøyaktig tallene partneren selv ser i sin bankadmin. Defensivt —
+    // feiler oppslaget, leveres partnerne uten inntektstall.
+    const income: Record<string, { grossNok: number; licenseNok: number; uses: number }> = {}
+    try {
+      const childIds = (children || []).map((c) => c.id)
+      if (childIds.length > 0) {
+        const { data: actors } = await admin()
+          .from('voice_actors')
+          .select('id, owner_tenant_id')
+          .in('owner_tenant_id', childIds)
+        const actorOwner = new Map((actors || []).map((a) => [a.id, a.owner_tenant_id]))
+        if (actorOwner.size > 0) {
+          const monthStart = new Date()
+          monthStart.setUTCDate(1)
+          monthStart.setUTCHours(0, 0, 0, 0)
+          const { data: events } = await admin()
+            .from('voice_usage_events')
+            .select('actor_id, customer_price_nok, created_at')
+            .in('actor_id', Array.from(actorOwner.keys()))
+            .gte('created_at', monthStart.toISOString())
+            .limit(5000)
+          for (const e of events || []) {
+            const owner = actorOwner.get(e.actor_id)
+            if (!owner) continue
+            const row = income[owner] || { grossNok: 0, licenseNok: 0, uses: 0 }
+            row.grossNok += Number(e.customer_price_nok)
+            row.uses++
+            income[owner] = row
+          }
+          for (const c of children || []) {
+            const row = income[c.id]
+            if (row) {
+              row.grossNok = Math.round(row.grossNok * 100) / 100
+              row.licenseNok = Math.round(row.grossNok * Number(c.license_fee_pct ?? 0)) / 100
+            }
+          }
+        }
+      }
+    } catch { /* inntektstall er tilleggsinfo */ }
+
+    return NextResponse.json({ tenant: { id: g.tenant!.id, name: g.tenant!.app_name }, partners: children || [], income })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

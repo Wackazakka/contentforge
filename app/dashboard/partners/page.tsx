@@ -33,6 +33,7 @@ export default function PartnersPage() {
   const [error, setError] = useState<string | null>(null)
   const [tenantName, setTenantName] = useState('')
   const [partners, setPartners] = useState<Partner[]>([])
+  const [income, setIncome] = useState<Record<string, { grossNok: number; licenseNok: number; uses: number }>>({})
   const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; license: string; name: string; logo: string; colors: Record<string, string> }>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -55,6 +56,7 @@ export default function PartnersPage() {
       setError(null)
       setTenantName(data.tenant?.name || '')
       setPartners(data.partners || [])
+      setIncome(data.income || {})
       const e: typeof edits = {}
       for (const p of data.partners || []) {
         const colors: Record<string, string> = {}
@@ -111,7 +113,7 @@ export default function PartnersPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🤝 Partnere</h1>
         <p className="text-gray-600 mb-8">
           {tenantName ? `${tenantName} sine direkte underledd` : 'Dine direkte underledd'} — sett påslaget dere tar av dem,
-          royalty-satsen de betaler oppover, og merkevaren deres (navn, logo og farger på deres eget domene).
+          lisensavgiften fra partneravtalen, og merkevaren deres (navn, logo og farger på deres eget domene).
         </p>
 
         {loading && <p className="text-gray-500">Henter partnerne …</p>}
@@ -119,6 +121,38 @@ export default function PartnersPage() {
 
         {!loading && partners.length === 0 && !error && (
           <p className="text-sm text-gray-500">Ingen partnere under dette leddet ennå.</p>
+        )}
+
+        {Object.keys(income).length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+            <h2 className="font-semibold text-gray-900 mb-1">Partnerinntekter denne måneden</h2>
+            <p className="text-xs text-gray-400 mb-3">Lisensavgiften av partnernes stemme- og ansiktsomsetning — samme hovedbok som partneren selv ser. Endelig oppgjør skjer ved månedsavregningen.</p>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
+                  <th className="py-2">Partner</th>
+                  <th className="py-2">Bruk</th>
+                  <th className="py-2">Aktiva-omsetning</th>
+                  <th className="py-2">Sats</th>
+                  <th className="py-2 text-right">Til dere</th>
+                </tr>
+              </thead>
+              <tbody>
+                {partners.filter((p) => income[p.id]).map((p) => {
+                  const inc = income[p.id]
+                  return (
+                    <tr key={p.id} className="border-b border-gray-100 last:border-0">
+                      <td className="py-2 font-medium">{p.app_name}</td>
+                      <td className="py-2">{inc.uses}</td>
+                      <td className="py-2">{inc.grossNok.toLocaleString('nb-NO')} kr</td>
+                      <td className="py-2">{Number(p.license_fee_pct ?? 0)} %</td>
+                      <td className="py-2 text-right font-semibold text-green-700">{inc.licenseNok.toLocaleString('nb-NO')} kr</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
         <div className="space-y-6">
