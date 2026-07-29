@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { getSupabase } from '@/lib/supabaseClient'
 
 interface UserCharacter {
   id: string
@@ -19,9 +20,15 @@ export default function CharactersPage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const authHeaders = async (): Promise<Record<string, string>> => {
+    const { data: sess } = await getSupabase().auth.getSession()
+    const token = sess?.session?.access_token
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
   const refresh = async () => {
     try {
-      const d = await fetch('/api/characters').then((r) => r.json())
+      const d = await fetch('/api/characters', { headers: await authHeaders() }).then((r) => r.json())
       setChars(d.characters || [])
     } catch { /* ignore */ }
   }
@@ -58,7 +65,7 @@ export default function CharactersPage() {
       setBusy('Starter trening…')
       const res = await fetch('/api/characters/train', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ name, zipUrl: publicUrl }),
       })
       const data = await res.json()

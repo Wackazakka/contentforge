@@ -102,6 +102,23 @@ async function resolveCharacter(characterId: string) {
   const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
   const { data } = await supabase.from('user_characters').select('*').eq('id', characterId).single()
   if (data && data.status === 'ready' && data.lora_url) {
+    // Sikring (2026-07-29): karakteren må være tilgjengelig for HOST-tenanten —
+    // enten eid i egen kjede, eller ansiktet på en tilgjengelig bankrad.
+    // Defensivt: mangler owner-kolonnen (pre-migrasjon) regnes eierskapet som ukjent → tillat kjede-stien ikke; bank-stien sjekkes uansett.
+    try {
+      const { getTenant } = await import('@/lib/tenantServer')
+      const { tenantChainUp, getAvailableFaceActors } = await import('@/lib/voiceBank')
+      const tenant = await getTenant()
+      const chain = tenant.id === 'root' ? [] : await tenantChainUp(tenant.id)
+      const ownedInChain = data.owner_tenant_id ? chain.includes(data.owner_tenant_id) : false
+      let viaBank = false
+      if (!ownedInChain && tenant.id !== 'root') {
+        const faces = await getAvailableFaceActors(tenant.id)
+        viaBank = faces.some((f) => (f as { face_character_id?: string | null }).face_character_id === characterId)
+      }
+      // Rot-tenanten (inkl. dropletens server-til-server-render) beholder full tilgang
+      if (tenant.id !== 'root' && !ownedInChain && !viaBank) return null
+    } catch { /* sikringen skal aldri velte bildegenereringen for rot */ }
     return {
       id: data.id,
       name: data.name,

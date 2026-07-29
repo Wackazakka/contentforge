@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 
 const VIDEO_FORMATS = [
@@ -27,10 +28,24 @@ export default function NewDraftPage() {
   const [tone, setTone] = useState('Energisk')
   const [character, setCharacter] = useState('')
   const [userChars, setUserChars] = useState<Array<{ id: string; name: string }>>([])
+  const [faceActors, setFaceActors] = useState<Array<{ id: string; name: string; faceCharacterId: string; pricePerUseNok: number }>>([])
   useEffect(() => {
-    fetch('/api/characters')
-      .then((r) => r.json())
-      .then((d) => setUserChars((d.characters || []).filter((c: any) => c.status === 'ready')))
+    (async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        const d = await fetch('/api/characters', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+        setUserChars((d.characters || []).filter((c: any) => c.status === 'ready'))
+      } catch { /* karakterer utilgjengelige */ }
+    })()
+    ;(async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        const d = await fetch('/api/face-actors', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+        setFaceActors((d.faces || []).filter((f: any) => f.faceCharacterId))
+      } catch { /* ansiktsbank utilgjengelig */ }
+    })()
       .catch(() => {})
   }, [])
   const [perspective, setPerspective] = useState<'du' | 'jeg'>('du')
@@ -275,6 +290,13 @@ export default function NewDraftPage() {
                     {userChars.map((c) => (
                       <option key={c.id} value={c.id}>{c.name} (egen)</option>
                     ))}
+                    {faceActors.length > 0 && (
+                      <optgroup label="🧑 Skuespiller-ansikter (per bruk)">
+                        {faceActors.map((f) => (
+                          <option key={f.faceCharacterId} value={f.faceCharacterId}>{f.name} — {f.pricePerUseNok.toLocaleString('nb-NO')} kr per produksjon</option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                   <p className="text-xs text-gray-400 mt-1">Samme vert i alle segmentbildene (AI-persona). <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag din egen karakter →</a></p>
                 </div>

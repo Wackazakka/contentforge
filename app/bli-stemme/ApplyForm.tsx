@@ -19,6 +19,7 @@ export default function ApplyForm({ appName }: { appName: string }) {
   const [phone, setPhone] = useState('')
   const [bio, setBio] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  const [offersVoice, setOffersVoice] = useState(true)
   const [wantsFace, setWantsFace] = useState(false)
   const [consent, setConsent] = useState(false)
   const [website, setWebsite] = useState('') // honeypot
@@ -30,7 +31,8 @@ export default function ApplyForm({ appName }: { appName: string }) {
     e.preventDefault()
     setError(null)
     if (!name.trim() || !email.includes('@')) { setError('Fyll inn navn og en gyldig e-postadresse.'); return }
-    if (files.length === 0) { setError('Last opp minst én lydprøve.'); return }
+    if (!offersVoice && !wantsFace) { setError('Velg minst ett aktivum: stemme eller ansikt.'); return }
+    if (offersVoice && files.length === 0) { setError('Last opp minst én lydprøve når du tilbyr stemmen.'); return }
     if (!consent) { setError('Du må samtykke for å sende søknaden.'); return }
     setBusy(true)
     try {
@@ -40,6 +42,7 @@ export default function ApplyForm({ appName }: { appName: string }) {
       fd.append('phone', phone.trim())
       fd.append('bio', bio.trim())
       fd.append('wantsFace', wantsFace ? '1' : '0')
+      fd.append('offersVoice', offersVoice ? '1' : '0')
       fd.append('consentText', CONSENT_TEXT)
       fd.append('website', website) // honeypot
       files.slice(0, 2).forEach((f) => fd.append('samples', f))
@@ -100,7 +103,7 @@ export default function ApplyForm({ appName }: { appName: string }) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lydprøver (1–2 filer) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Lydprøver (1–2 filer){offersVoice ? ' *' : ' — valgfritt uten stemme'}</label>
             <input
               type="file"
               accept=".mp3,.wav,.m4a,audio/mpeg,audio/wav,audio/mp4"
@@ -119,10 +122,17 @@ export default function ApplyForm({ appName }: { appName: string }) {
             />
             <p className="text-xs text-gray-400 mt-1">MP3, WAV eller M4A — maks {MAX_FILE_MB} MB per fil. 30–60 sekunder naturlig tale er perfekt.</p>
           </div>
-          <label className="flex items-start gap-2 text-sm text-gray-700">
-            <input type="checkbox" checked={wantsFace} onChange={(e) => setWantsFace(e.target.checked)} disabled={busy} className="mt-0.5" />
-            Jeg vil også tilby ansiktet mitt (for video-avatarer)
-          </label>
+          <div className="text-sm text-gray-700">
+            <span className="block font-medium mb-1">Hva tilbyr du?</span>
+            <label className="flex items-start gap-2 mb-1">
+              <input type="checkbox" checked={offersVoice} onChange={(e) => setOffersVoice(e.target.checked)} disabled={busy} className="mt-0.5" />
+              🎙️ Stemmen min
+            </label>
+            <label className="flex items-start gap-2">
+              <input type="checkbox" checked={wantsFace} onChange={(e) => setWantsFace(e.target.checked)} disabled={busy} className="mt-0.5" />
+              🧑 Ansiktet mitt (for video-avatarer)
+            </label>
+          </div>
           <label className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-3">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} disabled={busy} className="mt-0.5" />
             <span>{CONSENT_TEXT}</span>

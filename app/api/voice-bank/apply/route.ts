@@ -47,8 +47,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Navn og gyldig e-post må fylles ut' }, { status: 400 })
     }
 
+    const offersVoice = String(form.get('offersVoice') || '1') === '1'
+    const wantsFace = String(form.get('wantsFace') || '') === '1'
+    if (!offersVoice && !wantsFace) {
+      return NextResponse.json({ error: 'Velg minst ett aktivum: stemme eller ansikt' }, { status: 400 })
+    }
     const samples = form.getAll('samples').filter((f): f is File => f instanceof File).slice(0, 2)
-    if (samples.length === 0) return NextResponse.json({ error: 'Minst én lydprøve må lastes opp' }, { status: 400 })
+    if (offersVoice && samples.length === 0) return NextResponse.json({ error: 'Minst én lydprøve må lastes opp når du tilbyr stemmen' }, { status: 400 })
     for (const f of samples) {
       if (f.size > MAX_BYTES) return NextResponse.json({ error: 'Lydfil for stor (maks 10 MB)' }, { status: 413 })
       if (!AUDIO_TYPES[f.type]) return NextResponse.json({ error: 'Kun MP3, WAV eller M4A' }, { status: 415 })
@@ -80,7 +85,8 @@ export async function POST(request: Request) {
       phone: String(form.get('phone') || '').trim() || null,
       bio: String(form.get('bio') || '').slice(0, 2000) || null,
       sample_urls: sampleUrls,
-      wants_face: String(form.get('wantsFace') || '') === '1',
+      wants_face: wantsFace,
+      offers_voice: offersVoice,
       consent_text: String(form.get('consentText') || '').slice(0, 2000) || null,
     })
     if (error) {

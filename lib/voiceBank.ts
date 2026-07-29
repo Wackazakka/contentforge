@@ -118,6 +118,23 @@ export const PREVIEW_ROYALTY_PER_1000 = { actor: 0.35, customer: 0.7 }
 // (fee_direct_pct/fee_indirect_pct ligger sovende).
 export const PLATFORM_RIGHTS_FEE_PCT = 3
 
+// Aktivum-modellen (2026-07-29): én bankrad = én forvaltningsavtale — stemme,
+// ansikt eller begge. Avledes, ingen egen kolonne.
+export function actorHasVoice(a: { elevenlabs_voice_id?: string | null }): boolean {
+  return !!(a.elevenlabs_voice_id && String(a.elevenlabs_voice_id).trim())
+}
+export function actorHasFace(a: { face_character_id?: string | null }): boolean {
+  return !!(a.face_character_id && String(a.face_character_id).trim())
+}
+
+// Ansiktsbanken bruker NØYAKTIG samme tilgjengelighetslås som stemmene
+// (kjede-arv + eksklusivitet + Voice Library) — getAvailableVoiceActors er
+// aktivum-agnostisk, vi filtrerer bare på at raden har et ansikt.
+export async function getAvailableFaceActors(tenantId: string): Promise<VoiceActor[]> {
+  const actors = await getAvailableVoiceActors(tenantId)
+  return actors.filter((a) => actorHasFace(a as { face_character_id?: string | null }))
+}
+
 export async function logPreviewRoyalty(e: {
   elevenlabsVoiceId?: string | null
   usedByTenantId?: string | null
@@ -165,15 +182,10 @@ export async function logFaceUsage(e: {
 }): Promise<void> {
   try {
     if (!e.characterId || !e.usedByTenantId) return
-    const chain = await tenantChainUp(e.usedByTenantId)
-    if (chain.length === 0) return
-    const { data: actors } = await admin()
-      .from('voice_actors')
-      .select('*')
-      .in('owner_tenant_id', chain)
-      .eq('is_active', true)
-      .eq('face_character_id', e.characterId)
-    const actor = (actors || [])[0] as VoiceActor | undefined
+    // Samme tilgjengelighetslogikk som stemmer: kjede + delt + library —
+    // delte/library-ansikter blir dermed fakturerbare også utenfor eierkjeden
+    const available = await getAvailableFaceActors(e.usedByTenantId)
+    const actor = available.find((a) => (a as { face_character_id?: string | null }).face_character_id === e.characterId) as VoiceActor | undefined
     if (!actor) return
     const { rate, price } = ratesForKind(actor, 'face')
     await admin().from('voice_usage_events').insert({

@@ -26,6 +26,10 @@ export async function POST(request: Request) {
 
     const actor = await resolveAsset(auth, assetId)
     if (!actor) return NextResponse.json({ error: 'Ukjent asset, eller ikke tilgjengelig for denne kontoen' }, { status: 404 })
+    // Speilbildet av NO_FACE-guarden i /image: raden må faktisk ha en stemme
+    if (!actor.elevenlabs_voice_id) {
+      return NextResponse.json({ error: 'Denne skuespilleren har ikke lisensiert stemme', code: 'NO_VOICE' }, { status: 400 })
+    }
 
     if (!(await hasBalance(auth.organizationId))) {
       return NextResponse.json({ error: 'Kontoen er tom. Kjøp mer kreditt for å fortsette.', code: 'ORG_BALANCE_EMPTY' }, { status: 402 })
