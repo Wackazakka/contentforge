@@ -19,6 +19,7 @@ export interface Tenant {
   billing_mode: 'direct' | 'invoice'
   price_multiplier?: number
   vertical?: string | null // f.eks. 'craftsman' (Bombaza) — styrer copy/felt-overstyringer
+  accept_actor_applications?: boolean | null // «Bli en stemme i banken» åpen for drop-in-skuespillere
   is_active: boolean
 }
 
@@ -36,6 +37,7 @@ export const ROOT_TENANT: Tenant = {
   billing_mode: 'direct',
   price_multiplier: 1,
   vertical: null,
+  accept_actor_applications: false,
   is_active: true,
 }
 

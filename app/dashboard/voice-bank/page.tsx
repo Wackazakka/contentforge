@@ -16,6 +16,7 @@ interface Actor {
   customer_price_nok: number
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
+  is_exclusive?: boolean | null
 }
 
 interface UsageEvent {
@@ -24,6 +25,18 @@ interface UsageEvent {
   actor_rate_nok: number
   customer_price_nok: number
   meta: { kind?: string }
+  created_at: string
+}
+
+interface VoiceApplication {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  bio: string | null
+  sample_urls: string[]
+  wants_face: boolean
+  status: string
   created_at: string
 }
 
@@ -47,6 +60,10 @@ export default function VoiceBankAdminPage() {
   const [monthly, setMonthly] = useState<Monthly[]>([])
   const [fees, setFees] = useState<{ rightsPct: number } | null>(null)
   const [monthFeeNok, setMonthFeeNok] = useState(0)
+  const [applications, setApplications] = useState<VoiceApplication[]>([])
+  const [acceptApps, setAcceptApps] = useState(false)
+  const [appsMigrated, setAppsMigrated] = useState(true)
+  const [appBusy, setAppBusy] = useState<string | null>(null)
 
   // Legg til skuespiller-skjemaet
   const [showForm, setShowForm] = useState(false)
@@ -56,18 +73,21 @@ export default function VoiceBankAdminPage() {
   const [fRate, setFRate] = useState('')
   const [fPrice, setFPrice] = useState('')
   const [fTiers, setFTiers] = useState<Array<{ from_uses: string; discount_pct: string }>>([])
+  const [fExclusive, setFExclusive] = useState(true)
   const [fBusy, setFBusy] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [fError, setFError] = useState<string | null>(null)
 
-  const authedFetch = async (init?: RequestInit) => {
+  const authedFetchTo = async (url: string, init?: RequestInit) => {
     const { data: sess } = await getSupabase().auth.getSession()
     const token = sess?.session?.access_token
     if (!token) throw new Error('Ikke innlogget')
-    return fetch('/api/voice-bank/admin', {
+    return fetch(url, {
       ...init,
       headers: { ...(init?.headers || {}), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     })
   }
+  const authedFetch = (init?: RequestInit) => authedFetchTo('/api/voice-bank/admin', init)
 
   const refresh = async () => {
     try {
@@ -81,6 +101,15 @@ export default function VoiceBankAdminPage() {
       setMonthly(data.monthly || [])
       setFees(data.fees || null)
       setMonthFeeNok(Number(data.monthFeeNok) || 0)
+      try {
+        const ares = await authedFetchTo('/api/voice-bank/applications')
+        const adata = await ares.json()
+        if (ares.ok) {
+          setApplications(adata.applications || [])
+          setAcceptApps(adata.acceptApplications === true)
+          setAppsMigrated(adata.migrated !== false)
+        }
+      } catch { /* søknadskøen er valgfri */ }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -107,11 +136,12 @@ export default function VoiceBankAdminPage() {
           actorRateNok: Number(fRate),
           customerPriceNok: Number(fPrice),
           discountTiers: fTiers.map((t) => ({ from_uses: Number(t.from_uses), discount_pct: Number(t.discount_pct) })),
+          isExclusive: fExclusive,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Kunne ikke legge til skuespilleren')
-      setFName(''); setFVoiceId(''); setFHonorar(''); setFRate(''); setFPrice(''); setFTiers([])
+      setFName(''); setFVoiceId(''); setFHonorar(''); setFRate(''); setFPrice(''); setFTiers([]); setFExclusive(true)
       setShowForm(false)
       await refresh()
     } catch (err: any) {
@@ -126,6 +156,55 @@ export default function VoiceBankAdminPage() {
       const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId: a.id, isActive: !a.is_active }) })
       if (res.ok) await refresh()
     } catch { /* vis gammel status */ }
+  }
+
+  // Bulk: sett eksklusivitet for HELE banken (Både Og-scenariet: 100 stemmer på én gang)
+  const setAllExclusive = async (exclusive: boolean) => {
+    const ids = actors.map((a) => a.id)
+    if (ids.length === 0) return
+    const verb = exclusive ? 'eksklusive for denne banken' : 'delt med hele plattformen'
+    if (!confirm(`Sette alle ${ids.length} skuespillere som ${verb}?`)) return
+    setBulkBusy(true)
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorIds: ids, isExclusive: exclusive }) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Bulk-endringen feilet')
+      await refresh()
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  const toggleAcceptApps = async () => {
+    try {
+      const res = await authedFetchTo('/api/voice-bank/applications', { method: 'PATCH', body: JSON.stringify({ toggleAccept: !acceptApps }) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Kunne ikke endre bryteren')
+      setAcceptApps(data.acceptApplications === true)
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
+  const decideApplication = async (app: VoiceApplication, decision: 'approved' | 'rejected') => {
+    if (decision === 'rejected' && !confirm(`Avvise søknaden fra ${app.name}?`)) return
+    setAppBusy(app.id)
+    try {
+      const res = await authedFetchTo('/api/voice-bank/applications', { method: 'PATCH', body: JSON.stringify({ applicationId: app.id, decision }) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Beslutningen feilet')
+      if (decision === 'approved' && data.actorId) {
+        window.location.href = `/dashboard/voice-bank/${data.actorId}`
+        return
+      }
+      await refresh()
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setAppBusy(null)
+    }
   }
 
   const actorName = (id: string) => actors.find((a) => a.id === id)?.name || 'Ukjent'
@@ -230,6 +309,11 @@ export default function VoiceBankAdminPage() {
                 <button onClick={() => setFTiers([...fTiers, { from_uses: '', discount_pct: '' }])}
                   className="text-sm text-[var(--ember-deep)] hover:underline mb-4">+ Legg til rabatt-trinn</button>
 
+                <label className="flex items-center gap-2 text-sm text-gray-700 mb-4">
+                  <input type="checkbox" checked={fExclusive} onChange={(e) => setFExclusive(e.target.checked)} />
+                  Eksklusiv for vår bank (kun vårt kundenett — kan endres senere per skuespiller eller i bulk)
+                </label>
+
                 {fError && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{fError}</div>}
 
                 <div>
@@ -243,6 +327,19 @@ export default function VoiceBankAdminPage() {
             {actors.length === 0 ? (
               <p className="text-sm text-gray-500 mb-8">Ingen skuespillere registrert ennå.</p>
             ) : (
+              <>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xs text-gray-500">Hele banken:</span>
+                <button onClick={() => setAllExclusive(true)} disabled={bulkBusy}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:border-[var(--ember-deep)] disabled:opacity-50">
+                  🔒 Gjør alle eksklusive
+                </button>
+                <button onClick={() => setAllExclusive(false)} disabled={bulkBusy}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:border-[var(--ember-deep)] disabled:opacity-50">
+                  🌐 Del alle med plattformen
+                </button>
+                {bulkBusy && <span className="text-xs text-gray-400">Oppdaterer …</span>}
+              </div>
               <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto mb-8">
                 <table className="w-full text-sm">
                   <thead>
@@ -252,6 +349,7 @@ export default function VoiceBankAdminPage() {
                       <th className="px-4 py-2">Kundepris</th>
                       <th className="px-4 py-2">Rabatt-trapper</th>
                       <th className="px-4 py-2">Bruk (mnd)</th>
+                      <th className="px-4 py-2">Tilgang</th>
                       <th className="px-4 py-2">Status</th>
                     </tr>
                   </thead>
@@ -271,6 +369,9 @@ export default function VoiceBankAdminPage() {
                               : a.discount_tiers.map((t) => `${t.discount_pct} % fra ${t.from_uses} bruk`).join(', ')}
                           </td>
                           <td className="px-4 py-2">{m?.uses ?? 0}</td>
+                          <td className="px-4 py-2" title={a.is_exclusive !== false ? 'Kun vårt kundenett' : 'Delt med hele plattformen'}>
+                            {a.is_exclusive !== false ? '🔒 Eksklusiv' : '🌐 Delt'}
+                          </td>
                           <td className="px-4 py-2">
                             <button
                               onClick={() => toggleActive(a)}
@@ -285,6 +386,63 @@ export default function VoiceBankAdminPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
+              </>
+            )}
+
+            {/* Drop-in-søknader («Bli en stemme i banken») */}
+            {appsMigrated && (
+              <div className="mb-8">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 mb-3 flex flex-wrap items-center gap-3">
+                  <div className="flex-1 min-w-[240px]">
+                    <div className="font-semibold text-gray-900 text-sm">Ta imot åpne søknader</div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {acceptApps
+                        ? <>Åpen — del lenken <span className="font-mono">{typeof window !== 'undefined' ? `${window.location.origin}/bli-stemme` : '/bli-stemme'}</span></>
+                        : 'Av — «Bli en stemme i banken»-siden viser at dere ikke tar imot søknader nå.'}
+                    </p>
+                  </div>
+                  <button onClick={toggleAcceptApps}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold ${acceptApps ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'text-white bg-[var(--ember-deep)] hover:opacity-90'}`}>
+                    {acceptApps ? 'Skru av' : 'Skru på'}
+                  </button>
+                </div>
+
+                {applications.filter((a) => a.status === 'new').length > 0 && (
+                  <>
+                    <h2 className="font-semibold text-gray-900 mb-3">
+                      Søknader ({applications.filter((a) => a.status === 'new').length} nye)
+                    </h2>
+                    <div className="space-y-3">
+                      {applications.filter((a) => a.status === 'new').map((app) => (
+                        <div key={app.id} className="bg-white rounded-lg border border-gray-200 p-4">
+                          <div className="flex flex-wrap items-start gap-3">
+                            <div className="flex-1 min-w-[220px]">
+                              <div className="font-semibold text-gray-900">{app.name}{app.wants_face && <span className="ml-2 text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-2 py-0.5">+ ansikt</span>}</div>
+                              <div className="text-xs text-gray-500">{app.email}{app.phone ? ` · ${app.phone}` : ''} · {String(app.created_at).slice(0, 10)}</div>
+                              {app.bio && <p className="text-sm text-gray-600 mt-1">{app.bio}</p>}
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {(app.sample_urls || []).map((u, i) => (
+                                  <audio key={i} controls preload="none" src={u} className="h-9" />
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => decideApplication(app, 'approved')} disabled={appBusy === app.id}
+                                className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-green-700 hover:opacity-90 disabled:opacity-50">
+                                Godkjenn
+                              </button>
+                              <button onClick={() => decideApplication(app, 'rejected')} disabled={appBusy === app.id}
+                                className="px-3 py-1.5 rounded-lg text-sm text-gray-600 border border-gray-300 hover:border-red-400 hover:text-red-600 disabled:opacity-50">
+                                Avvis
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
