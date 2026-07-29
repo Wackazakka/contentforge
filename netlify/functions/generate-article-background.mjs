@@ -10,7 +10,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
 
-async function generateArticleContent(topic, platform, includeLink, websiteUrl, ctaText) {
+async function generateArticleContent(topic, platform, includeLink, websiteUrl, ctaText, senderContext = '') {
   const platformGuides = {
     facebook:
       'Write for Facebook: SHORT and punchy — aim for 50-90 words total, never more. A strong hook, 2-3 tight lines, then the point. No walls of text (long posts get cut with "See more" and lose reach). Conversational, a few emojis. End with maximum 3 relevant hashtags.',
@@ -20,7 +20,7 @@ async function generateArticleContent(topic, platform, includeLink, websiteUrl, 
   }
 
   const prompt = `Generate a ${platform} article about: "${topic}"
-
+${senderContext ? '\n' + senderContext + '\n' : ''}
 Write in the same language as the topic above. If the topic is in English, write in English. If it is in Norwegian, write in Norwegian. Match the language naturally.
 
 Be specific and concrete — mention real names, models, and examples where you know them. If you are genuinely uncertain about a specific fact (an exact number, date, or technical detail), acknowledge it briefly, but do not let uncertainty stop you from writing a specific, engaging article. Vague articles that avoid all concrete details are unhelpful.
@@ -100,7 +100,25 @@ export default async function handler(req) {
   console.log(`[bg-article] Starting ${platform} article ${articleId}: "${topic}"`)
 
   try {
-    const { title, content } = await generateArticleContent(topic, platform, includeLink, websiteUrl, ctaText)
+    // «Om avsenderen»-kontekst fra produktet — defensivt (mangler rad/kolonne ⇒ utelates)
+    let senderContext = ''
+    if (productId) {
+      try {
+        const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        const { data: p } = await sb.from('products').select('name, description, category').eq('id', productId).maybeSingle()
+        let area = null
+        const prof = await sb.from('product_profiles').select('service_area').eq('product_id', productId).maybeSingle()
+        if (!prof.error) area = prof.data?.service_area || null
+        senderContext = [
+          p?.name ? `Sender (the business/product this article promotes): ${p.name}` : '',
+          p?.description ? `About the sender: ${p.description}` : '',
+          p?.category ? `Sender category/trade: ${p.category}` : '',
+          area ? `Sender service area: ${area}` : '',
+        ].filter(Boolean).join('\n')
+      } catch { /* kontekst er valgfri */ }
+    }
+
+    const { title, content } = await generateArticleContent(topic, platform, includeLink, websiteUrl, ctaText, senderContext)
     const { error } = await supabase.from('articles').update({ title, content }).eq('id', articleId)
     if (error) throw new Error(`Supabase update failed: ${error.message}`)
     console.log(`[bg-article] ✅ Content saved for ${articleId}: "${title.substring(0, 60)}"`)

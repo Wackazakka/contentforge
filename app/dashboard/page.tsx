@@ -80,10 +80,10 @@ export default function DashboardPage() {
     fetchOrganization()
   }, [session?.user?.id])
 
-  const handleCreateProduct = async (name: string, description: string, category: string) => {
+  const handleCreateProduct = async (name: string, description: string, category: string, serviceArea?: string) => {
     setCreatingProduct(true)
     try {
-      await createProduct({ name, description, category })
+      await createProduct({ name, description, category, serviceArea })
     } finally {
       setCreatingProduct(false)
     }

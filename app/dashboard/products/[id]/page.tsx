@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/authContext'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
+import { useTenant } from '@/lib/tenantContext'
+import { verticalConfig } from '@/lib/verticals'
 
 function renderMarkdown(text: string) {
   const clean = text.replace(/\n/g, ' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -96,6 +98,8 @@ export default function ProductPage() {
   const params = useParams()
   const { session } = useAuth()
   const t = useTranslations('product')
+  const tenant = useTenant()
+  const vcfg = verticalConfig(tenant.vertical)
   const productId = params.id as string
 
   const [product, setProduct] = useState<Product | null>(null)
@@ -135,6 +139,7 @@ export default function ProductPage() {
     brand_guidelines: '',
     website_url: '',
     cta_text: '',
+    service_area: '',
   })
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
@@ -193,6 +198,7 @@ export default function ProductPage() {
         brand_guidelines: profile.brand_guidelines ? String(profile.brand_guidelines) : '',
         website_url: (profile as any).website_url || '',
         cta_text: (profile as any).cta_text || '',
+        service_area: (profile as any).service_area || '',
       })
     }
   }, [profile])
@@ -220,6 +226,8 @@ export default function ProductPage() {
             brand_guidelines: profileForm.brand_guidelines || null,
             website_url: (profileForm as any).website_url || null,
             cta_text: (profileForm as any).cta_text || null,
+            // service_area kun for vertikal-tenants — kolonnen kan mangle i basen ellers
+            ...(vcfg?.serviceAreaField ? { service_area: (profileForm as any).service_area || null } : {}),
           },
           { onConflict: 'product_id' }
         )
@@ -726,6 +734,19 @@ export default function ProductPage() {
               />
               <p className="text-xs text-gray-400 mt-1">{t('websiteUrlHint')}</p>
             </div>
+
+            {vcfg?.serviceAreaField && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('serviceAreaLabel')}</label>
+                <input
+                  type="text"
+                  value={(profileForm as any).service_area || ''}
+                  onChange={(e) => setProfileForm({ ...profileForm, service_area: e.target.value } as any)}
+                  placeholder={t('serviceAreaPlaceholder')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('ctaTextLabel')}</label>

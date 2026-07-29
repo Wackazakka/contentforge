@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useTenant } from '@/lib/tenantContext'
+import { verticalConfig } from '@/lib/verticals'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
@@ -9,7 +11,7 @@ const SERIF = 'var(--font-serif), serif'
 interface ProductModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (name: string, description: string, category: string) => Promise<void>
+  onSubmit: (name: string, description: string, category: string, serviceArea?: string) => Promise<void>
   isLoading?: boolean
 }
 
@@ -17,9 +19,12 @@ const labelStyle = { display: 'block', fontFamily: HANKEN, fontSize: 14, fontWei
 
 export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: ProductModalProps) {
   const t = useTranslations('productModal')
+  const tenant = useTenant()
+  const vcfg = verticalConfig(tenant.vertical) // vertikal (f.eks. håndverker) = egne kategorier + Område-felt
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('product')
+  const [category, setCategory] = useState(vcfg ? vcfg.categoryOptions[0].value : 'product')
+  const [serviceArea, setServiceArea] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,11 +37,12 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
     }
 
     try {
-      await onSubmit(name, description, category)
+      await onSubmit(name, description, category, serviceArea.trim() || undefined)
       // Reset form
       setName('')
       setDescription('')
-      setCategory('product')
+      setCategory(vcfg ? vcfg.categoryOptions[0].value : 'product')
+      setServiceArea('')
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errorCreating'))
@@ -85,10 +91,13 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
             onChange={(e) => setDescription(e.target.value)}
             disabled={isLoading}
             className="cf-input"
-            style={{ marginBottom: 20, resize: 'vertical' }}
+            style={{ marginBottom: vcfg ? 8 : 20, resize: 'vertical' }}
             rows={3}
             placeholder={t('descriptionPlaceholder')}
           />
+          {vcfg && (
+            <p style={{ fontFamily: HANKEN, fontSize: 13, color: '#8C8272', margin: '0 0 20px' }}>{t('descriptionHint')}</p>
+          )}
 
           <label style={labelStyle}>{t('categoryLabel')}</label>
           <select
@@ -96,12 +105,35 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
             onChange={(e) => setCategory(e.target.value)}
             disabled={isLoading}
             className="cf-input"
-            style={{ marginBottom: 28, cursor: 'pointer' }}
+            style={{ marginBottom: vcfg?.serviceAreaField ? 20 : 28, cursor: 'pointer' }}
           >
-            <option value="product">{t('categoryProduct')}</option>
-            <option value="brand">{t('categoryBrand')}</option>
-            <option value="service">{t('categoryService')}</option>
+            {vcfg ? (
+              vcfg.categoryOptions.map((o) => (
+                <option key={o.value} value={o.value}>{t(o.labelKey)}</option>
+              ))
+            ) : (
+              <>
+                <option value="product">{t('categoryProduct')}</option>
+                <option value="brand">{t('categoryBrand')}</option>
+                <option value="service">{t('categoryService')}</option>
+              </>
+            )}
           </select>
+
+          {vcfg?.serviceAreaField && (
+            <>
+              <label style={labelStyle}>{t('serviceAreaLabel')}</label>
+              <input
+                type="text"
+                value={serviceArea}
+                onChange={(e) => setServiceArea(e.target.value)}
+                disabled={isLoading}
+                className="cf-input"
+                style={{ marginBottom: 28 }}
+                placeholder={t('serviceAreaPlaceholder')}
+              />
+            </>
+          )}
 
           <div style={{ display: 'flex', gap: 12 }}>
             <button

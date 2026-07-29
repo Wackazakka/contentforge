@@ -42,7 +42,8 @@ async function generateScript(
   problem: string = '',
   tone: string = 'Energisk',
   cta: string = '',
-  perspective: 'du' | 'jeg' = 'du'
+  perspective: 'du' | 'jeg' = 'du',
+  senderContext: string = ''
 ): Promise<Segment[]> {
   console.log(`[generateDraft] Calling Claude to generate script with ${segmentCount} segments for topic: "${topic}"`)
 
@@ -56,6 +57,7 @@ async function generateScript(
 
   const prompt = `Generate a video script for a TikTok/Reels video about: "${topic}"
 
+${senderContext}
 ${audienceContext}
 ${problemContext}
 ${toneContext}
@@ -69,7 +71,7 @@ For each segment, provide:
 2. Voiceover (what to say, max 85 chars / ~12 words — ONE short punchy sentence, about 4-5 seconds spoken. Never longer; short segments keep the video dynamic)
 3. Image prompt (descriptive, cinematic, for DALL-E 3 — IMPORTANT: add "no text, no words, no letters" at the end)
 
-Write in the same language as the product name, headline and body copy above. Match the language naturally.
+Write in the same language as the topic and sender description above. Match the language naturally.
 IMPORTANT PUNCTUATION:
 - End each line of text with proper punctuation (period, exclamation mark, or question mark)
 - Ensure every sentence is complete and properly punctuated
@@ -168,21 +170,49 @@ export async function POST(request: NextRequest) {
     console.log(`[generateDraft] Topic: "${topic}"`)
     console.log(`[generateDraft] Segments: ${segmentCount}`)
 
-    // Fetch website_url from product profile to enrich CTA if not provided
+    // Fetch website_url (+ service_area) from product profile to enrich CTA/context
     const supabaseForProfile = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-    const { data: profile } = await supabaseForProfile
-      .from('product_profiles')
-      .select('website_url')
-      .eq('product_id', productId)
-      .maybeSingle()
+    let profile: { website_url?: string | null; service_area?: string | null } | null = null
+    {
+      // service_area-kolonnen kan mangle (migrasjon kjøres separat) — fall tilbake til kun website_url
+      const res = await supabaseForProfile
+        .from('product_profiles')
+        .select('website_url, service_area')
+        .eq('product_id', productId)
+        .maybeSingle()
+      if (res.error) {
+        const fallback = await supabaseForProfile
+          .from('product_profiles')
+          .select('website_url')
+          .eq('product_id', productId)
+          .maybeSingle()
+        profile = fallback.data
+      } else {
+        profile = res.data
+      }
+    }
     const websiteUrl = profile?.website_url || null
     // Use explicit CTA if provided, otherwise fall back to website URL
     const effectiveCta = cta?.trim() || (websiteUrl ? `Besøk ${websiteUrl}` : '')
     console.log(`[generateDraft] CTA: "${effectiveCta}" (websiteUrl: ${websiteUrl})`)
 
+    // «Om avsenderen»-kontekst: produktet/bedriften bak videoen — gjør beskrivelsen
+    // til ekte råstoff for manuset (var tidligere ulest). Defensivt: mangler rad ⇒ utelates.
+    const { data: productRow } = await supabaseForProfile
+      .from('products')
+      .select('name, description, category')
+      .eq('id', productId)
+      .maybeSingle()
+    const senderContext = [
+      productRow?.name ? `Sender (the business/product this video promotes): ${productRow.name}` : '',
+      productRow?.description ? `About the sender: ${productRow.description}` : '',
+      productRow?.category ? `Sender category/trade: ${productRow.category}` : '',
+      profile?.service_area ? `Sender service area: ${profile.service_area}` : '',
+    ].filter(Boolean).join('\n')
+
     // Step 1: Generate script with Claude (NO IMAGE GENERATION)
     console.log(`[generateDraft] Step 1: Generating script...`)
-    let segments = await generateScript(topic, segmentCount, targetAudience, problem, tone, effectiveCta, perspective)
+    let segments = await generateScript(topic, segmentCount, targetAudience, problem, tone, effectiveCta, perspective, senderContext)
     console.log(`[generateDraft] Step 1: ✅ Script generated`)
 
     // Set empty image_url for each segment (images will be generated client-side)

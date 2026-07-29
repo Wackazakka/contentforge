@@ -1,0 +1,44 @@
+{
+  "productModal": {
+    "title": "Bedriften din",
+    "productNameLabel": "Bedriftsnavn *",
+    "productNamePlaceholder": "f.eks. Bakken Bygg AS",
+    "descriptionLabel": "Hva gjør dere?",
+    "descriptionPlaceholder": "F.eks. Vi legger varmekabler og pusser opp bad i hele Follo. Gratis befaring.",
+    "descriptionHint": "Dette blir råstoffet til annonsene dine — jo mer konkret, jo bedre.",
+    "categoryLabel": "Fag",
+    "categoryRorlegger": "Rørlegger",
+    "categoryElektriker": "Elektriker",
+    "categorySnekker": "Snekker",
+    "categoryMaler": "Maler",
+    "categoryMurer": "Murer",
+    "categoryTaktekker": "Taktekker",
+    "categoryAnnet": "Annet fag",
+    "serviceAreaLabel": "Område",
+    "serviceAreaPlaceholder": "F.eks. Follo",
+    "createProduct": "Lagre bedriften",
+    "errorNameRequired": "Bedriftsnavn er påkrevd"
+  },
+  "dashboard": {
+    "yourProducts": "Bedriften din",
+    "newProduct": "+ Legg til bedrift",
+    "welcomeSubtitle": "Legg inn bedriften din, så lager vi annonser og videoer som skaffer jobber.",
+    "createFirstProduct": "+ Legg til bedriften din",
+    "step1Title": "Fortell om bedriften",
+    "step1Desc": "Navn, fag og hva dere gjør — to setninger holder.",
+    "step2Title": "Få annonsene laget",
+    "step2Desc": "Video med stemme, bilder og tekst — du godkjenner alt før det koster noe.",
+    "step3Desc": "Koble til Facebook og Instagram og publiser rett fra {name}."
+  },
+  "product": {
+    "serviceAreaLabel": "Område",
+    "serviceAreaPlaceholder": "F.eks. Follo"
+  },
+  "newDraft": {
+    "titlePlaceholder": "F.eks. Ledig kapasitet i høst",
+    "topicPlaceholder": "F.eks. Vi har ledig kapasitet for baderomsoppussing i høst — gratis befaring",
+    "targetAudiencePlaceholder": "F.eks. Boligeiere i Follo som vurderer oppussing",
+    "problemPlaceholder": "F.eks. Vanskelig å finne håndverker som svarer og kommer når avtalt",
+    "ctaPlaceholder": "F.eks. Ring oss i dag — gratis befaring"
+  }
+}
