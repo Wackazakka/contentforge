@@ -118,7 +118,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
       <div
         className="cf-anim-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: 520, background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 20, padding: 32, boxShadow: '0 40px 80px -30px rgba(40,25,10,0.5)' }}
+        style={{ width: '100%', maxWidth: 520, maxHeight: 'calc(100vh - 48px)', overflowY: 'auto', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 20, padding: 32, boxShadow: '0 40px 80px -30px rgba(40,25,10,0.5)' }}
       >
         <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 32, lineHeight: 1, color: '#1C1A16', margin: '0 0 22px' }}>{t('title')}</h2>
 
