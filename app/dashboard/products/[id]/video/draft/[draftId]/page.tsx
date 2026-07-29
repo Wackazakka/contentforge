@@ -951,7 +951,7 @@ export default function DraftPage() {
               >
                 <option value="">Ingen — vanlige scenebilder</option>
                 {/* Adam er eksklusiv for rot-tenanten (lib/characters.ts håndhever server-side) */}
-                {tenant.slug === 'centerforge' && <option value="adam">Adam (Reforhandle)</option>}
+                {tenantInfo.slug === 'centerforge' && <option value="adam">Adam (Reforhandle)</option>}
                 <option value="lawrence">Lawrence (Peregrine)</option>
                 {userChars.map((c) => (
                   <option key={c.id} value={c.id}>{c.name} (egen)</option>
