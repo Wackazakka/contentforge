@@ -112,10 +112,12 @@ export async function getAvailableVoiceActors(tenantId: string): Promise<VoiceAc
  */
 export const PREVIEW_ROYALTY_PER_1000 = { actor: 0.35, customer: 0.7 }
 
-// Rettighetsavgift til plattformen (Lars 2026-07-29): CenterForge tar 3 % av
-// brutto stemmeomsetning (kundepris, alle kinds) i ALLE ledd — betaling for
-// rettighetshåndtering, logging og utbetaling. ERSTATTER to-sats-marginmodellen
-// (fee_direct_pct/fee_indirect_pct ligger sovende).
+// INFRASTRUKTURAVGIFTEN (Lars 2026-07-29): CenterForge tar 3 % av brutto
+// aktiva-omsetning (stemme + ansikt, alle kinds) i ALLE ledd — betaling for
+// rettighetshåndtering, logging og utbetaling. Ikke forhandlingsbar.
+// I tillegg kan mellomledd sette en LISENSAVGIFT per partner
+// (tenants.license_fee_pct, redigeres av forelderen i Partnere-adminen).
+// ERSTATTER to-sats-marginmodellen (fee_direct/indirect ligger sovende).
 export const PLATFORM_RIGHTS_FEE_PCT = 3
 
 // Aktivum-modellen (2026-07-29): én bankrad = én forvaltningsavtale — stemme,

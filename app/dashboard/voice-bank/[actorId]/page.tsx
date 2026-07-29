@@ -46,8 +46,9 @@ export default function VoiceActorPage() {
   const [events, setEvents] = useState<Array<{ id: number; actor_rate_nok: number; customer_price_nok: number; meta: { kind?: string }; created_at: string }>>([])
   const [byMonth, setByMonth] = useState<Agg[]>([])
   const [byKind, setByKind] = useState<Agg[]>([])
-  const [fees, setFees] = useState<{ rightsPct: number } | null>(null)
-  const [totalFeeNok, setTotalFeeNok] = useState(0)
+  const [fees, setFees] = useState<{ infraPct: number; licensePct: number; licenseTo: string | null } | null>(null)
+  const [totalInfraNok, setTotalInfraNok] = useState(0)
+  const [totalLicenseNok, setTotalLicenseNok] = useState(0)
 
   // Takst-redigering: standard + per brukstype ('' = bruk standard)
   const [editRate, setEditRate] = useState('')
@@ -88,7 +89,8 @@ export default function VoiceActorPage() {
       setByMonth(data.byMonth || [])
       setByKind(data.byKind || [])
       setFees(data.fees || null)
-      setTotalFeeNok(Number(data.totalFeeNok) || 0)
+      setTotalInfraNok(Number(data.totalInfraNok) || 0)
+      setTotalLicenseNok(Number(data.totalLicenseNok) || 0)
       setEditRate(String(data.actor.actor_rate_nok))
       setEditPrice(String(data.actor.customer_price_nok))
       const ek: Record<string, { rate: string; price: string }> = {}
@@ -317,8 +319,9 @@ export default function VoiceActorPage() {
                 { label: 'Bruk totalt', value: String(totals.uses) },
                 { label: 'Generert fra kundene', value: nok(totals.from) },
                 { label: 'Opptjent til skuespilleren', value: nok(totals.to) },
-                ...(fees ? [{ label: `Rettighetsavgift til plattformen (${fees.rightsPct} %)`, value: nok(totalFeeNok) }] : []),
-                { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.from - totals.to - totalFeeNok) },
+                ...(fees ? [{ label: `Infrastrukturavgift (${fees.infraPct} %)`, value: nok(totalInfraNok) }] : []),
+                ...(fees?.licenseTo ? [{ label: `Lisensavgift til ${fees.licenseTo} (${fees.licensePct} %)`, value: nok(totalLicenseNok) }] : []),
+                { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.from - totals.to - totalInfraNok - totalLicenseNok) },
               ].map((c) => (
                 <div key={c.label} className="bg-white rounded-lg border border-gray-200 p-4">
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>

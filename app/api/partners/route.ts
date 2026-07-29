@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     if (g.fail) return g.fail
     const { data: children } = await admin()
       .from('tenants')
-      .select('id, slug, app_name, logo_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, billing_mode')
+      .select('id, slug, app_name, logo_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, license_fee_pct, billing_mode')
       .eq('parent_tenant_id', g.tenant!.id)
       .order('app_name')
     return NextResponse.json({ tenant: { id: g.tenant!.id, name: g.tenant!.app_name }, partners: children || [] })
@@ -46,7 +46,7 @@ export async function PATCH(request: Request) {
   try {
     const g = await guard(request)
     if (g.fail) return g.fail
-    const { tenantId, markupPercent, feeDirectPct, feeIndirectPct, appName, logoUrl, colors } = await request.json()
+    const { tenantId, markupPercent, feeDirectPct, feeIndirectPct, licenseFeePct, appName, logoUrl, colors } = await request.json()
     if (!tenantId) return NextResponse.json({ error: 'Mangler tenantId' }, { status: 400 })
 
     const patch: Record<string, unknown> = {}
@@ -76,6 +76,13 @@ export async function PATCH(request: Request) {
       const v = Number(feeDirectPct)
       if (!(v >= 0 && v <= 50)) return NextResponse.json({ error: 'Direkte-avgiften må være mellom 0 og 50 %' }, { status: 400 })
       patch.fee_direct_pct = v
+    }
+    if (licenseFeePct !== undefined) {
+      const v = Number(licenseFeePct)
+      if (isNaN(v) || v < 0 || v > 30) {
+        return NextResponse.json({ error: 'Lisensavgiften må være mellom 0 og 30 %' }, { status: 400 })
+      }
+      patch.license_fee_pct = v
     }
     if (feeIndirectPct !== undefined) {
       const v = Number(feeIndirectPct)
