@@ -49,7 +49,7 @@ export default function NewDraftPage() {
     })()
       .catch(() => {})
   }, [])
-  const [perspective, setPerspective] = useState<'du' | 'jeg'>('du')
+  const [perspective, setPerspective] = useState<'du' | 'jeg' | 'vi'>('du')
   const [cta, setCta] = useState('')
   // Kampanjemaler (vertikal-gatet): forhåndsfyller brief-feltene som stillas.
   const locale = (useLocale() === 'en' ? 'en' : 'no') as Locale
@@ -317,7 +317,21 @@ export default function NewDraftPage() {
                     >
                       {t('perspectiveI')} <span className="text-xs opacity-70 ml-1">{t('perspectiveIExample')}</span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setPerspective('vi')}
+                      className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
+                        perspective === 'vi'
+                          ? 'bg-green-600 text-white border-green-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      {t('perspectiveWe')} <span className="text-xs opacity-70 ml-1">{t('perspectiveWeExample')}</span>
+                    </button>
                   </div>
+                  {tenant.vertical === 'music' && (
+                    <p className="text-xs text-gray-400 mt-2">Soloartist? Velg jeg-form. Band? Velg vi-form. (Du kan finpusse teksten i segmentene etterpå.)</p>
+                  )}
                 </div>
 
                 {/* Karakter (konsistent vert i alle segmentbilder via flux-lora).

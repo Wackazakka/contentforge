@@ -529,7 +529,9 @@
     "styleMinimalLabel": "⬜ Minimal",
     "styleMinimalDesc": "Clean and still",
     "stylePainterlyLabel": "🎨 Painterly",
-    "stylePainterlyDesc": "Artistic"
+    "stylePainterlyDesc": "Artistic",
+    "perspectiveWe": "We",
+    "perspectiveWeExample": "\"We did this…\""
   },
   "draftApproval": {
     "backToProduct": "← Back to product",

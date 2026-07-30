@@ -971,7 +971,9 @@ export default function DraftPage() {
                 const v = VOICES.find((x) => x.id === (draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX'))
                 return v ? <audio controls preload="none" src={v.preview} className="mt-2 w-full" /> : null
               })()}
-              <p className="text-xs text-gray-400 mt-1">Brukes på alle nye voiceovers.</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Brukes på alle nye voiceovers. Vil du bruke din egen stemme? Bruk «🎙️ Les inn selv» på hvert segment lenger ned — den vinner over AI-stemmen.
+              </p>
             </div>
 
             {/* Bakgrunnsmusikk */}

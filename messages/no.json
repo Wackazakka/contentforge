@@ -529,7 +529,9 @@
     "styleMinimalLabel": "⬜ Minimal",
     "styleMinimalDesc": "Ryddig og stille",
     "stylePainterlyLabel": "🎨 Maleri",
-    "stylePainterlyDesc": "Kunstnerisk"
+    "stylePainterlyDesc": "Kunstnerisk",
+    "perspectiveWe": "Vi-form",
+    "perspectiveWeExample": "«Vi gjorde dette…»"
   },
   "draftApproval": {
     "backToProduct": "← Tilbake til produkt",
