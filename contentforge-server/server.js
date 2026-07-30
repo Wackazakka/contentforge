@@ -212,7 +212,14 @@ const { execFile } = require('child_process')
 
 app.post('/music/medley', express.json(), (req, res) => {
   try {
-    const files = Array.isArray(req.body?.files) ? req.body.files : []
+    // Filer kan vaere strenger ELLER {filename, startSec, clipSec} —
+    // utsnitt-stoette (2026-07-30, Lars: «jeg vet jo ikke hvilken del av
+    // laata som spilles»): artisten markerer hvor hooken starter og hvor
+    // mange sekunder hver laat faar.
+    const rawFiles = Array.isArray(req.body?.files) ? req.body.files : []
+    const files = rawFiles.map((f) => typeof f === 'string'
+      ? { filename: f, startSec: 0, clipSec: null }
+      : { filename: String(f?.filename || ''), startSec: Math.max(0, Number(f?.startSec) || 0), clipSec: (Number(f?.clipSec) > 0 ? Math.min(Number(f.clipSec), 120) : null) })
     const folder = String(req.body?.folder || '').toLowerCase().replace(/[^a-z0-9-]/g, '')
     const rawName = String(req.body?.name || `medley-${Date.now()}`)
 
@@ -223,15 +230,15 @@ app.post('/music/medley', express.json(), (req, res) => {
 
     // Alle kildene må ligge trygt under MUSIC_DIR (samme vern som delete)
     const inputs = []
-    for (const rel of files) {
-      if (typeof rel !== 'string' || rel.includes('..')) {
+    for (const f of files) {
+      if (!f.filename || f.filename.includes('..')) {
         return res.status(400).json({ error: 'Ugyldig filsti' })
       }
-      const p = path.join(MUSIC_DIR, rel)
+      const p = path.join(MUSIC_DIR, f.filename)
       if (!p.startsWith(MUSIC_DIR + path.sep) || !fs.existsSync(p)) {
-        return res.status(400).json({ error: `Fant ikke ${rel}` })
+        return res.status(400).json({ error: `Fant ikke ${f.filename}` })
       }
-      inputs.push(p)
+      inputs.push({ path: p, startSec: f.startSec, clipSec: f.clipSec })
     }
 
     const folderPath = path.join(MUSIC_DIR, folder)
@@ -252,7 +259,11 @@ app.post('/music/medley', express.json(), (req, res) => {
     chain += `${prev}loudnorm=I=-16:TP=-1.5:LRA=11[out]`
 
     const args = ['-y']
-    for (const p of inputs) args.push('-i', p)
+    for (const inp of inputs) {
+      if (inp.startSec > 0) args.push('-ss', String(inp.startSec))
+      if (inp.clipSec) args.push('-t', String(inp.clipSec))
+      args.push('-i', inp.path)
+    }
     args.push('-filter_complex', chain, '-map', '[out]', '-c:a', 'libmp3lame', '-b:a', '192k', outPath)
 
     console.log(`[server] Medley: ${inputs.length} filer -> ${folder}/${outName}`)

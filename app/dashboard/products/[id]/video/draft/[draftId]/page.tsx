@@ -110,6 +110,11 @@ export default function DraftPage() {
   // Medley (fase 3b): velg 2–5 egne låter i rekkefølge → dropleten mikser
   // dem til én fil med crossfade + loudnorm, lagret i tracks-<productId>.
   const [medleySelection, setMedleySelection] = useState<string[]>([])
+  // Utsnitt per laat (Lars 30/7: «vet ikke hvilken del av laata som spilles»):
+  // artisten hoerer laata og markerer hvor hooken starter; felles kliplengde.
+  const [medleyStarts, setMedleyStarts] = useState<Record<string, number>>({})
+  const [medleyClip, setMedleyClip] = useState<'full' | '10' | '15' | '20' | '30'>('15')
+  const medleyAudioRefs = useRef<Record<string, HTMLAudioElement | null>>({})
   // Dra-og-slipp-omorganisering av valgte laater (Lars 30/7)
   const dragTrackRef = useRef<string | null>(null)
   const reorderMedley = (src: string, dst: string) => {
@@ -137,7 +142,11 @@ export default function DraftPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          files: medleySelection,
+          files: medleySelection.map((f) => ({
+            filename: f,
+            startSec: medleyStarts[f] || 0,
+            clipSec: medleyClip === 'full' ? undefined : Number(medleyClip),
+          })),
           folder: `tracks-${productId}`,
           name: `medley-${new Date().toISOString().slice(0, 10)}-${medleySelection.length}-laater`,
         }),
@@ -1128,6 +1137,73 @@ export default function DraftPage() {
                     )
                   })}
                 </div>
+                {medleySelection.length > 0 && (
+                  <div className="mt-3 pt-2 border-t border-gray-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-medium text-gray-600">Lengde per låt:</span>
+                      <select
+                        value={medleyClip}
+                        onChange={(e) => setMedleyClip(e.target.value as typeof medleyClip)}
+                        className="px-2 py-1 border border-gray-300 rounded text-xs bg-white"
+                      >
+                        <option value="10">10 sek</option>
+                        <option value="15">15 sek</option>
+                        <option value="20">20 sek</option>
+                        <option value="30">30 sek</option>
+                        <option value="full">Hele låten</option>
+                      </select>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2">
+                      Spill låten og trykk «Start her» der utsnittet skal begynne — f.eks. rett før refrenget.
+                    </p>
+                    <div className="space-y-2">
+                      {medleySelection.map((f, i) => {
+                        const track = ownTracks(musicLibrary, productId).find((m) => m.filename === f)
+                        if (!track) return null
+                        const start = medleyStarts[f] || 0
+                        const mm = Math.floor(start / 60)
+                        const ss = String(Math.floor(start % 60)).padStart(2, '0')
+                        return (
+                          <div key={f} className="text-xs">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="w-4 text-gray-400 flex-none">{i + 1}.</span>
+                              <span className="truncate font-medium text-gray-700">{track.name}</span>
+                              <span className="flex-none text-gray-400">{start > 0 ? `fra ${mm}:${ss}` : 'fra start'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 pl-6">
+                              <audio
+                                controls
+                                preload="none"
+                                src={`/api/music/${encodeURIComponent(f)}`}
+                                ref={(el) => { medleyAudioRefs.current[f] = el }}
+                                className="h-7 flex-1 min-w-0"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const el = medleyAudioRefs.current[f]
+                                  if (el) setMedleyStarts((prev) => ({ ...prev, [f]: Math.floor(el.currentTime) }))
+                                }}
+                                className="flex-none px-2 py-1 rounded border border-gray-300 text-gray-700 hover:border-[var(--ember-tint-border)]"
+                              >
+                                ⏱ Start her
+                              </button>
+                              {start > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMedleyStarts((prev) => { const n = { ...prev }; delete n[f]; return n })}
+                                  className="flex-none text-gray-400 underline"
+                                >
+                                  nullstill
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
                 <button
                   type="button"
                   disabled={medleySelection.length < 2 || medleyBuilding}
