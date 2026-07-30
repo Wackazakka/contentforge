@@ -29,7 +29,8 @@
     "errorPhoneInvalid": "Telefonnummeret ser ikke riktig ut — bruk siffer, gjerne med +47.",
     "errorLogoTooBig": "Bildefilen er for stor (maks 4 MB).",
     "categoryOtherLabel": "Hvilken sjanger?",
-    "categoryOtherPlaceholder": "f.eks. shoegaze"
+    "categoryOtherPlaceholder": "f.eks. shoegaze",
+    "logoUploadFailedNonFatal": "Bandet er lagret, men bildet ble ikke lastet opp. Prøv igjen fra bandsiden."
   },
   "dashboard": {
     "yourProducts": "Bandet ditt",

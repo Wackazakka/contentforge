@@ -29,7 +29,8 @@
     "errorPhoneInvalid": "That phone number doesn't look right — use digits, optionally with +47.",
     "errorLogoTooBig": "The image file is too big (max 4 MB).",
     "categoryOtherLabel": "Which genre?",
-    "categoryOtherPlaceholder": "e.g. shoegaze"
+    "categoryOtherPlaceholder": "e.g. shoegaze",
+    "logoUploadFailedNonFatal": "Your band was saved, but the image failed to upload. Try again from the band page."
   },
   "dashboard": {
     "yourProducts": "Your band",
