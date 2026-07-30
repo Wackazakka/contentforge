@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
@@ -31,6 +31,9 @@ interface Segment {
   image_url: string
   approved: boolean
   voiceover_url?: string
+  // «Les inn selv»: voiceover_url peker på artistens egen innspilling
+  // (dropleten bruker den i stedet for TTS — transkoderer ved behov)
+  own_voice?: boolean
   image_prompt?: string
   animate?: boolean
   motion?: 'none' | 'move' | 'talk'
@@ -639,6 +642,85 @@ export default function DraftPage() {
     setShowImageBank(null)
   }
 
+  // «Les inn selv» (2026-07-30): ta opp i nettleseren eller last opp lydfil —
+  // egen stemme brukes i stedet for AI-stemmen for dette segmentet.
+  const [recordingFor, setRecordingFor] = useState<number | null>(null)
+  const [ownVoiceBusy, setOwnVoiceBusy] = useState<Record<number, boolean>>({})
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const recChunksRef = useRef<Blob[]>([])
+  const persistSegments = async (updatedSegments: Segment[]) => {
+    try {
+      const supabase = getSupabase()
+      await supabase.from('production_drafts').update({ segments: updatedSegments }).eq('id', draftId)
+    } catch (e) {
+      console.warn('[ownVoice] kunne ikke lagre segmenter:', e)
+    }
+  }
+  const uploadOwnVoice = async (index: number, blob: Blob, mimeType: string, filename: string) => {
+    setOwnVoiceBusy((p) => ({ ...p, [index]: true }))
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      const fd = new FormData()
+      fd.append('file', new File([blob], filename, { type: mimeType }))
+      fd.append('draftId', draftId)
+      fd.append('productId', productId)
+      fd.append('segmentIndex', String(index))
+      const res = await fetch('/api/content/own-voice', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) { alert(data?.error || 'Opplastingen feilet.'); return }
+      if (!draft) return
+      const updatedSegments = [...draft.segments]
+      updatedSegments[index] = { ...updatedSegments[index], voiceover_url: data.url, own_voice: true }
+      setDraft({ ...draft, segments: updatedSegments })
+      setVoicePreviews((prev) => ({ ...prev, [index]: data.url }))
+      await persistSegments(updatedSegments)
+    } catch {
+      alert('Opplastingen feilet.')
+    } finally {
+      setOwnVoiceBusy((p) => ({ ...p, [index]: false }))
+    }
+  }
+  const startRecording = async (index: number) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : ''
+      const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined)
+      recChunksRef.current = []
+      mr.ondataavailable = (e) => { if (e.data.size) recChunksRef.current.push(e.data) }
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop())
+        const type = (mr.mimeType || 'audio/webm').split(';')[0]
+        const blob = new Blob(recChunksRef.current, { type })
+        const ext = type === 'audio/mp4' ? 'm4a' : 'webm'
+        await uploadOwnVoice(index, blob, type, `opptak.${ext}`)
+      }
+      mediaRecorderRef.current = mr
+      mr.start()
+      setRecordingFor(index)
+    } catch {
+      alert('Fikk ikke tilgang til mikrofonen — sjekk nettlesertillatelsene.')
+    }
+  }
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop()
+    mediaRecorderRef.current = null
+    setRecordingFor(null)
+  }
+  const clearOwnVoice = async (index: number) => {
+    if (!draft) return
+    const updatedSegments = [...draft.segments]
+    updatedSegments[index] = { ...updatedSegments[index], voiceover_url: undefined, own_voice: false }
+    setDraft({ ...draft, segments: updatedSegments })
+    setVoicePreviews((prev) => { const n = { ...prev }; delete n[index]; return n })
+    await persistSegments(updatedSegments)
+  }
+
   const previewVoiceover = async (index: number) => {
     if (!draft) return
     const segment = draft.segments[index]
@@ -659,9 +741,10 @@ export default function DraftPage() {
         addCost(COSTS_NOK.voiceoverPreview + (Number(data.actorExtraNok) || 0))
         setVoicePreviews((prev) => ({ ...prev, [index]: data.url }))
 
-        // Persist R2 URL on the segment so production can reuse the approved file
+        // Persist R2 URL on the segment so production can reuse the approved file.
+        // TTS-generering erstatter en ev. egen innspilling — nullstill flagget.
         const updatedSegments = [...draft.segments]
-        updatedSegments[index] = { ...updatedSegments[index], voiceover_url: data.url }
+        updatedSegments[index] = { ...updatedSegments[index], voiceover_url: data.url, own_voice: false }
         setDraft({ ...draft, segments: updatedSegments })
 
         const supabase = getSupabase()
@@ -1310,8 +1393,8 @@ export default function DraftPage() {
 
                       {/* Voiceover preview */}
                       <div className="mt-2 flex items-center gap-2">
-                        {voicePreviews[index] ? (
-                          <audio controls src={voicePreviews[index]} className="w-full h-8" />
+                        {(voicePreviews[index] || (segment.own_voice && segment.voiceover_url)) ? (
+                          <audio controls src={voicePreviews[index] || segment.voiceover_url} className="w-full h-8" />
                         ) : null}
                         <button
                           type="button"
@@ -1325,6 +1408,53 @@ export default function DraftPage() {
                               ? t('regenerateAudio')
                               : t('previewVoice')}
                         </button>
+                      </div>
+
+                      {/* «Les inn selv» — egen stemme i stedet for AI-stemmen */}
+                      <div className="mt-2 flex items-center gap-3 flex-wrap text-xs">
+                        {segment.own_voice && segment.voiceover_url ? (
+                          <>
+                            <span className="font-medium text-green-700">🎙️ Egen innspilling brukes i videoen</span>
+                            <button type="button" onClick={() => clearOwnVoice(index)} className="text-gray-500 underline hover:text-gray-700">
+                              Fjern (bruk AI-stemmen)
+                            </button>
+                          </>
+                        ) : ownVoiceBusy[index] ? (
+                          <span className="text-gray-500">Laster opp innspillingen…</span>
+                        ) : recordingFor === index ? (
+                          <button type="button" onClick={stopRecording} className="px-3 py-1 rounded-lg bg-red-600 text-white font-medium animate-pulse">
+                            ⏹ Stopp opptaket
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => startRecording(index)}
+                              disabled={recordingFor !== null}
+                              className="px-3 py-1 rounded-lg border border-gray-300 text-gray-700 hover:border-[var(--ember-tint-border)] disabled:opacity-40"
+                            >
+                              🎙️ Les inn selv
+                            </button>
+                            <label className="cursor-pointer text-gray-500 underline hover:text-gray-700">
+                              eller last opp lydfil
+                              <input
+                                type="file"
+                                accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/webm"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const f = e.currentTarget.files?.[0]
+                                  e.currentTarget.value = ''
+                                  if (!f) return
+                                  if (f.size > 20 * 1024 * 1024) { alert('Fila er for stor (maks 20 MB).'); return }
+                                  await uploadOwnVoice(index, f, f.type || 'audio/mpeg', f.name)
+                                }}
+                              />
+                            </label>
+                            {tenantInfo.vertical === 'music' && (
+                              <span className="text-gray-400">Din stemme — ikke AI — i dette segmentet. Manuset over er teleprompteren din.</span>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
 
