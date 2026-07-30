@@ -437,16 +437,6 @@ router.post('/', async (req, res) => {
                 fs.unlink(rawPath, () => {})
                 console.log(`[job-queue] Segment ${i + 1}: Transcoded own recording -> mp3`)
               }
-              // Normaliser stemmen til fast nivaa (I=-16) saa egne innspillinger
-              // treffer samme miks som ElevenLabs (Lars 30/7: «voice for svak
-              // mot musikken»). TO-PASS (maal -> konstant gain) — aldri pumping.
-              // Feiler noe, beholdes originalen (normalisering velter aldri en render).
-              try {
-                await normalizeVoiceover(voPath)
-                console.log(`[job-queue] Segment ${i + 1}: Voiceover normalisert til -16 LUFS`)
-              } catch (nErr) {
-                console.error(`[job-queue] Segment ${i + 1}: normalisering hoppet over:`, nErr.message)
-              }
               console.log(`[job-queue] Segment ${i + 1}: Approved voiceover saved (${voBuf.byteLength} bytes)`)
             } catch (voErr) {
               console.error(`[job-queue] Segment ${i + 1}: approved voiceover download failed, regenerating:`, voErr.message)
@@ -455,7 +445,18 @@ router.post('/', async (req, res) => {
           } else {
             await generateVoiceover(segment.voiceover || segment.text, vid, voPath, elevenKey)
           }
-          
+
+          // Normaliser ALLE stemmer til fast nivaa (I=-16) — ogsaa AI-stemmene
+          // (Lars 30/7: «den maa jo ogsaa leveres i riktig nivaa»). Medleyen
+          // normaliseres til samme referanse, saa duck-nivaaene faar kjent
+          // betydning. TO-PASS — aldri pumping. Feiler den, beholdes originalen.
+          try {
+            await normalizeVoiceover(voPath)
+            console.log(`[job-queue] Segment ${i + 1}: Voiceover normalisert til -16 LUFS`)
+          } catch (nErr) {
+            console.error(`[job-queue] Segment ${i + 1}: normalisering hoppet over:`, nErr.message)
+          }
+
           const localImagePath = `${jobDir}/image_${i + 1}.png`
 
           // Use pre-generated image from draft if available; otherwise generate a visual scene
