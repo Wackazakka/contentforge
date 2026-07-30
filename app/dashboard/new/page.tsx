@@ -494,7 +494,7 @@ export default function NewCampaignPage() {
                           alert('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
                         }
                       }}
-                      className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
+                      className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)]"
                     />
                   </label>
                 </div>
@@ -562,7 +562,7 @@ export default function NewCampaignPage() {
               !form.productName ||
               !form.cta
             }
-            className="rounded-full bg-[var(--ember-deep)] hover:bg-[#1C1A16] disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
+            className="rounded-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
           >
             {scriptLoading ? t('generatingScript') : t('generateScript')}
           </button>
@@ -572,14 +572,14 @@ export default function NewCampaignPage() {
         {campaignType === "storytelling" && segments.length > 0 && (
           <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 flex flex-col gap-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-[#1C1A16] text-sm uppercase tracking-widest">
+              <h2 className="font-semibold text-[var(--ink)] text-sm uppercase tracking-widest">
                 {t('scriptTitle')}
               </h2>
               <button
                 type="button"
                 onClick={handleGenerateScript}
                 disabled={scriptLoading}
-                className="text-xs text-[var(--ember-deep)] hover:text-[#1C1A16] underline disabled:opacity-50"
+                className="text-xs text-[var(--ember-deep)] hover:text-[var(--ink)] underline disabled:opacity-50"
               >
                 {scriptLoading ? t('regenerating') : t('regenerate')}
               </button>

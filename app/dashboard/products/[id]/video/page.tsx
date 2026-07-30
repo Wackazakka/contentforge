@@ -121,7 +121,7 @@ export default function VideoProductionPage() {
         <div className="max-w-2xl mx-auto px-6 py-6">
           <Link
             href={`/dashboard/products/${productId}`}
-            className="text-[var(--ember-deep)] hover:text-[#1C1A16] text-sm font-medium mb-2 inline-block"
+            className="text-[var(--ember-deep)] hover:text-[var(--ink)] text-sm font-medium mb-2 inline-block"
           >
             {t('backToProduct')}
           </Link>

@@ -277,7 +277,7 @@ export default function VoiceActorPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Link href="/dashboard/voice-bank" className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">← Stemmebanken</Link>
+        <Link href="/dashboard/voice-bank" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Stemmebanken</Link>
 
         {loading && <p className="text-gray-500">Henter skuespilleren …</p>}
         {error && <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}

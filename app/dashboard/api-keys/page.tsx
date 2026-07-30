@@ -76,7 +76,7 @@ export default function ApiKeysPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">← Tilbake</Link>
+        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Tilbake</Link>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🔑 API-nøkler</h1>
         <p className="text-gray-600 mb-8">
           Én nøkkel per kunde lar deres egne verktøy bruke skuespillerstemmene via vårt API — all bruk logges og
