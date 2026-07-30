@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# Supabase CLI-cache — hører ikke i git
+supabase/.temp/

@@ -723,6 +723,7 @@ export default function DraftPage() {
 
   const previewVoiceover = async (index: number) => {
     if (!draft) return
+    if (draft.voice_id === 'own') return // ingen AI-stemme valgt — knappen er skjult, men vern uansett
     const segment = draft.segments[index]
     setVoiceLoading((prev) => ({ ...prev, [index]: true }))
     try {
@@ -956,6 +957,7 @@ export default function DraftPage() {
                 onChange={(e) => updateVoice(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
               >
+                <option value="own">🎙️ Egen stemme — jeg leser inn per segment</option>
                 {VOICES.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
                 ))}
@@ -972,7 +974,9 @@ export default function DraftPage() {
                 return v ? <audio controls preload="none" src={v.preview} className="mt-2 w-full" /> : null
               })()}
               <p className="text-xs text-gray-400 mt-1">
-                Brukes på alle nye voiceovers. Vil du bruke din egen stemme? Bruk «🎙️ Les inn selv» på hvert segment lenger ned — den vinner over AI-stemmen.
+                {draft.voice_id === 'own'
+                  ? 'Ingen AI-stemme brukes. Les inn eller last opp lyd på hvert segment under — produksjonen krever at alle segmentene har lyd.'
+                  : 'Brukes på alle nye voiceovers. Vil du heller bruke din egen stemme? Velg «🎙️ Egen stemme» øverst i listen.'}
               </p>
             </div>
 
@@ -1398,18 +1402,21 @@ export default function DraftPage() {
                         {(voicePreviews[index] || (segment.own_voice && segment.voiceover_url)) ? (
                           <audio controls src={voicePreviews[index] || segment.voiceover_url} className="w-full h-8" />
                         ) : null}
-                        <button
-                          type="button"
-                          onClick={() => previewVoiceover(index)}
-                          disabled={voiceLoading[index]}
-                          className="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm disabled:opacity-50 whitespace-nowrap"
-                        >
-                          {voiceLoading[index]
-                            ? t('generatingVoiceover')
-                            : voicePreviews[index]
-                              ? t('regenerateAudio')
-                              : t('previewVoice')}
-                        </button>
+                        {/* TTS-preview skjules når «Egen stemme» er valgt — det finnes ingen AI-stemme å generere */}
+                        {draft.voice_id !== 'own' && (
+                          <button
+                            type="button"
+                            onClick={() => previewVoiceover(index)}
+                            disabled={voiceLoading[index]}
+                            className="px-3 py-1 bg-purple-600 text-white rounded-lg text-sm disabled:opacity-50 whitespace-nowrap"
+                          >
+                            {voiceLoading[index]
+                              ? t('generatingVoiceover')
+                              : voicePreviews[index]
+                                ? t('regenerateAudio')
+                                : t('previewVoice')}
+                          </button>
+                        )}
                       </div>
 
                       {/* «Les inn selv» — egen stemme i stedet for AI-stemmen */}

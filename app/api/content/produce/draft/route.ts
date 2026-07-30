@@ -223,7 +223,9 @@ export async function POST(request: NextRequest) {
         segments: segments,
         target_audience: targetAudience || '',
         problem: problem || '',
-        voice_id: voiceId || 'nhvaqgRyAq6BmFs3WcdX',
+        // Artister (music-vertikalen) starter med egen stemme som standard —
+        // AI-stemme er noe man VELGER. 'own' = les inn/last opp per segment.
+        voice_id: voiceId || (vertical === 'music' ? 'own' : 'nhvaqgRyAq6BmFs3WcdX'),
         tone: tone || 'Energisk',
         cta: cta || '',
         video_format: videoFormat || '9:16',

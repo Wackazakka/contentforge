@@ -84,6 +84,19 @@ export async function startProductionForDraft(
     throw new Error(`Ikke alle segmenter er godkjent (${approvedCount}/${segments.length})`)
   }
 
+  // «Egen stemme»: ingen AI-fallback finnes — alle segmenter MÅ ha lyd før
+  // produksjon, ellers feiler vi her med klar beskjed (aldri stille TTS).
+  if (draft.voice_id === 'own') {
+    const missing = segments
+      .map((s: any, i: number) => (!s.voiceover_url ? i + 1 : null))
+      .filter((n: number | null) => n !== null)
+    if (missing.length > 0) {
+      throw new Error(
+        `Du har valgt egen stemme — les inn eller last opp lyd på alle segmentene først (mangler: segment ${missing.join(', ')})`
+      )
+    }
+  }
+
   // Kanonisk rekkefølge = array-rekkefølgen (se kommentar i original rute)
   const processedSegments = segments.map((s: any, i: number) => ({
     index: i,
@@ -105,7 +118,10 @@ export async function startProductionForDraft(
       service: draft.service || 'storytelling',
       targetAudience: draft.target_audience || '',
       problem: draft.problem || '',
-      voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX',
+      // 'own' er ingen ekte ElevenLabs-stemme: alle segmenter har egen lyd
+      // (validert over), men dropletens nedlastings-fallback trenger en
+      // gyldig id som sikkerhetsnett hvis en nedlasting skulle feile.
+      voiceId: (draft.voice_id && draft.voice_id !== 'own') ? draft.voice_id : 'nhvaqgRyAq6BmFs3WcdX',
       tone: draft.tone || 'Energisk',
       cta: draft.cta || '',
       segments: processedSegments,
