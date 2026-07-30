@@ -110,6 +110,19 @@ export default function DraftPage() {
   // Medley (fase 3b): velg 2–5 egne låter i rekkefølge → dropleten mikser
   // dem til én fil med crossfade + loudnorm, lagret i tracks-<productId>.
   const [medleySelection, setMedleySelection] = useState<string[]>([])
+  // Dra-og-slipp-omorganisering av valgte laater (Lars 30/7)
+  const dragTrackRef = useRef<string | null>(null)
+  const reorderMedley = (src: string, dst: string) => {
+    setMedleySelection((prev) => {
+      const from = prev.indexOf(src)
+      const to = prev.indexOf(dst)
+      if (from < 0 || to < 0 || from === to) return prev
+      const next = [...prev]
+      next.splice(from, 1)
+      next.splice(to, 0, src)
+      return next
+    })
+  }
   const [medleyBuilding, setMedleyBuilding] = useState(false)
   const toggleMedleyTrack = (filename: string) => {
     setMedleySelection((prev) =>
@@ -1074,7 +1087,7 @@ export default function DraftPage() {
                   🎚️ {tenantInfo.vertical === 'music' ? 'Lag medley av låtene dine' : 'Lag medley av egen musikk'}
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Velg 2–5 låter i rekkefølge — de mikses til én fil med myk overgang og jevnt volum, og legges som bakgrunnsmusikk.
+                  Velg 2–5 låter — de mikses til én fil med myk overgang og jevnt volum, og legges som bakgrunnsmusikk. Dra de valgte for å endre rekkefølgen.
                 </p>
                 {ownTracks(musicLibrary, productId).length < 2 && (
                   <p className="text-xs text-gray-400 mb-1">
@@ -1091,9 +1104,17 @@ export default function DraftPage() {
                         key={m.filename}
                         type="button"
                         onClick={() => toggleMedleyTrack(m.filename)}
+                        draggable={idx >= 0}
+                        onDragStart={() => { dragTrackRef.current = m.filename }}
+                        onDragOver={(ev) => { if (idx >= 0 && dragTrackRef.current) ev.preventDefault() }}
+                        onDrop={(ev) => {
+                          ev.preventDefault()
+                          if (dragTrackRef.current && idx >= 0) reorderMedley(dragTrackRef.current, m.filename)
+                          dragTrackRef.current = null
+                        }}
                         className={`w-full flex items-center gap-2 text-left px-2 py-1.5 rounded border text-sm transition-colors ${
                           idx >= 0
-                            ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]'
+                            ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)] cursor-move'
                             : 'border-gray-200 hover:border-[var(--ember-tint-border)]'
                         }`}
                       >
