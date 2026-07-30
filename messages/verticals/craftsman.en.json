@@ -29,7 +29,8 @@
     "errorPhoneInvalid": "That phone number does not look right — use digits, optionally with +47.",
     "errorLogoTooBig": "The logo file is too large (max 4 MB).",
     "categoryOtherLabel": "Which trade?",
-    "categoryOtherPlaceholder": "e.g. tinsmith"
+    "categoryOtherPlaceholder": "e.g. tinsmith",
+    "logoUploadFailedNonFatal": "Your business was saved, but the logo failed to upload. Try again from the business page."
   },
   "dashboard": {
     "yourProducts": "Your business",

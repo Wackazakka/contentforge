@@ -29,7 +29,8 @@
     "errorPhoneInvalid": "Telefonnummeret ser ikke riktig ut — bruk siffer, gjerne med +47.",
     "errorLogoTooBig": "Logofilen er for stor (maks 4 MB).",
     "categoryOtherLabel": "Hvilket fag?",
-    "categoryOtherPlaceholder": "f.eks. blikkenslager"
+    "categoryOtherPlaceholder": "f.eks. blikkenslager",
+    "logoUploadFailedNonFatal": "Bedriften er lagret, men logoen ble ikke lastet opp. Prøv igjen fra bedriftssiden."
   },
   "dashboard": {
     "yourProducts": "Bedriften din",

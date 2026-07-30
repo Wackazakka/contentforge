@@ -46,6 +46,10 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
+  // Feltnær feilmelding for logoen: brukeren står NEDERST i skjemaet når
+  // fila avvises — en melding øverst i modalen er utenfor synsfeltet
+  // (Lars' funn 2026-07-30: «skjer ingenting» ved for stor fil).
+  const [logoError, setLogoError] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const errorRef = useRef<HTMLDivElement | null>(null)
@@ -89,12 +93,14 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
           const fd = new FormData()
           fd.append('file', logoFile)
           fd.append('productId', created.id)
-          await fetch('/api/products/upload-logo', {
+          const upRes = await fetch('/api/products/upload-logo', {
             method: 'POST',
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
             body: fd,
           })
-        } catch { /* logo kan legges til senere */ } finally {
+          // Ikke-fatal, men ALDRI stille: bandet er lagret, logoen kan tas om igjen
+          if (!upRes.ok) alert(t('logoUploadFailedNonFatal'))
+        } catch { alert(t('logoUploadFailedNonFatal')) } finally {
           setLogoUploading(false)
         }
       }
@@ -261,16 +267,22 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
                 onChange={(e) => {
                   const f = e.target.files?.[0] || null
                   if (f && f.size > 4 * 1024 * 1024) {
-                    setError(t('errorLogoTooBig'))
+                    setLogoError(t('errorLogoTooBig') + ` (${(f.size / 1024 / 1024).toFixed(1)} MB)`)
+                    setLogoFile(null)
                     e.target.value = ''
                     return
                   }
-                  setError(null)
+                  setLogoError(null)
                   setLogoFile(f)
                 }}
                 className="cf-input"
-                style={{ marginBottom: 8 }}
+                style={{ marginBottom: 8, ...(logoError ? { borderColor: 'var(--ember-deep)' } : {}) }}
               />
+              {logoError && (
+                <p style={{ fontFamily: HANKEN, fontSize: 13.5, fontWeight: 600, color: 'var(--ember-deep)', margin: '0 0 8px' }}>
+                  {logoError}
+                </p>
+              )}
               <p style={{ fontFamily: HANKEN, fontSize: 13, color: '#8C8272', margin: '0 0 28px' }}>{t('logoHint')}</p>
             </>
           )}
