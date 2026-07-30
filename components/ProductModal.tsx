@@ -37,6 +37,10 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState(vcfg ? vcfg.categoryOptions[0].value : 'product')
+  // «Annet»-valget åpner fritekst: det brukeren skriver LAGRES som kategorien
+  // (products.category), så prompt-konteksten får «Genre: shoegaze» i stedet
+  // for «Genre: annet». Tomt felt faller tilbake til 'annet'.
+  const [customCategory, setCustomCategory] = useState('')
   const [serviceArea, setServiceArea] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [phone, setPhone] = useState('')
@@ -68,7 +72,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
       const created = await onSubmit({
         name,
         description,
-        category,
+        category: category === 'annet' ? (customCategory.trim() || 'annet') : category,
         serviceArea: serviceArea.trim() || undefined,
         websiteUrl: normalizeUrl(websiteUrl) || undefined,
         phone: normalizePhone(phone) || undefined,
@@ -99,6 +103,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
       setName('')
       setDescription('')
       setCategory(vcfg ? vcfg.categoryOptions[0].value : 'product')
+      setCustomCategory('')
       setServiceArea('')
       setWebsiteUrl('')
       setPhone('')
@@ -180,6 +185,21 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               </>
             )}
           </select>
+
+          {vcfg && category === 'annet' && (
+            <>
+              <label style={labelStyle}>{t('categoryOtherLabel')}</label>
+              <input
+                type="text"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder={t('categoryOtherPlaceholder')}
+                disabled={isLoading}
+                className="cf-input"
+                style={{ marginBottom: 20 }}
+              />
+            </>
+          )}
 
           {vcfg?.serviceAreaField && (
             <>

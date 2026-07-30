@@ -27,7 +27,9 @@
     "logoLabel": "Logo (optional)",
     "logoHint": "PNG, JPG, SVG or WebP — max 4 MB. Used on the end card in your videos.",
     "errorPhoneInvalid": "That phone number does not look right — use digits, optionally with +47.",
-    "errorLogoTooBig": "The logo file is too large (max 4 MB)."
+    "errorLogoTooBig": "The logo file is too large (max 4 MB).",
+    "categoryOtherLabel": "Which trade?",
+    "categoryOtherPlaceholder": "e.g. tinsmith"
   },
   "dashboard": {
     "yourProducts": "Your business",

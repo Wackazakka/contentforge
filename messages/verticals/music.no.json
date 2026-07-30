@@ -27,7 +27,9 @@
     "logoLabel": "Bandbilde eller logo (valgfritt)",
     "logoHint": "PNG, JPG, SVG eller WebP — maks 4 MB. Brukes på sluttplakaten i videoene.",
     "errorPhoneInvalid": "Telefonnummeret ser ikke riktig ut — bruk siffer, gjerne med +47.",
-    "errorLogoTooBig": "Bildefilen er for stor (maks 4 MB)."
+    "errorLogoTooBig": "Bildefilen er for stor (maks 4 MB).",
+    "categoryOtherLabel": "Hvilken sjanger?",
+    "categoryOtherPlaceholder": "f.eks. shoegaze"
   },
   "dashboard": {
     "yourProducts": "Bandet ditt",

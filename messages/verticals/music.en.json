@@ -27,7 +27,9 @@
     "logoLabel": "Band photo or logo (optional)",
     "logoHint": "PNG, JPG, SVG or WebP — max 4 MB. Used on the end card in videos.",
     "errorPhoneInvalid": "That phone number doesn't look right — use digits, optionally with +47.",
-    "errorLogoTooBig": "The image file is too big (max 4 MB)."
+    "errorLogoTooBig": "The image file is too big (max 4 MB).",
+    "categoryOtherLabel": "Which genre?",
+    "categoryOtherPlaceholder": "e.g. shoegaze"
   },
   "dashboard": {
     "yourProducts": "Your band",
