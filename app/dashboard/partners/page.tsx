@@ -53,6 +53,10 @@ export default function PartnersPage() {
   const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; license: string; name: string; logo: string; colors: Record<string, string>; colorKeys: string[] }>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
+  // Lagrede fargeprofiler, eid av denne tenanten. `palettesOn` er false til
+  // migrasjonen er kjørt — da skjules hele raden i stedet for å vise en død knapp.
+  const [palettes, setPalettes] = useState<Array<{ id: string; name: string; colors: Record<string, string> }>>([])
+  const [palettesOn, setPalettesOn] = useState(false)
 
   const authedFetch = async (init?: RequestInit) => {
     const { data: sess } = await getSupabase().auth.getSession()
@@ -89,7 +93,27 @@ export default function PartnersPage() {
     }
   }
 
-  useEffect(() => { refresh() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const paletteFetch = async (init?: RequestInit, qs = '') => {
+    const { data: sess } = await getSupabase().auth.getSession()
+    const token = sess?.session?.access_token
+    if (!token) throw new Error('Ikke innlogget')
+    return fetch(`/api/color-palettes${qs}`, {
+      ...init,
+      headers: { ...(init?.headers || {}), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const refreshPalettes = async () => {
+    try {
+      const res = await paletteFetch()
+      const d = await res.json()
+      if (!res.ok) return
+      setPalettes(d.palettes || [])
+      setPalettesOn(d.migrated !== false)
+    } catch { /* paletter er valgfritt — velter aldri siden */ }
+  }
+
+  useEffect(() => { refresh(); refreshPalettes() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async (p: Partner) => {
     const e = edits[p.id]
@@ -152,6 +176,44 @@ export default function PartnersPage() {
       for (const f of COLOR_FIELDS) colors[f.key] = f.fallback
       return { ...prev, [id]: { ...prev[id], colors, colorKeys: [] } }
     })
+
+  // Å bruke en lagret palett er et eksplisitt valg — alle seksten merkes som satt,
+  // slik at partneren beholder profilen selv om standardpaletten endres senere.
+  const applyPalette = (id: string, colors: Record<string, string>) =>
+    setEdits((prev) => {
+      const next = { ...prev[id].colors }
+      const keys: string[] = []
+      for (const f of COLOR_FIELDS) if (colors[f.key]) { next[f.key] = colors[f.key]; keys.push(f.key) }
+      return { ...prev, [id]: { ...prev[id], colors: next, colorKeys: keys } }
+    })
+
+  const savePalette = async (id: string) => {
+    const e = edits[id]
+    if (!e) return
+    const name = window.prompt('Navn på fargeprofilen?')?.trim()
+    if (!name) return
+    // Lagrer alle seksten slik de vises — det er helheten du vil ha tilbake,
+    // ikke bare de du tilfeldigvis rørte sist.
+    const colors: Record<string, string> = {}
+    for (const f of COLOR_FIELDS) colors[f.key] = e.colors[f.key]
+    try {
+      const res = await paletteFetch({ method: 'POST', body: JSON.stringify({ name, colors }) })
+      const d = await res.json()
+      if (!res.ok) { setError(d.error || 'Kunne ikke lagre paletten'); return }
+      setError(null)
+      await refreshPalettes()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kunne ikke lagre paletten')
+    }
+  }
+
+  const deletePalette = async (paletteId: string, name: string) => {
+    if (!window.confirm(`Slette fargeprofilen «${name}»? Partnere som allerede bruker den beholder fargene sine.`)) return
+    try {
+      await paletteFetch({ method: 'DELETE' }, `?id=${encodeURIComponent(paletteId)}`)
+      await refreshPalettes()
+    } catch { /* ignorer — listen oppdateres uansett */ }
+  }
 
   // Trekker ÉN ting — sideflatens kulør og lys/mørk — og utleder resten, med
   // kontrastgarantier. Seksten uavhengige tilfeldige farger blir alltid stygt.
@@ -293,12 +355,38 @@ export default function PartnersPage() {
                       className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                       🎲 Forslag
                     </button>
+                    <button type="button" onClick={() => savePalette(p.id)}
+                      className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                      Lagre som …
+                    </button>
                     <button type="button" onClick={() => resetColors(p.id)} disabled={e.colorKeys.length === 0}
                       className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:text-gray-700 transition-colors">
                       Tilbakestill
                     </button>
                   </div>
                 </div>
+
+                {palettesOn && palettes.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className="text-xs text-gray-500">Lagrede profiler:</span>
+                    {palettes.map((pal) => (
+                      <span key={pal.id} className="inline-flex items-center gap-1 rounded-full border border-gray-300 pl-1 pr-2 py-1">
+                        <button type="button" onClick={() => applyPalette(p.id, pal.colors)}
+                          title={`Bruk «${pal.name}» på ${e.name}`}
+                          className="inline-flex items-center gap-1.5 text-xs text-gray-700 hover:text-[var(--ember-deep)] transition-colors">
+                          <span className="flex rounded-full overflow-hidden border border-gray-200">
+                            {['--paper', '--ember', '--ink'].map((k) => (
+                              <i key={k} className="block w-3 h-3" style={{ background: pal.colors[k] || '#ccc' }} />
+                            ))}
+                          </span>
+                          {pal.name}
+                        </button>
+                        <button type="button" onClick={() => deletePalette(pal.id, pal.name)} title="Slett profilen"
+                          className="text-gray-300 hover:text-red-600 text-xs leading-none transition-colors">×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <p className="text-xs text-gray-500 mb-3">
                   {e.colorKeys.length === 0
                     ? 'Ingen egne farger — partneren bruker standardpaletten.'
