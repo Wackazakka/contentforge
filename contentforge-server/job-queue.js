@@ -128,6 +128,13 @@ function ffmpegPromise(args) {
     })
   })
 }
+function probeDuration(p) {
+  return new Promise((resolve) => {
+    const { execFile } = require('child_process')
+    execFile('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', p],
+      { timeout: 15000 }, (err, stdout) => resolve(err ? 0 : parseFloat(String(stdout)) || 0))
+  })
+}
 async function normalizeVoiceover(voPath) {
   const stderr1 = await ffmpegPromise(['-i', voPath, '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'])
   const jsonMatch = stderr1.match(/\{[^{}]*"input_i"[^{}]*\}/)
@@ -333,7 +340,7 @@ router.post('/', async (req, res) => {
     tone,
     voiceId,
     cta,
-    musicFile,
+    musicFile, matchMusicLength,
     segments,
     video_format,
     imageStyle,
@@ -528,6 +535,28 @@ router.post('/', async (req, res) => {
         // Write segments to config for Python renderer (storytelling format)
         // lines: [] — no text overlay, the voiceover audio narrates and the image shows the scene
         // sub: short subtitle at bottom for accessibility
+        // «Film = musikkens lengde» (Lars 30/7): musikklengde / antall
+        // segmenter = segmentlengde. Hvert segments hviletid = andelen minus
+        // faktisk stemmelengde (+0,4 s gap). Artisten tar de kreative valgene;
+        // systemet tar bare matematikken. Presise tall: alt maales her, etter
+        // at stemmene finnes. Cap 60 s per segment mot ekstreme kilder.
+        let computedHolds = null
+        if (matchMusicLength && musicFile) {
+          try {
+            const musicDur = await probeDuration(path.join(MUSIC_DIR, musicFile))
+            if (musicDur > 1) {
+              const share = musicDur / orderedSegments.length
+              computedHolds = []
+              for (let i = 0; i < orderedSegments.length; i++) {
+                const voDur = await probeDuration(`${jobDir}/vo_${i + 1}.mp3`)
+                computedHolds.push(Math.min(60, Math.max(0, share - (voDur + 0.4))))
+              }
+              console.log(`[job-queue] Film=musikk: ${musicDur.toFixed(1)}s / ${orderedSegments.length} segmenter -> hold ${computedHolds.map((h) => h.toFixed(1)).join(', ')}`)
+            }
+          } catch (mErr) {
+            console.error('[job-queue] Film=musikk-beregning hoppet over:', mErr.message)
+          }
+        }
         config = {
           // Use the SAME canonical ordered array used for voiceover/image
           // generation above — never the raw `segments` request order — so the
@@ -543,7 +572,8 @@ router.post('/', async (req, res) => {
               sub: subText.length > 80 ? subText.substring(0, 77) + '...' : subText,
               // Musikkdrevet tempo (2026-07-30): hviletid etter stemmen —
               // rendereren lar bildet staa og musikken loeftes av duckingen.
-              hold: Number(seg.holdSeconds) > 0 ? Math.min(Number(seg.holdSeconds), 20) : 0,
+              // computedHolds (film=musikk) vinner over manuelle verdier.
+              hold: computedHolds ? computedHolds[i] : (Number(seg.holdSeconds) > 0 ? Math.min(Number(seg.holdSeconds), 60) : 0),
             }
           }),
           output: `${jobDir}/output.mp4`,

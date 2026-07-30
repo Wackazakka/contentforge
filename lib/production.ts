@@ -124,6 +124,9 @@ export async function startProductionForDraft(
       // (validert over), men dropletens nedlastings-fallback trenger en
       // gyldig id som sikkerhetsnett hvis en nedlasting skulle feile.
       voiceId: (draft.voice_id && draft.voice_id !== 'own') ? draft.voice_id : 'nhvaqgRyAq6BmFs3WcdX',
+      // «Film = musikkens lengde»: serveren regner musikklengde/antall
+      // segmenter og setter hviletidene presist (maalt, ikke gjettet)
+      matchMusicLength: segments.some((s: any) => s.match_music === true),
       tone: draft.tone || 'Energisk',
       cta: draft.cta || '',
       segments: processedSegments,
