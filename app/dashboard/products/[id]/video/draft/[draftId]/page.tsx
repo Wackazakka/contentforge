@@ -996,11 +996,15 @@ export default function DraftPage() {
                     ))}
                   </optgroup>
                 )}
-                <optgroup label="Musikkbibliotek">
-                  {sharedMusic(musicLibrary).map((m) => (
-                    <option key={m.filename} value={m.filename}>{m.name}</option>
-                  ))}
-                </optgroup>
+                {/* Generisk bibliotek er irrelevant for artister (Lars 30/7) —
+                    music-vertikalen ser kun egne låter og medleyer */}
+                {tenantInfo.vertical !== 'music' && (
+                  <optgroup label="Musikkbibliotek">
+                    {sharedMusic(musicLibrary).map((m) => (
+                      <option key={m.filename} value={m.filename}>{m.name}</option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
               {draft.music_file && (
                 <audio controls preload="none" src={`/api/music/${encodeURIComponent(draft.music_file)}`} className="mt-2 w-full" />
@@ -1057,18 +1061,25 @@ export default function DraftPage() {
                   className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp egne låter (MP3, maks 15MB) — de er kun synlige for dette bandet.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
+              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene fra utgivelsen (MP3, maks 15MB) — kun synlige for denne artisten. Flere låter? Lag en medley under.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
             </div>
 
             {/* Medley av egne låter (fase 3b) — vises når produktet har ≥2 egne låter */}
-            {ownTracks(musicLibrary, productId).length >= 2 && (
+            {(tenantInfo.vertical === 'music' || ownTracks(musicLibrary, productId).length >= 2) && (
               <div className="mt-3 border border-gray-200 rounded-lg p-3">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   🎚️ {tenantInfo.vertical === 'music' ? 'Lag medley av låtene dine' : 'Lag medley av egen musikk'}
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Velg 2–5 låter i rekkefølge — de mikses til én fil med myk overgang og jevnt volum.
+                  Velg 2–5 låter i rekkefølge — de mikses til én fil med myk overgang og jevnt volum, og legges som bakgrunnsmusikk.
                 </p>
+                {ownTracks(musicLibrary, productId).length < 2 && (
+                  <p className="text-xs text-gray-400 mb-1">
+                    {ownTracks(musicLibrary, productId).length === 0
+                      ? 'Ingen låter ennå — last opp låtene fra utgivelsen med opplastingsfeltet over, så dukker de opp her.'
+                      : 'Én låt lastet opp — last opp minst én til for å lage en medley.'}
+                  </p>
+                )}
                 <div className="space-y-1">
                   {ownTracks(musicLibrary, productId).map((m) => {
                     const idx = medleySelection.indexOf(m.filename)
