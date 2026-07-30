@@ -247,7 +247,7 @@ app.post('/music/medley', express.json(), (req, res) => {
     const outName = sanitized.endsWith('.mp3') ? sanitized : `${sanitized}.mp3`
     const outPath = path.join(folderPath, outName)
 
-    // acrossfade-kjede: [0][1] -> [x1]; [x1][2] -> [x2]; ... + loudnorm til slutt.
+    // acrossfade-kjede: [0][1] -> [x1]; [x1][2] -> [x2]; ...
     // qsin = equal power: konstant opplevd styrke gjennom overgangen. tri ga
     // -3 dB-dupp midt i hver crossfade — hoertes som en ekstra fade (Lars 30/7).
     const XFADE = 2.5
@@ -258,25 +258,40 @@ app.post('/music/medley', express.json(), (req, res) => {
       chain += `${prev}[${i}:a]acrossfade=d=${XFADE}:c1=qsin:c2=qsin${out};`
       prev = out
     }
-    // Fade ut paa slutten (Lars 30/7: «siste laata kan godt faa en liten fade»).
-    // areverse-trikset gir fade-out uten aa kjenne total varighet.
-    chain += `${prev}loudnorm=I=-16:TP=-1.5:LRA=11,areverse,afade=t=in:d=2.5,areverse[out]`
 
-    const args = ['-y']
+    const inputArgs = ['-y']
     for (const inp of inputs) {
-      if (inp.startSec > 0) args.push('-ss', String(inp.startSec))
-      if (inp.clipSec) args.push('-t', String(inp.clipSec))
-      args.push('-i', inp.path)
+      if (inp.startSec > 0) inputArgs.push('-ss', String(inp.startSec))
+      if (inp.clipSec) inputArgs.push('-t', String(inp.clipSec))
+      inputArgs.push('-i', inp.path)
     }
-    args.push('-filter_complex', chain, '-map', '[out]', '-c:a', 'libmp3lame', '-b:a', '192k', outPath)
+
+    const ffmpegP = (args) => new Promise((resolve, reject) => {
+      execFile('ffmpeg', args, { timeout: 180000 }, (err, _stdout, stderr) => {
+        if (err) reject(new Error(String(stderr).slice(-400)))
+        else resolve(String(stderr))
+      })
+    })
 
     console.log(`[server] Medley: ${inputs.length} filer -> ${folder}/${outName}`)
-    execFile('ffmpeg', args, { timeout: 180000 }, (err, _stdout, stderr) => {
-      if (err) {
-        console.error('[server] Medley ffmpeg-feil:', String(stderr).slice(-400))
-        // acrossfade krever at hver kilde er lengre enn crossfaden — vanligste feil
-        return res.status(500).json({ error: 'Miksingen feilet - er alle laatene lengre enn 3 sekunder?' })
+    ;(async () => {
+      // TO-PASS loudnorm (Lars 30/7: dynamisk en-pass «red» paa volumet —
+      // maalt dupp-hopp paa -10 dB i halen). Pass 1 MAALER, pass 2 bruker
+      // EN konstant justering (linear) — ingen pumping.
+      const measureChain = chain + `${prev}loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json[out]`
+      const stderr1 = await ffmpegP([...inputArgs, '-filter_complex', measureChain, '-map', '[out]', '-f', 'null', '-'])
+      const jsonMatch = stderr1.match(/\{[^{}]*"input_i"[^{}]*\}/)
+      let ln = 'loudnorm=I=-16:TP=-1.5:LRA=11'
+      if (jsonMatch) {
+        try {
+          const m = JSON.parse(jsonMatch[0])
+          ln = `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`
+        } catch { /* fall tilbake til en-pass */ }
       }
+      // Fade ut paa slutten: areverse-trikset gir fade-out uten kjent varighet.
+      const finalChain = chain + `${prev}${ln},areverse,afade=t=in:d=2.5,areverse[out]`
+      await ffmpegP([...inputArgs, '-filter_complex', finalChain, '-map', '[out]', '-c:a', 'libmp3lame', '-b:a', '192k', outPath])
+    })().then(() => {
       const size = fs.statSync(outPath).size
       const fileInfo = {
         filename: `${folder}/${outName}`,
@@ -288,6 +303,10 @@ app.post('/music/medley', express.json(), (req, res) => {
       }
       console.log(`[server] Medley ferdig: ${fileInfo.filename} (${size} bytes)`)
       res.json({ success: true, file: fileInfo })
+    }).catch((err) => {
+      console.error('[server] Medley ffmpeg-feil:', err.message)
+      // acrossfade krever at hver kilde er lengre enn crossfaden — vanligste feil
+      res.status(500).json({ error: 'Miksingen feilet - er alle laatene lengre enn 3 sekunder?' })
     })
   } catch (err) {
     console.error('[server] Medley-feil:', err.message)
