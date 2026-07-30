@@ -36,10 +36,20 @@ function sanitize(input: unknown): Record<string, string> {
   return out
 }
 
-/** Mangler tabellen, er det ikke en feil — det betyr bare at migrasjonen ikke er kjørt. */
+/**
+ * Mangler tabellen, er det ikke en feil — det betyr bare at migrasjonen ikke er kjørt.
+ *
+ * To former må fanges, og det er lett å bomme på den andre: Postgres selv svarer
+ * `42P01` («relation does not exist»), mens PostgREST — som Supabase-klienten går
+ * gjennom — svarer `PGRST205` med «Could not find the table 'public.x' in the
+ * schema cache». Første versjon sjekket bare den første, og da lakk feilen ut i
+ * brukergrensesnittet i stedet for å degradere pent.
+ */
 function tableMissing(error: { message?: string; code?: string } | null): boolean {
   if (!error) return false
-  return error.code === '42P01' || /relation .*color_palettes.* does not exist/i.test(error.message || '')
+  if (error.code === '42P01' || error.code === 'PGRST205') return true
+  const m = error.message || ''
+  return /color_palettes/i.test(m) && /(does not exist|schema cache)/i.test(m)
 }
 
 async function guard(request: Request) {
@@ -91,7 +101,10 @@ export async function POST(request: Request) {
     )
   if (error) {
     if (tableMissing(error)) {
-      return NextResponse.json({ error: 'Paletter er ikke slått på ennå — migrasjonen mangler.' }, { status: 503 })
+      return NextResponse.json(
+        { error: 'Lagrede fargeprofiler er ikke slått på ennå — kjør migrasjonen contentforge-fargepaletter.sql i Supabase. Fargene du har satt her lagres som vanlig med «Lagre».' },
+        { status: 503 }
+      )
     }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
