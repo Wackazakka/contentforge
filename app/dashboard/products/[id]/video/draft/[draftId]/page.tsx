@@ -1142,10 +1142,25 @@ export default function DraftPage() {
                           {idx >= 0 ? idx + 1 : '+'}
                         </span>
                         <span className="truncate flex-1">{m.name}</span>
+                        {/* Fjern fra MEDLEYEN (beholdes i laatbanken) — Lars 30/7 */}
+                        {idx >= 0 && (
+                          <span
+                            role="button"
+                            title="Fjern fra medleyen (låten beholdes i låtbanken)"
+                            onClick={(ev) => {
+                              ev.stopPropagation()
+                              toggleMedleyTrack(m.filename)
+                              setMedleyStarts((prev) => { const n = { ...prev }; delete n[m.filename]; return n })
+                            }}
+                            className="flex-none text-[var(--ember-deep)] text-xs px-1.5 py-0.5 rounded border border-[var(--ember-tint-border)] hover:bg-white"
+                          >
+                            − fjern
+                          </span>
+                        )}
                         {/* Permanent sletting — samme operasjon som laatbanken paa artistsiden */}
                         <span
                           role="button"
-                          title="Slett låten permanent fra låtbanken"
+                          title="Slett låten PERMANENT fra låtbanken"
                           onClick={async (ev) => {
                             ev.stopPropagation()
                             if (!confirm(`Slette «${m.name}» permanent fra låtbanken?`)) return
