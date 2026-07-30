@@ -495,7 +495,7 @@ def concat_videos(main_path, outro_path, final_path):
 
 
 
-def _duck_music(music_path, clips, duck_vol=0.16, full_vol=0.38, fade_secs=0.30):
+def _duck_music(music_path, clips, duck_vol=0.08, full_vol=0.38, fade_secs=0.30):
     """Auto-ducking: lower music volume while voice is active, rise during 0.4s end gap."""
     import numpy as np
     total = sum(c.duration for c in clips)
@@ -547,7 +547,7 @@ def _duck_music(music_path, clips, duck_vol=0.16, full_vol=0.38, fade_secs=0.30)
     return AudioArrayClip(result, fps=fps)
 
 
-def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=None, outroCard=None):
+def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=None, outroCard=None, mix=None):
     """Build full video from segments."""
     print("🎬 Bygger Reforhandle TikTok video...")
 
@@ -570,7 +570,12 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
     print(f"⏱️  Total: {total:.1f}s — legger til musikk...")
 
     if os.path.exists(backgroundMusicPath):
-        music = _duck_music(backgroundMusicPath, clips)
+        # Mix-nivaaer kan overstyres fra config (mix: {duckVol, fullVol}) —
+        # finjustering uten deploy (Lars 30/7: stemme/musikk-balansen)
+        _mix = mix or {}
+        music = _duck_music(backgroundMusicPath, clips,
+                            duck_vol=float(_mix.get('duckVol') or 0.08),
+                            full_vol=float(_mix.get('fullVol') or 0.38))
         final = concatenate_videoclips(clips, method="compose")
         final_audio = CompositeAudioClip([final.audio, music])
         final = final.with_audio(final_audio)
@@ -655,7 +660,7 @@ if __name__ == "__main__":
     backgroundMusicPath = config.get('backgroundMusic', MUSIC)
     logoUrl = config.get('logoUrl')
     outroCard = config.get('outroCard')
-    build_video(config["segments"], config["output"], backgroundMusicPath, logoUrl=logoUrl, outroCard=outroCard)
+    build_video(config["segments"], config["output"], backgroundMusicPath, logoUrl=logoUrl, outroCard=outroCard, mix=config.get("mix"))
 
     # Signal completion to job-queue
     done_path = config["output"] + ".done"
