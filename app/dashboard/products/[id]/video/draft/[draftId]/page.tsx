@@ -9,6 +9,7 @@ import { COSTS_NOK, fmtNok, fmtCredits } from '@/lib/costs'
 import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
 import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
+import { uploadTrack } from '@/lib/uploadTrack'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 const VOICES = [
@@ -1035,24 +1036,26 @@ export default function DraftPage() {
                     const file = el.files?.[0]
                     if (!file) return
                     const isRootSharedUpload = tenantInfo.slug === 'centerforge'
-                    const maxBytes = isRootSharedUpload ? 4 * 1024 * 1024 : TRACK_MAX_BYTES
                     if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer.'); el.value = ''; return }
-                    if (file.size > maxBytes) { alert(`Filen er for stor (maks ${isRootSharedUpload ? 4 : 15}MB).`); el.value = ''; return }
+                    if (isRootSharedUpload && file.size > 4 * 1024 * 1024) { alert('Filen er for stor (maks 4MB).'); el.value = ''; return }
                     setMusicUploading(true)
                     try {
-                      const folder = isRootSharedUpload ? musicFolder : tracksFolder(productId)
-                      const fd = new FormData(); fd.append('file', file)
-                      const res = await fetch(`/api/music/upload?folder=${encodeURIComponent(folder)}`, { method: 'POST', body: fd })
-                      if (res.ok) {
-                        const up = await res.json()
-                        const data = await fetch('/api/music').then((r) => r.json())
-                        if (data.files) setMusicLibrary(data.files)
-                        if (up?.file?.filename) updateMusic(up.file.filename) // auto-velg den nye musikken
+                      let uploaded: { filename?: string } | undefined
+                      if (isRootSharedUpload) {
+                        const fd = new FormData(); fd.append('file', file)
+                        const res = await fetch(`/api/music/upload?folder=${encodeURIComponent(musicFolder)}`, { method: 'POST', body: fd })
+                        const up = await res.json().catch(() => null)
+                        if (!res.ok) throw new Error(up?.error || 'Opplasting feilet.')
+                        uploaded = up?.file
                       } else {
-                        alert('Opplasting feilet.')
+                        // Store laater: utenom Netlify-proxyen (413 over ~4,5 MB)
+                        uploaded = await uploadTrack(file, tracksFolder(productId))
                       }
+                      const data = await fetch('/api/music').then((r) => r.json())
+                      if (data.files) setMusicLibrary(data.files)
+                      if (uploaded?.filename) updateMusic(uploaded.filename) // auto-velg den nye musikken
                     } catch (err) {
-                      alert('Opplasting feilet: ' + (err instanceof Error ? err.message : 'ukjent feil'))
+                      alert(err instanceof Error ? err.message : 'Opplasting feilet.')
                     } finally {
                       setMusicUploading(false)
                       el.value = ''
@@ -1061,7 +1064,7 @@ export default function DraftPage() {
                   className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene du vil bruke (MP3, maks 15MB) — egen musikk, eller musikk du har rett til å bruke. Kun synlige for denne artisten. Flere låter? Lag en medley under.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
+              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene du vil bruke (MP3, maks 50MB) — egen musikk, eller musikk du har rett til å bruke. Kun synlige for denne artisten. Flere låter? Lag en medley.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
             </div>
 
             {/* Medley av egne låter (fase 3b) — vises når produktet har ≥2 egne låter */}

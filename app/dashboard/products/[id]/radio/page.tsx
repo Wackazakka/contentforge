@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
+import { uploadTrack } from '@/lib/uploadTrack'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
@@ -467,7 +468,7 @@ export default function RadioAdPage() {
               <div className={`grid ${tenantInfo.slug === 'centerforge' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
                 <label className="block">
                   <span className="text-xs font-medium text-gray-700 block mb-1">
-                    {tenantInfo.vertical === 'music' ? 'Last opp egen låt (MP3, maks 15 MB)' : 'Last opp egen musikk (MP3, maks 15 MB)'}
+                    {tenantInfo.vertical === 'music' ? 'Last opp egen låt (MP3, maks 50 MB)' : 'Last opp egen musikk (MP3, maks 50 MB)'}
                   </span>
                   <input type="file" accept=".mp3"
                     onChange={async (e) => {
@@ -475,15 +476,12 @@ export default function RadioAdPage() {
                       const file = input.files?.[0]
                       if (!file) return
                       if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer støttes.'); input.value = ''; return }
-                      if (file.size > TRACK_MAX_BYTES) { alert('Filen er for stor. Maks 15 MB.'); input.value = ''; return }
-                      const formData = new FormData()
-                      formData.append('file', file)
                       try {
-                        // Produkt-scopet: synlig kun i dette produktet (tracks-<productId>)
-                        const res = await fetch(`/api/music/upload?folder=${tracksFolder(productId)}`, { method: 'POST', body: formData })
-                        if (res.ok) { await refreshMusicLibrary(); alert('Lastet opp!') }
-                        else alert('Opplasting feilet: ' + await res.text())
-                      } catch { alert('Opplasting feilet.') }
+                        // Produkt-scopet, utenom Netlify-proxyen (413 over ~4,5 MB)
+                        await uploadTrack(file, tracksFolder(productId))
+                        await refreshMusicLibrary()
+                        alert('Lastet opp!')
+                      } catch (err) { alert(err instanceof Error ? err.message : 'Opplasting feilet.') }
                       input.value = ''
                     }}
                     className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)]"
