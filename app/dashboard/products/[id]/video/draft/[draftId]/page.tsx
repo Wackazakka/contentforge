@@ -153,7 +153,9 @@ export default function DraftPage() {
             clipSec: medleyClip === 'full' ? undefined : Number(medleyClip),
           })),
           folder: `tracks-${productId}`,
-          name: `medley-${new Date().toISOString().slice(0, 10)}-${medleySelection.length}-laater`,
+          // Tidsstempel i navnet: hver bygging blir en NY fil, saa den forrige
+          // beholdes i laatbanken til sammenligning (Lars 30/7).
+          name: (() => { const d = new Date(); const t = [d.getHours(), d.getMinutes(), d.getSeconds()].map((x) => String(x).padStart(2, '0')).join('.'); return `medley-${d.toISOString().slice(0, 10)}-kl-${t}` })(),
         }),
       })
       const data = await res.json()
@@ -1252,7 +1254,7 @@ export default function DraftPage() {
                       className="w-full h-8"
                     />
                     <p className="text-xs text-green-700 mt-1">
-                      Ikke fornøyd? Juster utsnittene og trykk «Lag medley» igjen — den erstattes.
+                      Ikke fornøyd? Juster utsnittene og trykk «Lag medley» igjen — den forrige beholdes i låtbanken, så du kan sammenligne og slette taperen.
                       Lengden trenger ikke treffe filmen eksakt: musikken kuttes eller gjentas automatisk,
                       og volumet senkes mens stemmen snakker.
                     </p>

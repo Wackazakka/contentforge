@@ -247,13 +247,15 @@ app.post('/music/medley', express.json(), (req, res) => {
     const outName = sanitized.endsWith('.mp3') ? sanitized : `${sanitized}.mp3`
     const outPath = path.join(folderPath, outName)
 
-    // acrossfade-kjede: [0][1] -> [x1]; [x1][2] -> [x2]; ... + loudnorm til slutt
+    // acrossfade-kjede: [0][1] -> [x1]; [x1][2] -> [x2]; ... + loudnorm til slutt.
+    // qsin = equal power: konstant opplevd styrke gjennom overgangen. tri ga
+    // -3 dB-dupp midt i hver crossfade — hoertes som en ekstra fade (Lars 30/7).
     const XFADE = 2.5
     let chain = ''
     let prev = '[0:a]'
     for (let i = 1; i < inputs.length; i++) {
       const out = `[x${i}]`
-      chain += `${prev}[${i}:a]acrossfade=d=${XFADE}:c1=tri:c2=tri${out};`
+      chain += `${prev}[${i}:a]acrossfade=d=${XFADE}:c1=qsin:c2=qsin${out};`
       prev = out
     }
     // Fade ut paa slutten (Lars 30/7: «siste laata kan godt faa en liten fade»).
