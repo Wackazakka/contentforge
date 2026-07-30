@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
+import { campaignTemplates, type CampaignTemplate, type Locale } from '@/lib/campaignTemplates'
 
 const VIDEO_FORMATS = [
   { value: '9:16', label: 'Portrait (TikTok)', color: 'blue' },
@@ -50,6 +51,18 @@ export default function NewDraftPage() {
   }, [])
   const [perspective, setPerspective] = useState<'du' | 'jeg'>('du')
   const [cta, setCta] = useState('')
+  // Kampanjemaler (vertikal-gatet): forhåndsfyller brief-feltene som stillas.
+  const locale = (useLocale() === 'en' ? 'en' : 'no') as Locale
+  const templates = campaignTemplates(tenant.vertical)
+  const [templateKey, setTemplateKey] = useState<string | null>(null)
+  const applyTemplate = (tpl: CampaignTemplate) => {
+    setTemplateKey(tpl.key)
+    setTitle(tpl.prefill.title[locale])
+    setTopic(tpl.prefill.topic[locale])
+    setTargetAudience(tpl.prefill.targetAudience[locale])
+    setProblem(tpl.prefill.problem[locale])
+    setCta(tpl.prefill.cta[locale])
+  }
   const [videoFormat, setVideoFormat] = useState('9:16')
   const [imageStyle, setImageStyle] = useState('editorial')
   const [includeOutroCard, setIncludeOutroCard] = useState(true)
@@ -111,7 +124,7 @@ export default function NewDraftPage() {
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header */}
-        <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">
+        <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">
           {t('backToProduct')}
         </Link>
 
@@ -127,6 +140,38 @@ export default function NewDraftPage() {
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
                 {error}
+              </div>
+            )}
+
+            {/* Kampanjemaler (kun vertikaler med maler, f.eks. music) */}
+            {templates.length > 0 && (
+              <div>
+                <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1 block">
+                  {locale === 'en' ? 'What are you promoting?' : 'Hva skal du promotere?'}
+                </h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  {locale === 'en'
+                    ? 'Pick a template — the fields below get a starting point you edit freely.'
+                    : 'Velg en mal — feltene under fylles ut som et utgangspunkt du redigerer fritt.'}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {templates.map((tpl) => (
+                    <button
+                      key={tpl.key}
+                      type="button"
+                      onClick={() => applyTemplate(tpl)}
+                      className={`text-left rounded-lg border p-3 transition-colors ${
+                        templateKey === tpl.key
+                          ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]'
+                          : 'border-gray-200 hover:border-[var(--ember-tint-border)]'
+                      }`}
+                    >
+                      <div className="text-lg leading-none mb-1.5">{tpl.emoji}</div>
+                      <div className="text-sm font-semibold text-gray-900">{tpl.label[locale]}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{tpl.hint[locale]}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
