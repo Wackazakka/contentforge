@@ -91,14 +91,33 @@ export async function POST(request: Request) {
   if (Object.keys(colors).length === 0) {
     return NextResponse.json({ error: 'Ingen gyldige farger å lagre' }, { status: 400 })
   }
-  // Samme navn hos samme eier overskriver — unik-indeksen på (owner, lower(name))
-  // gjør dette til en ekte upsert i stedet for en duplikatfeil.
-  const { error } = await admin()
+  // Samme navn hos samme eier skal OVERSKRIVE, ikke duplisere.
+  //
+  // Kan ikke bruke ON CONFLICT her: den unike indeksen er på (owner, lower(name)),
+  // altså et UTTRYKK, og Postgres krever at ON CONFLICT-spesifikasjonen matcher
+  // kolonnene nøyaktig. Derfor slår vi opp først. Navnesammenligningen gjøres i JS
+  // framfor med ilike, så navn med % eller _ ikke tolkes som jokertegn.
+  const { data: eksisterende, error: lookupErr } = await admin()
     .from('color_palettes')
-    .upsert(
-      { owner_tenant_id: g.tenant!.id, name, colors, updated_at: new Date().toISOString() },
-      { onConflict: 'owner_tenant_id,name' }
+    .select('id, name')
+    .eq('owner_tenant_id', g.tenant!.id)
+  if (lookupErr && tableMissing(lookupErr)) {
+    return NextResponse.json(
+      { error: 'Lagrede fargeprofiler er ikke slått på ennå — kjør migrasjonen contentforge-fargepaletter.sql i Supabase. Fargene du har satt her lagres som vanlig med «Lagre».' },
+      { status: 503 }
     )
+  }
+  const treff = (eksisterende || []).find((r) => String(r.name).toLowerCase() === name.toLowerCase())
+
+  const { error } = treff
+    ? await admin()
+        .from('color_palettes')
+        .update({ name, colors, updated_at: new Date().toISOString() })
+        .eq('id', treff.id)
+        .eq('owner_tenant_id', g.tenant!.id)
+    : await admin()
+        .from('color_palettes')
+        .insert({ owner_tenant_id: g.tenant!.id, name, colors })
   if (error) {
     if (tableMissing(error)) {
       return NextResponse.json(
