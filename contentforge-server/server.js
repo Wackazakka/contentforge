@@ -59,7 +59,8 @@ function scanMusicDir(dir, prefix = '') {
       // Add audio files with folder info
       const stat = fs.statSync(fullPath)
       const folder = prefix || 'global'
-      const name = entry.name.replace(AUDIO_EXT, '').replace(/[-_]/g, ' ')
+      const rawBase = entry.name.replace(AUDIO_EXT, '')
+      const name = (rawBase.includes(' ') ? rawBase : rawBase.replace(/[-_]/g, ' ')).replace(/^[\s_-]+/, '').trim()
       
       files.push({
         filename: relativePath,
@@ -114,6 +115,18 @@ const upload = multer({
   limits: { fileSize: 500 * 1024 * 1024 } // 500MB max
 })
 
+
+// Filnavn-vask som RESPEKTERER norske navn (2026-07-30, Lars' funn:
+// «Det står om ...» ble «det sta r om ...»): translitterer æøå i stedet for
+// å strippe, beholder store bokstaver/mellomrom/parenteser — fjerner kun
+// filsystem-farlige tegn.
+function sanitizeMusicName(raw) {
+  const map = { '\u00e6':'ae','\u00f8':'oe','\u00e5':'aa','\u00c6':'Ae','\u00d8':'Oe','\u00c5':'Aa','\u00e9':'e','\u00e8':'e','\u00fc':'u','\u00f6':'oe','\u00e4':'ae','\u00d6':'Oe','\u00c4':'Ae' }
+  let out = String(raw).replace(/[\u00e6\u00f8\u00e5\u00c6\u00d8\u00c5\u00e9\u00e8\u00fc\u00f6\u00e4\u00d6\u00c4]/g, (c) => map[c] || c)
+  out = out.replace(/[\/\\<>:"|?*\x00-\x1f]/g, '').replace(/\.{2,}/g, '.').replace(/\s+/g, ' ').trim()
+  return out.slice(0, 120) || 'laat.mp3'
+}
+
 // Upload music file to specific folder
 app.post('/music/upload', upload.single('file'), (req, res) => {
   try {
@@ -136,11 +149,10 @@ app.post('/music/upload', upload.single('file'), (req, res) => {
       fs.mkdirSync(folderPath, { recursive: true })
     }
 
-    // Sanitize filename
-    const sanitized = req.file.originalname
-      .toLowerCase()
-      .replace(/[^a-z0-9.-]/g, '-')
-      .replace(/-+/g, '-')
+    // Multer leverer originalname som latin1 — dekod til utf8 foer vask
+    let originalName = req.file.originalname
+    try { originalName = Buffer.from(originalName, 'latin1').toString('utf8') } catch {}
+    const sanitized = sanitizeMusicName(originalName)
 
     const filePath = path.join(folderPath, sanitized)
     
@@ -149,7 +161,7 @@ app.post('/music/upload', upload.single('file'), (req, res) => {
 
     const fileInfo = {
       filename: `${folder}/${sanitized}`,
-      name: sanitized.replace(/\.(mp3|wav|ogg|m4a|flac)$/i, '').replace(/[-_]/g, ' '),
+      name: (() => { const b = sanitized.replace(/\.(mp3|wav|ogg|m4a|flac)$/i, ''); return (b.includes(' ') ? b : b.replace(/[-_]/g, ' ')).trim() })(),
       folder,
       url: `http://139.59.212.218:${PORT}/music/files/${encodeURIComponent(`${folder}/${sanitized}`)}`,
       size: req.file.size,
@@ -253,7 +265,7 @@ app.post('/music/medley', express.json(), (req, res) => {
       const size = fs.statSync(outPath).size
       const fileInfo = {
         filename: `${folder}/${outName}`,
-        name: outName.replace(/\.mp3$/i, '').replace(/[-_]/g, ' '),
+        name: (() => { const b = outName.replace(/\.mp3$/i, ''); return (b.includes(' ') ? b : b.replace(/[-_]/g, ' ')).replace(/^[\s_-]+/, '').trim() })(),
         folder,
         url: `http://139.59.212.218:${PORT}/music/files/${encodeURIComponent(`${folder}/${outName}`)}`,
         size,
@@ -281,7 +293,7 @@ app.post('/music/import', express.json(), (req, res) => {
       return res.status(400).json({ error: 'Kun Supabase Storage-URL-er kan importeres' })
     }
     if (!folder) return res.status(400).json({ error: 'Ugyldig mappe' })
-    const sanitized = rawName.toLowerCase().replace(/[^a-z0-9.-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'laat.mp3'
+    const sanitized = sanitizeMusicName(rawName)
     const outName = /\.(mp3|wav|m4a|ogg|flac)$/.test(sanitized) ? sanitized : sanitized + '.mp3'
     const folderPath = path.join(MUSIC_DIR, folder)
     if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true })
@@ -297,7 +309,7 @@ app.post('/music/import', express.json(), (req, res) => {
 
     const fileInfo = {
       filename: `${folder}/${outName}`,
-      name: outName.replace(/\.(mp3|wav|m4a|ogg|flac)$/i, '').replace(/[-_]/g, ' '),
+      name: (() => { const b = outName.replace(/\.(mp3|wav|m4a|ogg|flac)$/i, ''); return (b.includes(' ') ? b : b.replace(/[-_]/g, ' ')).trim() })(),
       folder,
       url: `http://139.59.212.218:${PORT}/music/files/${encodeURIComponent(`${folder}/${outName}`)}`,
       size: buf.byteLength,
