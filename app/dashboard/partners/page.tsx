@@ -144,6 +144,28 @@ export default function PartnersPage() {
     }
   }
 
+  /**
+   * Har kortet endringer som ikke er skrevet til basen?
+   *
+   * Å klikke en lagret profil, eller dra i en fargevelger, fyller bare ut
+   * skjemaet — partnerens domene endres først ved lagring. Det er med vilje
+   * (et feilklikk skal ikke male om en kundes nettside), men uten en indikator
+   * er det umulig å se forskjell på «valgt» og «lagret».
+   */
+  const harUlagredeEndringer = (p: Partner): boolean => {
+    const e = edits[p.id]
+    if (!e) return false
+    if (Number(e.markup) !== Number(p.markup_percent)) return true
+    if (Number(e.license) !== Number(p.license_fee_pct ?? 0)) return true
+    if (e.name !== p.app_name) return true
+    if ((e.logo || '') !== (p.logo_url || '')) return true
+    // Fargene: sammenlign settet av VALGTE nøkler og verdiene deres mot det lagrede.
+    const lagret = p.colors || {}
+    const lagredeNokler = Object.keys(lagret).filter((k) => COLOR_FIELDS.some((f) => f.key === k))
+    if (lagredeNokler.length !== e.colorKeys.length) return true
+    return e.colorKeys.some((k) => (lagret[k] || '').toUpperCase() !== (e.colors[k] || '').toUpperCase())
+  }
+
   const setEdit = (id: string, field: string, value: string) =>
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
 
@@ -425,7 +447,13 @@ export default function PartnersPage() {
                     className="px-5 py-2.5 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
                     {busy === p.id ? 'Lagrer …' : 'Lagre endringer'}
                   </button>
-                  {saved === p.id && <span className="text-sm text-green-700">Partneren er lagret — synlig på deres domene innen ett minutt.</span>}
+                  {saved === p.id
+                    ? <span className="text-sm text-green-700">Partneren er lagret — synlig på deres domene innen ett minutt.</span>
+                    : harUlagredeEndringer(p) && (
+                        <span className="text-sm text-amber-700">
+                          Ulagrede endringer — partnerens domene er uendret til du trykker «Lagre endringer».
+                        </span>
+                      )}
                 </div>
               </div>
             )
