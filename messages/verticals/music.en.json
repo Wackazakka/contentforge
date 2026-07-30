@@ -55,6 +55,9 @@
     "topicPlaceholder": "E.g. Our single \"Northern Lights\" drops Friday August 15 — pre-save now",
     "targetAudiencePlaceholder": "E.g. People who listen to melancholic synthpop and Nordic indie",
     "problemPlaceholder": "E.g. New music drowns in the feed without promo that stands out",
-    "ctaPlaceholder": "E.g. Pre-save on Spotify today"
+    "ctaPlaceholder": "E.g. Pre-save on Spotify today",
+    "backToProduct": "← Back to artist",
+    "title": "Create promo video",
+    "subtitle": "Tell us what the video is about — you approve everything before anything costs money."
   }
 }

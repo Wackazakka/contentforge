@@ -467,7 +467,7 @@
   },
   "newDraft": {
     "backToProduct": "← Tilbake til produkt",
-    "title": "Opprett ny video-draft",
+    "title": "Opprett ny video",
     "subtitle": "Definer tema og innstillinger for videoen",
     "sectionBasic": "Grunninfo",
     "titleLabel": "Tittel på video *",
