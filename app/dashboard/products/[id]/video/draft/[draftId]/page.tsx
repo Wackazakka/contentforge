@@ -103,6 +103,43 @@ export default function DraftPage() {
   const [faceActors, setFaceActors] = useState<Array<{ id: string; name: string; faceCharacterId: string; pricePerUseNok: number }>>([])
   const [actorVoices, setActorVoices] = useState<Array<{ voiceId: string; name: string; pricePerUseNok: number }>>([])
   const [musicUploading, setMusicUploading] = useState(false)
+  // Medley (fase 3b): velg 2–5 egne låter i rekkefølge → dropleten mikser
+  // dem til én fil med crossfade + loudnorm, lagret i tracks-<productId>.
+  const [medleySelection, setMedleySelection] = useState<string[]>([])
+  const [medleyBuilding, setMedleyBuilding] = useState(false)
+  const toggleMedleyTrack = (filename: string) => {
+    setMedleySelection((prev) =>
+      prev.includes(filename) ? prev.filter((f) => f !== filename) : prev.length >= 5 ? prev : [...prev, filename]
+    )
+  }
+  const buildMedley = async () => {
+    if (medleySelection.length < 2) return
+    setMedleyBuilding(true)
+    try {
+      const res = await fetch('/api/music/medley', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: medleySelection,
+          folder: `tracks-${productId}`,
+          name: `medley-${new Date().toISOString().slice(0, 10)}-${medleySelection.length}-laater`,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data?.file?.filename) {
+        const lib = await fetch('/api/music').then((r) => r.json())
+        if (lib.files) setMusicLibrary(lib.files)
+        updateMusic(data.file.filename) // auto-velg medleyen
+        setMedleySelection([])
+      } else {
+        alert(data?.error || 'Miksingen feilet.')
+      }
+    } catch {
+      alert('Miksingen feilet.')
+    } finally {
+      setMedleyBuilding(false)
+    }
+  }
   const [musicFolder, setMusicFolder] = useState('global')
   // Sluttplakat-farger — leses fra produktprofilen, kan endres direkte her
   const [outroBg, setOutroBg] = useState('#1a1a2e')
@@ -875,6 +912,50 @@ export default function DraftPage() {
               </div>
               <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp egne låter (MP3, maks 15MB) — de er kun synlige for dette bandet.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
             </div>
+
+            {/* Medley av egne låter (fase 3b) — vises når produktet har ≥2 egne låter */}
+            {ownTracks(musicLibrary, productId).length >= 2 && (
+              <div className="mt-3 border border-gray-200 rounded-lg p-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  🎚️ {tenantInfo.vertical === 'music' ? 'Lag medley av låtene dine' : 'Lag medley av egen musikk'}
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Velg 2–5 låter i rekkefølge — de mikses til én fil med myk overgang og jevnt volum.
+                </p>
+                <div className="space-y-1">
+                  {ownTracks(musicLibrary, productId).map((m) => {
+                    const idx = medleySelection.indexOf(m.filename)
+                    return (
+                      <button
+                        key={m.filename}
+                        type="button"
+                        onClick={() => toggleMedleyTrack(m.filename)}
+                        className={`w-full flex items-center gap-2 text-left px-2 py-1.5 rounded border text-sm transition-colors ${
+                          idx >= 0
+                            ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]'
+                            : 'border-gray-200 hover:border-[var(--ember-tint-border)]'
+                        }`}
+                      >
+                        <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center flex-none ${
+                          idx >= 0 ? 'bg-[var(--ember-deep)] text-white' : 'bg-gray-100 text-gray-400'
+                        }`}>
+                          {idx >= 0 ? idx + 1 : '+'}
+                        </span>
+                        <span className="truncate">{m.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  type="button"
+                  disabled={medleySelection.length < 2 || medleyBuilding}
+                  onClick={buildMedley}
+                  className="mt-2 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-40"
+                >
+                  {medleyBuilding ? 'Mikser…' : `Lag medley${medleySelection.length >= 2 ? ` (${medleySelection.length} låter)` : ''}`}
+                </button>
+              </div>
+            )}
 
             {/* Jingle på sluttplakat */}
             <div>
