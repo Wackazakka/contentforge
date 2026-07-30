@@ -105,6 +105,8 @@ export async function startProductionForDraft(
     imagePrompt: s.image_prompt || s.imagePrompt || '',
     imageUrl: s.image_url,
     voiceoverUrl: s.voiceover_url || null,
+    // Musikkdrevet tempo: hviletid etter stemmen per segment
+    holdSeconds: Number(s.hold_seconds) > 0 ? Number(s.hold_seconds) : 0,
     animate: s.animate === true,
     motion: s.motion || (s.animate === true ? 'move' : 'none'),
   }))

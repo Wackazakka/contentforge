@@ -117,6 +117,29 @@ function downloadFile(url, destPath) {
 
 // ─── Content Generation ───────────────────────────────────────────────────────
 
+// To-pass loudnorm av en voiceover-fil (in-place): pass 1 maaler, pass 2
+// legger EN konstant gain (linear) mot I=-16 — samme moenster som medleyen.
+function ffmpegPromise(args) {
+  return new Promise((resolve, reject) => {
+    const { execFile } = require('child_process')
+    execFile('ffmpeg', args, { timeout: 60000 }, (err, _stdout, stderr) => {
+      if (err) reject(new Error(String(stderr).slice(-300)))
+      else resolve(String(stderr))
+    })
+  })
+}
+async function normalizeVoiceover(voPath) {
+  const stderr1 = await ffmpegPromise(['-i', voPath, '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'])
+  const jsonMatch = stderr1.match(/\{[^{}]*"input_i"[^{}]*\}/)
+  if (!jsonMatch) throw new Error('fant ikke maaleresultat')
+  const m = JSON.parse(jsonMatch[0])
+  const tmp = voPath + '.norm.mp3'
+  await ffmpegPromise(['-y', '-i', voPath, '-af',
+    `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`,
+    '-c:a', 'libmp3lame', '-b:a', '160k', tmp])
+  fs.renameSync(tmp, voPath)
+}
+
 // Call ElevenLabs text-to-speech, save mp3 to outputPath — retries up to 3x
 async function generateVoiceover(text, voiceId, outputPath, apiKey) {
   const bodyBuffer = Buffer.from(JSON.stringify({
@@ -414,6 +437,16 @@ router.post('/', async (req, res) => {
                 fs.unlink(rawPath, () => {})
                 console.log(`[job-queue] Segment ${i + 1}: Transcoded own recording -> mp3`)
               }
+              // Normaliser stemmen til fast nivaa (I=-16) saa egne innspillinger
+              // treffer samme miks som ElevenLabs (Lars 30/7: «voice for svak
+              // mot musikken»). TO-PASS (maal -> konstant gain) — aldri pumping.
+              // Feiler noe, beholdes originalen (normalisering velter aldri en render).
+              try {
+                await normalizeVoiceover(voPath)
+                console.log(`[job-queue] Segment ${i + 1}: Voiceover normalisert til -16 LUFS`)
+              } catch (nErr) {
+                console.error(`[job-queue] Segment ${i + 1}: normalisering hoppet over:`, nErr.message)
+              }
               console.log(`[job-queue] Segment ${i + 1}: Approved voiceover saved (${voBuf.byteLength} bytes)`)
             } catch (voErr) {
               console.error(`[job-queue] Segment ${i + 1}: approved voiceover download failed, regenerating:`, voErr.message)
@@ -507,6 +540,9 @@ router.post('/', async (req, res) => {
               vo_path: `${jobDir}/vo_${i + 1}.mp3`,
               lines: [],
               sub: subText.length > 80 ? subText.substring(0, 77) + '...' : subText,
+              // Musikkdrevet tempo (2026-07-30): hviletid etter stemmen —
+              // rendereren lar bildet staa og musikken loeftes av duckingen.
+              hold: Number(seg.holdSeconds) > 0 ? Math.min(Number(seg.holdSeconds), 20) : 0,
             }
           }),
           output: `${jobDir}/output.mp4`,
