@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { generatePalette } from '@/lib/palette'
+import { generatePalette, paletteFromBrand } from '@/lib/palette'
 import { getSupabase } from '@/lib/supabaseClient'
 
 // Partner-admin: dine direkte underledd — påslaget du tar av dem, royalty-satsen
@@ -237,6 +237,18 @@ export default function PartnersPage() {
     } catch { /* ignorer — listen oppdateres uansett */ }
   }
 
+  // Bygger paletten rundt fargen som allerede står i «Hovedfarge» — altså
+  // merkevarens egen. Den beholdes eksakt; sideflaten blir en dempet slektning.
+  // Trenger ikke eget inndatafelt: fargevelgeren for Hovedfarge ER inndataen.
+  const buildFromBrand = (id: string, dark: boolean) =>
+    setEdits((prev) => {
+      const brand = prev[id].colors['--ember'] || '#E25822'
+      const p = paletteFromBrand(brand, { dark })
+      const colors = { ...prev[id].colors }
+      for (const f of COLOR_FIELDS) if (p[f.key]) colors[f.key] = p[f.key]
+      return { ...prev, [id]: { ...prev[id], colors, colorKeys: COLOR_FIELDS.map((f) => f.key) } }
+    })
+
   // Trekker ÉN ting — sideflatens kulør og lys/mørk — og utleder resten, med
   // kontrastgarantier. Seksten uavhengige tilfeldige farger blir alltid stygt.
   const suggestColors = (id: string) =>
@@ -377,6 +389,18 @@ export default function PartnersPage() {
                       className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                       🎲 Forslag
                     </button>
+                    <span className="inline-flex rounded-lg border border-gray-300 overflow-hidden">
+                      <button type="button" onClick={() => buildFromBrand(p.id, false)}
+                        title="Behold Hovedfarge som den er, og bygg en lys palett rundt den"
+                        className="px-3 py-1.5 text-sm text-gray-700 hover:text-[var(--ember-deep)] transition-colors">
+                        Bygg rundt hovedfargen
+                      </button>
+                      <button type="button" onClick={() => buildFromBrand(p.id, true)}
+                        title="Samme, men med mørk sideflate"
+                        className="px-2.5 py-1.5 text-sm text-gray-700 border-l border-gray-300 hover:text-[var(--ember-deep)] transition-colors">
+                        🌙
+                      </button>
+                    </span>
                     <button type="button" onClick={() => savePalette(p.id)}
                       className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                       Lagre som profil
@@ -413,7 +437,7 @@ export default function PartnersPage() {
                   {e.colorKeys.length === 0
                     ? 'Ingen egne farger — partneren bruker standardpaletten.'
                     : `${e.colorKeys.length} av ${COLOR_FIELDS.length} farger er satt. Blå prikk = valgt; klikk den for å nullstille.`}
-                  {' '}«Forslag» trekker én kulør og utleder resten, med lesbar kontrast. «Lagre som profil» legger fargene i ditt eget bibliotek — partneren endres først når du trykker «Lagre endringer» nederst.
+                  {' '}«Forslag» trekker én kulør og utleder resten. «Bygg rundt hovedfargen» beholder Hovedfarge nøyaktig som den er og utleder de andre fra den — bruk den når merkevaren har en gitt farge. Begge garanterer lesbar kontrast. «Lagre som profil» legger fargene i ditt eget bibliotek — partneren endres først når du trykker «Lagre endringer» nederst.
                 </p>
                 {['Aksent', 'Flater', 'Tekst', 'Kanter'].map((group) => (
                   <div key={group} className="mb-3">
