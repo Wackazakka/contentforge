@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl'
 import { COSTS_NOK, fmtNok, fmtCredits } from '@/lib/costs'
 import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
-import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
+import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
 import { uploadTrack } from '@/lib/uploadTrack'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
@@ -1113,7 +1113,7 @@ export default function DraftPage() {
                   </p>
                 )}
                 <div className="space-y-1">
-                  {ownTracks(musicLibrary, productId).map((m) => {
+                  {ownTracks(musicLibrary, productId).filter((m) => !isMedleyFile(m.filename)).map((m) => {
                     const idx = medleySelection.indexOf(m.filename)
                     return (
                       <button
@@ -1139,7 +1139,28 @@ export default function DraftPage() {
                         }`}>
                           {idx >= 0 ? idx + 1 : '+'}
                         </span>
-                        <span className="truncate">{m.name}</span>
+                        <span className="truncate flex-1">{m.name}</span>
+                        {/* Permanent sletting — samme operasjon som laatbanken paa artistsiden */}
+                        <span
+                          role="button"
+                          title="Slett låten permanent fra låtbanken"
+                          onClick={async (ev) => {
+                            ev.stopPropagation()
+                            if (!confirm(`Slette «${m.name}» permanent fra låtbanken?`)) return
+                            try {
+                              const res = await fetch(`/api/music/${encodeURIComponent(m.filename)}`, { method: 'DELETE' })
+                              if (!res.ok) { alert('Slettingen feilet — prøv igjen.'); return }
+                              setMedleySelection((prev) => prev.filter((f) => f !== m.filename))
+                              setMedleyStarts((prev) => { const n = { ...prev }; delete n[m.filename]; return n })
+                              if (draft?.music_file === m.filename) updateMusic(null)
+                              const data = await fetch('/api/music').then((r) => r.json())
+                              if (data.files) setMusicLibrary(data.files)
+                            } catch { alert('Slettingen feilet — prøv igjen.') }
+                          }}
+                          className="flex-none text-gray-300 hover:text-red-500 text-xs px-1"
+                        >
+                          ✕
+                        </span>
                       </button>
                     )
                   })}

@@ -256,7 +256,9 @@ app.post('/music/medley', express.json(), (req, res) => {
       chain += `${prev}[${i}:a]acrossfade=d=${XFADE}:c1=tri:c2=tri${out};`
       prev = out
     }
-    chain += `${prev}loudnorm=I=-16:TP=-1.5:LRA=11[out]`
+    // Fade ut paa slutten (Lars 30/7: «siste laata kan godt faa en liten fade»).
+    // areverse-trikset gir fade-out uten aa kjenne total varighet.
+    chain += `${prev}loudnorm=I=-16:TP=-1.5:LRA=11,areverse,afade=t=in:d=2.5,areverse[out]`
 
     const args = ['-y']
     for (const inp of inputs) {
