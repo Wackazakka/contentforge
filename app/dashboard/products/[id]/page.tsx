@@ -8,6 +8,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { useTenant } from '@/lib/tenantContext'
 import { verticalConfig } from '@/lib/verticals'
+import { uploadTrack } from '@/lib/uploadTrack'
 
 function renderMarkdown(text: string) {
   const clean = text.replace(/\n/g, ' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -121,6 +122,19 @@ export default function ProductPage() {
     } catch { /* valgfritt */ }
   }
   useEffect(() => { if (productId) refreshImageLibrary() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Låtbanken (tracks-<productId> på musikkserveren): artistens egne låter —
+  // brukes som bakgrunnsmusikk og medley i produksjonene. Permanent sletting
+  // skjer HER, ikke i editorenes velgere (Lars 30/7).
+  const [trackBank, setTrackBank] = useState<Array<{ filename: string; name: string; folder?: string }>>([])
+  const [trackUploading, setTrackUploading] = useState(false)
+  const [trackError, setTrackError] = useState<string | null>(null)
+  const refreshTrackBank = async () => {
+    try {
+      const d = await fetch('/api/music').then((r) => r.json())
+      if (d.files) setTrackBank(d.files.filter((f: { folder?: string }) => f.folder === `tracks-${productId}`))
+    } catch { /* valgfritt */ }
+  }
+  useEffect(() => { if (productId) refreshTrackBank() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
   const prevJobStatusesRef = useRef<Record<string, string>>({})
   const [assets, setAssets] = useState<AssetBank[]>([])
   const [assetsLoading, setAssetsLoading] = useState(false)
@@ -960,6 +974,76 @@ export default function ProductPage() {
             />
           </label>
           <span className="text-xs text-gray-400 ml-3">PNG, JPG eller WebP — maks 8 MB per bilde. Velg gjerne flere samtidig.</span>
+        </div>
+
+        {/* Låtbanken — egne låter til bakgrunnsmusikk og medley */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">
+            🎵 {tenant.vertical === 'music' ? 'Låtene dine' : 'Musikkbank'}
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            {tenant.vertical === 'music'
+              ? 'Egen musikk, eller musikk du har rett til å bruke — velges som bakgrunnsmusikk og medley i produksjonene. Sletting her er permanent.'
+              : 'Egen musikk til produksjonene. Sletting her er permanent.'}
+          </p>
+          {trackError && <p className="text-sm font-medium text-[var(--ember-deep)] mb-3">{trackError}</p>}
+          <div className="space-y-2 mb-4">
+            {trackBank.map((t) => (
+              <div key={t.filename} className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg">
+                <span className="text-sm font-medium text-gray-900 truncate flex-1">{t.name}</span>
+                <audio controls preload="none" src={`/api/music/${encodeURIComponent(t.filename)}`} className="h-8 w-56 flex-none" />
+                <button
+                  type="button"
+                  title="Slett låten permanent"
+                  onClick={async () => {
+                    if (!confirm(`Slette «${t.name}» permanent fra låtbanken? Produksjoner som alt bruker den, beholder lyden.`)) return
+                    try {
+                      const res = await fetch(`/api/music/${encodeURIComponent(t.filename)}`, { method: 'DELETE' })
+                      if (!res.ok) { setTrackError('Slettingen feilet — prøv igjen.'); return }
+                      setTrackError(null)
+                      await refreshTrackBank()
+                    } catch { setTrackError('Slettingen feilet — prøv igjen.') }
+                  }}
+                  className="flex-none text-gray-300 hover:text-red-500 text-sm px-1"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {trackBank.length === 0 && <p className="text-sm text-gray-400">Ingen låter ennå.</p>}
+          </div>
+          <label className="inline-block cursor-pointer">
+            <span className={`px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--ember-deep)] hover:opacity-90 inline-block ${trackUploading ? 'opacity-50' : ''}`}>
+              {trackUploading ? 'Laster opp…' : '+ Last opp låter'}
+            </span>
+            <input
+              type="file"
+              accept=".mp3,audio/mpeg"
+              multiple
+              className="hidden"
+              disabled={trackUploading}
+              onChange={async (e) => {
+                const files = Array.from(e.currentTarget.files || [])
+                e.currentTarget.value = ''
+                if (!files.length) return
+                setTrackError(null)
+                setTrackUploading(true)
+                try {
+                  for (const f of files) {
+                    try {
+                      await uploadTrack(f, `tracks-${productId}`)
+                    } catch (err) {
+                      setTrackError(`«${f.name}»: ${err instanceof Error ? err.message : 'feilet'}`)
+                    }
+                  }
+                  await refreshTrackBank()
+                } finally {
+                  setTrackUploading(false)
+                }
+              }}
+            />
+          </label>
+          <span className="text-xs text-gray-400 ml-3">MP3 — maks 50 MB per låt. Velg gjerne flere samtidig.</span>
         </div>
 
         {/* Active jobs */}
