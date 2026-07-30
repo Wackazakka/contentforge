@@ -501,7 +501,7 @@ function PublishPage() {
             ? 'bg-green-50 border-green-200 text-green-800'
             : message.startsWith('❌')
             ? 'bg-red-50 border-red-200 text-red-700'
-            : 'bg-[var(--ember-tint-bg)] border-[#E3A883]'
+            : 'bg-[var(--ember-tint-bg)] border-[var(--ember-tint-border)]'
         }`}>
           {message}
         </div>
@@ -567,7 +567,7 @@ function PublishPage() {
                       key={v.id}
                       onClick={() => setSelectedContent(v)}
                       className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
-                        isSelected ? 'border-[var(--ember-deep)] ring-2 ring-[var(--ember-tint-border)]' : 'border-gray-200 hover:border-[#E3A883]'
+                        isSelected ? 'border-[var(--ember-deep)] ring-2 ring-[var(--ember-tint-border)]' : 'border-gray-200 hover:border-[var(--ember-tint-border)]'
                       }`}
                     >
                       {videoUrl ? (
@@ -651,7 +651,7 @@ function PublishPage() {
                       ref={selectedContent?.id === a.id ? selectedArticleRef : undefined}
                       onClick={() => setSelectedContent(a)}
                       className={`flex gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedContent?.id === a.id ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'hover:border-[#E3A883]'
+                        selectedContent?.id === a.id ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'hover:border-[var(--ember-tint-border)]'
                       }`}
                     >
                       <div className="shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
@@ -863,7 +863,7 @@ function PublishPage() {
             return (
               <>
                 {contentType === 'video' && publishPlatform === 'facebook' && (
-                  <label className="flex items-start gap-3 mb-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-[#E3A883]">
+                  <label className="flex items-start gap-3 mb-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-[var(--ember-tint-border)]">
                     <input
                       type="checkbox"
                       checked={publishAsReel}

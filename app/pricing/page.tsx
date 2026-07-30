@@ -64,7 +64,7 @@ export default function PricingPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#F4EEE2' }}>
       {/* Header */}
       <div className="text-center py-16 px-4">
-        <h1 className="text-4xl font-bold mb-4" style={{ color: '#1C1A16' }}>
+        <h1 className="text-4xl font-bold mb-4" style={{ color: 'var(--ink)' }}>
           Simple, predictable pricing
         </h1>
         <p className="text-lg text-gray-600 max-w-xl mx-auto">
@@ -83,12 +83,12 @@ export default function PricingPage() {
                 key={plan}
                 className={`rounded-2xl p-8 flex flex-col ${
                   isPro
-                    ? 'bg-[#1C1A16] text-white shadow-xl scale-105'
+                    ? 'bg-[var(--ink)] text-[var(--paper)] shadow-xl scale-105'
                     : 'bg-white border border-gray-200'
                 }`}
               >
                 {isPro && (
-                  <div className="text-xs font-bold uppercase tracking-widest text-[#E3A883] mb-3">
+                  <div className="text-xs font-bold uppercase tracking-widest text-[var(--ember-tint-border)] mb-3">
                     Most popular
                   </div>
                 )}
@@ -116,8 +116,8 @@ export default function PricingPage() {
                   disabled={loading === plan}
                   className={`w-full py-3 rounded-xl font-semibold transition-colors disabled:opacity-60 ${
                     isPro
-                      ? 'bg-[#E3A883] hover:bg-[var(--ember-deep)] text-white'
-                      : 'bg-[#1C1A16] hover:bg-[var(--ember-deep)] text-white'
+                      ? 'bg-[var(--ember)] hover:bg-[var(--ember-deep)] text-[var(--on-ember)]'
+                      : 'bg-[var(--ink)] hover:bg-[var(--ember-deep)] text-[var(--on-ember)]'
                   }`}
                 >
                   {loading === plan ? 'Loading...' : session ? 'Get started' : 'Sign up'}

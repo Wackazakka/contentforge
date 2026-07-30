@@ -30,14 +30,14 @@ export function LegalShell({
         style={{
           position: 'sticky', top: 0, zIndex: 50,
           backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-          background: 'rgba(244,238,226,0.82)', borderBottom: '1px solid #E2D9C8',
+          background: 'color-mix(in srgb, var(--paper) 82%, transparent)', borderBottom: '1px solid #E2D9C8',
         }}
       >
         <div style={{ maxWidth: 1180, margin: '0 auto', padding: '15px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
           <Link href="/" style={{ textDecoration: 'none' }}>
             <CenterForgeLogo size={28} wordmarkSize={19} />
           </Link>
-          <Link href="/" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 500, color: '#6B6358', textDecoration: 'none' }}>
+          <Link href="/" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none' }}>
             ← Home
           </Link>
         </div>
@@ -50,7 +50,7 @@ export function LegalShell({
         </div>
 
         <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(38px,5vw,54px)', lineHeight: 1.03, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 10px' }}>{title}</h1>
-        <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: '0.06em', color: '#A89C88', marginBottom: 40 }}>{updated}</div>
+        <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: '0.06em', color: 'var(--text-faint)', marginBottom: 40 }}>{updated}</div>
 
         <div className="cf-legal">{children}</div>
       </main>

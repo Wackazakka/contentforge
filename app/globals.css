@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  /* Page defaults now follow the Daylight Studio palette. */
-  --background: #F4EEE2;
-  --foreground: #1C1A16;
+  /* Page defaults follow the Daylight tokens below — via var() så
+     tenant-farger (injisert som inline style på <html>) også styrer body. */
+  --background: var(--paper);
+  --foreground: var(--ink);
 }
 
 @theme inline {
@@ -27,8 +28,8 @@ body {
   display: inline-block;
   width: 1.5rem;
   height: 1.5rem;
-  border: 2px solid #e6ddcc;
-  border-top-color: #d9521c;
+  border: 2px solid var(--ds-border);
+  border-top-color: var(--ember);
   border-radius: 50%;
   animation: cf-spin 0.7s linear infinite;
 }
@@ -59,6 +60,13 @@ body {
   --ds-border: #E6DDCC;
   --ds-border-strong: #D8CDB8;
   --ds-border-faint: #EFE7D8;
+  /* Tekst som står OPPÅ ember-flater (knapper/CTA) — egen token fordi
+     --paper/--ink inverteres hos mørke tenanter og ville blitt uleselig. */
+  --on-ember: #FFF4E8;
+  /* r,g,b-trippel til rgba(var(--glow), …)-mønsteret på landingssiden.
+     Partner-API-et bevarer allerede --glow/--orb-* ved fargeoppdatering. */
+  --glow: 217, 82, 28;
+  --orb-lo: #B8431A;
 }
 
 @theme inline {
@@ -80,8 +88,8 @@ body {
 }
 
 ::selection {
-  background: rgba(217, 82, 28, 0.22);
-  color: #1c1a16;
+  background: color-mix(in srgb, var(--ember) 22%, transparent);
+  color: var(--ink);
 }
 
 /* Fixed full-page grain overlay (place once near the page root). */
@@ -121,42 +129,42 @@ body {
 
 /* Daylight Studio interactive states (transform-only / color transitions) */
 .cf-btn-ink { transition: background 0.15s ease, transform 0.15s ease; }
-.cf-btn-ink:hover { background: #34302a; transform: translateY(-1px); }
+.cf-btn-ink:hover { background: var(--ink-soft); transform: translateY(-1px); }
 .cf-btn-ghost { transition: background 0.15s ease, border-color 0.15s ease; }
-.cf-btn-ghost:hover { border-color: #b3a78f; background: rgba(28, 26, 22, 0.035); }
+.cf-btn-ghost:hover { border-color: color-mix(in srgb, var(--ink) 25%, var(--ds-border-strong)); background: color-mix(in srgb, var(--ink) 3.5%, transparent); }
 .cf-nav-link { transition: color 0.15s ease; }
-.cf-nav-link:hover { color: #1c1a16; }
+.cf-nav-link:hover { color: var(--ink); }
 .cf-card { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
-.cf-card:hover { border-color: #e3a883; box-shadow: 0 18px 36px -22px rgba(217, 82, 28, 0.35); }
+.cf-card:hover { border-color: color-mix(in srgb, var(--ember) 50%, var(--paper-raised)); box-shadow: 0 18px 36px -22px color-mix(in srgb, var(--ember) 35%, transparent); }
 .cf-price-cta { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
-.cf-price-cta:hover { background: linear-gradient(135deg, #e8632b, #c5451b); border-color: transparent; color: #fff4e8; }
+.cf-price-cta:hover { background: linear-gradient(135deg, var(--ember), var(--ember-deep)); border-color: transparent; color: var(--on-ember); }
 
 /* Daylight Studio form inputs */
 .cf-input {
   width: 100%;
   font-family: var(--font-hanken), sans-serif;
   font-size: 15px;
-  color: #1c1a16;
-  background: #fffdf8;
-  border: 1px solid #d8cdb8;
+  color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--ds-border-strong);
   border-radius: 11px;
   padding: 13px 14px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.cf-input::placeholder { color: #b3a78f; }
+.cf-input::placeholder { color: color-mix(in srgb, var(--text-faint) 75%, var(--paper-raised)); }
 .cf-input:focus {
-  border-color: #d9521c;
-  box-shadow: 0 0 0 3px rgba(217, 82, 28, 0.12);
+  border-color: var(--ember);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 12%, transparent);
   outline: none;
 }
 .cf-input:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* Daylight Studio reusable surfaces */
 .cf-panel {
-  background: #fffdf8;
-  border: 1px solid #e6ddcc;
+  background: var(--paper-raised);
+  border: 1px solid var(--ds-border);
   border-radius: 18px;
-  box-shadow: 0 1px 2px rgba(70, 45, 20, 0.04);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 4%, transparent);
 }
 .cf-eyebrow {
   font-family: var(--font-cfmono), monospace;
@@ -164,7 +172,7 @@ body {
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #a89c88;
+  color: var(--text-faint);
 }
 .cf-h1 {
   font-family: var(--font-serif), serif;
@@ -172,13 +180,13 @@ body {
   font-size: clamp(32px, 4vw, 42px);
   line-height: 1;
   letter-spacing: -0.01em;
-  color: #1c1a16;
+  color: var(--ink);
   margin: 0;
 }
-.cf-ink-btn { background: #1c1a16; color: #f4eee2; transition: background 0.15s ease; }
-.cf-ink-btn:hover { background: #34302a; }
-.cf-soft-btn { background: #f7f1e6; color: #5e564a; border: 1px solid #e6ddcc; transition: background 0.15s ease; }
-.cf-soft-btn:hover { background: #efe7d8; }
+.cf-ink-btn { background: var(--ink); color: var(--paper); transition: background 0.15s ease; }
+.cf-ink-btn:hover { background: var(--ink-soft); }
+.cf-soft-btn { background: var(--paper-sunken); color: var(--text-muted); border: 1px solid var(--ds-border); transition: background 0.15s ease; }
+.cf-soft-btn:hover { background: var(--ds-border-faint); }
 
 /* Daylight Studio legal pages (scoped prose) */
 .cf-legal section { margin-bottom: 30px; }
@@ -187,39 +195,39 @@ body {
   font-weight: 700;
   font-size: 19px;
   letter-spacing: -0.01em;
-  color: #1c1a16;
+  color: var(--ink);
   margin: 0 0 9px;
 }
 .cf-legal p {
   font-family: var(--font-hanken), sans-serif;
   font-size: 15.5px;
   line-height: 1.65;
-  color: #5e564a;
+  color: var(--text-muted);
   margin: 0 0 12px;
 }
 .cf-legal ul {
   font-family: var(--font-hanken), sans-serif;
   font-size: 15.5px;
   line-height: 1.65;
-  color: #5e564a;
+  color: var(--text-muted);
   margin: 0 0 12px;
   padding-left: 20px;
 }
 .cf-legal li { margin-bottom: 6px; }
-.cf-legal strong { color: #3a352c; font-weight: 600; }
-.cf-legal a { color: #c5451b; text-decoration: none; }
+.cf-legal strong { color: var(--ink-soft); font-weight: 600; }
+.cf-legal a { color: var(--ember-deep); text-decoration: none; }
 .cf-legal a:hover { text-decoration: underline; }
 .cf-legal .cf-legal-callout {
-  background: #f7f1e6;
-  border: 1px solid #e6ddcc;
+  background: var(--paper-sunken);
+  border: 1px solid var(--ds-border);
   border-radius: 14px;
   padding: 20px 22px;
   margin-bottom: 30px;
 }
 .cf-legal .cf-legal-callout p:last-child { margin-bottom: 0; }
 .cf-legal .cf-legal-contact {
-  background: #f7f1e6;
-  border: 1px solid #e6ddcc;
+  background: var(--paper-sunken);
+  border: 1px solid var(--ds-border);
   border-radius: 12px;
   padding: 16px 18px;
 }
@@ -229,8 +237,8 @@ body {
 .cf-seg {
   display: inline-flex;
   align-items: center;
-  background: #f0e8d9;
-  border: 1px solid #e0d7c6;
+  background: var(--ds-border-faint);
+  border: 1px solid var(--ds-border);
   border-radius: 999px;
   padding: 4px;
   margin-bottom: 28px;
@@ -239,7 +247,7 @@ body {
   font-family: var(--font-hanken), sans-serif;
   font-size: 14px;
   font-weight: 500;
-  color: #6b6358;
+  color: var(--text-muted);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -247,12 +255,12 @@ body {
   text-decoration: none;
   transition: color 0.15s ease;
 }
-.cf-seg a:hover { color: #1c1a16; }
+.cf-seg a:hover { color: var(--ink); }
 .cf-seg a[aria-current="page"] {
   font-weight: 600;
-  color: #c5451b;
-  background: #f8e7db;
-  border-color: #ebc9b2;
+  color: var(--ember-deep);
+  background: var(--ember-tint-bg);
+  border-color: var(--ember-tint-border);
 }
 
 /* Hero-illustrasjonens bølgeform — subtil puls, av ved redusert bevegelse */

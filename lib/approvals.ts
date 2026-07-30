@@ -86,8 +86,13 @@ async function sendApprovalEmail(actorId: string, token: string, kind: string, e
   const supabase = admin()
   const { data: actor } = await supabase.from('voice_actors').select('name, actor_email, owner_tenant_id').eq('id', actorId).single()
   if (!actor?.actor_email) return
-  const { data: tenant } = await supabase.from('tenants').select('app_name').eq('id', actor.owner_tenant_id).single()
+  const { data: tenant } = await supabase.from('tenants').select('app_name, colors').eq('id', actor.owner_tenant_id).single()
   const brand = tenant?.app_name || 'CenterForge'
+  // E-post kan ikke bruke CSS-variabler — slå opp tenantens aksentfarge ved
+  // sendetidspunkt. colors-verdier kan også være «r,g,b»-tripler; kun
+  // hex-verdier er gyldige som knappefarge her.
+  const tenantAccent = (tenant?.colors as Record<string, string> | null)?.['--ember-deep']
+  const ctaColor = tenantAccent?.startsWith('#') ? tenantAccent : '#C5451B'
   const link = `${BASE_URL}/godkjenn/${token}`
   const frist = new Date(expiresAt).toLocaleString('nb-NO')
   const hva = kind === 'speech' ? 'et lydklipp med stemmen din' : kind === 'face' ? 'et bilde med ansiktet ditt' : 'innhold med stemmen din'
@@ -102,7 +107,7 @@ async function sendApprovalEmail(actorId: string, token: string, kind: string, e
       html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1C1A16">
         <h2 style="margin:0 0 12px">Hei ${actor.name.split(' ')[0]},</h2>
         <p>En kunde hos ${brand} ønsker å publisere ${hva}. Hør/se gjennom det og godkjenn eller avvis:</p>
-        <p style="margin:24px 0"><a href="${link}" style="background:#C5451B;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Se og vurder</a></p>
+        <p style="margin:24px 0"><a href="${link}" style="background:${ctaColor};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Se og vurder</a></p>
         <p style="color:#6B6358;font-size:14px">Hvis du ikke svarer innen <strong>${frist}</strong>, blir bruken automatisk godkjent slik at kunden rekker sin frist.</p>
       </div>`,
     })

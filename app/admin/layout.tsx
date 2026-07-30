@@ -20,17 +20,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading || !session || !ADMIN_EMAILS.includes(session.user.email ?? '')) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F4EEE2' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--paper)' }}>
         <div className="text-gray-500">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F4EEE2' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--paper)' }}>
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/admin" className="text-lg font-bold" style={{ color: '#1C1A16' }}>
+          <Link href="/admin" className="text-lg font-bold" style={{ color: 'var(--ink)' }}>
             CenterForge <span className="text-xs font-semibold uppercase tracking-widest text-gray-400 ml-1">Admin</span>
           </Link>
           <nav className="flex items-center gap-4 text-sm">
