@@ -6,6 +6,7 @@ const path = require('path')
 const https = require('https')
 const crypto = require('crypto')
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { imageToVideoClip, lipsyncClip } = require('./i2v')
 
 const SCRIPT_PATH = '/root/.openclaw/workspace/reforhandle-content/make_tiktok_reforhandle.py'
 const OUTPUT_DIR = '/root/.openclaw/workspace/contentforge-output'
@@ -35,6 +36,10 @@ async function waitForFile(filePath, maxAttempts = 30) {
 
 // In-memory registry of active jobs (survives for lifetime of this process)
 const activeJobs = new Map()
+
+const { exec } = require('child_process')
+const { promisify } = require('util')
+const execAsync = promisify(exec)
 
 const router = express.Router()
 router.use(express.json())
@@ -114,17 +119,14 @@ function downloadFile(url, destPath) {
 
 // Call ElevenLabs text-to-speech, save mp3 to outputPath — retries up to 3x
 async function generateVoiceover(text, voiceId, outputPath, apiKey) {
-  const bodyBuffer = Buffer.from(
-    JSON.stringify({
-      text,
-      model_id: 'eleven_turbo_v2_5',
-      language_code: 'no',
-      voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.75,
-      },
-    })
-  )
+  const bodyBuffer = Buffer.from(JSON.stringify({
+    text,
+    model_id: 'eleven_turbo_v2_5', language_code: 'no', apply_text_normalization: 'off',
+    voice_settings: {
+      stability: 0.5,
+      similarity_boost: 0.75,
+    },
+  }))
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -314,6 +316,8 @@ router.post('/', async (req, res) => {
     imageStyle,
     logoUrl,
     outroCard,
+    aiMotion,
+    aiMotionEngine,
   } = req.body || {}
 
   if (!campaignId || !service) {
@@ -378,6 +382,7 @@ router.post('/', async (req, res) => {
           .map(({ s }) => s)
 
         console.log(`[job-queue] Storytelling mode: Processing ${orderedSegments.length} segments for job ${jobId}...`)
+        const segImageUrls = []
         for (let i = 0; i < orderedSegments.length; i++) {
           const segment = orderedSegments[i]
           console.log(`[job-queue] Segment ${i + 1}: text="${(segment.text || '').slice(0, 50)}..." | vo="${(segment.voiceover || segment.text || '').slice(0, 50)}..."`)
@@ -392,7 +397,23 @@ router.post('/', async (req, res) => {
               const voRes = await fetch(segment.voiceoverUrl)
               if (!voRes.ok) throw new Error(`HTTP ${voRes.status}`)
               const voBuf = Buffer.from(await voRes.arrayBuffer())
-              fs.writeFileSync(voPath, voBuf)
+              // Egen-innspilte opptak (MediaRecorder) er webm/mp4, ikke mp3 —
+              // transkod alt som ikke ER mp3, saa resten av pipelinen alltid
+              // faar formatet den forventer (2026-07-30, «Les inn selv»).
+              const looksMp3 = voBuf.slice(0, 3).toString() === 'ID3' || (voBuf[0] === 0xff && (voBuf[1] & 0xe0) === 0xe0)
+              if (looksMp3) {
+                fs.writeFileSync(voPath, voBuf)
+              } else {
+                const rawPath = `${jobDir}/vo_${i + 1}_raw`
+                fs.writeFileSync(rawPath, voBuf)
+                await new Promise((resolve, reject) => {
+                  const p = spawn('ffmpeg', ['-y', '-i', rawPath, '-vn', '-c:a', 'libmp3lame', '-b:a', '160k', voPath])
+                  p.on('close', (code) => (code === 0 ? resolve(null) : reject(new Error(`ffmpeg transcode exit ${code}`))))
+                  p.on('error', reject)
+                })
+                fs.unlink(rawPath, () => {})
+                console.log(`[job-queue] Segment ${i + 1}: Transcoded own recording -> mp3`)
+              }
               console.log(`[job-queue] Segment ${i + 1}: Approved voiceover saved (${voBuf.byteLength} bytes)`)
             } catch (voErr) {
               console.error(`[job-queue] Segment ${i + 1}: approved voiceover download failed, regenerating:`, voErr.message)
@@ -414,11 +435,13 @@ router.post('/', async (req, res) => {
               fs.writeFileSync(localImagePath, Buffer.from(imgBuf))
               console.log(`[job-queue] Segment ${i + 1}: Pre-generated image saved (${Buffer.from(imgBuf).byteLength} bytes)`)
               imageUrls.push(segment.imageUrl)
+              segImageUrls[i] = segment.imageUrl
             } catch (dlErr) {
               console.warn(`[job-queue] Segment ${i + 1}: Download failed (${dlErr.message}), generating new image...`)
               const visualPrompt = `Cinematic photorealistic scene that visually illustrates: "${segment.text.substring(0, 200)}". No text, words, letters, or typography anywhere in the image. Professional photography, dramatic lighting.`
               const imageResult = await generateImage(visualPrompt, localImagePath, openaiKey, video_format, { campaignId, jobId, imageName: `image_${i + 1}.png` })
               if (imageResult.r2Url) imageUrls.push(imageResult.r2Url)
+              segImageUrls[i] = imageResult.r2Url || null
             }
           } else {
             // No pre-generated image — generate a visual scene (not raw text as prompt)
@@ -427,7 +450,45 @@ router.post('/', async (req, res) => {
             console.log(`[job-queue] Segment ${i + 1}: Generating image with visual prompt...`)
             const imageResult = await generateImage(visualPrompt, localImagePath, openaiKey, video_format, { campaignId, jobId, imageName: `image_${i + 1}.png` })
             if (imageResult.r2Url) imageUrls.push(imageResult.r2Url)
+            segImageUrls[i] = imageResult.r2Url || null
           }
+        }
+
+        // AI-bevegelse: gjor hvert stillbilde om til et kort videoklipp (i2v via fal).
+        // Parallelt for fart; faller tilbake til stillbildet per segment hvis et klipp feiler.
+        let segClips = []
+        if (aiMotion) {
+          const engine = aiMotionEngine || 'pixverse'
+          const _toAnimate = orderedSegments.filter((s) => (s.motion && s.motion !== 'none') || s.animate === true).length
+          console.log(`[job-queue] AI-bevegelse PA (${engine}) - animerer ${_toAnimate} av ${orderedSegments.length} segmenter (per-segment valg)`)
+          const motionPrompt = 'subtle cinematic camera push-in and gentle ambient motion only. The people stay still and do NOT talk - mouths closed, no lip movement, no speaking or singing. Photorealistic, no text or letters.'
+          const _r = await Promise.allSettled(orderedSegments.map(async (seg, i) => {
+            const motion = seg.motion || (seg.animate === true ? 'move' : 'none')
+            if (motion === 'none') return null
+            const url = segImageUrls[i]
+            if (!url) throw new Error('mangler bilde-URL')
+            if (motion === 'talk') {
+              // Lip-sync: bruk godkjent voiceover-URL; ellers last opp den genererte vo-fila
+              let audioUrl = seg.voiceoverUrl || null
+              if (!audioUrl) {
+                const voBuf = fs.readFileSync(`${jobDir}/vo_${i + 1}.mp3`)
+                audioUrl = await uploadBufferToR2(voBuf, `videos/${jobId}/vo_${i + 1}.mp3`, 'audio/mpeg')
+              }
+              return lipsyncClip({ imageUrl: url, audioUrl, outPath: `${jobDir}/clip_${i + 1}.mp4`, log: (m) => console.log(m) })
+            }
+            // Mal voiceover-lengden -> velg 5s eller 8s (dekker segmentet uten stretch opp til 8s)
+            let durationSec = 5
+            try {
+              const { stdout } = await execAsync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${jobDir}/vo_${i + 1}.mp3"`)
+              if ((parseFloat(stdout.trim()) + 0.4) > 5) durationSec = 8
+            } catch (e) { /* fallback 5s */ }
+            return imageToVideoClip({ imageUrl: url, prompt: motionPrompt, engine, durationSec, resolution: '720p', outPath: `${jobDir}/clip_${i + 1}.mp4`, log: (m) => console.log(m) })
+          }))
+          segClips = _r.map((r, i) => {
+            if (r.status === 'fulfilled' && r.value) { console.log(`[job-queue] i2v-klipp ${i + 1} OK`); return `${jobDir}/clip_${i + 1}.mp4` }
+            if (r.status === 'rejected') console.warn(`[job-queue] i2v-klipp ${i + 1} FEILET (${r.reason && r.reason.message}) - bruker stillbilde`)
+            return null
+          })
         }
 
         // Write segments to config for Python renderer (storytelling format)
@@ -442,6 +503,7 @@ router.post('/', async (req, res) => {
             const subText = seg.text || ''
             return {
               bg: `${jobDir}/image_${i + 1}.png`,
+              clip: segClips[i] || undefined,
               vo_path: `${jobDir}/vo_${i + 1}.mp3`,
               lines: [],
               sub: subText.length > 80 ? subText.substring(0, 77) + '...' : subText,
@@ -455,7 +517,7 @@ router.post('/', async (req, res) => {
           jobId,
           campaignId,
           service,
-          outroCard: outroCard || null,
+          outroCard: outroCard ? { ...outroCard, jinglePath: outroCard.jingleFile ? path.join(MUSIC_DIR, outroCard.jingleFile) : null } : null,
         }
         configPath = `${jobDir}/config.json`
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
@@ -666,8 +728,8 @@ function runScheduledPublisher() {
   })
     .then((res) => res.json())
     .then((data) => {
-      if (data.published > 0) {
-        console.log(`[scheduler] Published ${data.published} scheduled publication(s)`)
+      if (data.processed > 0) {
+        console.log(`[scheduler] Processed ${data.processed} scheduled publication(s)`)
       }
     })
     .catch((err) => console.error('[scheduler] Cron error:', err.message))
@@ -677,5 +739,439 @@ function runScheduledPublisher() {
 setInterval(runScheduledPublisher, 60 * 1000)
 console.log('[scheduler] Scheduled publisher started (every 60s)')
 
+
+// ─── Radio Ad Jobs ────────────────────────────────────────────────────────────
+// Pipeline: ElevenLabs TTS → optional ffmpeg music mix → R2 (MP3)
+
+const radioJobs = new Map()
+
+async function processRadioJob(jobId, script, voiceId, productId, campaignId, musicFile, jingleFile, audioSegmentUrls = null, emotion = 'nøytral') {
+  const apiKeys = loadApiKeys()
+  const elevenKey = apiKeys.ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY
+
+  radioJobs.set(jobId, { status: 'generating', startTime: Date.now() })
+
+  try {
+    // Step 1: Audio — use pre-generated segments if provided, else ElevenLabs TTS
+    const voicePath = `/tmp/radio_voice_${jobId}.mp3`
+    if (audioSegmentUrls && audioSegmentUrls.length > 0) {
+      console.log(`[radio] Using ${audioSegmentUrls.length} pre-generated audio segments`)
+      const segPaths = []
+      for (let i = 0; i < audioSegmentUrls.length; i++) {
+        const segPath = `/tmp/radio_seg_${jobId}_${i}.mp3`
+        await downloadFile(audioSegmentUrls[i], segPath)
+        segPaths.push(segPath)
+      }
+      const concatList = `/tmp/radio_concat_${jobId}.txt`
+      fs.writeFileSync(concatList, segPaths.map(p => `file '${p}'`).join('\n'))
+      await execAsync(`ffmpeg -y -f concat -safe 0 -i "${concatList}" -c:a libmp3lame -q:a 2 "${voicePath}"`, { timeout: 120_000 })
+      for (const p of segPaths) { try { fs.unlinkSync(p) } catch (_) {} }
+      console.log(`[radio] Pre-generated audio assembled → ${voicePath}`)
+    } else {
+      await generateAvatarVoiceover(script, voiceId, voicePath, elevenKey, emotion)
+    }
+
+    // Step 2: Mix music if provided
+    let finalAudioPath = voicePath
+    if (musicFile) {
+      const musicPath = path.join(MUSIC_DIR, musicFile)
+      if (fs.existsSync(musicPath)) {
+        const mixedPath = `/tmp/radio_mixed_${jobId}.mp3`
+        try {
+          const ffmpegCmd = `ffmpeg -i "${voicePath}" -stream_loop -1 -i "${musicPath}" ` +
+            `-filter_complex "[1:a]volume=0.15[music];[0:a][music]amix=inputs=2:duration=first:dropout_transition=3[aout]" ` +
+            `-map "[aout]" -c:a libmp3lame -q:a 2 "${mixedPath}" -y`
+          await execAsync(ffmpegCmd, { timeout: 120_000 })
+          finalAudioPath = mixedPath
+          console.log(`[radio] Music mixed → ${mixedPath}`)
+        } catch (ffErr) {
+          console.warn(`[radio] ffmpeg mix failed (using voice only):`, ffErr.message)
+        }
+      } else {
+        console.warn(`[radio] Music file not found: ${musicPath}`)
+      }
+    }
+
+    // Step 3: Append jingle at end if provided
+    if (jingleFile) {
+      const jinglePath = path.join(MUSIC_DIR, jingleFile)
+      if (fs.existsSync(jinglePath)) {
+        const jingledPath = `/tmp/radio_jingled_${jobId}.mp3`
+        try {
+          const ffmpegCmd = `ffmpeg -i "${finalAudioPath}" -i "${jinglePath}" ` +
+            `-filter_complex "[0:a]loudnorm=I=-16:TP=-1.5:LRA=11[voice];[1:a]loudnorm=I=-16:TP=-1.5:LRA=11[jingle];[voice][jingle]concat=n=2:v=0:a=1[aout]" ` +
+            `-map "[aout]" -c:a libmp3lame -q:a 2 "${jingledPath}" -y`
+          await execAsync(ffmpegCmd, { timeout: 120_000 })
+          finalAudioPath = jingledPath
+          console.log(`[radio] Jingle appended → ${jingledPath}`)
+        } catch (ffErr) {
+          console.warn(`[radio] ffmpeg jingle concat failed:`, ffErr.message)
+        }
+      } else {
+        console.warn(`[radio] Jingle file not found: ${jinglePath}`)
+      }
+    }
+
+    // Step 4: Upload to R2
+    const audioBuffer = fs.readFileSync(finalAudioPath)
+    const r2Key = `radio/${jobId}/output.mp3`
+    const audioUrl = await uploadBufferToR2(audioBuffer, r2Key, 'audio/mpeg')
+    for (const p of [voicePath, `/tmp/radio_mixed_${jobId}.mp3`, `/tmp/radio_jingled_${jobId}.mp3`]) {
+      try { fs.unlinkSync(p) } catch (_) {}
+    }
+    console.log(`[radio] Audio uploaded → ${audioUrl}`)
+
+    // Step 4: Webhook
+    radioJobs.set(jobId, { status: 'done', audioUrl, startTime: Date.now() })
+    const webhookRes = await fetch('https://contentforge-610.netlify.app/api/productions/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, videoUrl: audioUrl, imageUrls: [], service: 'radio', campaignId, productId }),
+    })
+    if (!webhookRes.ok) {
+      console.error(`[radio] Webhook failed: ${webhookRes.status}`)
+    } else {
+      console.log(`[radio] Webhook OK for job ${jobId}`)
+    }
+  } catch (err) {
+    console.error(`[radio] Job ${jobId} failed:`, err.message)
+    radioJobs.set(jobId, { status: 'failed', error: err.message })
+    try {
+      await fetch('https://contentforge-610.netlify.app/api/productions/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, videoUrl: null, imageUrls: [], service: 'radio', campaignId, productId, error: err.message }),
+      })
+    } catch (_) {}
+  }
+}
+
+router.post('/radio-jobs', (req, res) => {
+  const { jobId, script, voiceId, productId, campaignId, musicFile, jingleFile, audioSegmentUrls, emotion } = req.body
+  if (!jobId || !script) {
+    return res.status(400).json({ error: 'jobId and script are required' })
+  }
+  const voice = voiceId || 'nPczCjzI2devNBz1zQrb'
+  console.log(`[radio] Job received: ${jobId}, voice=${voice}, segments=${audioSegmentUrls ? audioSegmentUrls.length : 0}`)
+  radioJobs.set(jobId, { status: 'queued', startTime: Date.now() })
+  res.json({ jobId, status: 'queued' })
+  processRadioJob(jobId, script, voice, productId, campaignId, musicFile, jingleFile, audioSegmentUrls || null, emotion || 'nøytral').catch(err => {
+    console.error(`[radio] Unhandled error for ${jobId}:`, err.message)
+  })
+})
+
+router.get('/radio-jobs/:jobId', (req, res) => {
+  const { jobId } = req.params
+  const job = radioJobs.get(jobId)
+  if (!job) return res.json({ jobId, status: 'not_found' })
+  if (job.status === 'done') return res.json({ jobId, status: 'done', audioUrl: job.audioUrl })
+  return res.json({ jobId, status: job.status, error: job.error || undefined })
+})
+
 module.exports = router
+
+// ─── Avatar Video Jobs ────────────────────────────────────────────────────────
+// Pipeline: ElevenLabs TTS → fal.ai VEED Fabric 1.0 → R2
+// Fallback: if fal.ai fails, use audio URL as final output
+
+const avatarJobs = new Map()
+
+const EMOTION_PRESETS = {
+  'nøytral':      { stability: 0.50, style: 0.00, similarity_boost: 0.75 },
+  'entusiastisk': { stability: 0.30, style: 0.75, similarity_boost: 0.75 },
+  'glad':         { stability: 0.40, style: 0.50, similarity_boost: 0.75 },
+  'trist':        { stability: 0.70, style: 0.20, similarity_boost: 0.75 },
+  'nølende':      { stability: 0.20, style: 0.35, similarity_boost: 0.70 },
+  'rolig':        { stability: 0.80, style: 0.00, similarity_boost: 0.75 },
+  'dramatisk':    { stability: 0.25, style: 0.85, similarity_boost: 0.75 },
+}
+
+async function generateAvatarVoiceover(script, voiceId, outputPath, apiKey, emotion = 'nøytral') {
+  const voiceSettings = EMOTION_PRESETS[emotion] || EMOTION_PRESETS['nøytral']
+  const bodyBuffer = Buffer.from(JSON.stringify({ text: script, model_id: 'eleven_turbo_v2_5', language_code: 'no', apply_text_normalization: 'off', voice_settings: voiceSettings }))
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const { statusCode, body } = await httpsPost(
+        'api.elevenlabs.io',
+        `/v1/text-to-speech/${voiceId}`,
+        {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+          Accept: 'audio/mpeg',
+        },
+        bodyBuffer
+      )
+      if (statusCode !== 200) {
+        throw new Error(`ElevenLabs ${statusCode}: ${body.toString('utf8').slice(0, 200)}`)
+      }
+      fs.writeFileSync(outputPath, body)
+      console.log(`[avatar] Voiceover saved → ${outputPath}`)
+      return outputPath
+    } catch (err) {
+      console.error(`[avatar] ElevenLabs attempt ${attempt}/3 failed:`, err.message)
+      if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000))
+      else throw err
+    }
+  }
+}
+
+async function uploadBufferToR2(buffer, r2Key, contentType) {
+  const r2 = new S3Client({
+    region: 'auto',
+    endpoint: process.env.R2_ENDPOINT,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    },
+  })
+  await r2.send(new PutObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME || 'contentforge-assets',
+    Key: r2Key,
+    Body: buffer,
+    ContentType: contentType,
+  }))
+  return `${process.env.R2_PUBLIC_URL}/${r2Key}`
+}
+
+async function processAvatarJob(jobId, script, avatarImageUrl, voiceId, productId, campaignId, musicFile, outroCard, audioSegmentUrls = null, emotion = 'nøytral') {
+  const apiKeys = loadApiKeys()
+  const elevenKey = apiKeys.ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY
+  const falKey = process.env.FAL_API_KEY
+
+  avatarJobs.set(jobId, { status: 'generating', startTime: Date.now() })
+
+  try {
+    // Step 1: ElevenLabs TTS → mp3 (or assemble pre-generated segments)
+    const audioPath = `/tmp/avatar_audio_${jobId}.mp3`
+    if (audioSegmentUrls && audioSegmentUrls.length > 0) {
+      console.log(`[avatar] Using ${audioSegmentUrls.length} pre-generated audio segments`)
+      const segPaths = []
+      for (let i = 0; i < audioSegmentUrls.length; i++) {
+        const segPath = `/tmp/avatar_seg_${jobId}_${i}.mp3`
+        await downloadFile(audioSegmentUrls[i], segPath)
+        segPaths.push(segPath)
+      }
+      if (segPaths.length === 1) {
+        fs.copyFileSync(segPaths[0], audioPath)
+      } else {
+        const concatList = `/tmp/avatar_concat_${jobId}.txt`
+        fs.writeFileSync(concatList, segPaths.map(p => `file '${p}'`).join('\n'))
+        await execAsync(`ffmpeg -f concat -safe 0 -i "${concatList}" -c copy "${audioPath}" -y`, { timeout: 60_000 })
+      }
+      console.log(`[avatar] Pre-generated audio assembled → ${audioPath}`)
+    } else {
+      await generateAvatarVoiceover(script, voiceId, audioPath, elevenKey, emotion)
+    }
+
+    // Step 2: Upload audio to R2
+    const audioBuffer = fs.readFileSync(audioPath)
+    const audioR2Key = `avatars/${jobId}/audio.mp3`
+    const audioUrl = await uploadBufferToR2(audioBuffer, audioR2Key, 'audio/mpeg')
+    fs.unlinkSync(audioPath)
+    console.log(`[avatar] Audio uploaded → ${audioUrl}`)
+
+    // Step 3: fal.ai VEED Fabric 1.0 — submit job
+    let videoUrl = audioUrl // fallback: return audio if fal.ai fails
+    if (falKey) {
+      try {
+        const submitRes = await fetch('https://queue.fal.run/veed/fabric-1.0', {
+          method: 'POST',
+          headers: {
+            Authorization: `Key ${falKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ image_url: avatarImageUrl, audio_url: audioUrl, resolution: "720p" }),
+        })
+        if (!submitRes.ok) {
+          const errText = await submitRes.text()
+          throw new Error(`fal.ai submit ${submitRes.status}: ${errText.slice(0, 200)}`)
+        }
+        const { request_id } = await submitRes.json()
+        console.log(`[avatar] fal.ai job submitted, request_id=${request_id}`)
+
+        avatarJobs.set(jobId, { status: 'rendering', startTime: Date.now() })
+
+        // Step 4: Poll status endpoint (max 60 × 5s = 5 min).
+        // fal.ai: use /status suffix to poll, then fetch result from response_url when COMPLETED.
+        let falVideoUrl = null
+        let responseUrl = null
+        for (let i = 0; i < 120; i++) {
+          await new Promise(r => setTimeout(r, 10000))
+          const pollRes = await fetch(`https://queue.fal.run/veed/fabric-1.0/requests/${request_id}/status`, {
+            headers: { Authorization: `Key ${falKey}` },
+          })
+          const poll = await pollRes.json()
+          console.log(`[avatar] fal.ai poll ${i + 1}/120: status=${poll.status}`)
+          if (poll.status === 'COMPLETED') {
+            responseUrl = poll.response_url || `https://queue.fal.run/veed/fabric-1.0/requests/${request_id}`
+            break
+          }
+          if (poll.status === 'FAILED') {
+            console.warn(`[avatar] fal.ai FAILED for request_id=${request_id}`)
+            break
+          }
+        }
+        if (responseUrl) {
+          const resultRes = await fetch(responseUrl, { headers: { Authorization: `Key ${falKey}` } })
+          const result = await resultRes.json()
+          falVideoUrl = result.video?.url || result.output?.video?.url || result.output?.url || null
+          console.log(`[avatar] fal.ai result video URL: ${falVideoUrl}`)
+        }
+
+        if (falVideoUrl) {
+          // Step 5: Download fal.ai video
+          console.log(`[avatar] Downloading fal.ai video from ${falVideoUrl}`)
+          const videoPath = `/tmp/avatar_video_${jobId}.mp4`
+          await downloadFile(falVideoUrl, videoPath)
+          // Fabric leverer stille tale (~-33 dB) -> normaliser til standard talenivaa
+          // saa musikk/jingle-balansen stemmer og videoen ikke er lav totalt.
+          try {
+            const normPath = videoPath.replace(/\.mp4$/, "_norm.mp4")
+            await execAsync(`ffmpeg -y -i "${videoPath}" -c:v copy -af "loudnorm=I=-16:TP=-1.5:LRA=11" -c:a aac -ar 44100 "${normPath}"`, { timeout: 120_000 })
+            fs.renameSync(normPath, videoPath)
+            console.log("[avatar] Voice loudness normalized (-16 LUFS)")
+          } catch (nErr) {
+            console.warn("[avatar] loudnorm hoppet over:", nErr.message)
+          }
+
+          // Detect native fal.ai video dimensions so we can preserve them end-to-end
+          let falW = 960, falH = 960
+          try {
+            const { stdout: probeOut } = await execAsync(`ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 "${videoPath}"`)
+            const parts = probeOut.trim().split(',').map(Number)
+            if (parts.length === 2 && parts[0] > 0 && parts[1] > 0) { falW = parts[0]; falH = parts[1] }
+            console.log(`[avatar] fal.ai video dimensions: ${falW}x${falH}`)
+          } catch (e) { console.warn('[avatar] ffprobe failed:', e.message) }
+
+          // Step 5a: Burn URL banner overlay if configured
+          let finalVideoPath = videoPath
+          if (outroCard && outroCard.url && outroCard.urlBanner) {
+            const overlayPath = `/tmp/avatar_overlay_${jobId}.mp4`
+            try {
+              const displayUrl = outroCard.url.replace(/^https?:\/\//, '').replace(/\/$/, '')
+              const fontFile = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+              const ffmpegOverlay = `ffmpeg -i "${videoPath}" -vf "drawtext=fontfile='${fontFile}':text='${displayUrl.replace(/'/g, "\\'")}':fontsize=42:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h-100" -c:a copy "${overlayPath}" -y`
+              await execAsync(ffmpegOverlay, { timeout: 120_000 })
+              finalVideoPath = overlayPath
+              console.log(`[avatar] URL overlay added → ${overlayPath}`)
+            } catch (overlayErr) {
+              console.warn(`[avatar] URL overlay failed (skipping):`, overlayErr.message)
+            }
+          }
+
+          // Step 5b: Mix background music if provided
+          if (musicFile) {
+            const musicPath = path.join(MUSIC_DIR, musicFile)
+            if (fs.existsSync(musicPath)) {
+              const mixedPath = `/tmp/avatar_mixed_${jobId}.mp4`
+              try {
+                const ffmpegCmd = `ffmpeg -i "${videoPath}" -stream_loop -1 -i "${musicPath}" ` +
+                  `-filter_complex "[1:a]volume=0.12[music];[0:a][music]amix=inputs=2:duration=first:dropout_transition=3[aout]" ` +
+                  `-map 0:v -map "[aout]" -c:v copy -c:a aac -shortest "${mixedPath}" -y`
+                await execAsync(ffmpegCmd, { timeout: 120_000 })
+                finalVideoPath = mixedPath
+                console.log(`[avatar] Music mixed → ${mixedPath}`)
+              } catch (ffErr) {
+                console.warn(`[avatar] ffmpeg music mix failed (using unmixed video):`, ffErr.message)
+              }
+            } else {
+              console.warn(`[avatar] Music file not found: ${musicPath}`)
+            }
+          }
+
+          // Step 5c: Append outro card if configured (skip if durationSeconds=0, e.g. only urlBanner was set)
+          if (outroCard && (outroCard.durationSeconds || 0) > 0) {
+            const outroInputPath = finalVideoPath
+            const outroOutputPath = `/tmp/avatar_outro_${jobId}.mp4`
+            try {
+              let jinglePath = null
+              if (outroCard.jingleFile) {
+                const candidate = path.join(MUSIC_DIR, outroCard.jingleFile)
+                if (fs.existsSync(candidate)) jinglePath = candidate
+                else console.warn(`[avatar] Jingle file not found: ${candidate}`)
+              }
+              const outroConfig = JSON.stringify({ ...outroCard, width: falW, height: falH, ...(jinglePath ? { jinglePath } : {}) })
+              console.log(`[avatar] outroCard config: ${outroConfig}`)
+              const { stdout: outroStdout, stderr: outroStderr } = await execAsync(
+                `python3 /root/.openclaw/workspace/reforhandle-content/render_outro_standalone.py '${outroConfig.replace(/'/g, "'\\''")}' "${outroInputPath}" "${outroOutputPath}"`,
+                { timeout: 60_000 }
+              )
+              if (outroStdout) console.log(`[avatar] outro stdout: ${outroStdout.trim()}`)
+              if (outroStderr) console.log(`[avatar] outro stderr: ${outroStderr.trim()}`)
+              finalVideoPath = outroOutputPath
+              console.log(`[avatar] Outro appended → ${outroOutputPath}`)
+            } catch (outroErr) {
+              console.warn(`[avatar] Outro render failed (using video without outro):`, outroErr.message)
+              if (outroErr.stdout) console.log(`[avatar] outro stdout: ${outroErr.stdout.trim()}`)
+              if (outroErr.stderr) console.log(`[avatar] outro stderr: ${outroErr.stderr.trim()}`)
+            }
+          }
+
+          // Step 6: Upload to R2
+          const videoBuffer = fs.readFileSync(finalVideoPath)
+          const videoR2Key = `avatars/${jobId}/output.mp4`
+          videoUrl = await uploadBufferToR2(videoBuffer, videoR2Key, 'video/mp4')
+          for (const p of [videoPath, `/tmp/avatar_mixed_${jobId}.mp4`]) {
+            try { fs.unlinkSync(p) } catch (_) {}
+          }
+          console.log(`[avatar] Video uploaded → ${videoUrl}`)
+        } else {
+          console.warn(`[avatar] fal.ai did not produce video — falling back to audio URL`)
+        }
+      } catch (falErr) {
+        console.error(`[avatar] fal.ai error (using audio fallback):`, falErr.message)
+      }
+    } else {
+      console.warn(`[avatar] FAL_API_KEY not set — skipping video generation, returning audio`)
+    }
+
+    // Step 6: Notify Netlify webhook
+    avatarJobs.set(jobId, { status: 'done', videoUrl, startTime: Date.now() })
+    const webhookUrl = 'https://contentforge-610.netlify.app/api/productions/complete'
+    const webhookRes = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, videoUrl, imageUrls: [], service: 'avatar', campaignId, productId }),
+    })
+    if (!webhookRes.ok) {
+      console.error(`[avatar] Webhook failed: ${webhookRes.status}`)
+    } else {
+      console.log(`[avatar] Webhook OK for job ${jobId}, videoUrl=${videoUrl}`)
+    }
+  } catch (err) {
+    console.error(`[avatar] Job ${jobId} failed:`, err.message)
+    avatarJobs.set(jobId, { status: 'failed', error: err.message })
+    try {
+      await fetch('https://contentforge-610.netlify.app/api/productions/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, videoUrl: null, imageUrls: [], service: 'avatar', campaignId, productId, error: err.message }),
+      })
+    } catch (_) {}
+  }
+}
+
+router.post('/avatar-jobs', (req, res) => {
+  const { jobId, script, avatarImageUrl, voiceId, productId, campaignId, musicFile, outroCard, audioSegmentUrls, emotion } = req.body
+  if (!jobId || !script || !avatarImageUrl) {
+    return res.status(400).json({ error: 'jobId, script and avatarImageUrl are required' })
+  }
+  const voice = voiceId || 'nPczCjzI2devNBz1zQrb'
+  console.log(`[avatar] Job received: ${jobId}, voice=${voice}, avatarImageUrl=${avatarImageUrl.slice(0, 120)}, segments=${audioSegmentUrls ? audioSegmentUrls.length : 0}`)
+  avatarJobs.set(jobId, { status: 'queued', startTime: Date.now() })
+  res.json({ jobId, status: 'queued' })
+  // Background — not awaited
+  processAvatarJob(jobId, script, avatarImageUrl, voice, productId, campaignId, musicFile, outroCard || null, audioSegmentUrls || null, emotion || 'nøytral').catch(err => {
+    console.error(`[avatar] Unhandled background error for ${jobId}:`, err.message)
+  })
+})
+
+router.get('/avatar-jobs/:jobId', (req, res) => {
+  const { jobId } = req.params
+  const job = avatarJobs.get(jobId)
+  if (!job) return res.json({ jobId, status: 'not_found' })
+  if (job.status === 'done') return res.json({ jobId, status: 'done', videoUrl: job.videoUrl })
+  return res.json({ jobId, status: job.status, error: job.error || undefined })
+})
+
 
