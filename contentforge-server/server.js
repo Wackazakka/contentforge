@@ -267,3 +267,46 @@ app.post('/music/medley', express.json(), (req, res) => {
     res.status(500).json({ error: err.message })
   }
 })
+
+
+// ── Import fra URL (2026-07-30) ──────────────────────────────────────────────
+// Store laater taaler ikke Netlify-proxyen (~4,5 MB reell grense) — nettleseren
+// laster opp til Supabase Storage-innboksen, og vi henter derfra til MUSIC_DIR.
+app.post('/music/import', express.json(), (req, res) => {
+  ;(async () => {
+    const url = String(req.body?.url || '')
+    const folder = String(req.body?.folder || '').toLowerCase().replace(/[^a-z0-9-]/g, '')
+    const rawName = String(req.body?.name || 'laat.mp3')
+    if (!/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\//.test(url)) {
+      return res.status(400).json({ error: 'Kun Supabase Storage-URL-er kan importeres' })
+    }
+    if (!folder) return res.status(400).json({ error: 'Ugyldig mappe' })
+    const sanitized = rawName.toLowerCase().replace(/[^a-z0-9.-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'laat.mp3'
+    const outName = /\.(mp3|wav|m4a|ogg|flac)$/.test(sanitized) ? sanitized : sanitized + '.mp3'
+    const folderPath = path.join(MUSIC_DIR, folder)
+    if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true })
+    const outPath = path.join(folderPath, outName)
+
+    const r = await fetch(url)
+    if (!r.ok) return res.status(400).json({ error: `Nedlasting feilet (HTTP ${r.status})` })
+    const len = Number(r.headers.get('content-length') || 0)
+    if (len > 50 * 1024 * 1024) return res.status(400).json({ error: 'Fila er for stor (maks 50 MB)' })
+    const buf = Buffer.from(await r.arrayBuffer())
+    if (buf.byteLength > 50 * 1024 * 1024) return res.status(400).json({ error: 'Fila er for stor (maks 50 MB)' })
+    fs.writeFileSync(outPath, buf)
+
+    const fileInfo = {
+      filename: `${folder}/${outName}`,
+      name: outName.replace(/\.(mp3|wav|m4a|ogg|flac)$/i, '').replace(/[-_]/g, ' '),
+      folder,
+      url: `http://139.59.212.218:${PORT}/music/files/${encodeURIComponent(`${folder}/${outName}`)}`,
+      size: buf.byteLength,
+      uploadedAt: new Date().toISOString(),
+    }
+    console.log(`[server] Music imported: ${fileInfo.filename} (${buf.byteLength} bytes)`)
+    res.json({ success: true, file: fileInfo })
+  })().catch((err) => {
+    console.error('[server] Music import error:', err.message)
+    res.status(500).json({ error: err.message })
+  })
+})

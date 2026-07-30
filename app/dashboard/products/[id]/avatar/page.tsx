@@ -8,6 +8,7 @@ import CostMeter from '@/components/CostMeter'
 import { COSTS_NOK } from '@/lib/costs'
 import { useTenant } from '@/lib/tenantContext'
 import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
+import { uploadTrack } from '@/lib/uploadTrack'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
@@ -956,8 +957,8 @@ export default function AvatarVideoPage() {
                     {tenantSlug === 'centerforge'
                       ? 'Last opp MP3'
                       : tenantVertical === 'music'
-                        ? 'Last opp egen låt (MP3, maks 15 MB)'
-                        : 'Last opp egen musikk (MP3, maks 15 MB)'}
+                        ? 'Last opp egen låt (MP3, maks 50 MB)'
+                        : 'Last opp egen musikk (MP3, maks 50 MB)'}
                   </span>
                   <input
                     type="file"
@@ -967,34 +968,30 @@ export default function AvatarVideoPage() {
                       const file = input.files?.[0]
                       if (!file) return
                       const isRootSharedUpload = tenantSlug === 'centerforge'
-                      const maxBytes = isRootSharedUpload ? 4 * 1024 * 1024 : TRACK_MAX_BYTES
                       if (!file.name.toLowerCase().endsWith('.mp3')) {
                         alert('Kun MP3-filer støttes.')
                         input.value = ''
                         return
                       }
-                      if (file.size > maxBytes) {
-                        alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)} MB). Maks ${isRootSharedUpload ? 4 : 15} MB.`)
+                      if (isRootSharedUpload && file.size > 4 * 1024 * 1024) {
+                        alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)} MB). Maks 4 MB.`)
                         input.value = ''
                         return
                       }
-                      const formData = new FormData()
-                      formData.append('file', file)
                       try {
-                        // Produkt-scopet for tenanter (tracks-<productId>); rot laster til delt mappe
-                        const folder = isRootSharedUpload ? selectedMusicFolder : tracksFolder(productId)
-                        const res = await fetch(`/api/music/upload?folder=${folder}`, {
-                          method: 'POST',
-                          body: formData,
-                        })
-                        if (res.ok) {
-                          await refreshMusicLibrary()
-                          alert('Lastet opp!')
+                        if (isRootSharedUpload) {
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          const res = await fetch(`/api/music/upload?folder=${selectedMusicFolder}`, { method: 'POST', body: formData })
+                          if (!res.ok) throw new Error(await res.text())
                         } else {
-                          alert('Opplasting feilet: ' + await res.text())
+                          // Utenom Netlify-proxyen (413 over ~4,5 MB)
+                          await uploadTrack(file, tracksFolder(productId))
                         }
+                        await refreshMusicLibrary()
+                        alert('Lastet opp!')
                       } catch (err) {
-                        alert('Opplasting feilet.')
+                        alert(err instanceof Error ? err.message : 'Opplasting feilet.')
                       }
                       input.value = ''
                     }}
