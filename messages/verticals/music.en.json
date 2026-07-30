@@ -1,9 +1,9 @@
 {
   "productModal": {
-    "title": "Your band",
+    "title": "Your artist",
     "productNameLabel": "Artist/band name *",
     "productNamePlaceholder": "e.g. Northern Lights",
-    "descriptionLabel": "Who are you?",
+    "descriptionLabel": "About the artist",
     "descriptionPlaceholder": "E.g. Bergen trio making melancholic synthpop. Second album on the way, playing Vill Vill Vest in September.",
     "descriptionHint": "This becomes the raw material for your promo content — members, history, what makes you you.",
     "categoryLabel": "Genre",
@@ -16,7 +16,7 @@
     "categoryMetal": "Metal",
     "categoryVisesang": "Singer-songwriter",
     "categoryAnnet": "Other genre",
-    "createProduct": "Save band",
+    "createProduct": "Save artist",
     "errorNameRequired": "Artist/band name is required",
     "websiteLabel": "Website or Linktree (one page with all your links)",
     "websitePlaceholder": "e.g. northernlights.no or linktr.ee/northernlights",
@@ -24,7 +24,7 @@
     "phonePlaceholder": "e.g. 912 34 567",
     "addressLabel": "Hometown",
     "addressPlaceholder": "e.g. Bergen",
-    "logoLabel": "Band photo or logo (optional)",
+    "logoLabel": "Artist photo or logo (optional)",
     "logoHint": "PNG, JPG, SVG or WebP — max 4 MB. Used on the end card in videos.",
     "errorPhoneInvalid": "That phone number doesn't look right — use digits, optionally with +47.",
     "errorLogoTooBig": "The image file is too big (max 4 MB).",
@@ -33,15 +33,15 @@
     "logoUploadFailedNonFatal": "Your band was saved, but the image failed to upload. Try again from the band page."
   },
   "dashboard": {
-    "yourProducts": "Your band",
-    "newProduct": "+ Add band",
-    "welcomeSubtitle": "Add your band and we'll create promo content for releases, shows and everything you do.",
-    "step1Title": "Tell us about the band",
+    "yourProducts": "Your artist",
+    "newProduct": "+ Add artist",
+    "welcomeSubtitle": "Add your artist or band and we will create promo content for releases, shows and everything you do.",
+    "step1Title": "Tell us about the artist",
     "step1Desc": "Name, genre and who you are — two sentences is enough.",
     "step2Title": "Get your promo made",
     "step2Desc": "Video with voice, images and copy — you approve everything before it costs anything.",
     "step3Desc": "Connect Facebook and Instagram and publish straight from {name}.",
-    "createFirstProduct": "+ Add your band"
+    "createFirstProduct": "+ Add your artist"
   },
   "product": {
     "phoneLabel": "Booking phone",

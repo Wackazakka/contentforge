@@ -51,6 +51,10 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
   // (Lars' funn 2026-07-30: «skjer ingenting» ved for stor fil).
   const [logoError, setLogoError] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
+  // Modalen eier sin egen opptatt-tilstand: isLoading-propen settes ikke av
+  // alle foreldre, og da sto knappen aktiv i hele lagringssekvensen (Lars'
+  // funn 2026-07-30: ~5 s uten respons = invitasjon til dobbeltklikk).
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const errorRef = useRef<HTMLDivElement | null>(null)
 
@@ -59,8 +63,11 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
     if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [error])
 
+  const busy = isLoading || submitting || logoUploading
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (busy) return // dobbeltklikk-vern
     setError(null)
 
     if (!name.trim()) {
@@ -72,6 +79,8 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
       return
     }
 
+    // Settes ETTER valideringene — en tidlig retur skal aldri låse knappen
+    setSubmitting(true)
     try {
       const created = await onSubmit({
         name,
@@ -118,6 +127,8 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('errorCreating'))
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -291,19 +302,19 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
             <button
               type="button"
               onClick={onClose}
-              disabled={isLoading}
+              disabled={busy}
               className="cf-btn-ghost"
-              style={{ flex: 1, fontFamily: HANKEN, fontWeight: 600, fontSize: 15, color: 'var(--ink)', background: 'transparent', border: '1px solid #D2C7B2', borderRadius: 11, padding: 13, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1 }}
+              style={{ flex: 1, fontFamily: HANKEN, fontWeight: 600, fontSize: 15, color: 'var(--ink)', background: 'transparent', border: '1px solid #D2C7B2', borderRadius: 11, padding: 13, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1 }}
             >
               {t('cancel')}
             </button>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={busy}
               className="cf-btn-ink"
-              style={{ flex: 1.4, fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--paper)', background: 'var(--ink)', border: 'none', borderRadius: 11, padding: 13, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1 }}
+              style={{ flex: 1.4, fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--paper)', background: 'var(--ink)', border: 'none', borderRadius: 11, padding: 13, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1 }}
             >
-              {isLoading ? t('creating') : t('createProduct')}
+              {busy ? t('creating') : t('createProduct')}
             </button>
           </div>
         </form>

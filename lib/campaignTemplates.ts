@@ -105,6 +105,22 @@ export const CAMPAIGN_TEMPLATES: Record<string, CampaignTemplate[]> = {
       },
     },
     {
+      key: 'other',
+      emoji: '✨',
+      label: { no: 'Noe annet', en: 'Something else' },
+      hint: { no: 'Musikkvideo, merch, intervju — beskriv det selv', en: 'Music video, merch, interview — describe it yourself' },
+      prefill: {
+        title: { no: '…', en: '…' },
+        topic: {
+          no: 'Vi vil promotere: … Fortell hva det er, når det skjer, og hvorfor folk bør bry seg.',
+          en: 'We want to promote: … Tell us what it is, when it happens, and why people should care.',
+        },
+        targetAudience: { no: '…', en: '…' },
+        problem: { no: '', en: '' },
+        cta: { no: '…', en: '…' },
+      },
+    },
+    {
       key: 'band',
       emoji: '👋',
       label: { no: 'Bandpresentasjon', en: 'Meet the band' },
