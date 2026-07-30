@@ -138,13 +138,16 @@ export function generatePalette(opts?: { dark?: boolean }): Palette {
   // kalleren ber om det eksplisitt.
   const dark = opts?.dark ?? Math.random() < 0.3
 
-  // Sideflaten: nesten nøytral, men med et snev av kuløren så paletten henger sammen.
-  const surfaceSat = between(5, 14)
-  const paperL = dark ? between(9, 14) : between(93, 97)
+  // Sideflaten skal ha SYNLIG kulør — den er frøet hele paletten hviler på.
+  // Første versjon brukte 5–14 % metning ved 93–97 % lyshet, og da ble resultatet
+  // i praksis hvitt eller svart uansett kulør. CenterForges egen sideflate
+  // (#F4EEE2) ligger på ~45 % metning, så spennet må være mye bredere.
+  const surfaceSat = dark ? between(12, 32) : between(18, 48)
+  const paperL = dark ? between(8, 15) : between(90, 96)
   const paper = hslToHex({ h: hue, s: surfaceSat, l: paperL })
-  const raised = hslToHex({ h: hue, s: surfaceSat, l: dark ? paperL + 5 : paperL + 2.5 })
+  const raised = hslToHex({ h: hue, s: surfaceSat * 0.7, l: dark ? paperL + 5 : paperL + 3 })
   const sunken = hslToHex({ h: hue, s: surfaceSat, l: dark ? paperL + 2.5 : paperL - 2.5 })
-  const band = hslToHex({ h: hue, s: surfaceSat + 2, l: dark ? paperL + 8 : paperL - 6 })
+  const band = hslToHex({ h: hue, s: surfaceSat * 1.1, l: dark ? paperL + 8 : paperL - 6 })
 
   // Aksenten: enten i slekt med sideflaten (rolig) eller i kontrast (markant).
   const accentHue = (hue + pick([28, -28, 150, 180, 210])) % 360
@@ -154,17 +157,23 @@ export function generatePalette(opts?: { dark?: boolean }): Palette {
   const tintBg = hslToHex({ h: accentHue, s: between(24, 40), l: dark ? 19 : 93 })
   const tintBorder = hslToHex({ h: accentHue, s: between(28, 46), l: dark ? 29 : 83 })
 
-  // Tekst trappes fra sideflaten, ikke fra svart — da beholder paletten kuløren sin.
+  // Tekst deler kulør med sideflaten, men MYE lavere metning — ellers blir en
+  // kraftig tonet flate til farget tekst, som leses dårlig og ser billig ut.
+  // CenterForges egen tekst (#1C1A16) og dempede tekst (#5E564A) ligger begge
+  // rundt 12 % metning, mot sideflatens 45.
+  const textSat = between(6, 16)
   const textL = dark ? [96, 84, 70, 56] : [10, 24, 38, 54]
-  const ink = hslToHex({ h: hue, s: surfaceSat + 4, l: textL[0] })
-  const inkSoft = hslToHex({ h: hue, s: surfaceSat + 3, l: textL[1] })
-  const muted = hslToHex({ h: hue, s: surfaceSat + 2, l: textL[2] })
-  const faint = hslToHex({ h: hue, s: surfaceSat, l: textL[3] })
+  const ink = hslToHex({ h: hue, s: textSat, l: textL[0] })
+  const inkSoft = hslToHex({ h: hue, s: textSat * 0.9, l: textL[1] })
+  const muted = hslToHex({ h: hue, s: textSat * 0.8, l: textL[2] })
+  const faint = hslToHex({ h: hue, s: textSat * 0.7, l: textL[3] })
 
+  // Kanter ligger mellom flate og tekst, både i lyshet og metning.
+  const borderSat = surfaceSat * 0.45
   const borderL = dark ? [24, 34, 18] : [86, 78, 91]
-  const border = hslToHex({ h: hue, s: surfaceSat, l: borderL[0] })
-  const borderStrong = hslToHex({ h: hue, s: surfaceSat, l: borderL[1] })
-  const borderFaint = hslToHex({ h: hue, s: surfaceSat, l: borderL[2] })
+  const border = hslToHex({ h: hue, s: borderSat, l: borderL[0] })
+  const borderStrong = hslToHex({ h: hue, s: borderSat, l: borderL[1] })
+  const borderFaint = hslToHex({ h: hue, s: borderSat * 0.8, l: borderL[2] })
 
   return {
     '--ember': accent,
