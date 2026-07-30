@@ -1061,7 +1061,7 @@ export default function DraftPage() {
                   className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene fra utgivelsen (MP3, maks 15MB) — kun synlige for denne artisten. Flere låter? Lag en medley under.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
+              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene du vil bruke (MP3, maks 15MB) — egen musikk, eller musikk du har rett til å bruke. Kun synlige for denne artisten. Flere låter? Lag en medley under.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
             </div>
 
             {/* Medley av egne låter (fase 3b) — vises når produktet har ≥2 egne låter */}
@@ -1076,7 +1076,7 @@ export default function DraftPage() {
                 {ownTracks(musicLibrary, productId).length < 2 && (
                   <p className="text-xs text-gray-400 mb-1">
                     {ownTracks(musicLibrary, productId).length === 0
-                      ? 'Ingen låter ennå — last opp låtene fra utgivelsen med opplastingsfeltet over, så dukker de opp her.'
+                      ? 'Ingen låter ennå — last opp låtene du vil bruke med opplastingsfeltet over, så dukker de opp her.'
                       : 'Én låt lastet opp — last opp minst én til for å lage en medley.'}
                   </p>
                 )}
