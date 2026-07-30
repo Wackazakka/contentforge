@@ -19,7 +19,7 @@ interface DraftRequest {
   problem?: string
   voiceId?: string
   tone?: string
-  perspective?: 'du' | 'jeg'
+  perspective?: 'du' | 'jeg' | 'vi'
   cta?: string
   videoFormat?: string
   musicStyle?: string
@@ -43,7 +43,7 @@ async function generateScript(
   problem: string = '',
   tone: string = 'Energisk',
   cta: string = '',
-  perspective: 'du' | 'jeg' = 'du',
+  perspective: 'du' | 'jeg' | 'vi' = 'du',
   senderContext: string = ''
 ): Promise<Segment[]> {
   console.log(`[generateDraft] Calling Claude to generate script with ${segmentCount} segments for topic: "${topic}"`)
@@ -54,6 +54,8 @@ async function generateScript(
   const ctaContext = cta ? `Call-to-action: ${cta}` : ''
   const perspectiveContext = perspective === 'jeg'
     ? 'Perspective: First person ("jeg/I"). The narrator speaks from personal experience — "Jeg gjorde dette...", "Da jeg prøvde...", "Her er hva jeg lærte...". Avoid addressing the viewer as "du".'
+    : perspective === 'vi'
+    ? 'Perspective: First person plural ("vi/we"). The band/group/company speaks together — "Vi slipper...", "Vi gleder oss til...", "Her er hva vi har jobbet med...". Avoid addressing the viewer as "du".'
     : 'Perspective: Second person ("du"). Address the viewer directly — "Du bør...", "Har du noen gang...", "Dette gjør du...".'
 
   const prompt = `Generate a video script for a TikTok/Reels video about: "${topic}"
