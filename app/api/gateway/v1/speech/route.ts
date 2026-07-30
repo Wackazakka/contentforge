@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { authenticateKey, resolveAsset, hasBalance, customerPriceFor, admin } from '@/lib/gateway'
 import { ratesForKind } from '@/lib/voiceBank'
+import {
+  isVoiceWithdrawn,
+  deactivateWithdrawnActor,
+  VOICE_WITHDRAWN,
+  VOICE_WITHDRAWN_MESSAGE,
+} from '@/lib/elevenlabsErrors'
 
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
@@ -48,6 +54,16 @@ export async function POST(request: Request) {
     })
     if (!elevenRes.ok) {
       const detail = await elevenRes.text()
+      // Skuespilleren kan ha trukket tilbake stemmen sin — en normal hendelse, ikke
+      // en driftsfeil. Da skal kunden få klar beskjed, og stemmen ut av banken.
+      if (isVoiceWithdrawn(elevenRes.status, detail)) {
+        console.warn('[gateway/speech] stemme tilbaketrukket av eier:', actor.elevenlabs_voice_id)
+        await deactivateWithdrawnActor(admin(), { actorId: actor.id })
+        return NextResponse.json(
+          { error: VOICE_WITHDRAWN_MESSAGE, code: VOICE_WITHDRAWN },
+          { status: 409 }
+        )
+      }
       console.error('[gateway/speech] ElevenLabs-feil:', detail)
       return NextResponse.json({ error: 'Talegenerering feilet' }, { status: 502 })
     }

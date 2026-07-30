@@ -231,6 +231,13 @@ export async function POST(request: Request) {
         notes: body.notes ? String(body.notes) : null,
         // Eksplisitt (var tidligere DB-default): eksklusiv med mindre skjemaet sier delt
         is_exclusive: body.isExclusive !== false,
+        // Eksplisitt INAKTIV. En proff-klone ligger på skuespillerens EGEN
+        // ElevenLabs-konto og må DELES til oss før vi kan generere med den — og
+        // delingen kan først skje etter 6–24 t fine-tuning. Uten dette ble raden
+        // synlig i stemmemenyene med en voice-id som ikke finnes på vår konto,
+        // og kunden fikk «Talegenerering feilet» i stedet for noe forståelig.
+        // Aktiveres når stemmen er verifisert tilgjengelig.
+        is_active: false,
       })
       .select('id')
       .single()
@@ -302,6 +309,15 @@ export async function PATCH(request: Request) {
       // E-post for godkjenningsvarsler (magisk lenke); tom = ingen varsling mulig
       const v = String(body.actorEmail).trim()
       patch.actor_email = v && v.includes('@') ? v : null
+    }
+    if (body.elevenlabsVoiceId !== undefined) {
+      // Voice-id-en kunne tidligere BARE settes ved opprettelse — en skuespiller
+      // opprettet via søknad (voice_id = null) kunne derfor ikke fullføres i det
+      // hele tatt uten rå SQL, samtidig som detaljsiden ba admin om å «sette
+      // voice-id i takstkortet». Nå finnes feltet faktisk.
+      // Tom streng = fjern koblingen (stemmen er trukket eller feilregistrert).
+      const v = String(body.elevenlabsVoiceId).trim()
+      patch.elevenlabs_voice_id = v || null
     }
     if (body.faceCharacterId !== undefined) {
       // Kobling til skuespillerens ansikt (LoRA-karakter); tom streng fjerner koblingen.

@@ -10,9 +10,17 @@ function admin() {
   )
 }
 
-// Eksterne inntekter per skuespiller (f.eks. ElevenLabs Voice Library):
-// utbetalingene lander på VÅR konto og føres her per periode — så går de inn i
-// samme avregning som plattform-royaltyen (skuespillerandel + kaskade oppover).
+// Eksterne inntekter per skuespiller (f.eks. ElevenLabs Voice Library).
+//
+// VIKTIG (verifisert 2026-07-30): dette er et REGNSKAPSNOTAT, ikke en pengestrøm.
+// Proff-klonen ligger på skuespillerens EGEN ElevenLabs-konto — det er den eneste
+// lovlige modellen, siden ElevenLabs kun tillater kloning av din egen stemme. Derfor
+// betaler ElevenLabs bibliotek-inntekten rett til skuespillerens Stripe Connect-konto.
+// Pengene passerer aldri oss, og vi tar ingen andel. Radene her føres manuelt kun for
+// å ha oversikt over hva en skuespiller tjener utenfor plattformen.
+//
+// Konsekvens: library_share_pct er SOVENDE (som royalty_cut_pct og fee_*_pct) og skal
+// ikke brukes til å regne ut en andel til oss. Ingenting her inngår i avregningen.
 
 async function guard(request: Request) {
   const tenant = await getTenant()
@@ -31,7 +39,7 @@ async function guard(request: Request) {
 // Skuespilleren må tilhøre gjeldende tenant
 async function ownActor(tenantId: string, actorId: string) {
   const { data } = await admin()
-    .from('voice_actors').select('id, library_share_pct').eq('id', actorId).eq('owner_tenant_id', tenantId).single()
+    .from('voice_actors').select('id').eq('id', actorId).eq('owner_tenant_id', tenantId).single()
   return data
 }
 
