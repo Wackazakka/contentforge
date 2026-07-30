@@ -1102,7 +1102,27 @@ export default function DraftPage() {
                         }`}>
                           {idx >= 0 ? idx + 1 : '+'}
                         </span>
-                        <span className="truncate">{m.name}</span>
+                        <span className="truncate flex-1">{m.name}</span>
+                        {/* Slett selve FILA (f.eks. duplikat-opplasting) — ikke bare utvalget */}
+                        <span
+                          role="button"
+                          title="Slett låten fra biblioteket"
+                          onClick={async (ev) => {
+                            ev.stopPropagation()
+                            if (!confirm(`Slette «${m.name}» fra låtene dine?`)) return
+                            try {
+                              const res = await fetch(`/api/music/${encodeURIComponent(m.filename)}`, { method: 'DELETE' })
+                              if (!res.ok) { alert('Slettingen feilet — prøv igjen.'); return }
+                              setMedleySelection((prev) => prev.filter((f) => f !== m.filename))
+                              if (draft?.music_file === m.filename) updateMusic(null)
+                              const data = await fetch('/api/music').then((r) => r.json())
+                              if (data.files) setMusicLibrary(data.files)
+                            } catch { alert('Slettingen feilet — prøv igjen.') }
+                          }}
+                          className="flex-none text-gray-300 hover:text-red-500 text-xs px-1"
+                        >
+                          ✕
+                        </span>
                       </button>
                     )
                   })}
