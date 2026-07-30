@@ -467,7 +467,7 @@
   },
   "newDraft": {
     "backToProduct": "← Back to product",
-    "title": "Create new video draft",
+    "title": "Create new video",
     "subtitle": "Define topic and settings for the video",
     "sectionBasic": "Basic info",
     "titleLabel": "Video title *",

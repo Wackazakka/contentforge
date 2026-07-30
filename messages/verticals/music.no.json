@@ -55,6 +55,9 @@
     "topicPlaceholder": "F.eks. Singelen «Nordlys» slippes fredag 15. august — forhåndslagre nå",
     "targetAudiencePlaceholder": "F.eks. Folk som hører på melankolsk synthpop og norsk indie",
     "problemPlaceholder": "F.eks. Ny musikk drukner i strømmen uten promo som skiller seg ut",
-    "ctaPlaceholder": "F.eks. Forhåndslagre på Spotify i dag"
+    "ctaPlaceholder": "F.eks. Forhåndslagre på Spotify i dag",
+    "backToProduct": "← Tilbake til artisten",
+    "title": "Lag ny promovideo",
+    "subtitle": "Fortell hva videoen skal handle om — du godkjenner alt før noe koster penger."
   }
 }

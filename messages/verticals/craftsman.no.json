@@ -57,6 +57,7 @@
     "topicPlaceholder": "F.eks. Vi har ledig kapasitet for baderomsoppussing i høst — gratis befaring",
     "targetAudiencePlaceholder": "F.eks. Boligeiere i Follo som vurderer oppussing",
     "problemPlaceholder": "F.eks. Vanskelig å finne håndverker som svarer og kommer når avtalt",
-    "ctaPlaceholder": "F.eks. Ring oss i dag — gratis befaring"
+    "ctaPlaceholder": "F.eks. Ring oss i dag — gratis befaring",
+    "backToProduct": "← Tilbake til bedriften"
   }
 }
