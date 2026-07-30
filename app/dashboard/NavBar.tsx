@@ -18,6 +18,7 @@ export default function NavBar() {
   const [credits, setCredits] = useState<number | null>(null)
   const [voiceBankAdmin, setVoiceBankAdmin] = useState(false)
   const t = useTranslations('nav')
+  const tLogin = useTranslations('login')
   const tenant = useTenant()
 
   // Invoice-tenants (white-label via partner) skal ikke se CenterForge-priser/billing
@@ -106,13 +107,26 @@ export default function NavBar() {
 
           <LangToggle />
 
-          <button
-            onClick={handleLogout}
-            className="cf-nav-link"
-            style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-          >
-            {t('logout')}
-          </button>
+          {/* Sesjonen er PER DOMENE (localStorage) — er du innlogget på ett white-label,
+              er du ikke det på et annet. «Logg ut» ble tidligere vist ubetinget, så navet
+              påsto at du var innlogget mens siden under sa «Ikke innlogget». */}
+          {session ? (
+            <button
+              onClick={handleLogout}
+              className="cf-nav-link"
+              style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              {t('logout')}
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="cf-nav-link"
+              style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 500, color: 'var(--ember-deep)', textDecoration: 'none' }}
+            >
+              {tLogin('signIn')}
+            </Link>
+          )}
         </div>
       </div>
     </nav>
