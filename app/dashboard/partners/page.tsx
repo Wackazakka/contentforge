@@ -357,7 +357,7 @@ export default function PartnersPage() {
                     </button>
                     <button type="button" onClick={() => savePalette(p.id)}
                       className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
-                      Lagre som …
+                      Lagre som profil
                     </button>
                     <button type="button" onClick={() => resetColors(p.id)} disabled={e.colorKeys.length === 0}
                       className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:text-gray-700 transition-colors">
@@ -391,7 +391,7 @@ export default function PartnersPage() {
                   {e.colorKeys.length === 0
                     ? 'Ingen egne farger — partneren bruker standardpaletten.'
                     : `${e.colorKeys.length} av ${COLOR_FIELDS.length} farger er satt. Blå prikk = valgt; klikk den for å nullstille.`}
-                  {' '}«Forslag» trekker én kulør og utleder resten, med lesbar kontrast.
+                  {' '}«Forslag» trekker én kulør og utleder resten, med lesbar kontrast. «Lagre som profil» legger fargene i ditt eget bibliotek — partneren endres først når du trykker «Lagre endringer» nederst.
                 </p>
                 {['Aksent', 'Flater', 'Tekst', 'Kanter'].map((group) => (
                   <div key={group} className="mb-3">
@@ -423,9 +423,9 @@ export default function PartnersPage() {
                 <div className="flex items-center gap-3">
                   <button onClick={() => save(p)} disabled={busy === p.id}
                     className="px-5 py-2.5 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
-                    {busy === p.id ? 'Lagrer …' : 'Lagre'}
+                    {busy === p.id ? 'Lagrer …' : 'Lagre endringer'}
                   </button>
-                  {saved === p.id && <span className="text-sm text-green-700">Lagret — synlig på partnerens domene innen ett minutt.</span>}
+                  {saved === p.id && <span className="text-sm text-green-700">Partneren er lagret — synlig på deres domene innen ett minutt.</span>}
                 </div>
               </div>
             )
