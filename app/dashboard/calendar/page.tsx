@@ -72,8 +72,8 @@ const platformLabel: Record<string, string> = {
 }
 
 const filterSelectStyle: React.CSSProperties = {
-  fontFamily: HANKEN, fontSize: 14, color: '#1C1A16', background: '#FFFDF8',
-  border: '1px solid #D8CDB8', borderRadius: 9, padding: '8px 12px', cursor: 'pointer',
+  fontFamily: HANKEN, fontSize: 14, color: 'var(--ink)', background: 'var(--paper-raised)',
+  border: '1px solid var(--ds-border-strong)', borderRadius: 9, padding: '8px 12px', cursor: 'pointer',
 }
 
 function Badge({ status }: { status: string }) {
@@ -81,8 +81,8 @@ function Badge({ status }: { status: string }) {
     <span
       style={{
         fontFamily: HANKEN, fontSize: 12.5, fontWeight: 600, textTransform: 'capitalize',
-        color: statusColor[status] || '#6B6358', background: statusBg[status] || '#F7F1E6',
-        border: `1px solid ${statusBorder[status] || '#E6DDCC'}`, borderRadius: 999, padding: '3px 11px',
+        color: statusColor[status] || 'var(--text-muted)', background: statusBg[status] || 'var(--paper-sunken)',
+        border: `1px solid ${statusBorder[status] || 'var(--ds-border)'}`, borderRadius: 999, padding: '3px 11px',
       }}
     >
       {status}
@@ -174,7 +174,7 @@ export default function CalendarPage() {
 
   const segStyle = (active: boolean): React.CSSProperties => ({
     fontFamily: HANKEN, fontSize: 14, fontWeight: active ? 600 : 500,
-    color: active ? 'var(--ember-deep)' : '#6B6358', background: active ? 'var(--ember-tint-bg)' : 'transparent',
+    color: active ? 'var(--ember-deep)' : 'var(--text-muted)', background: active ? 'var(--ember-tint-bg)' : 'transparent',
     border: active ? '1px solid var(--ember-tint-border)' : '1px solid transparent', borderRadius: 999,
     padding: '7px 16px', cursor: 'pointer',
   })
@@ -192,56 +192,56 @@ export default function CalendarPage() {
       {/* Filters */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B6358' }}>{t('platformFilter')}</span>
+          <span style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--text-muted)' }}>{t('platformFilter')}</span>
           <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} style={filterSelectStyle}>
             {PLATFORMS.map(p => <option key={p}>{p}</option>)}
           </select>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B6358' }}>{t('statusFilter')}</span>
+          <span style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--text-muted)' }}>{t('statusFilter')}</span>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={filterSelectStyle}>
             {STATUSES.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
         {products.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B6358' }}>{t('productFilter')}</span>
+            <span style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--text-muted)' }}>{t('productFilter')}</span>
             <select value={productFilter} onChange={e => setProductFilter(e.target.value)} style={filterSelectStyle}>
               <option value="All">{t('allProducts')}</option>
               {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
         )}
-        <span style={{ fontFamily: MONO, fontSize: 12, letterSpacing: '0.04em', color: '#A89C88' }}>{t('posts', { count: filtered.length })}</span>
+        <span style={{ fontFamily: MONO, fontSize: 12, letterSpacing: '0.04em', color: 'var(--text-faint)' }}>{t('posts', { count: filtered.length })}</span>
       </div>
 
       {loading ? (
-        <p style={{ fontFamily: HANKEN, fontSize: 14, color: '#A89C88' }}>{t('loading')}</p>
+        <p style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-faint)' }}>{t('loading')}</p>
       ) : filtered.length === 0 ? (
         <div className="cf-panel" style={{ padding: 40, textAlign: 'center' }}>
-          <p style={{ fontFamily: HANKEN, fontSize: 14, color: '#A89C88', margin: 0 }}>{t('noPostsFound')}</p>
+          <p style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-faint)', margin: 0 }}>{t('noPostsFound')}</p>
         </div>
       ) : view === 'table' ? (
         <div className="cf-panel" style={{ padding: '6px 26px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #E6DDCC' }}>
+              <tr style={{ borderBottom: '1px solid var(--ds-border)' }}>
                 {[t('dateHeader'), t('platformHeader'), t('typeHeader'), t('statusHeader')].map((h, i) => (
-                  <th key={i} style={{ textAlign: 'left', padding: '16px 8px 13px 0', fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#A89C88' }}>{h}</th>
+                  <th key={i} style={{ textAlign: 'left', padding: '16px 8px 13px 0', fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>{h}</th>
                 ))}
                 <th style={{ padding: '16px 0 13px' }} />
               </tr>
             </thead>
             <tbody>
               {filtered.map((entry) => (
-                <tr key={entry.id} style={{ borderTop: '1px solid #EFE7D8' }}>
-                  <td style={{ padding: '15px 8px 15px 0', fontFamily: HANKEN, fontSize: 14.5, color: '#1C1A16' }}>
+                <tr key={entry.id} style={{ borderTop: '1px solid var(--ds-border-faint)' }}>
+                  <td style={{ padding: '15px 8px 15px 0', fontFamily: HANKEN, fontSize: 14.5, color: 'var(--ink)' }}>
                     {new Date(entry.date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </td>
-                  <td style={{ padding: '15px 8px', fontFamily: HANKEN, fontSize: 14.5, color: '#3A352C', textTransform: 'capitalize' }}>
+                  <td style={{ padding: '15px 8px', fontFamily: HANKEN, fontSize: 14.5, color: 'var(--ink-soft)', textTransform: 'capitalize' }}>
                     {platformLabel[entry.platform] || entry.platform}
                   </td>
-                  <td style={{ padding: '15px 8px', fontFamily: HANKEN, fontSize: 14, color: '#6B6358', textTransform: 'capitalize' }}>{entry.content_type}</td>
+                  <td style={{ padding: '15px 8px', fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textTransform: 'capitalize' }}>{entry.content_type}</td>
                   <td style={{ padding: '15px 8px' }}><Badge status={entry.status} /></td>
                   <td style={{ padding: '15px 0', textAlign: 'right' }}>
                     {entry.isScheduled && (
@@ -263,13 +263,13 @@ export default function CalendarPage() {
         /* Calendar view */
         <div className="cf-panel" style={{ padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <button onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} style={{ fontSize: 20, padding: '0 8px', color: '#6B6358', background: 'transparent', border: 'none', cursor: 'pointer' }}>‹</button>
-            <span style={{ fontFamily: 'var(--font-serif), serif', fontSize: 24, color: '#1C1A16', textTransform: 'capitalize' }}>{monthLabel}</span>
-            <button onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} style={{ fontSize: 20, padding: '0 8px', color: '#6B6358', background: 'transparent', border: 'none', cursor: 'pointer' }}>›</button>
+            <button onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} style={{ fontSize: 20, padding: '0 8px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}>‹</button>
+            <span style={{ fontFamily: 'var(--font-serif), serif', fontSize: 24, color: 'var(--ink)', textTransform: 'capitalize' }}>{monthLabel}</span>
+            <button onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} style={{ fontSize: 20, padding: '0 8px', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}>›</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 8, marginBottom: 8 }}>
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-              <div key={d} style={{ textAlign: 'center', fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#A89C88' }}>{d}</div>
+              <div key={d} style={{ textAlign: 'center', fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>{d}</div>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 8 }}>
@@ -281,8 +281,8 @@ export default function CalendarPage() {
               const dayEntries = entriesForDay(day)
               const isToday = new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year
               return (
-                <div key={day} style={{ position: 'relative', minHeight: 62, background: '#F7F1E6', border: '1px solid #EFE7D8', borderRadius: 9, padding: 8 }}>
-                  <div style={{ fontFamily: HANKEN, fontSize: 13, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', ...(isToday ? { background: 'var(--ember)', color: '#fff', fontWeight: 600 } : { color: '#6B6358' }) }}>
+                <div key={day} style={{ position: 'relative', minHeight: 62, background: 'var(--paper-sunken)', border: '1px solid var(--ds-border-faint)', borderRadius: 9, padding: 8 }}>
+                  <div style={{ fontFamily: HANKEN, fontSize: 13, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', ...(isToday ? { background: 'var(--ember)', color: '#fff', fontWeight: 600 } : { color: 'var(--text-muted)' }) }}>
                     {day}
                   </div>
                   {dayEntries.slice(0, 3).map(e => (
@@ -291,7 +291,7 @@ export default function CalendarPage() {
                     </div>
                   ))}
                   {dayEntries.length > 3 && (
-                    <div style={{ fontFamily: HANKEN, fontSize: 11, color: '#A89C88', marginTop: 2 }}>{t('more', { count: dayEntries.length - 3 })}</div>
+                    <div style={{ fontFamily: HANKEN, fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>{t('more', { count: dayEntries.length - 3 })}</div>
                   )}
                 </div>
               )

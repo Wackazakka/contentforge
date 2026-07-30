@@ -59,7 +59,7 @@ export default function NavBar() {
       style={{
         position: 'sticky', top: 0, zIndex: 50,
         backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-        background: 'rgba(244,238,226,0.82)', borderBottom: '1px solid #E2D9C8',
+        background: 'color-mix(in srgb, var(--paper) 82%, transparent)', borderBottom: '1px solid #E2D9C8',
       }}
     >
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '13px 26px', display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -77,7 +77,7 @@ export default function NavBar() {
                 style={{
                   display: 'inline-flex', alignItems: 'center', fontFamily: HANKEN, fontSize: 15,
                   fontWeight: active ? 600 : 500,
-                  color: active ? 'var(--ember-deep)' : '#6B6358',
+                  color: active ? 'var(--ember-deep)' : 'var(--text-muted)',
                   background: active ? 'var(--ember-tint-bg)' : 'transparent',
                   border: active ? '1px solid var(--ember-tint-border)' : '1px solid transparent',
                   borderRadius: 999, padding: '8px 16px', textDecoration: 'none',
@@ -109,7 +109,7 @@ export default function NavBar() {
           <button
             onClick={handleLogout}
             className="cf-nav-link"
-            style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 500, color: '#6B6358', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             {t('logout')}
           </button>

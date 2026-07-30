@@ -21,11 +21,25 @@ interface Partner {
   billing_mode: string
 }
 
-const COLOR_FIELDS: Array<{ key: string; label: string; fallback: string }> = [
-  { key: '--ember', label: 'Hovedfarge', fallback: '#E25822' },
-  { key: '--ember-deep', label: 'Dyp variant', fallback: '#C5451B' },
-  { key: '--ember-tint-bg', label: 'Lys bakgrunn', fallback: '#FBE9E1' },
-  { key: '--ember-tint-border', label: 'Lys kant', fallback: '#F2C9B8' },
+// Hele token-vokabularet fra globals.css, gruppert som i UI-et. Skriveveien
+// (api/partners) validerer og merger — nye tokens trenger bare en rad her.
+const COLOR_FIELDS: Array<{ key: string; label: string; fallback: string; group: string }> = [
+  { key: '--ember', label: 'Hovedfarge', fallback: '#E25822', group: 'Aksent' },
+  { key: '--ember-deep', label: 'Dyp variant', fallback: '#C5451B', group: 'Aksent' },
+  { key: '--ember-tint-bg', label: 'Lys bakgrunn', fallback: '#FBE9E1', group: 'Aksent' },
+  { key: '--ember-tint-border', label: 'Lys kant', fallback: '#F2C9B8', group: 'Aksent' },
+  { key: '--on-ember', label: 'Tekst på hovedfarge', fallback: '#FFF4E8', group: 'Aksent' },
+  { key: '--paper', label: 'Sideflate', fallback: '#F4EEE2', group: 'Flater' },
+  { key: '--paper-raised', label: 'Kort/paneler', fallback: '#FFFDF8', group: 'Flater' },
+  { key: '--paper-sunken', label: 'Innsunket flate', fallback: '#F7F1E6', group: 'Flater' },
+  { key: '--band', label: 'Seksjonsbånd', fallback: '#ECE3D2', group: 'Flater' },
+  { key: '--ink', label: 'Tekst', fallback: '#1C1A16', group: 'Tekst' },
+  { key: '--ink-soft', label: 'Tekst, myk', fallback: '#3A352C', group: 'Tekst' },
+  { key: '--text-muted', label: 'Tekst, dempet', fallback: '#5E564A', group: 'Tekst' },
+  { key: '--text-faint', label: 'Tekst, svak', fallback: '#978B79', group: 'Tekst' },
+  { key: '--ds-border', label: 'Kantlinje', fallback: '#E6DDCC', group: 'Kanter' },
+  { key: '--ds-border-strong', label: 'Kantlinje, sterk', fallback: '#D8CDB8', group: 'Kanter' },
+  { key: '--ds-border-faint', label: 'Kantlinje, svak', fallback: '#EFE7D8', group: 'Kanter' },
 ]
 
 export default function PartnersPage() {
@@ -111,7 +125,7 @@ export default function PartnersPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">← Tilbake</Link>
+        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Tilbake</Link>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🤝 Partnere</h1>
         <p className="text-gray-600 mb-8">
           {tenantName ? `${tenantName} sine direkte underledd` : 'Dine direkte underledd'} — sett påslaget dere tar av dem,
@@ -232,15 +246,23 @@ export default function PartnersPage() {
                 </div>
 
                 <label className="block text-sm font-medium text-gray-700 mb-2">Fargeprofil (partnerens domene)</label>
-                <div className="flex flex-wrap gap-4 mb-5">
-                  {COLOR_FIELDS.map((f) => (
-                    <label key={f.key} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                      <input type="color" value={e.colors[f.key]} onChange={(ev) => setColor(p.id, f.key, ev.target.value)}
-                        className="w-9 h-9 rounded border border-gray-300 cursor-pointer" />
-                      {f.label}
-                    </label>
-                  ))}
-                </div>
+                {['Aksent', 'Flater', 'Tekst', 'Kanter'].map((group) => (
+                  <div key={group} className="mb-3">
+                    <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5">{group}</div>
+                    <div className="flex flex-wrap gap-4">
+                      {COLOR_FIELDS.filter((f) => f.group === group).map((f) => (
+                        <label key={f.key} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                          <input type="color" value={e.colors[f.key]} onChange={(ev) => setColor(p.id, f.key, ev.target.value)}
+                            className="w-9 h-9 rounded border border-gray-300 cursor-pointer" />
+                          {f.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-500 mb-5 mt-1">
+                  Mørkt merke? Sett Sideflate/Kort mørke og Tekst lyse — hele appen følger fargene, ikke bare forsiden.
+                </p>
 
                 <div className="flex items-center gap-3">
                   <button onClick={() => save(p)} disabled={busy === p.id}

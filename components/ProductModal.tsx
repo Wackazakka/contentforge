@@ -28,7 +28,7 @@ interface ProductModalProps {
   isLoading?: boolean
 }
 
-const labelStyle = { display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: '#3A352C', marginBottom: 8 } as const
+const labelStyle = { display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 } as const
 
 export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: ProductModalProps) {
   const t = useTranslations('productModal')
@@ -116,7 +116,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 100,
-        background: 'rgba(28,26,22,0.45)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+        background: 'color-mix(in srgb, var(--ink) 45%, transparent)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       }}
       onClick={onClose}
@@ -124,9 +124,9 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
       <div
         className="cf-anim-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: 520, maxHeight: 'calc(100vh - 48px)', overflowY: 'auto', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 20, padding: 32, boxShadow: '0 40px 80px -30px rgba(40,25,10,0.5)' }}
+        style={{ width: '100%', maxWidth: 520, maxHeight: 'calc(100vh - 48px)', overflowY: 'auto', background: 'var(--paper-raised)', border: '1px solid var(--ds-border)', borderRadius: 20, padding: 32, boxShadow: '0 40px 80px -30px rgba(40,25,10,0.5)' }}
       >
-        <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 32, lineHeight: 1, color: '#1C1A16', margin: '0 0 22px' }}>{t('title')}</h2>
+        <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 32, lineHeight: 1, color: 'var(--ink)', margin: '0 0 22px' }}>{t('title')}</h2>
 
         {error && (
           <div ref={errorRef} style={{ background: '#FBEAE6', border: '1px solid #F0C4B8', borderRadius: 11, padding: '13px 16px', fontFamily: HANKEN, fontSize: 14.5, fontWeight: 600, color: 'var(--ember-deep)', marginBottom: 20 }}>
@@ -261,7 +261,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               onClick={onClose}
               disabled={isLoading}
               className="cf-btn-ghost"
-              style={{ flex: 1, fontFamily: HANKEN, fontWeight: 600, fontSize: 15, color: '#1C1A16', background: 'transparent', border: '1px solid #D2C7B2', borderRadius: 11, padding: 13, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1 }}
+              style={{ flex: 1, fontFamily: HANKEN, fontWeight: 600, fontSize: 15, color: 'var(--ink)', background: 'transparent', border: '1px solid #D2C7B2', borderRadius: 11, padding: 13, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.5 : 1 }}
             >
               {t('cancel')}
             </button>
@@ -269,7 +269,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
               type="submit"
               disabled={isLoading}
               className="cf-btn-ink"
-              style={{ flex: 1.4, fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: '#F4EEE2', background: '#1C1A16', border: 'none', borderRadius: 11, padding: 13, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1 }}
+              style={{ flex: 1.4, fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--paper)', background: 'var(--ink)', border: 'none', borderRadius: 11, padding: 13, cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1 }}
             >
               {isLoading ? t('creating') : t('createProduct')}
             </button>

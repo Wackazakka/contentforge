@@ -32,7 +32,7 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">{label}</p>
-      <p className="text-3xl font-bold" style={{ color: '#1C1A16' }}>{value}</p>
+      <p className="text-3xl font-bold" style={{ color: 'var(--ink)' }}>{value}</p>
       {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
   )
@@ -101,7 +101,7 @@ export default function AdminPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6" style={{ color: '#1C1A16' }}>Overview</h1>
+      <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--ink)' }}>Overview</h1>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -166,7 +166,7 @@ export default function AdminPage() {
                         <span className="text-gray-400 text-xs">Free</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold" style={{ color: '#1C1A16' }}>
+                    <td className="px-4 py-3 text-right font-semibold" style={{ color: 'var(--ink)' }}>
                       {user.balance}
                     </td>
                     <td className="px-4 py-3 text-gray-500">{formatDate(user.created_at)}</td>

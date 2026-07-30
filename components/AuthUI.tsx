@@ -74,19 +74,19 @@ export function AuthShell({
             aria-hidden="true"
             style={{
               position: 'absolute', inset: '-12% -8% 30% -8%',
-              background: 'radial-gradient(50% 50% at 50% 30%,rgba(217,82,28,0.14),transparent 70%)',
+              background: 'radial-gradient(50% 50% at 50% 30%,color-mix(in srgb, var(--ember) 14%, transparent),transparent 70%)',
               pointerEvents: 'none',
             }}
           />
           <div
             style={{
-              position: 'relative', background: '#FFFDF8', border: '1px solid #E6DDCC',
-              borderRadius: 22, padding: '38px 34px', boxShadow: '0 40px 80px -45px rgba(70,45,20,0.45)',
+              position: 'relative', background: 'var(--paper-raised)', border: '1px solid var(--ds-border)',
+              borderRadius: 22, padding: '38px 34px', boxShadow: '0 40px 80px -45px color-mix(in srgb, var(--ink) 45%, transparent)',
             }}
           >
             <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 34, lineHeight: 1.06, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 8px' }}>{title}</h1>
             {subtitle ? (
-              <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: '#6B6358', margin: '0 0 24px' }}>{subtitle}</p>
+              <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 24px' }}>{subtitle}</p>
             ) : (
               <div style={{ height: 16 }} />
             )}
@@ -109,11 +109,11 @@ export function AuthField({ label, hint, rightSlot, ...inputProps }: AuthFieldPr
   return (
     <div style={{ marginBottom: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 12 }}>
-        <label style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: '#3A352C' }}>{label}</label>
+        <label style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)' }}>{label}</label>
         {rightSlot}
       </div>
       <input className="cf-input" {...inputProps} />
-      {hint && <p style={{ fontFamily: HANKEN, fontSize: 12.5, color: '#978B79', margin: '7px 0 0' }}>{hint}</p>}
+      {hint && <p style={{ fontFamily: HANKEN, fontSize: 12.5, color: 'var(--text-faint)', margin: '7px 0 0' }}>{hint}</p>}
     </div>
   )
 }
@@ -134,10 +134,10 @@ export function AuthSubmit({
       disabled={loading}
       className="cf-btn-ink"
       style={{
-        width: '100%', fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: '#F4EEE2',
-        background: '#1C1A16', border: 'none', borderRadius: 12, padding: 15,
+        width: '100%', fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: 'var(--paper)',
+        background: 'var(--ink)', border: 'none', borderRadius: 12, padding: 15,
         cursor: loading ? 'not-allowed' : 'pointer', marginTop: 6,
-        boxShadow: '0 12px 28px -14px rgba(28,26,22,0.6)', opacity: loading ? 0.7 : 1,
+        boxShadow: '0 12px 28px -14px color-mix(in srgb, var(--ink) 60%, transparent)', opacity: loading ? 0.7 : 1,
       }}
     >
       {loading ? loadingLabel : children}
@@ -161,7 +161,7 @@ export function AuthBanner({ variant = 'error', children }: { variant?: 'error' 
 /** Centered switch row at the bottom of a card ("Don't have an account? Sign up"). */
 export function AuthSwitch({ prompt, linkLabel, href }: { prompt?: ReactNode; linkLabel: ReactNode; href: string }) {
   return (
-    <div style={{ textAlign: 'center', marginTop: 22, fontFamily: HANKEN, fontSize: 14, color: '#6B6358' }}>
+    <div style={{ textAlign: 'center', marginTop: 22, fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)' }}>
       {prompt ? <>{prompt} </> : null}
       <Link href={href} style={{ ...emberLink, fontSize: 14 }}>{linkLabel}</Link>
     </div>

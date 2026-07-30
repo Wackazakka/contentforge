@@ -138,8 +138,8 @@ export default function DashboardPage() {
   return (
     <div>
       {organizationName && (
-        <div style={{ fontFamily: HANKEN, fontSize: 14.5, color: '#6B6358', marginBottom: 26 }}>
-          <span style={{ fontWeight: 700, color: '#1C1A16' }}>{organizationName}</span>
+        <div style={{ fontFamily: HANKEN, fontSize: 14.5, color: 'var(--text-muted)', marginBottom: 26 }}>
+          <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{organizationName}</span>
           {' · '}
           {products.length} {products.length !== 1 ? t('products') : t('product')}
         </div>
@@ -147,11 +147,11 @@ export default function DashboardPage() {
 
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 }}>
-        <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,42px)', lineHeight: 1, letterSpacing: '-0.01em', color: '#1C1A16', margin: 0 }}>{t('yourProducts')}</h1>
+        <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,42px)', lineHeight: 1, letterSpacing: '-0.01em', color: 'var(--ink)', margin: 0 }}>{t('yourProducts')}</h1>
         <button
           onClick={() => setShowProductModal(true)}
           className="cf-btn-ink"
-          style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: '#F4EEE2', background: '#1C1A16', border: 'none', borderRadius: 999, padding: '12px 22px', cursor: 'pointer', boxShadow: '0 10px 24px -12px rgba(28,26,22,0.5)' }}
+          style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--paper)', background: 'var(--ink)', border: 'none', borderRadius: 999, padding: '12px 22px', cursor: 'pointer', boxShadow: '0 10px 24px -12px color-mix(in srgb, var(--ink) 50%, transparent)' }}
         >
           {t('newProduct')}
         </button>
@@ -162,20 +162,20 @@ export default function DashboardPage() {
           <div className="cf-spinner" />
         </div>
       ) : products.length === 0 ? (
-        <div style={{ background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 32, boxShadow: '0 1px 2px rgba(70,45,20,0.04)' }}>
+        <div style={{ background: 'var(--paper-raised)', border: '1px solid var(--ds-border)', borderRadius: 18, padding: 32, boxShadow: '0 1px 2px rgba(70,45,20,0.04)' }}>
           <div style={{ maxWidth: 380, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
-            <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 20, color: '#1C1A16', margin: '0 0 8px' }}>{t('welcomeTitle', { name: tenant.app_name })}</h3>
-            <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: '#6B6358', margin: '0 0 26px' }}>{t('welcomeSubtitle')}</p>
+            <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 20, color: 'var(--ink)', margin: '0 0 8px' }}>{t('welcomeTitle', { name: tenant.app_name })}</h3>
+            <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 26px' }}>{t('welcomeSubtitle')}</p>
             <button
               onClick={() => setShowProductModal(true)}
               className="cf-btn-ink"
-              style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: '#F4EEE2', background: '#1C1A16', border: 'none', borderRadius: 999, padding: '12px 24px', cursor: 'pointer', marginBottom: 28 }}
+              style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--paper)', background: 'var(--ink)', border: 'none', borderRadius: 999, padding: '12px 24px', cursor: 'pointer', marginBottom: 28 }}
             >
               {t('createFirstProduct')}
             </button>
-            <div style={{ textAlign: 'left', borderTop: '1px solid #EFE7D8', paddingTop: 24 }}>
-              <p style={{ fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#A89C88', margin: '0 0 16px' }}>{t('howItWorksTitle')}</p>
+            <div style={{ textAlign: 'left', borderTop: '1px solid var(--ds-border-faint)', paddingTop: 24 }}>
+              <p style={{ fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-faint)', margin: '0 0 16px' }}>{t('howItWorksTitle')}</p>
               {[
                 { step: '1', title: t('step1Title'), desc: t('step1Desc') },
                 { step: '2', title: t('step2Title'), desc: t('step2Desc') },
@@ -184,8 +184,8 @@ export default function DashboardPage() {
                 <div key={step} style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
                   <div style={{ width: 24, height: 24, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: HANKEN, fontSize: 12, fontWeight: 700, color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', marginTop: 2 }}>{step}</div>
                   <div>
-                    <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: '#3A352C', margin: 0 }}>{title}</p>
-                    <p style={{ fontFamily: HANKEN, fontSize: 13, color: '#6B6358', margin: '2px 0 0' }}>{desc}</p>
+                    <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: 0 }}>{title}</p>
+                    <p style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>{desc}</p>
                   </div>
                 </div>
               ))}
@@ -199,9 +199,9 @@ export default function DashboardPage() {
               <Link
                 href={`/dashboard/products/${product.id}`}
                 className="cf-card"
-                style={{ display: 'block', background: '#FFFDF8', border: '1px solid #E6DDCC', borderRadius: 18, padding: 26, boxShadow: '0 1px 2px rgba(70,45,20,0.04)', textDecoration: 'none' }}
+                style={{ display: 'block', background: 'var(--paper-raised)', border: '1px solid var(--ds-border)', borderRadius: 18, padding: 26, boxShadow: '0 1px 2px rgba(70,45,20,0.04)', textDecoration: 'none' }}
               >
-                <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em', color: '#1C1A16', margin: '0 0 12px', paddingRight: 24, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 21, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 12px', paddingRight: 24, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {product.name}
                 </h3>
                 {product.category && (
@@ -210,18 +210,18 @@ export default function DashboardPage() {
                   </span>
                 )}
                 {product.description && (
-                  <p style={{ fontFamily: HANKEN, fontSize: 15, lineHeight: 1.55, color: '#6B6358', margin: '0 0 18px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.description}</p>
+                  <p style={{ fontFamily: HANKEN, fontSize: 15, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 18px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.description}</p>
                 )}
-                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', color: '#A89C88' }}>{t('created', { date: formatDate(product.created_at) })}</div>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', color: 'var(--text-faint)' }}>{t('created', { date: formatDate(product.created_at) })}</div>
               </Link>
               {/* Delete — top-right, only visible on hover */}
               <button
                 onClick={() => handleDeleteProduct(product.id)}
                 title="Slett produkt"
                 className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-md"
-                style={{ color: '#A89C88' }}
+                style={{ color: 'var(--text-faint)' }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ember-deep)'; e.currentTarget.style.background = '#FBEAE6' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#A89C88'; e.currentTarget.style.background = 'transparent' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; e.currentTarget.style.background = 'transparent' }}
               >
                 <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
                   <path d="M1 3h12M5 3V2h4v1M2 3l1 9h8l1-9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
