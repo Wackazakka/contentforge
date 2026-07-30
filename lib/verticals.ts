@@ -31,6 +31,24 @@ export const VERTICALS: Record<string, VerticalConfig> = {
     contactFields: true,
     logoUpload: true,
   },
+  // IndigoBoom: artister/band som promoterer egne slipp, konserter og seg selv.
+  // «Produktet» er bandet; beskrivelsen er bioen; kategorien er sjangeren.
+  music: {
+    categoryOptions: [
+      { value: 'pop', labelKey: 'categoryPop' },
+      { value: 'rock', labelKey: 'categoryRock' },
+      { value: 'hiphop', labelKey: 'categoryHiphop' },
+      { value: 'elektronisk', labelKey: 'categoryElektronisk' },
+      { value: 'country', labelKey: 'categoryCountry' },
+      { value: 'jazz', labelKey: 'categoryJazz' },
+      { value: 'metal', labelKey: 'categoryMetal' },
+      { value: 'visesang', labelKey: 'categoryVisesang' },
+      { value: 'annet', labelKey: 'categoryAnnet' },
+    ],
+    serviceAreaField: false,
+    contactFields: true,
+    logoUpload: true,
+  },
 }
 
 export function verticalConfig(vertical: string | null | undefined): VerticalConfig | null {

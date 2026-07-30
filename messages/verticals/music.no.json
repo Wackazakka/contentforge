@@ -1,0 +1,57 @@
+{
+  "productModal": {
+    "title": "Bandet ditt",
+    "productNameLabel": "Artist-/bandnavn *",
+    "productNamePlaceholder": "f.eks. Northern Lights",
+    "descriptionLabel": "Hvem er dere?",
+    "descriptionPlaceholder": "F.eks. Trio fra Bergen som lager melankolsk synthpop. Andre album på vei, spiller Vill Vill Vest i september.",
+    "descriptionHint": "Dette blir råstoffet til promoinnholdet ditt — medlemmer, historie, hva som gjør dere til dere.",
+    "categoryLabel": "Sjanger",
+    "categoryPop": "Pop",
+    "categoryRock": "Rock",
+    "categoryHiphop": "Hip-hop/R&B",
+    "categoryElektronisk": "Elektronisk",
+    "categoryCountry": "Country/Americana",
+    "categoryJazz": "Jazz",
+    "categoryMetal": "Metal",
+    "categoryVisesang": "Visesang/singer-songwriter",
+    "categoryAnnet": "Annen sjanger",
+    "createProduct": "Lagre bandet",
+    "errorNameRequired": "Artist-/bandnavn er påkrevd",
+    "websiteLabel": "Nettside eller linktre",
+    "websitePlaceholder": "f.eks. northernlights.no eller linktr.ee/northernlights",
+    "phoneLabel": "Booking-telefon",
+    "phonePlaceholder": "f.eks. 912 34 567",
+    "addressLabel": "Hjemby",
+    "addressPlaceholder": "f.eks. Bergen",
+    "logoLabel": "Bandbilde eller logo (valgfritt)",
+    "logoHint": "PNG, JPG, SVG eller WebP — maks 4 MB. Brukes på sluttplakaten i videoene.",
+    "errorPhoneInvalid": "Telefonnummeret ser ikke riktig ut — bruk siffer, gjerne med +47.",
+    "errorLogoTooBig": "Bildefilen er for stor (maks 4 MB)."
+  },
+  "dashboard": {
+    "yourProducts": "Bandet ditt",
+    "newProduct": "+ Legg til band",
+    "welcomeSubtitle": "Legg inn bandet ditt, så lager vi promoinnhold for slipp, konserter og alt dere gjør.",
+    "createFirstProduct": "+ Legg til bandet ditt",
+    "step1Title": "Fortell om bandet",
+    "step1Desc": "Navn, sjanger og hvem dere er — to setninger holder.",
+    "step2Title": "Få promoinnholdet laget",
+    "step2Desc": "Video med stemme, bilder og tekst — du godkjenner alt før det koster noe.",
+    "step3Desc": "Koble til Facebook og Instagram og publiser rett fra {name}."
+  },
+  "product": {
+    "phoneLabel": "Booking-telefon",
+    "phonePlaceholder": "f.eks. 912 34 567",
+    "phoneHint": "Vises på sluttplakaten i videoene.",
+    "addressLabel": "Hjemby",
+    "addressPlaceholder": "f.eks. Bergen"
+  },
+  "newDraft": {
+    "titlePlaceholder": "F.eks. Ny singel ute fredag",
+    "topicPlaceholder": "F.eks. Singelen «Nordlys» slippes fredag 15. august — forhåndslagre nå",
+    "targetAudiencePlaceholder": "F.eks. Folk som hører på melankolsk synthpop og norsk indie",
+    "problemPlaceholder": "F.eks. Ny musikk drukner i strømmen uten promo som skiller seg ut",
+    "ctaPlaceholder": "F.eks. Forhåndslagre på Spotify i dag"
+  }
+}

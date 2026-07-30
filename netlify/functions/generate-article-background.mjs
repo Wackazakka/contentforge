@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { buildSenderContext, fetchVerticalForOrganization } from '../../lib/senderContext.mjs'
 
 // Netlify Background Function (name ends in -background → up to 15 min, returns 202).
 // Moves the slow Claude call off the synchronous /api/content/produce/article path so long
@@ -100,23 +101,18 @@ export default async function handler(req) {
   console.log(`[bg-article] Starting ${platform} article ${articleId}: "${topic}"`)
 
   try {
-    // «Om avsenderen»-kontekst fra produktet — defensivt (mangler rad/kolonne ⇒ utelates)
+    // «Om avsenderen»-kontekst fra produktet — delt hjelper (lib/senderContext.mjs)
+    // med vertikal-bevisste etiketter. Defensivt (mangler rad/kolonne ⇒ utelates).
     let senderContext = ''
     if (productId) {
       try {
         const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-        const { data: p } = await sb.from('products').select('name, description, category').eq('id', productId).maybeSingle()
+        const { data: p } = await sb.from('products').select('name, description, category, organization_id').eq('id', productId).maybeSingle()
         // select('*') tåler at valgfrie kolonner (service_area/phone/address) mangler
         const prof = await sb.from('product_profiles').select('*').eq('product_id', productId).maybeSingle()
         const pr = prof.error ? null : prof.data
-        senderContext = [
-          p?.name ? `Sender (the business/product this article promotes): ${p.name}` : '',
-          p?.description ? `About the sender: ${p.description}` : '',
-          p?.category ? `Sender category/trade: ${p.category}` : '',
-          pr?.service_area ? `Sender service area: ${pr.service_area}` : '',
-          pr?.phone ? `Sender phone: ${pr.phone}` : '',
-          pr?.address ? `Sender address: ${pr.address}` : '',
-        ].filter(Boolean).join('\n')
+        const vertical = await fetchVerticalForOrganization(sb, p?.organization_id)
+        senderContext = buildSenderContext({ product: p, profile: pr, vertical, media: 'article' })
       } catch { /* kontekst er valgfri */ }
     }
 

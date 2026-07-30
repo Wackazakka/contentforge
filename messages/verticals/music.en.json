@@ -1,0 +1,57 @@
+{
+  "productModal": {
+    "title": "Your band",
+    "productNameLabel": "Artist/band name *",
+    "productNamePlaceholder": "e.g. Northern Lights",
+    "descriptionLabel": "Who are you?",
+    "descriptionPlaceholder": "E.g. Bergen trio making melancholic synthpop. Second album on the way, playing Vill Vill Vest in September.",
+    "descriptionHint": "This becomes the raw material for your promo content — members, history, what makes you you.",
+    "categoryLabel": "Genre",
+    "categoryPop": "Pop",
+    "categoryRock": "Rock",
+    "categoryHiphop": "Hip-hop/R&B",
+    "categoryElektronisk": "Electronic",
+    "categoryCountry": "Country/Americana",
+    "categoryJazz": "Jazz",
+    "categoryMetal": "Metal",
+    "categoryVisesang": "Singer-songwriter",
+    "categoryAnnet": "Other genre",
+    "createProduct": "Save band",
+    "errorNameRequired": "Artist/band name is required",
+    "websiteLabel": "Website or link tree",
+    "websitePlaceholder": "e.g. northernlights.no or linktr.ee/northernlights",
+    "phoneLabel": "Booking phone",
+    "phonePlaceholder": "e.g. 912 34 567",
+    "addressLabel": "Hometown",
+    "addressPlaceholder": "e.g. Bergen",
+    "logoLabel": "Band photo or logo (optional)",
+    "logoHint": "PNG, JPG, SVG or WebP — max 4 MB. Used on the end card in videos.",
+    "errorPhoneInvalid": "That phone number doesn't look right — use digits, optionally with +47.",
+    "errorLogoTooBig": "The image file is too big (max 4 MB)."
+  },
+  "dashboard": {
+    "yourProducts": "Your band",
+    "newProduct": "+ Add band",
+    "welcomeSubtitle": "Add your band and we'll create promo content for releases, shows and everything you do.",
+    "step1Title": "Tell us about the band",
+    "step1Desc": "Name, genre and who you are — two sentences is enough.",
+    "step2Title": "Get your promo made",
+    "step2Desc": "Video with voice, images and copy — you approve everything before it costs anything.",
+    "step3Desc": "Connect Facebook and Instagram and publish straight from {name}.",
+    "createFirstProduct": "+ Add your band"
+  },
+  "product": {
+    "phoneLabel": "Booking phone",
+    "phonePlaceholder": "e.g. 912 34 567",
+    "phoneHint": "Shown on the end card in videos.",
+    "addressLabel": "Hometown",
+    "addressPlaceholder": "e.g. Bergen"
+  },
+  "newDraft": {
+    "titlePlaceholder": "E.g. New single out Friday",
+    "topicPlaceholder": "E.g. Our single \"Northern Lights\" drops Friday August 15 — pre-save now",
+    "targetAudiencePlaceholder": "E.g. People who listen to melancholic synthpop and Nordic indie",
+    "problemPlaceholder": "E.g. New music drowns in the feed without promo that stands out",
+    "ctaPlaceholder": "E.g. Pre-save on Spotify today"
+  }
+}

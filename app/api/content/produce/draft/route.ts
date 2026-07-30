@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { buildSenderContext, fetchVerticalForOrganization } from '@/lib/senderContext.mjs'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -183,22 +184,16 @@ export async function POST(request: NextRequest) {
     const effectiveCta = cta?.trim() || (websiteUrl ? `Besøk ${websiteUrl}` : '')
     console.log(`[generateDraft] CTA: "${effectiveCta}" (websiteUrl: ${websiteUrl})`)
 
-    // «Om avsenderen»-kontekst: produktet/bedriften bak videoen — gjør beskrivelsen
-    // til ekte råstoff for manuset (var tidligere ulest). Defensivt: mangler rad ⇒ utelates.
+    // «Om avsenderen»-kontekst: produktet/bedriften/artisten bak videoen —
+    // delt hjelper (lib/senderContext.mjs) med vertikal-bevisste etiketter.
+    // Defensivt: mangler rad/vertikal ⇒ default-etiketter eller utelates.
     const { data: productRow } = await supabaseForProfile
       .from('products')
-      .select('name, description, category')
+      .select('name, description, category, organization_id')
       .eq('id', productId)
       .maybeSingle()
-    const senderContext = [
-      productRow?.name ? `Sender (the business/product this video promotes): ${productRow.name}` : '',
-      productRow?.description ? `About the sender: ${productRow.description}` : '',
-      productRow?.category ? `Sender category/trade: ${productRow.category}` : '',
-      profile?.service_area ? `Sender service area: ${profile.service_area}` : '',
-      profile?.phone ? `Sender phone: ${profile.phone}` : '',
-      profile?.address ? `Sender address: ${profile.address}` : '',
-      websiteUrl ? `Sender website: ${websiteUrl}` : '',
-    ].filter(Boolean).join('\n')
+    const vertical = await fetchVerticalForOrganization(supabaseForProfile, productRow?.organization_id)
+    const senderContext = buildSenderContext({ product: productRow, profile, vertical, media: 'video' })
 
     // Step 1: Generate script with Claude (NO IMAGE GENERATION)
     console.log(`[generateDraft] Step 1: Generating script...`)
