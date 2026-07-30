@@ -209,7 +209,7 @@ export default function RadioAdPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-10">
         <div className="mb-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] text-sm mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[var(--ink)] text-sm mb-4 inline-block">
             ← Tilbake til produkt
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">Radioreklame</h1>
@@ -635,7 +635,7 @@ export default function RadioAdPage() {
 
           <button type="submit"
             disabled={loading || uploadingSegments || !script.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
-            className="w-full bg-[var(--ember-deep)] hover:bg-[#1C1A16] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+            className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
             {uploadingSegments ? 'Laster opp segmenter…' : loading ? 'Starter produksjon…' : '🎙️ Produser radioreklame'}
           </button>
 

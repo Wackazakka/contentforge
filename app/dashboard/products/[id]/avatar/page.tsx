@@ -393,7 +393,7 @@ export default function AvatarVideoPage() {
                 <div className="flex items-center justify-center gap-4 flex-wrap">
                   <button
                     onClick={() => setJobId(null)}
-                    className="px-4 py-2 rounded-lg bg-[var(--ember-deep)] text-white text-sm font-medium hover:bg-[#1C1A16]"
+                    className="px-4 py-2 rounded-lg bg-[var(--ember-deep)] text-white text-sm font-medium hover:bg-[var(--ink)]"
                   >
                     ✏️ Tilbake til redigering
                   </button>
@@ -433,7 +433,7 @@ export default function AvatarVideoPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-10">
         <div className="mb-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] text-sm mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[var(--ink)] text-sm mb-4 inline-block">
             ← Tilbake til produkt
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">Avatar Video</h1>
@@ -906,7 +906,7 @@ export default function AvatarVideoPage() {
                           type="button"
                           onClick={() => generateSegmentAudio(i)}
                           disabled={seg.generating || !seg.text.trim()}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[var(--ember-deep)] text-white hover:bg-[#1C1A16] disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-[var(--ember-deep)] text-white hover:bg-[var(--ink)] disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                         >
                           {seg.generating ? '⏳ Genererer…' : seg.audioBlob ? '↻ Regenerer' : '▶ Generer tale'}
                         </button>
@@ -995,7 +995,7 @@ export default function AvatarVideoPage() {
                       }
                       input.value = ''
                     }}
-                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)]"
                   />
                 </label>
               </div>
@@ -1218,7 +1218,7 @@ export default function AvatarVideoPage() {
           <button
             type="submit"
             disabled={loading || uploadingSegments || !script.trim() || !avatarImageUrl.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
-            className="w-full bg-[var(--ember-deep)] hover:bg-[#1C1A16] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
           >
             {uploadingSegments ? 'Laster opp segmenter…' : loading ? 'Starter produksjon…' : 'Generer avatar-video'}
           </button>

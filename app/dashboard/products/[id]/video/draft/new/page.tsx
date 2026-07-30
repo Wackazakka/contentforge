@@ -461,7 +461,7 @@ export default function NewDraftPage() {
                 type="submit"
                 disabled={loading}
                 className={`flex-1 px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
-                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--ember-deep)] hover:bg-[#1C1A16]'
+                  loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--ember-deep)] hover:bg-[var(--ink)]'
                 }`}
               >
                 {loading ? t('creatingDraft') : t('createDraft')}

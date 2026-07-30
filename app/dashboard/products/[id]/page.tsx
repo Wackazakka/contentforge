@@ -527,7 +527,7 @@ export default function ProductPage() {
     return (
       <div className="min-h-screen bg-[var(--paper)]">
         <div className="max-w-6xl mx-auto px-6 py-8">
-          <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">
+          <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">
             {t('backToDashboard')}
           </Link>
           <div className="text-center py-12">

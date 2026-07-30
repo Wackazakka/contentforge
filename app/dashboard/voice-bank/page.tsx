@@ -235,7 +235,7 @@ export default function VoiceBankAdminPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">← Tilbake</Link>
+        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Tilbake</Link>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🎙️ Stemmebank</h1>
         <p className="text-gray-600 mb-8">
           {tenantName ? `Skuespillerstemmene til ${tenantName}` : 'Skuespillerstemmer'} — satser, bruk og hva som skal betales ut.

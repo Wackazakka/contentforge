@@ -283,7 +283,7 @@ export default function ArticlePage() {
                     <button
                       key={style.key}
                       onClick={() => setImageStyle(style.key)}
-                      className={`text-left px-3 py-2 rounded-lg border text-sm transition-colors ${imageStyle === style.key ? "border-[var(--ember-deep)] bg-[var(--ember-tint-bg)] text-[#1C1A16]" : "border-gray-200 hover:border-gray-300 text-gray-700"}`}
+                      className={`text-left px-3 py-2 rounded-lg border text-sm transition-colors ${imageStyle === style.key ? "border-[var(--ember-deep)] bg-[var(--ember-tint-bg)] text-[var(--ink)]" : "border-gray-200 hover:border-gray-300 text-gray-700"}`}
                     >
                       <span className="font-medium">{style.name}</span>
                       <span className="text-xs text-gray-500 block">{style.desc}</span>
@@ -319,7 +319,7 @@ export default function ArticlePage() {
               <button
                 onClick={generateArticles}
                 disabled={loading}
-                className="w-full bg-[var(--ember-deep)] hover:bg-[#1C1A16] disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 {loading ? t('generating') : t('generate')}
               </button>
@@ -363,7 +363,7 @@ export default function ArticlePage() {
                           <button
                             onClick={() => saveEdit(article.id)}
                             disabled={saving}
-                            className="px-4 py-1.5 bg-[var(--ember-deep)] hover:bg-[#1C1A16] disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="px-4 py-1.5 bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
                           >
                             {saving ? t('saving') : t('saveEdit')}
                           </button>

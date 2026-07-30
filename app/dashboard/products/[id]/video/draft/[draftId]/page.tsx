@@ -923,7 +923,7 @@ export default function DraftPage() {
     return (
       <div className="min-h-screen bg-[var(--paper)]">
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">
             {t('backToProduct')}
           </Link>
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">{error || t('draftNotFound')}</div>
@@ -937,7 +937,7 @@ export default function DraftPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[#1C1A16] mb-4 inline-block">
+          <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">
             {t('backToProduct')}
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
@@ -1061,7 +1061,7 @@ export default function DraftPage() {
                       el.value = ''
                     }
                   }}
-                  className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
+                  className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)] disabled:opacity-50"
                 />
               </div>
               <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene du vil bruke (MP3, maks 50MB) — egen musikk, eller musikk du har rett til å bruke. Kun synlige for denne artisten. Flere låter? Lag en medley.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
@@ -1170,7 +1170,7 @@ export default function DraftPage() {
                       el.value = ''
                     }
                   }}
-                  className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
+                  className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)] disabled:opacity-50"
                 />
               </div>
               <p className="text-xs text-gray-400 mt-1">{jingleUploading ? 'Laster opp jingle…' : 'Spilles på sluttplakaten.'}</p>
@@ -1293,7 +1293,7 @@ export default function DraftPage() {
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg px-5 py-4 flex items-center gap-3">
             <div className="w-5 h-5 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-[#1C1A16]">
+              <p className="text-sm font-medium text-[var(--ink)]">
                 {t('generatingImages', { done: draft.segments.length - generatingImages.size, total: draft.segments.length })}
               </p>
               <p className="text-xs text-[var(--ember-deep)] mt-0.5">{t('generatingImagesHint')}</p>
@@ -1527,7 +1527,7 @@ export default function DraftPage() {
                       className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                         segment.approved
                           ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-[var(--ember-deep)] hover:bg-[#1C1A16] text-white'
+                          : 'bg-[var(--ember-deep)] hover:bg-[var(--ink)] text-white'
                       }`}
                     >
                       {segment.approved ? t('approvedButton') : t('approveButton')}
