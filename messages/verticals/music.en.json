@@ -48,7 +48,11 @@
     "phonePlaceholder": "e.g. 912 34 567",
     "phoneHint": "Shown on the end card in videos.",
     "addressLabel": "Hometown",
-    "addressPlaceholder": "e.g. Bergen"
+    "addressPlaceholder": "e.g. Bergen",
+    "brandProfile": "Your look and sound",
+    "profileSaved": "✅ Saved!",
+    "brandVoiceLabel": "Your tone",
+    "brandVoicePlaceholder": "How do you talk to your fans? E.g. raw and direct, warm and close, mysterious …"
   },
   "newDraft": {
     "titlePlaceholder": "E.g. New single out Friday",

@@ -48,7 +48,11 @@
     "phonePlaceholder": "f.eks. 912 34 567",
     "phoneHint": "Vises på sluttplakaten i videoene.",
     "addressLabel": "Hjemby",
-    "addressPlaceholder": "f.eks. Bergen"
+    "addressPlaceholder": "f.eks. Bergen",
+    "brandProfile": "Uttrykket ditt",
+    "profileSaved": "✅ Lagret!",
+    "brandVoiceLabel": "Tonen deres",
+    "brandVoicePlaceholder": "Hvordan snakker dere til fansen? F.eks. rått og direkte, varmt og nært, mystisk …"
   },
   "newDraft": {
     "titlePlaceholder": "F.eks. Ny singel ute fredag",

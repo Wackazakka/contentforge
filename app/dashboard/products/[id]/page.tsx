@@ -851,7 +851,7 @@ export default function ProductPage() {
             >
               <div className="text-2xl mb-2">🎙️</div>
               <h3 className="font-semibold text-gray-900">Radioreklame</h3>
-              <p className="text-sm text-gray-600 mt-1">Manus + ElevenLabs voiceover → MP3 klar til nedlasting</p>
+              <p className="text-sm text-gray-600 mt-1">Manus og innlest stemme — ferdig MP3 klar til nedlasting</p>
             </Link>
 
             <Link
@@ -860,7 +860,7 @@ export default function ProductPage() {
             >
               <div className="text-2xl mb-2">🧑‍💼</div>
               <h3 className="font-semibold text-gray-900">Avatar Video</h3>
-              <p className="text-sm text-gray-600 mt-1">Lip-sync avatar-video fra manus og bilde via AI</p>
+              <p className="text-sm text-gray-600 mt-1">En AI-vert fremfører manuset ditt med lyd og leppebevegelser</p>
             </Link>
 
             <button
