@@ -55,31 +55,31 @@ export default function DashboardPage() {
         if (error) throw error
         let orgList: Array<{ id: string; name: string }> = orgs || []
 
-        // Selvreparasjon: registreringens org-insert blokkeres av RLS når
-        // e-postbekreftelse er på (ingen sesjon ennå). Har brukeren INGEN
-        // organisasjoner i det hele tatt, opprettes den her — nå finnes
-        // sesjonen, så RLS godtar insert-en. Gjelder kun helt ferske kontoer.
+        // Selvreparasjon, to tilfeller med samme løsning:
+        // (1) Helt fersk konto: registreringens org-insert ble RLS-blokkert
+        //     (e-postbekreftelse på → ingen sesjon ved registrering).
+        // (2) Konto fra en ANNEN white-label (Lars' funn 2026-07-30): samme
+        //     e-post kan ikke registreres på nytt (Supabase-auth deles på
+        //     tvers av tenants), så uten dette var «Registrer deg på dette
+        //     domenet» en blindvei. Produkter lekker ikke — de filtreres
+        //     fortsatt per tenant; brukeren får et tomt arbeidsområde her.
+        // Har brukeren ingen organisasjon på DETTE domenets tenant, opprettes
+        // den nå (sesjonen finnes, så RLS godtar insert-en).
         if (orgList.length === 0) {
-          const { count } = await supabase
+          const fullName = (session.user.user_metadata as any)?.full_name || session.user.email?.split('@')[0] || 'Min'
+          const { data: newOrg, error: createErr } = await supabase
             .from('organizations')
-            .select('id', { count: 'exact', head: true })
-            .eq('owner_id', session.user.id)
-          if ((count ?? 0) === 0) {
-            const fullName = (session.user.user_metadata as any)?.full_name || session.user.email?.split('@')[0] || 'Min'
-            const { data: newOrg, error: createErr } = await supabase
-              .from('organizations')
-              .insert({
-                name: fullName + "'s Organization",
-                owner_id: session.user.id,
-                slug: (session.user.email?.split('@')[0] || 'org').toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + session.user.id.substring(0, 8),
-                description: 'Default organization for ' + fullName,
-                ...(/^[0-9a-f-]{36}$/i.test(tenant.id) ? { tenant_id: tenant.id } : {}),
-              })
-              .select('id, name')
-              .single()
-            if (createErr) console.error('[Dashboard] Selvreparasjon av org feilet:', createErr.message)
-            else if (newOrg) orgList = [newOrg]
-          }
+            .insert({
+              name: fullName + "'s Organization",
+              owner_id: session.user.id,
+              slug: (session.user.email?.split('@')[0] || 'org').toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + session.user.id.substring(0, 8) + (tenant.slug !== 'centerforge' ? '-' + tenant.slug : ''),
+              description: 'Default organization for ' + fullName,
+              ...(/^[0-9a-f-]{36}$/i.test(tenant.id) ? { tenant_id: tenant.id } : {}),
+            })
+            .select('id, name')
+            .single()
+          if (createErr) console.error('[Dashboard] Selvreparasjon av org feilet:', createErr.message)
+          else if (newOrg) orgList = [newOrg]
         }
 
         if (orgList.length > 0) {
