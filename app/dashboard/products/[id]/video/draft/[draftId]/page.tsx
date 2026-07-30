@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl'
 import { COSTS_NOK, fmtNok, fmtCredits } from '@/lib/costs'
 import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
+import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 const VOICES = [
@@ -804,26 +805,39 @@ export default function DraftPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
               >
                 <option value="">Ingen musikk</option>
-                {musicLibrary.filter((m) => !(m.folder || '').startsWith('jingles')).map((m) => (
-                  <option key={m.filename} value={m.filename}>{m.name}</option>
-                ))}
+                {ownTracks(musicLibrary, productId).length > 0 && (
+                  <optgroup label={tenantInfo.vertical === 'music' ? '🎤 Låtene dine' : 'Egen musikk (dette produktet)'}>
+                    {ownTracks(musicLibrary, productId).map((m) => (
+                      <option key={m.filename} value={m.filename}>{m.name}</option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="Musikkbibliotek">
+                  {sharedMusic(musicLibrary).map((m) => (
+                    <option key={m.filename} value={m.filename}>{m.name}</option>
+                  ))}
+                </optgroup>
               </select>
               {draft.music_file && (
                 <audio controls preload="none" src={`/api/music/${encodeURIComponent(draft.music_file)}`} className="mt-2 w-full" />
               )}
               {/* Last opp egen bakgrunnsmusikk → valgt mappe → auto-velges */}
               <div className="mt-2 flex items-center gap-2">
-                <select
-                  value={musicFolder}
-                  onChange={(e) => setMusicFolder(e.target.value)}
-                  className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-white"
-                  title="Mappe for opplastet musikk"
-                >
-                  <option value="global">Felles</option>
-                  <option value="bildeal">BilDeal</option>
-                  <option value="reforhandle">Reforhandle</option>
-                  <option value="singlepicker">SinglePicker</option>
-                </select>
+                {/* Legacy delt-mappe-velger: kun rot (biblioteksvedlikehold).
+                    Tenanter laster opp produkt-scopet (tracks-<productId>). */}
+                {tenantInfo.slug === 'centerforge' && (
+                  <select
+                    value={musicFolder}
+                    onChange={(e) => setMusicFolder(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-white"
+                    title="Mappe for opplastet musikk (rot)"
+                  >
+                    <option value="global">Felles</option>
+                    <option value="bildeal">BilDeal</option>
+                    <option value="reforhandle">Reforhandle</option>
+                    <option value="singlepicker">SinglePicker</option>
+                  </select>
+                )}
                 <input
                   type="file"
                   accept=".mp3"
@@ -832,12 +846,15 @@ export default function DraftPage() {
                     const el = e.currentTarget
                     const file = el.files?.[0]
                     if (!file) return
+                    const isRootSharedUpload = tenantInfo.slug === 'centerforge'
+                    const maxBytes = isRootSharedUpload ? 4 * 1024 * 1024 : TRACK_MAX_BYTES
                     if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer.'); el.value = ''; return }
-                    if (file.size > 4 * 1024 * 1024) { alert('Filen er for stor (maks 4MB).'); el.value = ''; return }
+                    if (file.size > maxBytes) { alert(`Filen er for stor (maks ${isRootSharedUpload ? 4 : 15}MB).`); el.value = ''; return }
                     setMusicUploading(true)
                     try {
+                      const folder = isRootSharedUpload ? musicFolder : tracksFolder(productId)
                       const fd = new FormData(); fd.append('file', file)
-                      const res = await fetch(`/api/music/upload?folder=${encodeURIComponent(musicFolder)}`, { method: 'POST', body: fd })
+                      const res = await fetch(`/api/music/upload?folder=${encodeURIComponent(folder)}`, { method: 'POST', body: fd })
                       if (res.ok) {
                         const up = await res.json()
                         const data = await fetch('/api/music').then((r) => r.json())
@@ -856,7 +873,7 @@ export default function DraftPage() {
                   className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16] disabled:opacity-50"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).'}</p>
+              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp egne låter (MP3, maks 15MB) — de er kun synlige for dette bandet.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
             </div>
 
             {/* Jingle på sluttplakat */}

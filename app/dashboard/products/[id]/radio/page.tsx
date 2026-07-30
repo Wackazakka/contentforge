@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
+import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
@@ -463,38 +464,64 @@ export default function RadioAdPage() {
             <p className="text-xs text-gray-500">Musikken mikses inn på 15% volum bak voiceover-lyden.</p>
 
             <div className="border-2 border-dashed border-gray-200 rounded-lg p-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid ${tenantInfo.slug === 'centerforge' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
                 <label className="block">
-                  <span className="text-xs font-medium text-gray-700 block mb-1">Mappe</span>
-                  <select value={selectedMusicFolder} onChange={(e) => setSelectedMusicFolder(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    <option value="global">Global</option>
-                    <option value="bildeal">BilDeal</option>
-                    <option value="reforhandle">Reforhandle</option>
-                    <option value="singlepicker">SinglePicker</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="text-xs font-medium text-gray-700 block mb-1">Last opp MP3</span>
+                  <span className="text-xs font-medium text-gray-700 block mb-1">
+                    {tenantInfo.vertical === 'music' ? 'Last opp egen låt (MP3, maks 15 MB)' : 'Last opp egen musikk (MP3, maks 15 MB)'}
+                  </span>
                   <input type="file" accept=".mp3"
                     onChange={async (e) => {
                       const input = e.currentTarget
                       const file = input.files?.[0]
                       if (!file) return
                       if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer støttes.'); input.value = ''; return }
-                      if (file.size > 4 * 1024 * 1024) { alert(`Filen er for stor. Maks 4 MB.`); input.value = ''; return }
+                      if (file.size > TRACK_MAX_BYTES) { alert('Filen er for stor. Maks 15 MB.'); input.value = ''; return }
                       const formData = new FormData()
                       formData.append('file', file)
                       try {
-                        const res = await fetch(`/api/music/upload?folder=${selectedMusicFolder}`, { method: 'POST', body: formData })
+                        // Produkt-scopet: synlig kun i dette produktet (tracks-<productId>)
+                        const res = await fetch(`/api/music/upload?folder=${tracksFolder(productId)}`, { method: 'POST', body: formData })
                         if (res.ok) { await refreshMusicLibrary(); alert('Lastet opp!') }
                         else alert('Opplasting feilet: ' + await res.text())
                       } catch { alert('Opplasting feilet.') }
                       input.value = ''
                     }}
-                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[#1C1A16]"
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)]"
                   />
                 </label>
+                {/* Legacy delt-mappe-opplasting: kun rot-tenanten (biblioteksvedlikehold) */}
+                {tenantInfo.slug === 'centerforge' && (
+                  <label className="block">
+                    <span className="text-xs font-medium text-gray-700 block mb-1">Til delt mappe (rot)</span>
+                    <div className="flex gap-2">
+                      <select value={selectedMusicFolder} onChange={(e) => setSelectedMusicFolder(e.target.value)}
+                        className="px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="global">Global</option>
+                        <option value="bildeal">BilDeal</option>
+                        <option value="reforhandle">Reforhandle</option>
+                        <option value="singlepicker">SinglePicker</option>
+                      </select>
+                      <input type="file" accept=".mp3"
+                        onChange={async (e) => {
+                          const input = e.currentTarget
+                          const file = input.files?.[0]
+                          if (!file) return
+                          if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer støttes.'); input.value = ''; return }
+                          if (file.size > 4 * 1024 * 1024) { alert(`Filen er for stor. Maks 4 MB.`); input.value = ''; return }
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          try {
+                            const res = await fetch(`/api/music/upload?folder=${selectedMusicFolder}`, { method: 'POST', body: formData })
+                            if (res.ok) { await refreshMusicLibrary(); alert('Lastet opp!') }
+                            else alert('Opplasting feilet: ' + await res.text())
+                          } catch { alert('Opplasting feilet.') }
+                          input.value = ''
+                        }}
+                        className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)]"
+                      />
+                    </div>
+                  </label>
+                )}
               </div>
             </div>
 
@@ -508,7 +535,12 @@ export default function RadioAdPage() {
                   }`}>
                   Ingen musikk
                 </button>
-                {musicLibrary.filter((m) => !(m.folder || '').startsWith('jingles')).map((m) => (
+                {ownTracks(musicLibrary, productId).length > 0 && (
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide pt-1">
+                    {tenantInfo.vertical === 'music' ? '🎤 Låtene dine' : 'Egen musikk (dette produktet)'}
+                  </p>
+                )}
+                {[...ownTracks(musicLibrary, productId), ...sharedMusic(musicLibrary)].map((m) => (
                   <div key={m.filename} onClick={() => setMusicFile(m.filename)}
                     className={`w-full text-left p-3 border-2 rounded-lg transition-colors cursor-pointer ${
                       musicFile === m.filename ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
