@@ -147,7 +147,11 @@ export function generatePalette(opts?: { dark?: boolean }): Palette {
   // farge ikke bli annet enn pastell, uansett metning. Mellomsjiktet er der en
   // flate faktisk viser farge.
   const mood: 'lys' | 'mellom' | 'mørk' =
-    opts?.dark ? 'mørk' : pick(['lys', 'lys', 'lys', 'lys', 'mellom', 'mellom', 'mørk', 'mørk'])
+    // Jevn tredeling. Var 50/25/25, men da ser man sjelden en mellomtone i et
+    // lite utvalg — og mellomtonene er nettopp de som viser kulør. Dette er en
+    // ren smaksinnstilling: endre vektene her for å skifte hvor ofte hver
+    // stemning dukker opp.
+    opts?.dark ? 'mørk' : pick(['lys', 'mellom', 'mørk'])
   const dark = mood === 'mørk'
 
   // Sideflaten skal ha SYNLIG kulør — den er frøet hele paletten hviler på.
