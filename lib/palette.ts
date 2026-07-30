@@ -132,6 +132,62 @@ const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
 const between = (lo: number, hi: number) => lo + Math.random() * (hi - lo)
 
 /**
+ * Bygger en palett rundt en GITT merkefarge, i stedet for å trekke tilfeldig.
+ *
+ * Poenget er arbeidsdelingen: merkefargen havner på aksenten, der den dekker lite
+ * areal og bare trenger én tekstfarge oppå seg. Sideflaten blir en dempet slektning
+ * — samme kulør, mye lavere metning. En sterk farge som SIDEFLATE har nemlig ikke
+ * plass til et teksthierarki: knall rød (#E01B1B) gir 4,84:1 mot hvit og 4,34 mot
+ * svart, så alle fire tekstnivåer må klemmes inn mellom lyshet 80 og 97 og blir
+ * umulige å skille. Til sammenligning gir en lys sideflate 18:1.
+ *
+ * Merkefargen beholdes EKSAKT på `--ember`. Det er `--ember-deep` som mørknes til
+ * den bærer hvit tekst — den er det knappene faktisk bruker — slik at merkevaren
+ * ikke justeres bak ryggen på noen.
+ */
+export function paletteFromBrand(brand: string, opts?: { dark?: boolean }): Palette {
+  const b = hexToHsl(brand)
+  const dark = opts?.dark ?? false
+
+  // Dyp variant: mørkne merkefargen til hvit tekst er trygg på den.
+  let deep = hslToHex({ ...b, l: Math.max(0, b.l - 10) })
+  for (let d = 10; d <= 100 && contrast('#FFFFFF', deep) < 4.5; d += 2) {
+    deep = hslToHex({ ...b, l: Math.max(0, b.l - d) })
+  }
+  const onEmber = contrast('#FFFFFF', brand) >= contrast('#141414', brand) ? '#FFFFFF' : '#141414'
+
+  // Sideflaten: samme kulør, kraftig dempet. Det er slektskapet som gjør at
+  // paletten henger sammen, ikke styrken.
+  const surfSat = dark ? Math.min(26, b.s * 0.28) : Math.min(34, b.s * 0.20)
+  const paperL = dark ? 11 : 94
+  const paper = hslToHex({ h: b.h, s: surfSat, l: paperL })
+
+  const textSat = Math.min(14, b.s * 0.16)
+  const tl = dark ? [96, 84, 70, 56] : [10, 24, 38, 54]
+  const bl = dark ? [24, 34, 18] : [86, 78, 91]
+  const bs = surfSat * 0.5
+
+  return {
+    '--ember': brand.toUpperCase(),
+    '--ember-deep': deep,
+    '--ember-tint-bg': hslToHex({ h: b.h, s: Math.min(42, b.s * 0.45), l: dark ? 19 : 93 }),
+    '--ember-tint-border': hslToHex({ h: b.h, s: Math.min(48, b.s * 0.5), l: dark ? 29 : 83 }),
+    '--on-ember': onEmber,
+    '--paper': paper,
+    '--paper-raised': hslToHex({ h: b.h, s: surfSat * 0.6, l: dark ? paperL + 5 : paperL + 3 }),
+    '--paper-sunken': hslToHex({ h: b.h, s: surfSat, l: dark ? paperL + 2.5 : paperL - 3 }),
+    '--band': hslToHex({ h: b.h, s: surfSat * 1.2, l: dark ? paperL + 8 : paperL - 7 }),
+    '--ink': ensureContrast(hslToHex({ h: b.h, s: textSat, l: tl[0] }), paper, 7),
+    '--ink-soft': ensureContrast(hslToHex({ h: b.h, s: textSat * 0.9, l: tl[1] }), paper, 5.5),
+    '--text-muted': ensureContrast(hslToHex({ h: b.h, s: textSat * 0.8, l: tl[2] }), paper, 4.5),
+    '--text-faint': ensureContrast(hslToHex({ h: b.h, s: textSat * 0.7, l: tl[3] }), paper, 3),
+    '--ds-border': hslToHex({ h: b.h, s: bs, l: bl[0] }),
+    '--ds-border-strong': hslToHex({ h: b.h, s: bs, l: bl[1] }),
+    '--ds-border-faint': hslToHex({ h: b.h, s: bs * 0.8, l: bl[2] }),
+  }
+}
+
+/**
  * Lager en sammenhengende palett fra ett tilfeldig frø.
  *
  * Frøet er sideflaten: en kulør, og om paletten er lys eller mørk. Aksenten
