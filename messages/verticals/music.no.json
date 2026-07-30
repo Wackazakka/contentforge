@@ -1,9 +1,9 @@
 {
   "productModal": {
-    "title": "Bandet ditt",
+    "title": "Artisten din",
     "productNameLabel": "Artist-/bandnavn *",
     "productNamePlaceholder": "f.eks. Northern Lights",
-    "descriptionLabel": "Hvem er dere?",
+    "descriptionLabel": "Om artisten",
     "descriptionPlaceholder": "F.eks. Trio fra Bergen som lager melankolsk synthpop. Andre album på vei, spiller Vill Vill Vest i september.",
     "descriptionHint": "Dette blir råstoffet til promoinnholdet ditt — medlemmer, historie, hva som gjør dere til dere.",
     "categoryLabel": "Sjanger",
@@ -16,7 +16,7 @@
     "categoryMetal": "Metal",
     "categoryVisesang": "Visesang/singer-songwriter",
     "categoryAnnet": "Annen sjanger",
-    "createProduct": "Lagre bandet",
+    "createProduct": "Lagre artisten",
     "errorNameRequired": "Artist-/bandnavn er påkrevd",
     "websiteLabel": "Nettside eller Linktree (én side med alle lenkene dine)",
     "websitePlaceholder": "f.eks. northernlights.no eller linktr.ee/northernlights",
@@ -24,7 +24,7 @@
     "phonePlaceholder": "f.eks. 912 34 567",
     "addressLabel": "Hjemby",
     "addressPlaceholder": "f.eks. Bergen",
-    "logoLabel": "Bandbilde eller logo (valgfritt)",
+    "logoLabel": "Artistbilde eller logo (valgfritt)",
     "logoHint": "PNG, JPG, SVG eller WebP — maks 4 MB. Brukes på sluttplakaten i videoene.",
     "errorPhoneInvalid": "Telefonnummeret ser ikke riktig ut — bruk siffer, gjerne med +47.",
     "errorLogoTooBig": "Bildefilen er for stor (maks 4 MB).",
@@ -33,12 +33,12 @@
     "logoUploadFailedNonFatal": "Bandet er lagret, men bildet ble ikke lastet opp. Prøv igjen fra bandsiden."
   },
   "dashboard": {
-    "yourProducts": "Bandet ditt",
-    "newProduct": "+ Legg til band",
-    "welcomeSubtitle": "Legg inn bandet ditt, så lager vi promoinnhold for slipp, konserter og alt dere gjør.",
-    "createFirstProduct": "+ Legg til bandet ditt",
-    "step1Title": "Fortell om bandet",
-    "step1Desc": "Navn, sjanger og hvem dere er — to setninger holder.",
+    "yourProducts": "Artisten din",
+    "newProduct": "+ Legg til artist",
+    "welcomeSubtitle": "Legg inn artisten eller bandet ditt, så lager vi promoinnhold for slipp, konserter og alt dere gjør.",
+    "createFirstProduct": "+ Legg til artisten din",
+    "step1Title": "Fortell om artisten",
+    "step1Desc": "Navn, sjanger og hvem du eller dere er — to setninger holder.",
     "step2Title": "Få promoinnholdet laget",
     "step2Desc": "Video med stemme, bilder og tekst — du godkjenner alt før det koster noe.",
     "step3Desc": "Koble til Facebook og Instagram og publiser rett fra {name}."
