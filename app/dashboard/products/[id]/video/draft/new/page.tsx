@@ -320,9 +320,14 @@ export default function NewDraftPage() {
                   </div>
                 </div>
 
-                {/* Karakter (konsistent vert i alle segmentbilder via flux-lora) */}
+                {/* Karakter (konsistent vert i alle segmentbilder via flux-lora).
+                    For music-vertikalen forklares forskjellen fra artistbildet
+                    eksplisitt (Lars' funn 2026-07-30: «jeg har jo allerede
+                    lastet opp et artistbilde») — de er to ulike ting. */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">🧑‍🎤 Karakter (valgfritt)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🧑‍🎤 {tenant.vertical === 'music' ? 'En person i videobildene (valgfritt)' : 'Karakter (valgfritt)'}
+                  </label>
                   <select
                     value={character}
                     onChange={(e) => setCharacter(e.target.value)}
@@ -343,7 +348,11 @@ export default function NewDraftPage() {
                       </optgroup>
                     )}
                   </select>
-                  <p className="text-xs text-gray-400 mt-1">Samme vert i alle segmentbildene (AI-persona). <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag din egen karakter →</a></p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {tenant.vertical === 'music'
+                      ? <>Ikke det samme som artistbildet ditt (det brukes på sluttplakaten). Dette er en AI-versjon av et menneske som kan opptre i selve scenene — den lages fra flere bilder. <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag en AI-versjon av deg selv →</a></>
+                      : <>Samme vert i alle videobildene (AI-persona). <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag din egen karakter →</a></>}
+                  </p>
                 </div>
               </div>
             </div>
