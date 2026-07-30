@@ -221,8 +221,12 @@ export default function DraftPage() {
           setOutroJingle(data.outro_jingle)
         }
 
-        // Auto-generate images in background (fire and forget)
-        if (data.segments && productId) {
+        // Auto-generate images in background (fire and forget).
+        // IKKE for music-vertikalen (Lars 2026-07-30): AI-genererte «generiske
+        // band» er feil band — artister skal velge egne pressebilder/artwork
+        // fra bildebiblioteket i stedet. AI-generering finnes fortsatt som
+        // eksplisitt valg per segment.
+        if (data.segments && productId && tenantInfo.vertical !== 'music') {
           console.log('[DraftPage] Starting auto image generation (background)...')
           generateImagesForAllSegments(data) // intentionally not awaited
         }
@@ -527,6 +531,60 @@ export default function DraftPage() {
     } catch (err) {
       console.error('[splitSegment] Error:', err)
       alert('Feil ved deling av segment')
+    }
+  }
+
+  // Bildebibliotek per artist (Lars 2026-07-30): for music-vertikalen duger
+  // kun EGNE pressebilder og utgivelses-artwork — velg fra biblioteket eller
+  // last opp, i stedet for AI-genererte «generiske band».
+  const [imageLibrary, setImageLibrary] = useState<Array<{ url: string; name: string }>>([])
+  const [imagePickerFor, setImagePickerFor] = useState<number | null>(null)
+  const [libUploading, setLibUploading] = useState(false)
+  const refreshImageLibrary = async () => {
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      const d = await fetch(`/api/products/images?productId=${productId}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+      if (d.images) setImageLibrary(d.images)
+    } catch { /* biblioteket er valgfritt */ }
+  }
+  useEffect(() => { if (productId) refreshImageLibrary() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const setSegmentImage = async (index: number, url: string) => {
+    if (!draft) return
+    const updatedSegments = [...draft.segments]
+    updatedSegments[index].image_url = url
+    setDraft({ ...draft, segments: updatedSegments })
+    setImagePickerFor(null)
+    try {
+      const supabase = getSupabase()
+      await supabase.from('production_drafts').update({ segments: updatedSegments }).eq('id', draftId)
+    } catch (saveErr) {
+      console.warn('[setSegmentImage] kunne ikke lagre segmenter:', saveErr)
+    }
+  }
+  const uploadLibraryImage = async (file: File): Promise<string | null> => {
+    if (file.size > 8 * 1024 * 1024) { alert('Bildet er for stort (maks 8 MB).'); return null }
+    setLibUploading(true)
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('productId', productId)
+      const res = await fetch('/api/products/images', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: fd,
+      })
+      const d = await res.json()
+      if (!res.ok) { alert(d?.error || 'Opplasting feilet.'); return null }
+      await refreshImageLibrary()
+      return d.url || null
+    } catch {
+      alert('Opplasting feilet.')
+      return null
+    } finally {
+      setLibUploading(false)
     }
   }
 
@@ -1166,11 +1224,54 @@ export default function DraftPage() {
                         <span className="text-xs text-red-400 break-all">{imageErrors[index]}</span>
                       </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                        {t('noImage')}
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center px-2">
+                        {tenantInfo.vertical === 'music' ? 'Velg et av bildene dine under' : t('noImage')}
                       </div>
                     )}
                   </div>
+                  {/* «Bruk eget bilde»: velg fra biblioteket eller last opp */}
+                  <button
+                    type="button"
+                    onClick={() => setImagePickerFor(imagePickerFor === index ? null : index)}
+                    className="mt-2 w-full text-xs px-2 py-1.5 rounded border border-gray-200 text-gray-600 hover:border-[var(--ember-tint-border)]"
+                  >
+                    📸 {tenantInfo.vertical === 'music' ? 'Velg blant bildene dine' : 'Bruk eget bilde'}
+                  </button>
+                  {imagePickerFor === index && (
+                    <div className="mt-2 p-2 border border-gray-200 rounded-lg bg-gray-50">
+                      {imageLibrary.length > 0 && (
+                        <div className="grid grid-cols-3 gap-1.5 mb-2">
+                          {imageLibrary.map((img) => (
+                            <button
+                              key={img.url}
+                              type="button"
+                              title={img.name}
+                              onClick={() => setSegmentImage(index, img.url)}
+                              className={`aspect-square rounded overflow-hidden border-2 ${segment.image_url === img.url ? 'border-[var(--ember-deep)]' : 'border-transparent hover:border-[var(--ember-tint-border)]'}`}
+                            >
+                              <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <label className="block text-xs text-gray-600 cursor-pointer">
+                        <span className="underline">{libUploading ? 'Laster opp…' : '+ Last opp nytt (pressebilde/artwork, maks 8 MB)'}</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          disabled={libUploading}
+                          onChange={async (e) => {
+                            const f = e.currentTarget.files?.[0]
+                            e.currentTarget.value = ''
+                            if (!f) return
+                            const url = await uploadLibraryImage(f)
+                            if (url) await setSegmentImage(index, url)
+                          }}
+                        />
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
