@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
 // Bildebibliotek per produkt (artist-vertikalen, 2026-07-30): pressebilder og
 // utgivelses-artwork lastes opp én gang og gjenbrukes som segmentbilder i
@@ -62,6 +62,30 @@ export async function GET(request: Request) {
     return NextResponse.json({ images })
   } catch (err: any) {
     console.error('[products/images] List error:', err.message)
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const url = new URL(request.url)
+    const productId = url.searchParams.get('productId') || ''
+    const name = url.searchParams.get('name') || ''
+    if (!productId || !name) return NextResponse.json({ error: 'productId og name kreves' }, { status: 400 })
+    // Nøkkelen bygges ALLTID fra productId + filnavn uten sti — kan aldri
+    // peke utenfor produktets egen mappe.
+    if (name.includes('/') || name.includes('..')) {
+      return NextResponse.json({ error: 'Ugyldig filnavn' }, { status: 400 })
+    }
+    if (!(await assertOwnership(request, productId))) {
+      return NextResponse.json({ error: 'Ingen tilgang til dette produktet' }, { status: 403 })
+    }
+    const key = `artist-images/${productId}/${name}`
+    await r2Client().send(new DeleteObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key }))
+    console.log(`[products/images] Deleted ${key}`)
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error('[products/images] Delete error:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
