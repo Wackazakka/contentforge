@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { generatePalette, paletteFromBrand } from '@/lib/palette'
+import { generatePalette, paletteFromBrand, paletteBoldSurface } from '@/lib/palette'
 import { getSupabase } from '@/lib/supabaseClient'
 
 // Partner-admin: dine direkte underledd — påslaget du tar av dem, royalty-satsen
@@ -249,6 +249,19 @@ export default function PartnersPage() {
       return { ...prev, [id]: { ...prev[id], colors, colorKeys: COLOR_FIELDS.map((f) => f.key) } }
     })
 
+  // Merkefargen BLIR sideflaten. Dristig, og prisen er reell: en mettet flate gir
+  // bare fire brukbare tekstlysheter (L97-100 på #E01B1B, mot 43 på en lys flate),
+  // så teksthierarkiet flates ut. Paletten vipper etter hva flaten tåler — mørk
+  // flate gir lys tekst og mørke kort, lys flate gir det motsatte.
+  const buildBoldSurface = (id: string) =>
+    setEdits((prev) => {
+      const brand = prev[id].colors['--ember'] || '#E25822'
+      const pal = paletteBoldSurface(brand)
+      const colors = { ...prev[id].colors }
+      for (const f of COLOR_FIELDS) if (pal[f.key]) colors[f.key] = pal[f.key]
+      return { ...prev, [id]: { ...prev[id], colors, colorKeys: COLOR_FIELDS.map((f) => f.key) } }
+    })
+
   // Trekker ÉN ting — sideflatens kulør og lys/mørk — og utleder resten, med
   // kontrastgarantier. Seksten uavhengige tilfeldige farger blir alltid stygt.
   const suggestColors = (id: string) =>
@@ -401,6 +414,11 @@ export default function PartnersPage() {
                         🌙
                       </button>
                     </span>
+                    <button type="button" onClick={() => buildBoldSurface(p.id)}
+                      title="Hovedfargen blir selve sideflaten. Dristig, men teksthierarkiet flates ut — passer landingssider, ikke dashbord."
+                      className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                      Sterk flate
+                    </button>
                     <button type="button" onClick={() => savePalette(p.id)}
                       className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                       Lagre som profil
@@ -437,7 +455,7 @@ export default function PartnersPage() {
                   {e.colorKeys.length === 0
                     ? 'Ingen egne farger — partneren bruker standardpaletten.'
                     : `${e.colorKeys.length} av ${COLOR_FIELDS.length} farger er satt. Blå prikk = valgt; klikk den for å nullstille.`}
-                  {' '}«Forslag» trekker én kulør og utleder resten. «Bygg rundt hovedfargen» beholder Hovedfarge nøyaktig som den er og utleder de andre fra den — bruk den når merkevaren har en gitt farge. Begge garanterer lesbar kontrast. «Lagre som profil» legger fargene i ditt eget bibliotek — partneren endres først når du trykker «Lagre endringer» nederst.
+                  {' '}«Forslag» trekker én kulør og utleder resten. «Bygg rundt hovedfargen» beholder Hovedfarge nøyaktig som den er og utleder de andre fra den — bruk den når merkevaren har en gitt farge. «Sterk flate» gjør hovedfargen til selve sideflaten — dristig, men da flates teksthierarkiet ut, så den passer landingssider mer enn dashbord. Alle tre garanterer lesbar kontrast. «Lagre som profil» legger fargene i ditt eget bibliotek — partneren endres først når du trykker «Lagre endringer» nederst.
                 </p>
                 {['Aksent', 'Flater', 'Tekst', 'Kanter'].map((group) => (
                   <div key={group} className="mb-3">

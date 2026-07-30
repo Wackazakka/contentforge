@@ -188,6 +188,67 @@ export function paletteFromBrand(brand: string, opts?: { dark?: boolean }): Pale
 }
 
 /**
+ * Merkefargen som SIDEFLATE — den dristige varianten.
+ *
+ * Prisen er reell og skal ikke bortforklares: en mettet flate gir bare fire
+ * brukbare tekstlysheter (L97–100 på #E01B1B, mot 43 på en lys flate). Fire
+ * tekstnivåer får altså ikke plass, og hierarkiet flates ut.
+ *
+ * Det finnes nøyaktig ÉN sammenhengende løsning, og den er målt fram: med LYSE
+ * kort på en sterk flate virker null tekstlysheter begge steder. Med MØRKE kort
+ * virker fire. Derfor: sterk flate, mørke kort, lys tekst. Brødteksten er hvit og
+ * leses både på flaten og i kortene; de svakere nivåene er dimmet og gjelder inne
+ * i kortene, som er der lengre tekst faktisk står.
+ *
+ * Egner seg til landingssider og flater med lite tekst — ikke til et dashbord.
+ */
+export function paletteBoldSurface(brand: string): Palette {
+  const b = hexToHsl(brand)
+  const paper = brand.toUpperCase()
+
+  // Hele paletten vipper etter hva flaten tåler. Hvit tekst virker på mørke,
+  // mettede merkefarger (rød 4,84 · fiolett 6,42) men ikke på lyse (gul 1,65 ·
+  // lyseblå 2,02) — der må teksten være mørk, og da må kortene være LYSE, ellers
+  // finnes ingen tekstfarge som virker begge steder.
+  const mørkTekst = contrast('#000000', brand) >= contrast('#FFFFFF', brand)
+  const ink = mørkTekst ? '#000000' : '#FFFFFF'
+  const kortL = mørkTekst ? 96 : 12
+  const card = hslToHex({ h: b.h, s: Math.min(30, b.s * 0.35), l: kortL })
+
+  // Trapp for de svakere nivåene, alltid bort fra kortet.
+  const trapp = mørkTekst ? [16, 34, 48] : [88, 74, 60]
+  const dybde = mørkTekst
+    ? { sunken: Math.min(94, b.l + 10), band: Math.min(97, b.l + 16) }
+    : { sunken: Math.max(6, b.l - 12), band: Math.max(5, b.l - 18) }
+
+  // Aksenten kan ikke være merkefargen — den ER flaten. Den må stikke seg ut
+  // motsatt vei av tekstretningen.
+  const accent = hslToHex({ h: b.h, s: Math.min(28, b.s * 0.3), l: mørkTekst ? 16 : 95 })
+  const onEmber = hslToHex({ h: b.h, s: Math.min(40, b.s * 0.5), l: mørkTekst ? 96 : 14 })
+
+  return {
+    '--ember': accent,
+    '--ember-deep': hslToHex({ h: b.h, s: Math.min(22, b.s * 0.25), l: mørkTekst ? 9 : 88 }),
+    '--ember-tint-bg': hslToHex({ h: b.h, s: b.s * 0.6, l: mørkTekst ? Math.min(96, b.l + 18) : Math.max(10, b.l - 20) }),
+    '--ember-tint-border': hslToHex({ h: b.h, s: b.s * 0.7, l: mørkTekst ? Math.min(90, b.l + 10) : Math.max(16, b.l - 12) }),
+    '--on-ember': onEmber,
+    '--paper': paper,
+    '--paper-raised': card,
+    '--paper-sunken': hslToHex({ h: b.h, s: b.s * 0.9, l: dybde.sunken }),
+    '--band': hslToHex({ h: b.h, s: b.s, l: dybde.band }),
+    // Brødtekst: leses BÅDE på flaten og i kortene — det er den eneste som må det.
+    '--ink': ink,
+    // De svakere nivåene måles mot KORTET; det er der lengre tekst faktisk står.
+    '--ink-soft': ensureContrast(hslToHex({ h: b.h, s: 6, l: trapp[0] }), card, 7),
+    '--text-muted': ensureContrast(hslToHex({ h: b.h, s: 6, l: trapp[1] }), card, 4.5),
+    '--text-faint': ensureContrast(hslToHex({ h: b.h, s: 6, l: trapp[2] }), card, 3),
+    '--ds-border': hslToHex({ h: b.h, s: b.s * 0.5, l: mørkTekst ? Math.max(8, b.l - 22) : Math.min(96, b.l + 22) }),
+    '--ds-border-strong': hslToHex({ h: b.h, s: b.s * 0.4, l: mørkTekst ? Math.max(4, b.l - 34) : Math.min(99, b.l + 34) }),
+    '--ds-border-faint': hslToHex({ h: b.h, s: b.s * 0.6, l: mørkTekst ? Math.max(14, b.l - 12) : Math.min(92, b.l + 12) }),
+  }
+}
+
+/**
  * Lager en sammenhengende palett fra ett tilfeldig frø.
  *
  * Frøet er sideflaten: en kulør, og om paletten er lys eller mørk. Aksenten
