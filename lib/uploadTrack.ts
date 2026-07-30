@@ -27,6 +27,19 @@ export async function uploadTrack(file: File, folder: string): Promise<MusicFile
     body: JSON.stringify({ path, folder, name: file.name }),
   })
   const data = await res.json().catch(() => null)
-  if (!res.ok || !data?.file) throw new Error(data?.error || 'Importen feilet på serveren.')
-  return data.file as MusicFile
+  if (res.ok && data?.file) return data.file as MusicFile
+
+  // Kvitteringen kan gaa tapt selv om importen LYKTES (Netlify-tidsavbrudd,
+  // sett 30/7: fila laa paa serveren mens brukeren fikk feilmelding).
+  // Sjekk fasiten foer vi roper feil: finnes en fil i mappa med noeyaktig
+  // samme stoerrelse, kom den frem.
+  await new Promise((r) => setTimeout(r, 2500))
+  try {
+    const lib = await fetch('/api/music').then((r) => r.json())
+    const hit = (lib.files || []).find(
+      (f: MusicFile & { size?: number }) => f.folder === folder && f.size === file.size
+    )
+    if (hit) return hit as MusicFile
+  } catch { /* fall gjennom til feil */ }
+  throw new Error(data?.error || 'Importen feilet på serveren.')
 }
