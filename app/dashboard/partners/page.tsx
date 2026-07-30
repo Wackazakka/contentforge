@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { generatePalette } from '@/lib/palette'
 import { getSupabase } from '@/lib/supabaseClient'
 
 // Partner-admin: dine direkte underledd — påslaget du tar av dem, royalty-satsen
@@ -49,7 +50,7 @@ export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [income, setIncome] = useState<Record<string, { grossNok: number; licenseNok: number; uses: number }>>({})
   const [infraIncome, setInfraIncome] = useState<Array<{ tenantName: string; uses: number; grossNok: number; infraNok: number }> | null>(null)
-  const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; license: string; name: string; logo: string; colors: Record<string, string> }>>({})
+  const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; license: string; name: string; logo: string; colors: Record<string, string>; colorKeys: string[] }>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
 
@@ -77,7 +78,8 @@ export default function PartnersPage() {
       for (const p of data.partners || []) {
         const colors: Record<string, string> = {}
         for (const f of COLOR_FIELDS) colors[f.key] = p.colors?.[f.key] || f.fallback
-        e[p.id] = { markup: String(p.markup_percent), feeDirect: String(p.fee_direct_pct ?? 3), feeIndirect: String(p.fee_indirect_pct ?? 7.5), license: String(p.license_fee_pct ?? 0), name: p.app_name, logo: p.logo_url || '', colors }
+        const colorKeys = COLOR_FIELDS.filter((f) => p.colors?.[f.key]).map((f) => f.key)
+        e[p.id] = { markup: String(p.markup_percent), feeDirect: String(p.fee_direct_pct ?? 3), feeIndirect: String(p.fee_indirect_pct ?? 7.5), license: String(p.license_fee_pct ?? 0), name: p.app_name, logo: p.logo_url || '', colors, colorKeys }
       }
       setEdits(e)
     } catch (err: any) {
@@ -103,7 +105,8 @@ export default function PartnersPage() {
           licenseFeePct: Number(e.license),
           appName: e.name,
           logoUrl: e.logo || null,
-          colors: e.colors,
+          // Kun de eksplisitt valgte — resten forblir «ikke satt» og arver standarden
+          colors: Object.fromEntries(e.colorKeys.map((k) => [k, e.colors[k]])),
         }),
       })
       const data = await res.json()
@@ -119,8 +122,46 @@ export default function PartnersPage() {
 
   const setEdit = (id: string, field: string, value: string) =>
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }))
+
+  // `colors` er alltid FULL (fargevelgere kan ikke være tomme), mens `colorKeys`
+  // sier hvilke som faktisk er VALGT. Bare de valgte lagres — ellers ville første
+  // lagring fryse CenterForges standardpalett inn på partneren for godt.
   const setColor = (id: string, key: string, value: string) =>
-    setEdits((prev) => ({ ...prev, [id]: { ...prev[id], colors: { ...prev[id].colors, [key]: value } } }))
+    setEdits((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        colors: { ...prev[id].colors, [key]: value },
+        colorKeys: prev[id].colorKeys.includes(key) ? prev[id].colorKeys : [...prev[id].colorKeys, key],
+      },
+    }))
+
+  const clearColor = (id: string, key: string) =>
+    setEdits((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        colors: { ...prev[id].colors, [key]: COLOR_FIELDS.find((f) => f.key === key)?.fallback || '#000000' },
+        colorKeys: prev[id].colorKeys.filter((k) => k !== key),
+      },
+    }))
+
+  const resetColors = (id: string) =>
+    setEdits((prev) => {
+      const colors: Record<string, string> = {}
+      for (const f of COLOR_FIELDS) colors[f.key] = f.fallback
+      return { ...prev, [id]: { ...prev[id], colors, colorKeys: [] } }
+    })
+
+  // Trekker ÉN ting — sideflatens kulør og lys/mørk — og utleder resten, med
+  // kontrastgarantier. Seksten uavhengige tilfeldige farger blir alltid stygt.
+  const suggestColors = (id: string) =>
+    setEdits((prev) => {
+      const p = generatePalette()
+      const colors = { ...prev[id].colors }
+      for (const f of COLOR_FIELDS) if (p[f.key]) colors[f.key] = p[f.key]
+      return { ...prev, [id]: { ...prev[id], colors, colorKeys: COLOR_FIELDS.map((f) => f.key) } }
+    })
 
   return (
     <div className="min-h-screen bg-[var(--paper)]">
@@ -245,15 +286,42 @@ export default function PartnersPage() {
                   </div>
                 </div>
 
-                <label className="block text-sm font-medium text-gray-700 mb-2">Fargeprofil (partnerens domene)</label>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Fargeprofil (partnerens domene)</label>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => suggestColors(p.id)}
+                      className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                      🎲 Forslag
+                    </button>
+                    <button type="button" onClick={() => resetColors(p.id)} disabled={e.colorKeys.length === 0}
+                      className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:text-gray-700 transition-colors">
+                      Tilbakestill
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  {e.colorKeys.length === 0
+                    ? 'Ingen egne farger — partneren bruker standardpaletten.'
+                    : `${e.colorKeys.length} av ${COLOR_FIELDS.length} farger er satt. Blå prikk = valgt; klikk den for å nullstille.`}
+                  {' '}«Forslag» trekker én kulør og utleder resten, med lesbar kontrast.
+                </p>
                 {['Aksent', 'Flater', 'Tekst', 'Kanter'].map((group) => (
                   <div key={group} className="mb-3">
                     <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5">{group}</div>
                     <div className="flex flex-wrap gap-4">
                       {COLOR_FIELDS.filter((f) => f.group === group).map((f) => (
                         <label key={f.key} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                          <input type="color" value={e.colors[f.key]} onChange={(ev) => setColor(p.id, f.key, ev.target.value)}
-                            className="w-9 h-9 rounded border border-gray-300 cursor-pointer" />
+                          <span className="relative flex-none">
+                            <input type="color" value={e.colors[f.key]} onChange={(ev) => setColor(p.id, f.key, ev.target.value)}
+                              className="w-9 h-9 rounded border border-gray-300 cursor-pointer" />
+                            {e.colorKeys.includes(f.key) && (
+                              <button type="button" title="Nullstill denne fargen"
+                                onClick={(ev) => { ev.preventDefault(); clearColor(p.id, f.key) }}
+                                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] leading-none flex items-center justify-center hover:bg-red-600 transition-colors">
+                                ×
+                              </button>
+                            )}
+                          </span>
                           {f.label}
                         </label>
                       ))}
