@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 import CostMeter from '@/components/CostMeter'
 import { COSTS_NOK } from '@/lib/costs'
 import { useTenant } from '@/lib/tenantContext'
+import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
@@ -48,6 +49,7 @@ export default function AvatarVideoPage() {
   const params = useParams()
   const productId = params.id as string
   const tenantSlug = useTenant().slug
+  const tenantVertical = useTenant().vertical
 
   // Context fields
   const [campaignName, setCampaignName] = useState('')
@@ -932,22 +934,31 @@ export default function AvatarVideoPage() {
 
             {/* Upload */}
             <div className="border-2 border-dashed border-gray-200 rounded-lg p-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid ${tenantSlug === 'centerforge' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+                {/* Legacy delt-mappe-velger: kun rot (biblioteksvedlikehold) */}
+                {tenantSlug === 'centerforge' && (
+                  <label className="block">
+                    <span className="text-xs font-medium text-gray-700 block mb-1">Mappe (rot)</span>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      value={selectedMusicFolder}
+                      onChange={(e) => setSelectedMusicFolder(e.target.value)}
+                    >
+                      <option value="global">Global</option>
+                      <option value="bildeal">BilDeal</option>
+                      <option value="reforhandle">Reforhandle</option>
+                      <option value="singlepicker">SinglePicker</option>
+                    </select>
+                  </label>
+                )}
                 <label className="block">
-                  <span className="text-xs font-medium text-gray-700 block mb-1">Mappe</span>
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    value={selectedMusicFolder}
-                    onChange={(e) => setSelectedMusicFolder(e.target.value)}
-                  >
-                    <option value="global">Global</option>
-                    <option value="bildeal">BilDeal</option>
-                    <option value="reforhandle">Reforhandle</option>
-                    <option value="singlepicker">SinglePicker</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="text-xs font-medium text-gray-700 block mb-1">Last opp MP3</span>
+                  <span className="text-xs font-medium text-gray-700 block mb-1">
+                    {tenantSlug === 'centerforge'
+                      ? 'Last opp MP3'
+                      : tenantVertical === 'music'
+                        ? 'Last opp egen låt (MP3, maks 15 MB)'
+                        : 'Last opp egen musikk (MP3, maks 15 MB)'}
+                  </span>
                   <input
                     type="file"
                     accept=".mp3"
@@ -955,20 +966,24 @@ export default function AvatarVideoPage() {
                       const input = e.currentTarget
                       const file = input.files?.[0]
                       if (!file) return
+                      const isRootSharedUpload = tenantSlug === 'centerforge'
+                      const maxBytes = isRootSharedUpload ? 4 * 1024 * 1024 : TRACK_MAX_BYTES
                       if (!file.name.toLowerCase().endsWith('.mp3')) {
                         alert('Kun MP3-filer støttes.')
                         input.value = ''
                         return
                       }
-                      if (file.size > 4 * 1024 * 1024) {
-                        alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)} MB). Maks 4 MB.`)
+                      if (file.size > maxBytes) {
+                        alert(`Filen er for stor (${(file.size / 1024 / 1024).toFixed(1)} MB). Maks ${isRootSharedUpload ? 4 : 15} MB.`)
                         input.value = ''
                         return
                       }
                       const formData = new FormData()
                       formData.append('file', file)
                       try {
-                        const res = await fetch(`/api/music/upload?folder=${selectedMusicFolder}`, {
+                        // Produkt-scopet for tenanter (tracks-<productId>); rot laster til delt mappe
+                        const folder = isRootSharedUpload ? selectedMusicFolder : tracksFolder(productId)
+                        const res = await fetch(`/api/music/upload?folder=${folder}`, {
                           method: 'POST',
                           body: formData,
                         })
@@ -1004,7 +1019,7 @@ export default function AvatarVideoPage() {
                 >
                   Ingen musikk
                 </button>
-                {musicLibrary.filter((m) => !(m.folder || '').startsWith('jingles')).map((m) => (
+                {[...ownTracks(musicLibrary, productId), ...sharedMusic(musicLibrary)].map((m) => (
                   <div
                     key={m.filename}
                     onClick={() => setMusicFile(m.filename)}
