@@ -944,7 +944,9 @@ export default function DraftPage() {
       window.location.href = `/dashboard/products/${productId}/video/status/${data.jobId}?format=${encodeURIComponent(videoFormat)}&motion=${aiMotion ? '1' : '0'}`
     } catch (err) {
       console.error('[DraftPage] Production error:', err)
-      alert('Error starting production')
+      // Serverens feilmelding er presis (f.eks. «les inn lyd på alle
+      // segmentene») — aldri gjem den bak en generisk alert.
+      alert(err instanceof Error && err.message ? err.message : 'Produksjonen kunne ikke starte — prøv igjen.')
       setStarting(false)
     }
   }
