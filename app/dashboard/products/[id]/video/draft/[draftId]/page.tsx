@@ -37,6 +37,8 @@ interface Segment {
   own_voice?: boolean
   // Musikkdrevet tempo: hviletid (sek) etter stemmen — bildet står, musikken løftes
   hold_seconds?: number
+  // «Film = musikkens lengde»: serverberegnet hviletid (musikk / antall segmenter)
+  match_music?: boolean
   image_prompt?: string
   animate?: boolean
   motion?: 'none' | 'move' | 'talk'
@@ -690,10 +692,12 @@ export default function DraftPage() {
       console.warn('[ownVoice] kunne ikke lagre segmenter:', e)
     }
   }
-  // Tempo settes for ALLE segmenter samlet (per-segment-overstyring kan komme senere)
-  const setTempo = async (hold: number) => {
+  // «Film = musikkens lengde» (Lars 30/7): musikklengde / antall segmenter.
+  // Beregningen skjer paa serveren i produksjonsoeyeblikket med MAALTE
+  // lengder — artisten tar de kreative valgene, systemet tar matematikken.
+  const setMatchMusic = async (on: boolean) => {
     if (!draft) return
-    const updatedSegments = draft.segments.map((s) => ({ ...s, hold_seconds: hold }))
+    const updatedSegments = draft.segments.map((s) => ({ ...s, match_music: on }))
     setDraft({ ...draft, segments: updatedSegments })
     await persistSegments(updatedSegments)
   }
@@ -1387,38 +1391,22 @@ export default function DraftPage() {
             <p className="text-xs text-gray-400 mt-1">{colorSaving ? 'Lagrer…' : 'Lagres automatisk. Brukes på sluttplakaten (video + avatar).'}</p>
           </div>
 
-          {/* Musikkdrevet tempo (Lars 30/7: filmen ble ferdig foer foerste laat) */}
+          {/* Film = musikkens lengde (Lars 30/7: matematikken til systemet,
+              kreativiteten til artisten) */}
           <div className="mt-5 pt-4 border-t border-gray-100">
-            <label className="block text-sm font-medium text-gray-700 mb-2">🎼 Tempo</label>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { hold: 0, label: 'Tett', desc: 'stemmen styrer (som før)' },
-                { hold: 4, label: 'La musikken puste', desc: '+4 sek per bilde' },
-                { hold: 8, label: 'Rolig', desc: '+8 sek per bilde' },
-              ].map((o) => {
-                const current = draft.segments[0]?.hold_seconds || 0
-                return (
-                  <button
-                    key={o.hold}
-                    type="button"
-                    onClick={() => setTempo(o.hold)}
-                    className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
-                      current === o.hold
-                        ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
-                    }`}
-                  >
-                    {o.label} <span className="text-xs opacity-70 ml-1">{o.desc}</span>
-                  </button>
-                )
-              })}
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {(() => {
-                const hold = draft.segments[0]?.hold_seconds || 0
-                const n = draft.segments.length
-                return `Hvert bilde blir stående etter at stemmen er ferdig — musikken løftes automatisk i pausene. Med ${n} segmenter gir dette ca. ${hold * n} sek ekstra film${tenantInfo.vertical === 'music' ? ' — sikt på at filmen matcher medleyen' : ''}.`
-              })()}
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={draft.segments[0]?.match_music === true}
+                onChange={(e) => setMatchMusic(e.currentTarget.checked)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm font-medium text-gray-700">🎼 Film = musikkens lengde</span>
+            </label>
+            <p className="text-xs text-gray-400 mt-1 ml-7">
+              {draft.music_file
+                ? `Musikkens lengde deles på ${draft.segments.length} segmenter — hvert bilde står til neste del av låten er spilt. Stemmen får alltid plass; musikken løftes automatisk i pausene.`
+                : 'Velg bakgrunnsmusikk først — uten musikk har valget ingen effekt.'}
             </p>
           </div>
 
