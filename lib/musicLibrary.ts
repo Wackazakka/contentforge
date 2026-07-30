@@ -27,3 +27,8 @@ export function sharedMusic(files: MusicFile[]): MusicFile[] {
     return !f.startsWith('jingles') && !f.startsWith('tracks-')
   })
 }
+
+// Ferdige medleyer er RESULTATER, ikke råvarer — de skal ikke kunne velges
+// inn i nye medleyer (Lars 30/7: medleyen la seg i sin egen kandidatliste).
+export const isMedleyFile = (filename: string) =>
+  ((filename.split('/').pop() || '').startsWith('medley-'))
