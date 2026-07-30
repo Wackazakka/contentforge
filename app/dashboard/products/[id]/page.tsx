@@ -106,6 +106,21 @@ export default function ProductPage() {
   const [profile, setProfile] = useState<ProductProfile | null>(null)
   const [jobs, setJobs] = useState<ProductionJob[]>([])
   const [jobsLoading, setJobsLoading] = useState(false)
+  // Bildebiblioteket (artist-images/<productId> i R2): administreres her,
+  // brukes som segmentbilder i editorene. For music-vertikalen er dette
+  // KILDEN til videobilder (AI-generering er av som default der).
+  const [imageLibrary, setImageLibrary] = useState<Array<{ url: string; name: string }>>([])
+  const [imgLibUploading, setImgLibUploading] = useState(false)
+  const [imgLibError, setImgLibError] = useState<string | null>(null)
+  const refreshImageLibrary = async () => {
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      const d = await fetch(`/api/products/images?productId=${productId}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+      if (d.images) setImageLibrary(d.images)
+    } catch { /* valgfritt */ }
+  }
+  useEffect(() => { if (productId) refreshImageLibrary() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
   const prevJobStatusesRef = useRef<Record<string, string>>({})
   const [assets, setAssets] = useState<AssetBank[]>([])
   const [assetsLoading, setAssetsLoading] = useState(false)
@@ -857,6 +872,94 @@ export default function ProductPage() {
               <p className="text-sm text-gray-600 mt-1">{t('createArticleDesc')}</p>
             </button>
           </div>
+        </div>
+
+        {/* Bildebiblioteket — pressebilder og artwork, gjenbrukes i produksjonene */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">
+            📸 {tenant.vertical === 'music' ? 'Bildene dine' : 'Bildebibliotek'}
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            {tenant.vertical === 'music'
+              ? 'Pressebilder, konsertbilder og utgivelses-artwork — dette er bildene som brukes i videoene dine. Last opp én gang, bruk overalt.'
+              : 'Egne bilder som kan brukes i produksjonene. Last opp én gang, bruk overalt.'}
+          </p>
+          {imgLibError && (
+            <p className="text-sm font-medium text-[var(--ember-deep)] mb-3">{imgLibError}</p>
+          )}
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-4">
+            {imageLibrary.map((img) => (
+              <div key={img.url} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+                <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  title="Slett bildet"
+                  onClick={async () => {
+                    if (!confirm('Slette dette bildet fra biblioteket? Segmenter som alt bruker det, beholder det.')) return
+                    try {
+                      const { data: sess } = await getSupabase().auth.getSession()
+                      const token = sess?.session?.access_token
+                      const res = await fetch(`/api/products/images?productId=${productId}&name=${encodeURIComponent(img.name)}`, {
+                        method: 'DELETE',
+                        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                      })
+                      if (!res.ok) { setImgLibError('Slettingen feilet — prøv igjen.'); return }
+                      setImgLibError(null)
+                      await refreshImageLibrary()
+                    } catch { setImgLibError('Slettingen feilet — prøv igjen.') }
+                  }}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {imageLibrary.length === 0 && (
+              <p className="col-span-full text-sm text-gray-400">Ingen bilder ennå.</p>
+            )}
+          </div>
+          <label className="inline-block cursor-pointer">
+            <span className={`px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--ember-deep)] hover:opacity-90 inline-block ${imgLibUploading ? 'opacity-50' : ''}`}>
+              {imgLibUploading ? 'Laster opp…' : '+ Last opp bilder'}
+            </span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              className="hidden"
+              disabled={imgLibUploading}
+              onChange={async (e) => {
+                const files = Array.from(e.currentTarget.files || [])
+                e.currentTarget.value = ''
+                if (!files.length) return
+                setImgLibError(null)
+                setImgLibUploading(true)
+                try {
+                  const { data: sess } = await getSupabase().auth.getSession()
+                  const token = sess?.session?.access_token
+                  for (const f of files) {
+                    if (f.size > 8 * 1024 * 1024) { setImgLibError(`«${f.name}» er for stor (maks 8 MB) — hoppet over.`); continue }
+                    const fd = new FormData()
+                    fd.append('file', f)
+                    fd.append('productId', productId)
+                    const res = await fetch('/api/products/images', {
+                      method: 'POST',
+                      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                      body: fd,
+                    })
+                    if (!res.ok) {
+                      const d = await res.json().catch(() => null)
+                      setImgLibError(d?.error ? `«${f.name}»: ${d.error}` : `«${f.name}» feilet.`)
+                    }
+                  }
+                  await refreshImageLibrary()
+                } finally {
+                  setImgLibUploading(false)
+                }
+              }}
+            />
+          </label>
+          <span className="text-xs text-gray-400 ml-3">PNG, JPG eller WebP — maks 8 MB per bilde. Velg gjerne flere samtidig.</span>
         </div>
 
         {/* Active jobs */}
