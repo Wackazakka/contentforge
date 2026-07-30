@@ -129,6 +129,10 @@ export default function DraftPage() {
     })
   }
   const [medleyBuilding, setMedleyBuilding] = useState(false)
+  // Resultatet skal HOERES foer man stoler paa det (Lars 30/7: «vet ikke om
+  // det blir laget noe») — spiller + varighet etter bygging.
+  const [medleyResult, setMedleyResult] = useState<{ filename: string; name: string } | null>(null)
+  const [medleyDuration, setMedleyDuration] = useState<number | null>(null)
   const toggleMedleyTrack = (filename: string) => {
     setMedleySelection((prev) =>
       prev.includes(filename) ? prev.filter((f) => f !== filename) : prev.length >= 5 ? prev : [...prev, filename]
@@ -137,6 +141,7 @@ export default function DraftPage() {
   const buildMedley = async () => {
     if (medleySelection.length < 2) return
     setMedleyBuilding(true)
+    setMedleyResult(null)
     try {
       const res = await fetch('/api/music/medley', {
         method: 'POST',
@@ -156,6 +161,8 @@ export default function DraftPage() {
         const lib = await fetch('/api/music').then((r) => r.json())
         if (lib.files) setMusicLibrary(lib.files)
         updateMusic(data.file.filename) // auto-velg medleyen
+        setMedleyResult({ filename: data.file.filename, name: data.file.name || 'Medley' })
+        setMedleyDuration(null)
         setMedleySelection([])
       } else {
         alert(data?.error || 'Miksingen feilet.')
@@ -1210,8 +1217,26 @@ export default function DraftPage() {
                   onClick={buildMedley}
                   className="mt-2 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-40"
                 >
-                  {medleyBuilding ? 'Mikser…' : `Lag medley${medleySelection.length >= 2 ? ` (${medleySelection.length} låter)` : ''}`}
+                  {medleyBuilding ? '🎚️ Mikser låtene — tar noen sekunder…' : `Lag medley${medleySelection.length >= 2 ? ` (${medleySelection.length} låter)` : ''}`}
                 </button>
+                {medleyResult && (
+                  <div className="mt-2 p-2 rounded-lg border border-green-200 bg-green-50">
+                    <p className="text-xs font-medium text-green-800 mb-1">
+                      ✅ Medleyen er klar{medleyDuration ? ` (${Math.round(medleyDuration)} sek)` : ''} og valgt som bakgrunnsmusikk — hør den:
+                    </p>
+                    <audio
+                      controls
+                      src={`/api/music/${encodeURIComponent(medleyResult.filename)}`}
+                      onLoadedMetadata={(e) => setMedleyDuration(e.currentTarget.duration)}
+                      className="w-full h-8"
+                    />
+                    <p className="text-xs text-green-700 mt-1">
+                      Ikke fornøyd? Juster utsnittene og trykk «Lag medley» igjen — den erstattes.
+                      Lengden trenger ikke treffe filmen eksakt: musikken kuttes eller gjentas automatisk,
+                      og volumet senkes mens stemmen snakker.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
