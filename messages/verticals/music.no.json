@@ -58,6 +58,8 @@
     "ctaPlaceholder": "F.eks. Forhåndslagre på Spotify i dag",
     "backToProduct": "← Tilbake til artisten",
     "title": "Lag ny promovideo",
-    "subtitle": "Fortell hva videoen skal handle om — du godkjenner alt før noe koster penger."
+    "subtitle": "Fortell hva videoen skal handle om — du godkjenner alt før noe koster penger.",
+    "outroLabel": "Avslutt med sluttplakat 🔗",
+    "outroDesc": "Et sluttbilde med lenken din (nettside/Linktree), artistbildet og oppfordringen — f.eks. «Forhåndslagre på Spotify». Uten jingle ca. 3 sekunder; med jingle like lenge som jingelen (opptil 10 sek)."
   }
 }
