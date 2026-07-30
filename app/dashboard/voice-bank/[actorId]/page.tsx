@@ -24,7 +24,6 @@ interface ActorDetail {
   sample_urls: string[]
   actor_email: string | null
   library_enabled: boolean
-  library_share_pct: number
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
   created_at: string
@@ -57,10 +56,10 @@ export default function VoiceActorPage() {
   const [editFaceId, setEditFaceId] = useState('')
   const [editBio, setEditBio] = useState('')
   const [editEmail, setEditEmail] = useState('')
+  const [editVoiceId, setEditVoiceId] = useState('')
   const [customers, setCustomers] = useState<Array<{ id: string; name: string; mode: string; timeoutHours: number }>>([])
   const [apprBusy, setApprBusy] = useState<string | null>(null)
   const [earnings, setEarnings] = useState<Array<{ id: number; source: string; period: string; gross_nok: number; note: string | null }>>([])
-  const [editLibShare, setEditLibShare] = useState('70')
   const [earnPeriod, setEarnPeriod] = useState('')
   const [earnGross, setEarnGross] = useState('')
   const [earnBusy, setEarnBusy] = useState(false)
@@ -102,6 +101,7 @@ export default function VoiceActorPage() {
       setEditFaceId(data.actor.face_character_id || '')
       setEditBio(data.actor.bio || '')
       setEditEmail(data.actor.actor_email || '')
+      setEditVoiceId(data.actor.elevenlabs_voice_id || '')
       try {
         const { data: sess2 } = await getSupabase().auth.getSession()
         const t2 = sess2?.session?.access_token
@@ -111,7 +111,6 @@ export default function VoiceActorPage() {
           if (ar.ok) setCustomers(ad.customers || [])
         }
       } catch { /* godkjenningsdata er valgfritt */ }
-      setEditLibShare(String(data.actor.library_share_pct ?? 70))
       try {
         const { data: sess3 } = await getSupabase().auth.getSession()
         const t3 = sess3?.session?.access_token
@@ -149,7 +148,7 @@ export default function VoiceActorPage() {
     try {
       const res = await authedFetch({
         method: 'PATCH',
-        body: JSON.stringify({ actorId, actorRateNok: Number(editRate), customerPriceNok: Number(editPrice), rates, faceCharacterId: editFaceId.trim(), actorEmail: editEmail.trim() }),
+        body: JSON.stringify({ actorId, actorRateNok: Number(editRate), customerPriceNok: Number(editPrice), rates, faceCharacterId: editFaceId.trim(), actorEmail: editEmail.trim(), elevenlabsVoiceId: editVoiceId.trim() }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Lagring feilet')
@@ -291,7 +290,7 @@ export default function VoiceActorPage() {
               </span>
             </div>
             <p className="text-gray-500 mb-8">
-              {actor.elevenlabs_voice_id ? <>ElevenLabs-id: <span className="font-mono">{actor.elevenlabs_voice_id}</span></> : <span className="text-amber-700">⏳ Venter på stemme-kloning — sett voice-id i takstkortet når klonen er klar</span>}
+              {actor.elevenlabs_voice_id ? <>ElevenLabs-id: <span className="font-mono">{actor.elevenlabs_voice_id}</span></> : <span className="text-amber-700">⏳ Venter på at skuespilleren deler klonen sin — lim inn voice-id-en i takstkortet under</span>}
               {Number(actor.honorarium_nok) > 0 && <> · Engangshonorar: {nok(Number(actor.honorarium_nok))}</>}
             </p>
 
@@ -429,6 +428,15 @@ export default function VoiceActorPage() {
               <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="skuespiller@example.com" type="email"
                 className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
 
+              <label className="block text-sm font-medium text-gray-700 mb-1">ElevenLabs voice-id</label>
+              <p className="text-xs text-gray-400 mb-2">
+                Klonen ligger på skuespillerens egen ElevenLabs-konto og deles til oss. Lim inn
+                voice-id-en her når delingen er gjort — stemmen kan ikke brukes før den står her.
+                Tomt felt kobler stemmen fra.
+              </p>
+              <input value={editVoiceId} onChange={(e) => setEditVoiceId(e.target.value)} placeholder="voice-id (tom = ingen stemme koblet)"
+                className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono mb-4" />
+
               <p className="text-sm font-medium text-gray-700 mb-1">Ansikt (valgfritt)</p>
               <p className="text-xs text-gray-400 mb-2">Lim inn karakter-id-en fra karaktertreningen hvis skuespilleren også har lisensiert ansiktet sitt (Flux LoRA). Produksjoner som bruker karakteren logges da med «Ansikt»-taksten over — eller standardsatsene hvis den står tom.</p>
               <input value={editFaceId} onChange={(e) => setEditFaceId(e.target.value)} placeholder="Karakter-id (tom = ingen ansiktslisens)"
@@ -495,7 +503,7 @@ export default function VoiceActorPage() {
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {actor.library_enabled
-                      ? 'Stemmen er delt i ElevenLabs\u2019 globale bibliotek — og dermed også åpen for drop-in-kunder på plattformen, uten godkjenning per bruk (jf. skuespilleravtalen). Utbetalingene lander på vår konto og fordeles i avregningen.'
+                      ? 'Stemmen er delt i ElevenLabs\u2019 globale bibliotek — og dermed også åpen for drop-in-kunder på plattformen, uten godkjenning per bruk (jf. skuespilleravtalen). ElevenLabs betaler bibliotek-inntekten direkte til skuespilleren — vi er ikke part i den.'
                       : 'Skuespilleren kan velge å dele stemmen i ElevenLabs\u2019 globale bibliotek — ekstra inntekt fra brukere verden over.'}
                   </p>
                 </div>
@@ -506,37 +514,29 @@ export default function VoiceActorPage() {
               </div>
               {actor.library_enabled && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
-                  Husk: selve delingen aktiveres manuelt i ElevenLabs-dashbordet (stemmen ligger på vår konto). Denne bryteren styrer avtale- og pengesporet hos oss.
+                  Husk: stemmen ligger på skuespillerens EGEN ElevenLabs-konto og deles til oss — det er skuespilleren som slår bibliotek-delingen av og på der. Denne bryteren styrer bare avtalesporet hos oss.
                 </p>
               )}
 
-              <div className="flex items-center gap-2 text-sm mb-5">
-                <span className="text-gray-700">Skuespillerens andel av eksterne inntekter:</span>
-                <input value={editLibShare} onChange={(e) => setEditLibShare(e.target.value)} inputMode="decimal"
-                  className="w-16 px-2 py-1.5 border border-gray-300 rounded-lg" />
-                <span className="text-gray-600">%</span>
-                <button onClick={() => patchLibrary({ librarySharePct: Number(editLibShare) })}
-                  className="text-[var(--ember-deep)] hover:underline ml-1">Lagre</button>
-              </div>
+              <p className="text-xs text-gray-500 mb-5">
+                Bibliotek-inntekt utbetales av ElevenLabs rett til skuespillerens egen Stripe-konto.
+                Den går ikke gjennom oss, og vi tar ingen andel av den. Feltene under er kun et
+                notat til oss om hva skuespilleren har tjent utenfor plattformen.
+              </p>
 
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Registrerte utbetalinger</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Notert bibliotek-inntekt (utenfor vår avregning)</h3>
               {earnings.length === 0 ? (
                 <p className="text-sm text-gray-400 mb-3">Ingen eksterne utbetalinger registrert ennå.</p>
               ) : (
                 <div className="space-y-1.5 mb-3">
-                  {earnings.map((e) => {
-                    const share = Number(actor.library_share_pct) || 70
-                    const toActor = Math.round(e.gross_nok * share) / 100
-                    return (
-                      <div key={e.id} className="flex flex-wrap gap-x-4 text-sm border-t border-gray-100 pt-1.5 first:border-0 first:pt-0">
-                        <span className="font-medium text-gray-900 w-16">{e.period}</span>
-                        <span className="text-gray-600">{e.source}</span>
-                        <span className="text-gray-900">{nok(e.gross_nok)} brutto</span>
-                        <span className="text-green-700">{nok(toActor)} til skuespilleren ({share} %)</span>
-                        <span className="text-gray-500">{nok(e.gross_nok - toActor)} igjen (fordeling skjer ved avregning)</span>
-                      </div>
-                    )
-                  })}
+                  {earnings.map((e) => (
+                    <div key={e.id} className="flex flex-wrap gap-x-4 text-sm border-t border-gray-100 pt-1.5 first:border-0 first:pt-0">
+                      <span className="font-medium text-gray-900 w-16">{e.period}</span>
+                      <span className="text-gray-600">{e.source}</span>
+                      <span className="text-gray-900">{nok(e.gross_nok)}</span>
+                      <span className="text-gray-500">betalt direkte til skuespilleren</span>
+                    </div>
+                  ))}
                 </div>
               )}
               <div className="flex flex-wrap items-center gap-2 text-sm">

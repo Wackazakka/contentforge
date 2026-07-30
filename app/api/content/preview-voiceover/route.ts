@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import {
+  isVoiceWithdrawn,
+  deactivateWithdrawnActor,
+  VOICE_WITHDRAWN,
+  VOICE_WITHDRAWN_MESSAGE,
+} from '@/lib/elevenlabsErrors'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 const R2_ENDPOINT = process.env.R2_ENDPOINT
@@ -31,6 +37,15 @@ export async function POST(request: Request) {
 
     if (!elevenRes.ok) {
       const error = await elevenRes.text()
+      if (isVoiceWithdrawn(elevenRes.status, error)) {
+        const { createClient } = await import('@supabase/supabase-js')
+        const db = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+          process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+        )
+        await deactivateWithdrawnActor(db, { elevenlabsVoiceId: String(voiceId) })
+        return NextResponse.json({ error: VOICE_WITHDRAWN_MESSAGE, code: VOICE_WITHDRAWN }, { status: 409 })
+      }
       console.error(`[preview-voiceover] ElevenLabs error:`, error)
       throw new Error('ElevenLabs API failed')
     }

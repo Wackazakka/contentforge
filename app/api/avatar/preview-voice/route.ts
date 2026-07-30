@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  isVoiceWithdrawn,
+  deactivateWithdrawnActor,
+  VOICE_WITHDRAWN,
+  VOICE_WITHDRAWN_MESSAGE,
+} from '@/lib/elevenlabsErrors'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 
@@ -42,6 +48,15 @@ export async function POST(request: NextRequest) {
 
     if (!res.ok) {
       const err = await res.text()
+      if (isVoiceWithdrawn(res.status, err)) {
+        const { createClient } = await import('@supabase/supabase-js')
+        const db = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+          process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+        )
+        await deactivateWithdrawnActor(db, { elevenlabsVoiceId: String(voiceId) })
+        return NextResponse.json({ error: VOICE_WITHDRAWN_MESSAGE, code: VOICE_WITHDRAWN }, { status: 409 })
+      }
       console.error('[avatar/preview-voice] ElevenLabs error:', err)
       return NextResponse.json({ error: 'ElevenLabs feilet' }, { status: 502 })
     }
