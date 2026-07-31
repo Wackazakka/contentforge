@@ -118,7 +118,8 @@ function downloadFile(url, destPath) {
 // ─── Content Generation ───────────────────────────────────────────────────────
 
 // To-pass loudnorm av en voiceover-fil (in-place): pass 1 maaler, pass 2
-// legger EN konstant gain (linear) mot I=-16 — samme moenster som medleyen.
+// legger EN konstant gain (linear). Maal I=-13 (hetere enn musikkens -16):
+// stemmens topper skal ligge OVER musikkens i miksen (Lars 30/7).
 function ffmpegPromise(args) {
   return new Promise((resolve, reject) => {
     const { execFile } = require('child_process')
@@ -136,13 +137,13 @@ function probeDuration(p) {
   })
 }
 async function normalizeVoiceover(voPath) {
-  const stderr1 = await ffmpegPromise(['-i', voPath, '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'])
+  const stderr1 = await ffmpegPromise(['-i', voPath, '-af', 'loudnorm=I=-13:TP=-1.0:LRA=11:print_format=json', '-f', 'null', '-'])
   const jsonMatch = stderr1.match(/\{[^{}]*"input_i"[^{}]*\}/)
   if (!jsonMatch) throw new Error('fant ikke maaleresultat')
   const m = JSON.parse(jsonMatch[0])
   const tmp = voPath + '.norm.mp3'
   await ffmpegPromise(['-y', '-i', voPath, '-af',
-    `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`,
+    `loudnorm=I=-13:TP=-1.0:LRA=11:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`,
     '-c:a', 'libmp3lame', '-b:a', '160k', tmp])
   fs.renameSync(tmp, voPath)
 }

@@ -172,6 +172,49 @@ def make_text_frame(lines, sub=None, logo_url=None):
             start_y += line_h
     return np.array(layer)
 
+import subprocess as _sp, re as _re, json as _json
+
+def _normalize_voice(vo_path):
+    """PEAK-normaliser stemmen til -1,5 dBFS — i RENDEREREN, siste ledd foer
+    miksen. loudnorm er UPAALITELIG paa klipp < ~3 s (maalt 2026-07-30:
+    'target_offset 27.96' men leverte -41 dB — den KNUSTE korte taleklipp).
+    Peak-maaling + konstant gain kan ikke bomme, uansett klipplengde.
+    Skriver .mix.mp3 ved siden av; feiler noe, returneres originalen."""
+    try:
+        out = vo_path + '.mix.mp3'
+        p1 = _sp.run(['ffmpeg', '-i', vo_path, '-af', 'volumedetect', '-f', 'null', '-'],
+                     capture_output=True, text=True, timeout=60)
+        m = _re.search(r'max_volume:\s*(-?[0-9.]+) dB', p1.stderr)
+        if not m:
+            return vo_path
+        gain = -1.5 - float(m.group(1))
+        if gain <= 0.1:
+            return vo_path  # allerede varm nok
+        _sp.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', vo_path,
+                 '-af', 'volume=%.2fdB' % gain, '-c:a', 'libmp3lame', '-b:a', '160k', out],
+                check=True, timeout=60)
+        print('[normalize_voice] %s: +%.1f dB (peak -> -1.5)' % (vo_path.split('/')[-1], gain))
+        return out
+    except Exception as e:
+        print(f'[normalize_voice] hoppet over: {e}')
+        return vo_path
+
+
+def _extend_boomerang(v, duration):
+    """Forleng et videoklipp til `duration` med frem-baklengs-frem-looping —
+    bevegelsen lever hele klippet (Lars 2026-07-30), soemloese vendepunkter."""
+    if v.duration >= duration:
+        return v.subclipped(0, duration)
+    parts = []
+    covered = 0.0
+    forward = True
+    while covered < duration - 1e-6:
+        parts.append(v if forward else v.with_effects([vfx.TimeMirror()]))
+        covered += v.duration
+        forward = not forward
+    out = concatenate_videoclips(parts)
+    return out.subclipped(0, duration) if out.duration > duration else out
+
 def make_segment(bg_path, lines, vo_path, sub=None, logo_url=None, hold=0.0):
     """Create single video segment from background + text + voiceover.
 
@@ -179,7 +222,7 @@ def make_segment(bg_path, lines, vo_path, sub=None, logo_url=None, hold=0.0):
     staaende og musikken faar plass (duckingen loefter den automatisk).
     Additivt: hold=0 gir noeyaktig gammel oppfoersel. (Musikkdrevet tempo,
     Lars/IndigoBoom 2026-07-30.)"""
-    vo = AudioFileClip(vo_path)
+    vo = AudioFileClip(_normalize_voice(vo_path))
     duration = vo.duration + 0.4 + max(0.0, float(hold or 0))
 
     bg_arr = make_bg_frame(bg_path)
@@ -206,7 +249,7 @@ def make_segment_video(clip_path, lines, vo_path, sub=None, logo_url=None, hold=
     hold: se make_segment. Bevegelsesklipp saktnes aldri mot hold-tiden
     (ville gitt slow motion-suppe) — de saktnes mot talelengden som foer,
     og fryses ut hviletiden."""
-    vo = AudioFileClip(vo_path)
+    vo = AudioFileClip(_normalize_voice(vo_path))
     base_duration = vo.duration + 0.4
     duration = base_duration + max(0.0, float(hold or 0))
 
@@ -222,26 +265,15 @@ def make_segment_video(clip_path, lines, vo_path, sub=None, logo_url=None, hold=
         # Lip-sync: ALDRI tidsstrekk - munnen maa foelge voiceoveren 1:1.
         # Spill i naturlig tempo fra t=0 (samme start som vo) og frys siste
         # bilde ut resten av segmentet i stedet.
-        if v.duration >= duration:
-            v = v.subclipped(0, duration)
-        else:
-            last_frame = v.get_frame(max(v.duration - 1.0 / 24, 0))
-            freeze = ImageClip(last_frame, duration=duration - v.duration)
-            v = concatenate_videoclips([v, freeze])
+        # Foerste gjennomspilling naturlig (munn = stemme); resten boomerang —
+        # animasjonen fortsetter hele klippet (Lars 2026-07-30; lip-sync-
+        # kompromisset er kjent og akseptert).
+        v = _extend_boomerang(v, duration)
     # Fit to voiceover length: trim if longer, loop if shorter
     elif v.duration >= duration:
         v = v.subclipped(0, duration)
     else:
-        # Tidsstrekk klippet slik at det spenner TALE-delen (unngaa stygt loop-hopp).
-        # Hold-tiden dekkes med frys av siste bilde — aldri mer slow motion.
-        factor = v.duration / base_duration  # <1 = saktere -> ny lengde ~= base_duration
-        v = v.with_effects([vfx.MultiplySpeed(factor)])
-        if v.duration > base_duration:
-            v = v.subclipped(0, base_duration)
-        if v.duration < duration:
-            last_frame = v.get_frame(max(v.duration - 1.0 / 24, 0))
-            freeze = ImageClip(last_frame, duration=duration - v.duration)
-            v = concatenate_videoclips([v, freeze])
+        v = _extend_boomerang(v, duration)
 
     # Dim + bottom bar overlay (same look as stills)
     ov_rgba = make_dim_bar_overlay()
