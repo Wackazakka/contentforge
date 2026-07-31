@@ -6,7 +6,7 @@ const path = require('path')
 const https = require('https')
 const crypto = require('crypto')
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
-const { imageToVideoClip, lipsyncClip } = require('./i2v')
+const { imageToVideoClip, imageToVideoChain, lipsyncClip, extractLastFrame, concatClips } = require('./i2v')
 
 const SCRIPT_PATH = '/root/.openclaw/workspace/reforhandle-content/make_tiktok_reforhandle.py'
 const OUTPUT_DIR = '/root/.openclaw/workspace/contentforge-output'
@@ -118,7 +118,8 @@ function downloadFile(url, destPath) {
 // ─── Content Generation ───────────────────────────────────────────────────────
 
 // To-pass loudnorm av en voiceover-fil (in-place): pass 1 maaler, pass 2
-// legger EN konstant gain (linear) mot I=-16 — samme moenster som medleyen.
+// legger EN konstant gain (linear). Maal I=-13 (hetere enn musikkens -16):
+// stemmens topper skal ligge OVER musikkens i miksen (Lars 30/7).
 function ffmpegPromise(args) {
   return new Promise((resolve, reject) => {
     const { execFile } = require('child_process')
@@ -136,13 +137,13 @@ function probeDuration(p) {
   })
 }
 async function normalizeVoiceover(voPath) {
-  const stderr1 = await ffmpegPromise(['-i', voPath, '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'])
+  const stderr1 = await ffmpegPromise(['-i', voPath, '-af', 'loudnorm=I=-13:TP=-1.0:LRA=11:print_format=json', '-f', 'null', '-'])
   const jsonMatch = stderr1.match(/\{[^{}]*"input_i"[^{}]*\}/)
   if (!jsonMatch) throw new Error('fant ikke maaleresultat')
   const m = JSON.parse(jsonMatch[0])
   const tmp = voPath + '.norm.mp3'
   await ffmpegPromise(['-y', '-i', voPath, '-af',
-    `loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`,
+    `loudnorm=I=-13:TP=-1.0:LRA=11:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`,
     '-c:a', 'libmp3lame', '-b:a', '160k', tmp])
   fs.renameSync(tmp, voPath)
 }
@@ -495,19 +496,61 @@ router.post('/', async (req, res) => {
           }
         }
 
-        // AI-bevegelse: gjor hvert stillbilde om til et kort videoklipp (i2v via fal).
-        // Parallelt for fart; faller tilbake til stillbildet per segment hvis et klipp feiler.
+        // «Film = musikkens lengde» (Lars 30/7): musikklengde / antall
+        // segmenter = segmentlengde. Hvert segments hviletid = andelen minus
+        // faktisk stemmelengde (+0,4 s gap). Regnes FOER animasjonen (31/7):
+        // kjedegenereringen trenger maallengden for aa bestille klipp i riktig
+        // lengde. Cap 60 s per segment mot ekstreme kilder.
+        const voDurs = []
+        for (let i = 0; i < orderedSegments.length; i++) {
+          try { voDurs.push(await probeDuration(`${jobDir}/vo_${i + 1}.mp3`)) }
+          catch (pErr) { voDurs.push(0) }
+        }
+        let computedHolds = null
+        if (matchMusicLength && musicFile) {
+          try {
+            const musicDur = await probeDuration(path.join(MUSIC_DIR, musicFile))
+            if (musicDur > 1) {
+              const share = musicDur / orderedSegments.length
+              computedHolds = voDurs.map((voDur) => Math.min(60, Math.max(0, share - (voDur + 0.4))))
+              console.log(`[job-queue] Film=musikk: ${musicDur.toFixed(1)}s / ${orderedSegments.length} segmenter -> hold ${computedHolds.map((h) => h.toFixed(1)).join(', ')}`)
+            }
+          } catch (mErr) {
+            console.error('[job-queue] Film=musikk-beregning hoppet over:', mErr.message)
+          }
+        }
+        // Endelig hviletid + maallengde per segment. Maa speile rendererens
+        // formel (duration = vo + 0.4 + hold) — styrer baade i2v-bestilling
+        // og config-skrivingen lenger ned.
+        const segHolds = orderedSegments.map((seg, i) =>
+          computedHolds ? computedHolds[i] : (Number(seg.holdSeconds) > 0 ? Math.min(Number(seg.holdSeconds), 60) : 0))
+        const targetDurs = orderedSegments.map((seg, i) => voDurs[i] + 0.4 + segHolds[i])
+
+        // AI-bevegelse (kjedegenerering 31/7): hvert stillbilde blir ETT
+        // sammenhengende bevegelsesklipp i hele segmentets lengde («riktig
+        // lengde, ingen boomeranging»). Segmenter lengre enn motorens maks
+        // kjedes: neste ledd saas fra forrige ledds siste bilde. Parallelt
+        // per segment; stillbilde-fallback som foer om alt feiler.
         let segClips = []
         if (aiMotion) {
           const engine = aiMotionEngine || 'pixverse'
           const _toAnimate = orderedSegments.filter((s) => (s.motion && s.motion !== 'none') || s.animate === true).length
           console.log(`[job-queue] AI-bevegelse PA (${engine}) - animerer ${_toAnimate} av ${orderedSegments.length} segmenter (per-segment valg)`)
-          const motionPrompt = 'subtle cinematic camera push-in and gentle ambient motion only. The people stay still and do NOT talk - mouths closed, no lip movement, no speaking or singing. Photorealistic, no text or letters.'
+          // «Stay still» ga passive statuer (Lars 31/7) — kroppen skal leve,
+          // bare munnen er sperret (stumfilm-effekten fra 30/7).
+          const motionPrompt = 'cinematic camera push-in. The people move naturally and stay alive: subtle head turns, blinking, breathing, shifting weight, small gestures. But mouths stay CLOSED the whole time - no talking, no lip movement, no singing. Photorealistic, no text or letters.'
           const _r = await Promise.allSettled(orderedSegments.map(async (seg, i) => {
             const motion = seg.motion || (seg.animate === true ? 'move' : 'none')
             if (motion === 'none') return null
             const url = segImageUrls[i]
             if (!url) throw new Error('mangler bilde-URL')
+            const clipPath = `${jobDir}/clip_${i + 1}.mp4`
+            const chainDir = `${jobDir}/chain_${i + 1}`
+            fs.mkdirSync(chainDir, { recursive: true })
+            const uploadFrame = (buf, name) => uploadBufferToR2(buf, `videos/${jobId}/chain_${i + 1}_${name}`, 'image/png')
+            // +0,5 s margin: rendereren trimmer eksakt uansett; et klipp som
+            // ender et hakk for KORT ville derimot utloest nodlosningen.
+            const targetSec = targetDurs[i] + 0.5
             if (motion === 'talk') {
               // Lip-sync: bruk godkjent voiceover-URL; ellers last opp den genererte vo-fila
               let audioUrl = seg.voiceoverUrl || null
@@ -515,15 +558,35 @@ router.post('/', async (req, res) => {
                 const voBuf = fs.readFileSync(`${jobDir}/vo_${i + 1}.mp3`)
                 audioUrl = await uploadBufferToR2(voBuf, `videos/${jobId}/vo_${i + 1}.mp3`, 'audio/mpeg')
               }
-              return lipsyncClip({ imageUrl: url, audioUrl, outPath: `${jobDir}/clip_${i + 1}.mp4`, log: (m) => console.log(m) })
+              const talkPath = `${jobDir}/talk_${i + 1}.mp4`
+              await lipsyncClip({ imageUrl: url, audioUrl, outPath: talkPath, log: (m) => console.log(m) })
+              const talkDur = await probeDuration(talkPath)
+              const rest = targetSec - talkDur
+              if (rest < 1.0) {
+                fs.copyFileSync(talkPath, clipPath)
+                return clipPath
+              }
+              // Rolig hale: kjede saadd fra snakkeklippets siste bilde, saa
+              // personen blir staaende levende etter replikken (30/7). Feiler
+              // halen, brukes snakkeklippet alene og rendereren fyller resten
+              // (boomerang som kjent, akseptert nodlosning).
+              try {
+                const seedPng = `${chainDir}/talk_seed.png`
+                await extractLastFrame(talkPath, seedPng)
+                const seedUrl = await uploadFrame(fs.readFileSync(seedPng), 'talk_seed.png')
+                const idlePath = `${chainDir}/idle.mp4`
+                await imageToVideoChain({ imageUrl: seedUrl, prompt: motionPrompt, engine, targetSec: rest, resolution: '720p', outPath: idlePath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
+                await concatClips([talkPath, idlePath], clipPath)
+                console.log(`[job-queue] segment ${i + 1}: snakk ${talkDur.toFixed(1)}s + rolig hale ${rest.toFixed(1)}s skjotet`)
+              } catch (tailErr) {
+                console.warn(`[job-queue] segment ${i + 1}: rolig hale feilet (${tailErr.message}) - bruker snakkeklippet alene`)
+                fs.copyFileSync(talkPath, clipPath)
+              }
+              return clipPath
             }
-            // Mal voiceover-lengden -> velg 5s eller 8s (dekker segmentet uten stretch opp til 8s)
-            let durationSec = 5
-            try {
-              const { stdout } = await execAsync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${jobDir}/vo_${i + 1}.mp3"`)
-              if ((parseFloat(stdout.trim()) + 0.4) > 5) durationSec = 8
-            } catch (e) { /* fallback 5s */ }
-            return imageToVideoClip({ imageUrl: url, prompt: motionPrompt, engine, durationSec, resolution: '720p', outPath: `${jobDir}/clip_${i + 1}.mp4`, log: (m) => console.log(m) })
+            const chain = await imageToVideoChain({ imageUrl: url, prompt: motionPrompt, engine, targetSec, resolution: '720p', outPath: clipPath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
+            console.log(`[job-queue] segment ${i + 1}: kjede ferdig (${chain.chunks} ledd, ${chain.coveredSec.toFixed(1)}s av maal ${targetSec.toFixed(1)}s)`)
+            return clipPath
           }))
           segClips = _r.map((r, i) => {
             if (r.status === 'fulfilled' && r.value) { console.log(`[job-queue] i2v-klipp ${i + 1} OK`); return `${jobDir}/clip_${i + 1}.mp4` }
@@ -535,28 +598,6 @@ router.post('/', async (req, res) => {
         // Write segments to config for Python renderer (storytelling format)
         // lines: [] — no text overlay, the voiceover audio narrates and the image shows the scene
         // sub: short subtitle at bottom for accessibility
-        // «Film = musikkens lengde» (Lars 30/7): musikklengde / antall
-        // segmenter = segmentlengde. Hvert segments hviletid = andelen minus
-        // faktisk stemmelengde (+0,4 s gap). Artisten tar de kreative valgene;
-        // systemet tar bare matematikken. Presise tall: alt maales her, etter
-        // at stemmene finnes. Cap 60 s per segment mot ekstreme kilder.
-        let computedHolds = null
-        if (matchMusicLength && musicFile) {
-          try {
-            const musicDur = await probeDuration(path.join(MUSIC_DIR, musicFile))
-            if (musicDur > 1) {
-              const share = musicDur / orderedSegments.length
-              computedHolds = []
-              for (let i = 0; i < orderedSegments.length; i++) {
-                const voDur = await probeDuration(`${jobDir}/vo_${i + 1}.mp3`)
-                computedHolds.push(Math.min(60, Math.max(0, share - (voDur + 0.4))))
-              }
-              console.log(`[job-queue] Film=musikk: ${musicDur.toFixed(1)}s / ${orderedSegments.length} segmenter -> hold ${computedHolds.map((h) => h.toFixed(1)).join(', ')}`)
-            }
-          } catch (mErr) {
-            console.error('[job-queue] Film=musikk-beregning hoppet over:', mErr.message)
-          }
-        }
         config = {
           // Use the SAME canonical ordered array used for voiceover/image
           // generation above — never the raw `segments` request order — so the
@@ -572,8 +613,9 @@ router.post('/', async (req, res) => {
               sub: subText.length > 80 ? subText.substring(0, 77) + '...' : subText,
               // Musikkdrevet tempo (2026-07-30): hviletid etter stemmen —
               // rendereren lar bildet staa og musikken loeftes av duckingen.
-              // computedHolds (film=musikk) vinner over manuelle verdier.
-              hold: computedHolds ? computedHolds[i] : (Number(seg.holdSeconds) > 0 ? Math.min(Number(seg.holdSeconds), 60) : 0),
+              // segHolds er regnet FOER animasjonen (film=musikk vinner over
+              // manuelle verdier) og er samme tall kjedegenereringen bestilte.
+              hold: segHolds[i],
             }
           }),
           output: `${jobDir}/output.mp4`,
