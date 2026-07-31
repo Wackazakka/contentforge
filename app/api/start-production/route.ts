@@ -93,14 +93,41 @@ export async function POST(request: Request) {
     try {
       const { logUsageEvent } = await import('@/lib/tenantBilling')
       const { COSTS_NOK } = await import('@/lib/costs')
-      const { data: d2 } = await supabase.from('production_drafts').select('segments, ai_motion').eq('id', draftId).single()
+      const { data: d2 } = await supabase.from('production_drafts').select('segments, ai_motion, ai_motion_engine, music_file').eq('id', draftId).single()
       let motionNok = 0
       if (d2?.ai_motion) {
-        for (const s of (d2.segments || [])) {
-          const m = s.motion || (s.animate === true ? 'move' : 'none')
+        const segs = d2.segments || []
+        // Gjenbruk (31/7): scener som ligger klare i dropletens klipp-cache
+        // belastes IKKE — bare det som faktisk maa genereres koster.
+        let reusable: boolean[] = []
+        try {
+          const rc = await fetch('http://139.59.212.218:3002/jobs/reuse-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              engine: d2.ai_motion_engine || 'kling',
+              musicFile: d2.music_file || null,
+              matchMusicLength: segs.some((s: any) => s.match_music === true),
+              segments: segs.map((s: any) => ({
+                imageUrl: s.image_url,
+                motion: s.motion,
+                animate: s.animate,
+                voiceoverUrl: s.voiceover_url,
+                noVoice: s.no_voice,
+                holdSeconds: s.hold_seconds,
+              })),
+            }),
+            signal: AbortSignal.timeout(5000),
+          })
+          if (rc.ok) reusable = (await rc.json()).reusable || []
+        } catch { /* uten svar belastes alt som foer */ }
+        segs.forEach((s: any, i: number) => {
+          if (reusable[i]) return
+          const raw = s.motion || (s.animate === true ? 'move' : 'none')
+          const m = (s.no_voice === true && raw === 'talk') ? 'move' : raw
           if (m === 'move') motionNok += COSTS_NOK.animate5s
           else if (m === 'talk') motionNok += COSTS_NOK.lipsyncTypical
-        }
+        })
       }
       logUsageEvent({ productId: draftProductId, draftId, userId: userId || null, eventType: 'video_production', costNok: motionNok, meta: { jobId } })
       // Stemmebank: royalty-hendelser hvis produksjonen bruker en registrert
