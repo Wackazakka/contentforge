@@ -55,6 +55,15 @@
     "brandVoicePlaceholder": "How do you talk to your fans? E.g. raw and direct, warm and close, mysterious …"
   },
   "newDraft": {
+    "segmentsLabel": "Number of scenes",
+    "seg2": "2 scenes",
+    "seg3": "3 scenes",
+    "seg4": "4 scenes",
+    "seg5": "5 scenes",
+    "seg6": "6 scenes",
+    "seg8": "8 scenes (recommended)",
+    "seg10": "10 scenes",
+    "segmentsHint": "About one scene per 5 seconds of music keeps the pace — a 40-second track ≈ 8 scenes. Not every scene needs a voice: silent scenes are carried by the music and the images.",
     "titlePlaceholder": "E.g. New single out Friday",
     "topicPlaceholder": "E.g. Our single \"Northern Lights\" drops Friday August 15 — pre-save now",
     "targetAudiencePlaceholder": "E.g. People who listen to melancholic synthpop and Nordic indie",

@@ -23,7 +23,15 @@ export default function NewDraftPage() {
 
   const [topic, setTopic] = useState('')
   const [title, setTitle] = useState('')
-  const [segmentCount, setSegmentCount] = useState(4)
+  // Artister anbefales 8 scener (~5 s musikk per bilde, Lars 31/7);
+  // øvrige vertikaler beholder 4. Tenant-konteksten kan komme async —
+  // løft til 8 når vertikalen lander, men aldri over et aktivt brukervalg.
+  const [segmentCount, setSegmentCount] = useState(tenant.vertical === 'music' ? 8 : 4)
+  const [segmentCountTouched, setSegmentCountTouched] = useState(false)
+  useEffect(() => {
+    if (tenant.vertical === 'music' && !segmentCountTouched) setSegmentCount(8)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant.vertical])
   const [targetAudience, setTargetAudience] = useState('')
   const [problem, setProblem] = useState('')
   const [tone, setTone] = useState('Energisk')
@@ -210,7 +218,7 @@ export default function NewDraftPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('segmentsLabel')}</label>
                   <select
                     value={segmentCount}
-                    onChange={(e) => setSegmentCount(Number(e.target.value))}
+                    onChange={(e) => { setSegmentCountTouched(true); setSegmentCount(Number(e.target.value)) }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent"
                   >
                     <option value={2}>{t('seg2')}</option>
@@ -218,7 +226,14 @@ export default function NewDraftPage() {
                     <option value={4}>{t('seg4')}</option>
                     <option value={5}>{t('seg5')}</option>
                     <option value={6}>{t('seg6')}</option>
+                    <option value={8}>{t('seg8')}</option>
+                    <option value={10}>{t('seg10')}</option>
                   </select>
+                  {/* Musikk-vertikalen: forklar HVORFOR mange korte scener
+                      (Lars 31/7: ~5 s per bilde; stille scener er helt fint) */}
+                  {tenant.vertical === 'music' && (
+                    <p className="mt-1 text-xs text-gray-500">{t('segmentsHint')}</p>
+                  )}
                 </div>
 
                 {/* Target Audience */}
