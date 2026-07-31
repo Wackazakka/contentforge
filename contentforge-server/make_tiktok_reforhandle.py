@@ -378,7 +378,8 @@ def _wrap_text(draw, text, font, max_width):
     return lines
 
 
-def render_outro_card(outro_cfg, output_path, width, height, jingle_path=None):
+def render_outro_card(outro_cfg, output_path, width, height, jingle_path=None,
+                      music_path=None, music_start=0.0, music_vol=0.38):
     """Render a 3-second branded outro card and save as mp4 to output_path.
 
     outro_cfg dict keys: url, cta, logoUrl, primaryColor, secondaryColor, durationSeconds.
@@ -519,6 +520,30 @@ def render_outro_card(outro_cfg, output_path, width, height, jingle_path=None):
             output_path,
         ]
         print(f'[render_outro_card] Using jingle: {jingle_path} (outro {outro_dur:.2f}s, jingle {jingle_dur}s)', flush=True)
+    elif music_path and os.path.exists(music_path):
+        # Ingen jingle: la MUSIKKEN fortsette under plakaten (Lars 31/7 —
+        # «musikken sluttet der sluttplakaten kom inn»). Vi fortsetter fra
+        # der filmen slapp (music_start) paa samme nivaa som ellers, med
+        # myk uttoning de siste sekundene saa slutten ikke er braa.
+        fade = min(1.5, float(duration) * 0.6)
+        af = (f'volume={music_vol:.3f},'
+              f'afade=t=out:st={max(0.0, float(duration) - fade):.2f}:d={fade:.2f}')
+        cmd = [
+            'ffmpeg', '-y',
+            '-loop', '1', '-i', frame_path,
+            '-ss', f'{max(0.0, float(music_start)):.2f}', '-i', music_path,
+            '-map', '0:v', '-map', '1:a',
+            '-t', str(duration),
+            '-vf', f'scale={width}:{height}',
+            '-r', '24',
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+            '-pix_fmt', 'yuv420p',
+            '-af', af,
+            '-c:a', 'aac', '-ar', '44100',
+            '-movflags', '+faststart',
+            output_path,
+        ]
+        print(f'[render_outro_card] Musikken fortsetter under plakaten (fra {music_start:.1f}s, {duration}s, fade {fade:.1f}s)', flush=True)
     else:
         cmd = [
             'ffmpeg', '-y',
@@ -688,7 +713,21 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         if outroCard:
             outro_path = os.path.join(work_dir, 'outro_clip.mp4')
             try:
-                render_outro_card(outroCard, outro_path, W, H, jingle_path=outroCard.get('jinglePath'))
+                # Uten jingle skal musikken fortsette under plakaten — fra
+                # der filmen slapp. Er sporet kortere enn filmen, har det
+                # loopet: regn ut posisjonen i loopen (samme som _duck_music).
+                _mus = backgroundMusicPath if (backgroundMusicPath and os.path.exists(backgroundMusicPath)) else None
+                _start = 0.0
+                if _mus:
+                    try:
+                        _src_dur = float(AudioFileClip(_mus).duration)
+                        _start = (total % _src_dur) if _src_dur > 0 else 0.0
+                    except Exception:
+                        _start = 0.0
+                render_outro_card(outroCard, outro_path, W, H,
+                                  jingle_path=outroCard.get('jinglePath'),
+                                  music_path=_mus, music_start=_start,
+                                  music_vol=float((mix or {}).get('fullVol') or 0.38))
                 concat_videos(main_render_path, outro_path, output_path)
             except Exception as outro_err:
                 print(f"[build_video] Outro generation failed, using main video only: {outro_err}", file=sys.stderr)
