@@ -45,3 +45,5 @@ next-env.d.ts
 
 # Supabase CLI-cache — hører ikke i git
 supabase/.temp/
+__pycache__/
+*.pyc
