@@ -7,6 +7,7 @@ const https = require('https')
 const crypto = require('crypto')
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
 const { imageToVideoClip, imageToVideoChain, lipsyncClip, extractLastFrame, concatClips } = require('./i2v')
+const { edit: falEdit } = require('./fal-edit')
 
 const SCRIPT_PATH = '/root/.openclaw/workspace/reforhandle-content/make_tiktok_reforhandle.py'
 const OUTPUT_DIR = '/root/.openclaw/workspace/contentforge-output'
@@ -536,9 +537,13 @@ router.post('/', async (req, res) => {
           const engine = aiMotionEngine || 'pixverse'
           const _toAnimate = orderedSegments.filter((s) => (s.motion && s.motion !== 'none') || s.animate === true).length
           console.log(`[job-queue] AI-bevegelse PA (${engine}) - animerer ${_toAnimate} av ${orderedSegments.length} segmenter (per-segment valg)`)
-          // «Stay still» ga passive statuer (Lars 31/7) — kroppen skal leve,
-          // bare munnen er sperret (stumfilm-effekten fra 30/7).
-          const motionPrompt = 'cinematic camera push-in. The people move naturally and stay alive: subtle head turns, blinking, breathing, shifting weight, small gestures. But mouths stay CLOSED the whole time - no talking, no lip movement, no singing. Photorealistic, no text or letters.'
+          // Munntest 31/7 (A/B/C-eksperimentet): «stay still» ga statue,
+          // «move naturally» ga prating. Vinneren: POSITIV beskrivelse av
+          // stillhet («quietly observing») + utvidet negativ — liv i pust,
+          // blunk og hodebevegelse, munn lukket hele veien (verifisert i
+          // enkeltbilder). Ikke gjeninnfoer «gestures»/«stay alive»-ordlyd.
+          const motionPrompt = 'cinematic camera push-in. Gentle lifelike motion: the person breathes calmly, blinks naturally, subtle small head movement, calm silent expression. The mouth stays completely closed and still the entire time, lips gently pressed together. He is quietly observing, not talking. Photorealistic, no text or letters.'
+          const motionNegative = 'talking, speaking, singing, moving lips, lip movement, mouth opening and closing, conversation, open mouth, jaw movement, mouthing words, interview, presenting, explaining'
           const _r = await Promise.allSettled(orderedSegments.map(async (seg, i) => {
             const motion = seg.motion || (seg.animate === true ? 'move' : 'none')
             if (motion === 'none') return null
@@ -573,9 +578,26 @@ router.post('/', async (req, res) => {
               try {
                 const seedPng = `${chainDir}/talk_seed.png`
                 await extractLastFrame(talkPath, seedPng)
-                const seedUrl = await uploadFrame(fs.readFileSync(seedPng), 'talk_seed.png')
+                // Fabric fryser midt i ordet -> aapen munn i froeet, som
+                // inviterer PixVerse til aa prate videre (fullfilm-e2e 31/7).
+                // Lukk munnen med Flux Kontext foerst (~15 s, verifisert i
+                // munntest C); feiler redigeringen brukes originalen.
+                let tailSeedPng = seedPng
+                try {
+                  const lukket = `${chainDir}/talk_seed_lukket.png`
+                  await falEdit({
+                    imagePath: seedPng,
+                    prompt: 'Close his mouth completely so his lips are gently pressed together in a relaxed, natural way. Keep everything else in the image exactly the same: same person, same pose, same clothing, same background, same lighting.',
+                    outPath: lukket,
+                    log: (m) => console.log(`[job-queue] segment ${i + 1} munn-lukking: ${m}`),
+                  })
+                  tailSeedPng = lukket
+                } catch (editErr) {
+                  console.warn(`[job-queue] segment ${i + 1}: munn-lukking feilet (${editErr.message}) - bruker ulukket froebilde`)
+                }
+                const seedUrl = await uploadFrame(fs.readFileSync(tailSeedPng), 'talk_seed.png')
                 const idlePath = `${chainDir}/idle.mp4`
-                await imageToVideoChain({ imageUrl: seedUrl, prompt: motionPrompt, engine, targetSec: rest, resolution: '720p', outPath: idlePath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
+                await imageToVideoChain({ imageUrl: seedUrl, prompt: motionPrompt, negativePrompt: motionNegative, engine, targetSec: rest, resolution: '720p', outPath: idlePath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
                 await concatClips([talkPath, idlePath], clipPath)
                 console.log(`[job-queue] segment ${i + 1}: snakk ${talkDur.toFixed(1)}s + rolig hale ${rest.toFixed(1)}s skjotet`)
               } catch (tailErr) {
@@ -584,7 +606,7 @@ router.post('/', async (req, res) => {
               }
               return clipPath
             }
-            const chain = await imageToVideoChain({ imageUrl: url, prompt: motionPrompt, engine, targetSec, resolution: '720p', outPath: clipPath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
+            const chain = await imageToVideoChain({ imageUrl: url, prompt: motionPrompt, negativePrompt: motionNegative, engine, targetSec, resolution: '720p', outPath: clipPath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
             console.log(`[job-queue] segment ${i + 1}: kjede ferdig (${chain.chunks} ledd, ${chain.coveredSec.toFixed(1)}s av maal ${targetSec.toFixed(1)}s)`)
             return clipPath
           }))

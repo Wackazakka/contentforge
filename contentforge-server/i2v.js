@@ -72,16 +72,17 @@ async function downloadTo(url, outPath) {
  * @returns {Promise<string>} outPath
  */
 async function imageToVideoClip(o) {
-  const { imageUrl, prompt, engine = 'pixverse', durationSec = 5, resolution = '720p', outPath, log = console.log } = o
+  const { imageUrl, prompt, engine = 'pixverse', durationSec = 5, resolution = '720p', outPath, log = console.log, negativePrompt } = o
   if (!FAL_KEY) throw new Error('CONTENTFORGE_FAL_KEY mangler i env')
   if (!imageUrl) throw new Error('imageUrl mangler')
   const model = MODELS[engine] || MODELS.pixverse
   const auth = { Authorization: `Key ${FAL_KEY}` }
 
   // PixVerse bruker duration som streng ("5"/"8"); Kling bruker tall-sekunder.
+  const neg = negativePrompt || 'talking, speaking, singing, moving lips, lip movement, mouth opening and closing, conversation'
   const body = engine === 'kling'
     ? { image_url: imageUrl, prompt, duration: String(durationSec) }
-    : { image_url: imageUrl, prompt, duration: String(durationSec), resolution, negative_prompt: 'talking, speaking, singing, moving lips, lip movement, mouth opening and closing, conversation' }
+    : { image_url: imageUrl, prompt, duration: String(durationSec), resolution, negative_prompt: neg }
 
   // 1) Submit til køen
   const submitRes = await fetch(`${QUEUE}/${model}`, {
@@ -148,7 +149,7 @@ async function imageToVideoClip(o) {
  */
 async function imageToVideoChain(o) {
   const { imageUrl, prompt, engine = 'pixverse', targetSec, resolution = '720p',
-    outPath, workDir, uploadFrame, log = console.log, maxChunks = 4 } = o
+    outPath, workDir, uploadFrame, log = console.log, maxChunks = 4, negativePrompt } = o
   if (!targetSec || targetSec <= 0) throw new Error('targetSec mangler')
   const chunkMax = engine === 'kling' ? 10 : 8
   const chunks = []
@@ -160,7 +161,14 @@ async function imageToVideoChain(o) {
       // 5 s holder for korte rester; ellers største ledd motoren gir
       const durationSec = remaining <= 5.5 ? 5 : chunkMax
       const chunkPath = `${workDir}/chain_${chunks.length + 1}.mp4`
-      await imageToVideoClip({ imageUrl: seed, prompt, engine, durationSec, resolution, outPath: chunkPath, log })
+      // Ett nytt forsøk per ledd: fal-køen har lunefulle dager (31/7: hale
+      // tidsavbrøt >8 min og hele halen røk — ett retry hadde reddet den).
+      try {
+        await imageToVideoClip({ imageUrl: seed, prompt, engine, durationSec, resolution, outPath: chunkPath, log, negativePrompt })
+      } catch (firstErr) {
+        log(`[i2v-kjede] ledd ${chunks.length + 1} feilet (${firstErr.message}) — prøver én gang til`)
+        await imageToVideoClip({ imageUrl: seed, prompt, engine, durationSec, resolution, outPath: chunkPath, log, negativePrompt })
+      }
       chunks.push(chunkPath)
       const dur = await probeSeconds(chunkPath)
       covered += dur > 0 ? dur : durationSec
