@@ -58,6 +58,28 @@ export default function NewDraftPage() {
       .catch(() => {})
   }, [])
   const [perspective, setPerspective] = useState<'du' | 'jeg' | 'vi'>('du')
+  const [perspectiveTouched, setPerspectiveTouched] = useState(false)
+  // Artister snakker som seg selv (Lars 31/7): band → vi-form, solo →
+  // jeg-form. Gjett fra artistprofilen (navn + beskrivelse); artistens
+  // eget valg overstyres aldri.
+  useEffect(() => {
+    if (tenant.vertical !== 'music' || perspectiveTouched) return
+    ;(async () => {
+      try {
+        const { data } = await getSupabase()
+          .from('products')
+          .select('name, description')
+          .eq('id', productId)
+          .single()
+        if (perspectiveTouched) return
+        const tekst = `${data?.name || ''} ${data?.description || ''}`.toLowerCase()
+        const bandish = /\b(band|bandet|trio|duo|kvartett|kvintett|gruppe|gruppa|kollektiv|orkester|ensemble|medlemmer|brødre|søstre|we|our|members)\b/.test(tekst)
+          || /\b(vi|oss|våre)\b/.test(tekst)
+        setPerspective(bandish ? 'vi' : 'jeg')
+      } catch { setPerspective('jeg') /* soloartist er tryggeste gjett */ }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant.vertical])
   const [cta, setCta] = useState('')
   // Kampanjemaler (vertikal-gatet): forhåndsfyller brief-feltene som stillas.
   const locale = (useLocale() === 'en' ? 'en' : 'no') as Locale
@@ -312,7 +334,7 @@ export default function NewDraftPage() {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setPerspective('du')}
+                      onClick={() => { setPerspectiveTouched(true); setPerspective('du') }}
                       className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
                         perspective === 'du'
                           ? 'bg-green-600 text-white border-green-600'
@@ -323,7 +345,7 @@ export default function NewDraftPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPerspective('jeg')}
+                      onClick={() => { setPerspectiveTouched(true); setPerspective('jeg') }}
                       className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
                         perspective === 'jeg'
                           ? 'bg-green-600 text-white border-green-600'
@@ -334,7 +356,7 @@ export default function NewDraftPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPerspective('vi')}
+                      onClick={() => { setPerspectiveTouched(true); setPerspective('vi') }}
                       className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
                         perspective === 'vi'
                           ? 'bg-green-600 text-white border-green-600'
