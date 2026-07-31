@@ -1548,7 +1548,9 @@ export default function DraftPage() {
                       <img
                         src={segment.image_url}
                         alt={`Segment ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        // Music-vertikalen viser HELE bildet med sort rundt —
+                        // som i den ferdige filmen (imageFit contain, 31/7)
+                        className={tenantInfo.vertical === 'music' ? 'w-full h-full object-contain bg-black' : 'w-full h-full object-cover'}
                       />
                     ) : generatingImages.has(index) ? (
                       <div className="w-full h-full flex flex-col items-center justify-center gap-2 animate-pulse">
