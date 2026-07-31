@@ -71,11 +71,16 @@ export async function startProductionForDraft(
   const logoUrl = productProfile?.logo_url || product?.logo_url || null
   const websiteUrl = productProfile?.website_url || null
 
-  const outroCard = (includeOutroCard && websiteUrl)
+  // Sluttplakat-kontroll (Lars 31/7): artistens egne valg fra redigereren
+  // (outro_config jsonb) vinner over automatikken. imageUrl === null betyr
+  // eksplisitt «uten bilde»; undefined betyr «bruk standard (logo)».
+  const oc = (draft.outro_config && typeof draft.outro_config === 'object') ? draft.outro_config : {}
+  const outroUrl = oc.url || websiteUrl
+  const outroCard = (includeOutroCard && outroUrl)
     ? {
-        url: websiteUrl,
-        cta: draft.cta || '',
-        logoUrl: logoUrl || null,
+        url: outroUrl,
+        cta: (oc.message !== undefined && oc.message !== null) ? String(oc.message) : (draft.cta || ''),
+        logoUrl: oc.imageUrl === null ? null : (oc.imageUrl || logoUrl || null),
         primaryColor: productProfile?.primary_color || '#1a1a2e',
         secondaryColor: productProfile?.secondary_color || '#ffffff',
         durationSeconds: 3,
