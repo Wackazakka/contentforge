@@ -121,7 +121,23 @@ export async function startProductionForDraft(
     voiceover: s.voiceover,
     imagePrompt: s.image_prompt || s.imagePrompt || '',
     imageUrl: s.image_url,
-    voiceoverUrl: s.voiceover_url || null,
+    // Et AI-opptak laget med en ANNEN stemme enn den som er valgt nå skal
+    // ALDRI brukes (Lars 31/7: gammel «Adam»-lyd overlevde et stemmebytte og
+    // dukket opp i filmen). Egne innspillinger (own_voice) er artistens egen
+    // røst og gjelder uansett valgt AI-stemme. Opptak uten stempel (laget før
+    // 31/7) godtas kun når stemmen ikke er byttet siden.
+    voiceoverUrl: (() => {
+      if (!s.voiceover_url) return null
+      if (s.own_voice) return s.voiceover_url
+      if (draft.voice_id === 'own') return null // AI-lyd har ingen plass her
+      // Uten stempel vet vi ikke hvilken stemme som lagde opptaket — og et
+      // opptak vi ikke kan gå god for skal ikke inn i filmen. Det koster en
+      // ny TTS-generering (~0,50 kr per scene) den ene gangen; fra da av er
+      // alle opptak stemplet.
+      if (!s.voice_used) return null
+      if (s.voice_used !== draft.voice_id) return null
+      return s.voiceover_url
+    })(),
     // «Uten tale» (31/7): bilde + musikk, ingen voiceover genereres
     noVoice: s.no_voice === true,
     // «Lag animasjonen på nytt»: nonce omgår dropletens klipp-cache
