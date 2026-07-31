@@ -2255,7 +2255,10 @@ export default function DraftPage() {
                     { label: '🎙️ Skuespillerstemme (per bruk)', amount: actorVoices.find((v) => v.voiceId === draft.voice_id)?.pricePerUseNok || 0 },
                     { label: `🗣️ Snakk × ${nTalk}`, amount: nTalk * COSTS_NOK.lipsyncTypical * pf },
                     { label: `🎥 Bevegelse × ${nMove}`, amount: nMove * COSTS_NOK.animate5s * pf },
-                    { label: `🖼️ Bilder × ${nImg}`, amount: nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard) * pf },
+                    // «Bilder × N» leste som «du har N bilder» — men N er antallet
+                    // som MANGLER og må lages av AI (Lars 31/7: «for hvert bilde
+                    // jeg laster opp blir det mindre credits»). Egne bilder er gratis.
+                    { label: `🖼️ AI-bilder som mangler × ${nImg}`, amount: nImg * (character ? COSTS_NOK.imageCharacter : COSTS_NOK.imageStandard) * pf },
                   ]}
                 />
               )
