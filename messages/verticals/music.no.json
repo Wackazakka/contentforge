@@ -55,6 +55,15 @@
     "brandVoicePlaceholder": "Hvordan snakker dere til fansen? F.eks. rått og direkte, varmt og nært, mystisk …"
   },
   "newDraft": {
+    "segmentsLabel": "Antall scener",
+    "seg2": "2 scener",
+    "seg3": "3 scener",
+    "seg4": "4 scener",
+    "seg5": "5 scener",
+    "seg6": "6 scener",
+    "seg8": "8 scener (anbefalt)",
+    "seg10": "10 scener",
+    "segmentsHint": "Rundt én scene per 5 sekunder musikk gir best tempo — 40 sekunder låt ≈ 8 scener. Ikke alle scenene trenger tale: scener uten tale bæres av musikken og bildene.",
     "titlePlaceholder": "F.eks. Ny singel ute fredag",
     "topicPlaceholder": "F.eks. Singelen «Nordlys» slippes fredag 15. august — forhåndslagre nå",
     "targetAudiencePlaceholder": "F.eks. Folk som hører på melankolsk synthpop og norsk indie",
