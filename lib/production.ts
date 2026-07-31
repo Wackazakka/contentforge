@@ -48,7 +48,8 @@ export async function startProductionForDraft(
   const includeOutroCard = opts.includeOutroCard ?? draft.include_outro_card ?? true
   const outroJingle = opts.outroJingle !== undefined ? opts.outroJingle : (draft.outro_jingle ?? null)
   const aiMotion = opts.aiMotion ?? draft.ai_motion ?? false
-  const aiMotionEngine = opts.aiMotionEngine ?? draft.ai_motion_engine ?? 'pixverse'
+  // Kling som standard (31/7): PixVerse ga munnbevegelse tross munnsperre
+  const aiMotionEngine = opts.aiMotionEngine ?? draft.ai_motion_engine ?? 'kling'
 
   // Produktprofil for logo/farger (select * tåler at valgfrie kolonner mangler)
   const [{ data: productProfile }, { data: product }] = await Promise.all([
