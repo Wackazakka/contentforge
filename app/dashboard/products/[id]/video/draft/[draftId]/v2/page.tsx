@@ -876,6 +876,24 @@ export default function DraftV2Page() {
               )
             })}
           </div>
+
+          {/* Start produksjon også NEDERST: man er ved siste scene når alt er
+              godkjent, og skal ikke måtte scrolle til toppen (Lars 31/7) */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
+            <p className={`text-[13px] font-medium ${allApproved ? 'text-green-700' : 'text-amber-700'}`}>
+              {allApproved
+                ? `Alle ${segments.length} scenene er godkjent — klar for produksjon`
+                : `${pendingCount} scene${pendingCount === 1 ? '' : 'r'} venter på godkjenning`}
+            </p>
+            <button
+              type="button"
+              onClick={startProduction}
+              disabled={!allApproved || starting}
+              className="px-6 py-3 rounded-xl text-[14.5px] font-semibold text-white bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {starting ? 'Starter…' : 'Start produksjon'}
+            </button>
+          </div>
           </div>
 
           {/* Sidepanel: alt globalt samlet (design-handoffens hovedgrep).
