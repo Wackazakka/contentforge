@@ -13,6 +13,8 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { COSTS_NOK, fmtCredits } from '@/lib/costs'
+import { VOICES, voiceName } from '@/lib/voices'
+import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
 
 interface Segment {
   index: number
@@ -49,6 +51,38 @@ interface Draft {
   cost_accumulated?: number | null
 }
 
+// Sidepanel-rad: «nåværende verdi + Endre», utvider seg til velgeren
+// (design-handoffen bruker sheets/popovers; inline utvidelse gir samme ro
+// med langt mindre maskineri — og fungerer likt på mobil).
+function SettingRow({
+  label, value, empty, open, onToggle, last, children,
+}: {
+  label: string
+  value: string
+  empty?: boolean
+  open: boolean
+  onToggle: () => void
+  last?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className={last ? '' : 'border-b border-gray-100'}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full text-left px-5 py-3 hover:bg-gray-50/70 flex items-start justify-between gap-3"
+      >
+        <span className="min-w-0">
+          <span className="block text-[11px] uppercase tracking-widest text-gray-400">{label}</span>
+          <span className={`block text-[13.5px] mt-0.5 truncate ${empty ? 'text-gray-400' : 'text-gray-900'}`}>{value}</span>
+        </span>
+        <span className="flex-shrink-0 text-[12px] text-gray-400 mt-3">{open ? 'Lukk' : 'Endre'}</span>
+      </button>
+      {open && <div className="px-5 pb-4">{children}</div>}
+    </div>
+  )
+}
+
 export default function DraftV2Page() {
   const params = useParams()
   const router = useRouter()
@@ -66,6 +100,10 @@ export default function DraftV2Page() {
   const [starting, setStarting] = useState(false)
   const [productName, setProductName] = useState('')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Sidepanel (fase 2): musikkbibliotek + hvilken rad som er åpen for endring
+  const [musicLibrary, setMusicLibrary] = useState<MusicFile[]>([])
+  const [openRow, setOpenRow] = useState<string | null>(null)
+  const [musicDur, setMusicDur] = useState<number | null>(null)
 
   // Utpris-faktor (white-label): kunden ser priser med partnerens margin
   const pf = tenant.price_multiplier || 1
@@ -88,6 +126,42 @@ export default function DraftV2Page() {
       }
     })()
   }, [draftId, productId])
+
+  // Musikkbiblioteket (sidepanelets musikk-/jinglevelgere)
+  useEffect(() => {
+    fetch('/api/music')
+      .then((r) => r.json())
+      .then((d) => setMusicLibrary(d.files || []))
+      .catch(() => { /* biblioteket er valgfritt */ })
+  }, [])
+
+  // Musikklengden driver tidslinjen og scene-anbefalingen
+  useEffect(() => {
+    const f = draft?.music_file
+    if (!f) { setMusicDur(null); return }
+    const a = new Audio(`/api/music/${encodeURIComponent(f)}`)
+    a.preload = 'metadata'
+    a.onloadedmetadata = () => setMusicDur(Number.isFinite(a.duration) ? a.duration : null)
+    a.onerror = () => setMusicDur(null)
+    return () => { a.onloadedmetadata = null; a.onerror = null }
+  }, [draft?.music_file])
+
+  // Oppsett-endringer lagres direkte på utkastet
+  const updateDraftFields = async (patch: Partial<Draft>) => {
+    setDraft((prev) => (prev ? { ...prev, ...patch } : prev))
+    try {
+      await getSupabase().from('production_drafts').update(patch).eq('id', draftId)
+    } catch (err) {
+      console.warn('[v2] lagring av oppsett feilet:', err)
+    }
+  }
+  // «Film = musikkens lengde» ligger på hvert segment (som i gammel side)
+  const setMatchMusic = (on: boolean) => {
+    if (!draft) return
+    const segments = draft.segments.map((s) => ({ ...s, match_music: on }))
+    setDraft({ ...draft, segments })
+    persistSegments(segments)
+  }
 
   // Lagre segmentene (debounced ved tekstredigering, umiddelbart ellers)
   const persistSegments = async (segments: Segment[]) => {
@@ -243,6 +317,48 @@ export default function DraftV2Page() {
 
         {/* To kolonner: scener + (fase 2: sidepanel — nå kun kreditt-kortet) */}
         <div className="mt-9 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-7 items-start">
+          <div className="space-y-5">
+          {/* Tidslinje — viser hvordan musikken deles på scenene (klikk åpner scenen) */}
+          {musicDur !== null && musicDur > 1 && segments.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+              <div className="flex items-baseline justify-between gap-3 mb-3">
+                <span className="text-[12px] uppercase tracking-widest text-gray-400">Tidslinje</span>
+                <span className="text-[12.5px] text-gray-500">
+                  {Math.round(musicDur)} sek musikk · {segments.length} scener · ca. {(musicDur / segments.length).toFixed(1)} sek per bilde
+                </span>
+              </div>
+              <div className="flex gap-1">
+                {segments.map((seg, i) => {
+                  const start = (musicDur / segments.length) * i
+                  const mm = Math.floor(start / 60)
+                  const ss = Math.round(start % 60).toString().padStart(2, '0')
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setOpenIndex(openIndex === i ? -1 : i)}
+                      className="flex-1 min-w-0 group"
+                      title={`Scene ${i + 1}`}
+                    >
+                      <span
+                        className={`block h-9 rounded-md border text-left px-1.5 pt-1 text-[11px] ${
+                          openIndex === i
+                            ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)] text-[var(--ember-deep)]'
+                            : seg.approved
+                              ? 'border-green-200 bg-green-50 text-green-800'
+                              : 'border-gray-200 bg-gray-50 text-gray-500 group-hover:border-gray-300'
+                        }`}
+                      >
+                        {i + 1}
+                      </span>
+                      <span className="block mt-1 text-[10.5px] text-gray-400 tabular-nums">{mm}:{ss}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Scene-kortet */}
           <div className="bg-white rounded-2xl border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
@@ -375,8 +491,9 @@ export default function DraftV2Page() {
               )
             })}
           </div>
+          </div>
 
-          {/* Sidepanel — fase 1: kun kreditt-kortet; resten kommer i fase 2 */}
+          {/* Sidepanel: alt globalt samlet (design-handoffens hovedgrep) */}
           <aside className="lg:sticky lg:top-6 space-y-4">
             <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
               <div className="flex items-baseline justify-between gap-3">
@@ -387,17 +504,190 @@ export default function DraftV2Page() {
                 Bilder og stemmer betales mens du jobber; animasjon ved produksjonsstart. Scener som er generert før gjenbrukes gratis.
               </p>
             </div>
+            {/* Lyd — stemme, musikk, jingle */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-900">Lyd</h3>
+                <p className="text-[12px] text-gray-400 mt-0.5">Gjelder hele videoen</p>
+              </div>
+
+              {/* Stemme */}
+              <SettingRow
+                label="Stemme"
+                value={voiceName(draft.voice_id)}
+                open={openRow === 'voice'}
+                onToggle={() => setOpenRow(openRow === 'voice' ? null : 'voice')}
+              >
+                <select
+                  value={draft.voice_id || ''}
+                  onChange={(e) => { updateDraftFields({ voice_id: e.target.value }); setOpenRow(null) }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-white"
+                >
+                  <option value="own">Din egen stemme — du leser inn selv</option>
+                  {VOICES.map((v) => (
+                    <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
+                  ))}
+                </select>
+                {draft.voice_id === 'own' && (
+                  <p className="mt-1.5 text-[11.5px] text-gray-400">
+                    Alle scener med tale må ha innlest lyd før produksjon.
+                  </p>
+                )}
+              </SettingRow>
+
+              {/* Bakgrunnsmusikk */}
+              <SettingRow
+                label="Bakgrunnsmusikk"
+                value={
+                  draft.music_file
+                    ? `${(musicLibrary.find((m) => m.filename === draft.music_file)?.name) || draft.music_file.split('/').pop()}${musicDur ? ` · ${Math.round(musicDur)} sek` : ''}`
+                    : 'Ingen musikk'
+                }
+                empty={!draft.music_file}
+                open={openRow === 'music'}
+                onToggle={() => setOpenRow(openRow === 'music' ? null : 'music')}
+              >
+                <select
+                  value={draft.music_file || ''}
+                  onChange={(e) => { updateDraftFields({ music_file: e.target.value || null }); setOpenRow(null) }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-white"
+                >
+                  <option value="">Ingen musikk</option>
+                  {(() => {
+                    const egne = ownTracks(musicLibrary, productId)
+                    const medleyer = egne.filter((m) => isMedleyFile(m.filename))
+                    const laater = egne.filter((m) => !isMedleyFile(m.filename))
+                    return (
+                      <>
+                        {medleyer.length > 0 && (
+                          <optgroup label="Medleyene dine">
+                            {medleyer.map((m) => <option key={m.filename} value={m.filename}>{m.name}</option>)}
+                          </optgroup>
+                        )}
+                        {laater.length > 0 && (
+                          <optgroup label="Låtene dine">
+                            {laater.map((m) => <option key={m.filename} value={m.filename}>{m.name}</option>)}
+                          </optgroup>
+                        )}
+                        {tenant.vertical !== 'music' && sharedMusic(musicLibrary).length > 0 && (
+                          <optgroup label="Delt bibliotek">
+                            {sharedMusic(musicLibrary).map((m) => <option key={m.filename} value={m.filename}>{m.name}</option>)}
+                          </optgroup>
+                        )}
+                      </>
+                    )
+                  })()}
+                </select>
+                {draft.music_file && (
+                  <audio controls preload="none" src={`/api/music/${encodeURIComponent(draft.music_file)}`} className="mt-2 w-full h-8" />
+                )}
+                <p className="mt-1.5 text-[11.5px] text-gray-400">
+                  Laste opp låter eller bygge medley?{' '}
+                  <Link href={`/dashboard/products/${productId}/video/draft/${draftId}`} className="underline hover:text-gray-600">
+                    Gjøres på den gamle siden
+                  </Link>{' '}
+                  inntil videre.
+                </p>
+              </SettingRow>
+
+              {/* Jingle */}
+              <SettingRow
+                label="Jingle (sluttplakat)"
+                value={draft.outro_jingle ? (musicLibrary.find((m) => m.filename === draft.outro_jingle)?.name || draft.outro_jingle) : 'Ingen — musikken fortsetter'}
+                empty={!draft.outro_jingle}
+                open={openRow === 'jingle'}
+                onToggle={() => setOpenRow(openRow === 'jingle' ? null : 'jingle')}
+                last
+              >
+                <select
+                  value={draft.outro_jingle || ''}
+                  onChange={(e) => { updateDraftFields({ outro_jingle: e.target.value || null }); setOpenRow(null) }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-white"
+                >
+                  <option value="">Ingen jingle — musikken fortsetter under plakaten</option>
+                  {musicLibrary.filter((m) => (m.folder || '').startsWith('jingles')).map((m) => (
+                    <option key={m.filename} value={m.filename}>{m.name}</option>
+                  ))}
+                </select>
+              </SettingRow>
+            </div>
+
+            {/* Bilde og bevegelse */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-900">Bilde og bevegelse</h3>
+              </div>
+              <div className="px-5 py-1">
+                <label className="flex items-start gap-3 py-3 cursor-pointer border-b border-gray-100">
+                  <input
+                    type="checkbox"
+                    checked={segments[0]?.match_music === true}
+                    onChange={(e) => setMatchMusic(e.currentTarget.checked)}
+                    className="w-4 h-4 mt-0.5"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-[13.5px] text-gray-900">Film = musikkens lengde</span>
+                    <span className="block text-[12px] text-gray-400 leading-relaxed mt-0.5">
+                      Hvert bilde står til neste del av låten. Stemmen får alltid plass.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 py-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={draft.ai_motion === true}
+                    onChange={(e) => updateDraftFields({ ai_motion: e.currentTarget.checked })}
+                    className="w-4 h-4 mt-0.5"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-[13.5px] text-gray-900">AI-bevegelse (ekte video)</span>
+                    <span className="block text-[12px] text-gray-400 leading-relaxed mt-0.5">
+                      Bildene blir levende klipp i scenens lengde. Lengre render, koster per scene.
+                    </span>
+                  </span>
+                </label>
+                {draft.ai_motion && (
+                  <div className="pb-3 pl-7">
+                    <select
+                      value={draft.ai_motion_engine || 'kling'}
+                      onChange={(e) => updateDraftFields({ ai_motion_engine: e.target.value })}
+                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-[12.5px] bg-white"
+                    >
+                      <option value="kling">Kling (anbefalt)</option>
+                      <option value="pixverse">PixVerse (rask/billig)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Anbefaling — samme regnestykke som gammel side, men med handling */}
+            {segments[0]?.match_music === true && musicDur !== null && musicDur > 1 && (() => {
+              const anbefalt = Math.max(2, Math.round(musicDur / 5))
+              const perScene = musicDur / segments.length
+              if (Math.abs(anbefalt - segments.length) <= 1) return null
+              return (
+                <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4">
+                  <p className="text-[12px] uppercase tracking-widest text-amber-700 mb-1.5">Anbefaling</p>
+                  <p className="text-[13px] text-amber-900 leading-relaxed">
+                    Musikken er {Math.round(musicDur)} sek. Med {segments.length} scener står hvert bilde i ca. {Math.round(perScene)} sek.
+                    Vi anbefaler rundt {anbefalt} scener (~5 sek per bilde). Scener uten tale er helt fint — da bærer musikken.
+                  </p>
+                </div>
+              )
+            })()}
+
             <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-              <p className="text-[12px] uppercase tracking-widest text-gray-400 mb-2">Oppsett</p>
+              <p className="text-[12px] uppercase tracking-widest text-gray-400 mb-2">Sluttplakat og bilder</p>
               <p className="text-[13px] text-gray-500 leading-relaxed">
-                Stemme, musikk, jingle og sluttplakat flytter hit i neste byggefase.{' '}
+                Sluttplakatens budskap, lenke og bilde — pluss bildevalg per scene —{' '}
                 <Link
-                  href={`/dashboard/products/${productId}/video/draft/${draftId}${searchParams?.toString() ? `?${searchParams.toString()}` : ''}`}
+                  href={`/dashboard/products/${productId}/video/draft/${draftId}`}
                   className="text-[var(--ember-deep)] underline hover:text-[var(--ink)]"
                 >
-                  Åpne den gamle siden
+                  endres på den gamle siden
                 </Link>{' '}
-                for å endre dem nå.
+                til neste byggefase er ferdig.
               </p>
             </div>
           </aside>
