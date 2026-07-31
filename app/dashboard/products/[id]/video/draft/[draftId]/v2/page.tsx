@@ -30,6 +30,8 @@ interface Segment {
   animate?: boolean
   motion?: 'none' | 'move' | 'talk'
   no_voice?: boolean
+  clip_nonce?: string
+  voice_used?: string
 }
 
 interface Draft {
@@ -230,7 +232,7 @@ export default function DraftV2Page() {
         setDraft((prev) => {
           if (!prev) return prev
           const segments = [...prev.segments]
-          segments[index] = { ...segments[index], voiceover_url: data.url, own_voice: false }
+          segments[index] = { ...segments[index], voiceover_url: data.url, own_voice: false, voice_used: draft.voice_id || '' }
           persistSegments(segments)
           const paalopt = (Number(prev.cost_accumulated) || 0) + COSTS_NOK.voiceoverPreview + (Number(data.actorExtraNok) || 0)
           return { ...prev, segments, cost_accumulated: paalopt }

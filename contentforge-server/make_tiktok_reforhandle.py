@@ -596,7 +596,7 @@ def concat_videos(main_path, outro_path, final_path):
 
 
 
-def _duck_music(music_path, clips, duck_vol=0.08, full_vol=0.38, fade_secs=0.30):
+def _duck_music(music_path, clips, duck_vol=0.08, full_vol=0.38, fade_secs=0.30, fade_tail=True):
     """Auto-ducking: lower music volume while voice is active, rise during 0.4s end gap."""
     import numpy as np
     total = sum(c.duration for c in clips)
@@ -640,10 +640,15 @@ def _duck_music(music_path, clips, duck_vol=0.08, full_vol=0.38, fade_secs=0.30)
             env[ramp_s2:ramp_e2] = np.linspace(duck_vol, full_vol, ramp_e2 - ramp_s2)
         t += dur
 
-    # Fade ut musikken de siste ~1.2 s i stedet for braatt kutt ved videoslutt
-    fade_out_n = min(n, int(1.2 * fps))
-    if fade_out_n > 1:
-        env[n - fade_out_n:] *= np.linspace(1.0, 0.0, fade_out_n)
+    # Fade ut musikken de siste ~1.2 s i stedet for braatt kutt ved videoslutt.
+    # MEN: kommer det en sluttplakat som SELV har musikk, skal det ikke fades
+    # her — da ville lyden gaatt ned, hoppet opp igjen naar plakaten starter,
+    # og ned en gang til (Lars 31/7: «fade foer sluttplakaten, saa plutselig
+    # hoyt og saa en ny fade»). Plakaten eier uttoningen i det tilfellet.
+    if fade_tail:
+        fade_out_n = min(n, int(1.2 * fps))
+        if fade_out_n > 1:
+            env[n - fade_out_n:] *= np.linspace(1.0, 0.0, fade_out_n)
 
     result = music_arr * env[:, np.newaxis] if music_arr.ndim == 2 else music_arr * env
     return AudioArrayClip(result, fps=fps)
@@ -686,9 +691,13 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         # Mix-nivaaer kan overstyres fra config (mix: {duckVol, fullVol}) —
         # finjustering uten deploy (Lars 30/7: stemme/musikk-balansen)
         _mix = mix or {}
+        # Plakat uten jingle spiller musikken videre — da skal hovedfilmen
+        # IKKE tone ut foerst (ellers: ned, opp, ned igjen)
+        _outro_har_musikk = bool(outroCard) and not outroCard.get('jingleFile')
         music = _duck_music(backgroundMusicPath, clips,
                             duck_vol=float(_mix.get('duckVol') or 0.08),
-                            full_vol=float(_mix.get('fullVol') or 0.38))
+                            full_vol=float(_mix.get('fullVol') or 0.38),
+                            fade_tail=not _outro_har_musikk)
         final = concatenate_videoclips(clips, method="compose")
         final_audio = CompositeAudioClip([final.audio, music])
         final = final.with_audio(final_audio)

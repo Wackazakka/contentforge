@@ -37,6 +37,9 @@ interface Segment {
   no_voice?: boolean
   // «Lag animasjonen på nytt»: nytt fingeravtrykk → dropletens cache omgås
   clip_nonce?: string
+  // Hvilken stemme som faktisk lagde opptaket — så et opptak fra en gammel
+  // stemme aldri overlever et stemmebytte (Lars 31/7: «Adam er fremdeles der»)
+  voice_used?: string
 }
 
 interface Draft {
@@ -945,11 +948,11 @@ export default function DraftPage() {
         // DB-kopien bygges separat fra closure (updater-funksjonen kjører
         // først ved neste render, etter supabase-kallet).
         const updatedSegments = [...draft.segments]
-        updatedSegments[index] = { ...updatedSegments[index], voiceover_url: data.url, own_voice: false }
+        updatedSegments[index] = { ...updatedSegments[index], voiceover_url: data.url, own_voice: false, voice_used: draft.voice_id || '' }
         setDraft((prev) => {
           if (!prev) return prev
           const segs = [...prev.segments]
-          segs[index] = { ...segs[index], voiceover_url: data.url, own_voice: false }
+          segs[index] = { ...segs[index], voiceover_url: data.url, own_voice: false, voice_used: draft.voice_id || '' }
           return { ...prev, segments: segs }
         })
 
