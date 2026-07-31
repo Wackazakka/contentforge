@@ -55,6 +55,9 @@ interface Draft {
   cost_accumulated?: number | null
   // Sluttplakat-kontroll (31/7): artistens valg vinner over automatikken
   outro_config?: { message?: string | null; url?: string; imageUrl?: string | null } | null
+  // AI-bevegelse huskes på utkastet (var kun øktstate før 31/7)
+  ai_motion?: boolean
+  ai_motion_engine?: string
 }
 
 // Split a text roughly in half — at the sentence boundary nearest the midpoint,
@@ -257,6 +260,12 @@ export default function DraftPage() {
           segmentCount: data.segments?.length || 0,
         })
         setDraft(data)
+        // AI-bevegelse og motor huskes fra utkastet (Lars 31/7: «AI-bevegelse
+        // var ikke huket av. Det bør den være når den var valgt fra før»).
+        // Var kun øktstate før — den forsvant ved hver reload, og da forsvant
+        // også bevegelsesvalgene per scene fra skjermen.
+        if (data.ai_motion === true) setAiMotion(true)
+        if (data.ai_motion_engine) setAiMotionEngine(data.ai_motion_engine)
         setLoading(false) // Show page immediately — don't wait for images
 
         // Jingle: kom vi fra draft/new med ?jingle=, persister det på draften så det
@@ -1667,12 +1676,16 @@ export default function DraftPage() {
                 onChange={(e) => {
                   const on = e.target.checked
                   setAiMotion(on)
+                  const supabase = getSupabase()
+                  // Persister valget — ellers er det borte ved neste besøk
+                  supabase.from('production_drafts').update({ ai_motion: on }).eq('id', draftId)
+                    .then(({ error }: { error: any }) => { if (error) console.warn('[aiMotion lagring]', error.message) })
+                  setDraft((prev) => (prev ? { ...prev, ai_motion: on } : prev))
                   // Standardmønster første gang: første + siste segment snakker (lip-sync), resten bevegelse
                   if (on && draft && !draft.segments.some((s) => s.motion)) {
                     const last = draft.segments.length - 1
                     const segs = draft.segments.map((s, i) => ({ ...s, motion: (i === 0 || i === last) ? ('talk' as const) : ('move' as const) }))
-                    setDraft({ ...draft, segments: segs })
-                    const supabase = getSupabase()
+                    setDraft((prev) => (prev ? { ...prev, ai_motion: on, segments: segs } : prev))
                     supabase.from('production_drafts').update({ segments: segs }).eq('id', draftId)
                       .then(({ error }: { error: any }) => { if (error) console.warn('[aiMotion default]', error.message) })
                   }
@@ -1691,7 +1704,13 @@ export default function DraftPage() {
                 <span className="text-xs text-gray-500">Motor</span>
                 <select
                   value={aiMotionEngine}
-                  onChange={(e) => setAiMotionEngine(e.target.value)}
+                  onChange={(e) => {
+                    const eng = e.target.value
+                    setAiMotionEngine(eng)
+                    setDraft((prev) => (prev ? { ...prev, ai_motion_engine: eng } : prev))
+                    getSupabase().from('production_drafts').update({ ai_motion_engine: eng }).eq('id', draftId)
+                      .then(({ error }: { error: any }) => { if (error) console.warn('[motor lagring]', error.message) })
+                  }}
                   className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-white"
                 >
                   <option value="kling">Kling (anbefalt — best kvalitet)</option>
