@@ -38,6 +38,10 @@ function clipFingerprint(f, ctx) {
     ctx.segmentCount,
     !!ctx.matchMusicLength,
     Number(f.holdSeconds) > 0 ? Number(f.holdSeconds) : 0,
+    // «Lag animasjonen på nytt» (Lars 31/7: en fremmed person dukket opp i
+    // et Kling-klipp). Nonce fra redigereren gir nytt fingeravtrykk, saa
+    // cachen omgaas og generatoren faar et nytt forsoek.
+    f.clipNonce || '',
   ])
   return crypto.createHash('sha1').update(basis).digest('hex')
 }
@@ -391,7 +395,7 @@ router.post('/reuse-check', (req, res) => {
     const motion = (s.noVoice === true && raw === 'talk') ? 'move' : raw
     if (motion === 'none') return false
     const fp = clipFingerprint(
-      { imageUrl: s.imageUrl, motion, voiceoverUrl: s.voiceoverUrl, noVoice: s.noVoice, holdSeconds: s.holdSeconds },
+      { imageUrl: s.imageUrl, motion, voiceoverUrl: s.voiceoverUrl, noVoice: s.noVoice, holdSeconds: s.holdSeconds, clipNonce: s.clipNonce },
       { engine: eng, musicFile, segmentCount: segments.length, matchMusicLength }
     )
     try { return fs.existsSync(`${CLIP_CACHE_DIR}/${fp}.mp4`) } catch { return false }
@@ -652,7 +656,17 @@ router.post('/', async (req, res) => {
           try {
             const musicDur = await probeDuration(path.join(MUSIC_DIR, musicFile))
             if (musicDur > 1) {
-              const share = musicDur / orderedSegments.length
+              // Sluttplakaten kommer ETTER scenene og skal ogsaa ha musikk
+              // (Lars 31/7: «naar sluttplakaten kommer begynner Medley fra
+              // toppen igjen»). Reserver plakatens sekunder foerst, saa
+              // slutter scenene mens det ennaa er musikk igjen — og plakaten
+              // faar den ekte slutten av laata i stedet for en ny start.
+              const outroSec = (outroCard && !outroCard.jingleFile)
+                ? Math.min(Number(outroCard.durationSeconds) || 3, Math.max(0, musicDur - 5))
+                : 0
+              const usable = musicDur - outroSec
+              if (outroSec > 0) console.log(`[job-queue] Reserverer ${outroSec.toFixed(1)}s musikk til sluttplakaten (${musicDur.toFixed(1)}s -> ${usable.toFixed(1)}s paa scenene)`)
+              const share = usable / orderedSegments.length
               computedHolds = voDurs.map((voDur) => Math.min(60, Math.max(0, share - (voDur + 0.4))))
               console.log(`[job-queue] Film=musikk: ${musicDur.toFixed(1)}s / ${orderedSegments.length} segmenter -> hold ${computedHolds.map((h) => h.toFixed(1)).join(', ')}`)
             }
@@ -696,7 +710,7 @@ router.post('/', async (req, res) => {
             // Gjenbruk: identisk scene fra en tidligere produksjon (eller
             // forhåndsvisning) hentes fra cachen — ingen ny generering.
             const fp = clipFingerprint(
-              { imageUrl: url, motion, voiceoverUrl: seg.voiceoverUrl, noVoice: seg.noVoice, holdSeconds: seg.holdSeconds },
+              { imageUrl: url, motion, voiceoverUrl: seg.voiceoverUrl, noVoice: seg.noVoice, holdSeconds: seg.holdSeconds, clipNonce: seg.clipNonce },
               { engine, musicFile, segmentCount: orderedSegments.length, matchMusicLength }
             )
             if (clipCacheGet(fp, clipPath)) {

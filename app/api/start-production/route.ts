@@ -115,6 +115,7 @@ export async function POST(request: Request) {
                 voiceoverUrl: s.voiceover_url,
                 noVoice: s.no_voice,
                 holdSeconds: s.hold_seconds,
+                clipNonce: s.clip_nonce || '',
               })),
             }),
             signal: AbortSignal.timeout(5000),
