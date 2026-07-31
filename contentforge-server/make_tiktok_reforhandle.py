@@ -378,13 +378,7 @@ def _wrap_text(draw, text, font, max_width):
     return lines
 
 
-def render_outro_card(outro_cfg, output_path, width, height, jingle_path=None,
-                      music_path=None, music_start=0.0, music_vol=0.38):
-    """Render a 3-second branded outro card and save as mp4 to output_path.
-
-    outro_cfg dict keys: url, cta, logoUrl, primaryColor, secondaryColor, durationSeconds.
-    """
-    duration = int(outro_cfg.get('durationSeconds') or 3)
+def _draw_outro(outro_cfg, width, height):
     primary = _hex_to_rgb(outro_cfg.get('primaryColor'), (26, 26, 46))
     secondary_hex = outro_cfg.get('secondaryColor') or '#ffffff'
     secondary = _hex_to_rgb(secondary_hex, (255, 255, 255))
@@ -473,6 +467,26 @@ def render_outro_card(outro_cfg, output_path, width, height, jingle_path=None,
         px = (width - (pb[2] - pb[0])) // 2
         py = url_bottom_y + 28
         draw.text((px, py), ph_text, font=ph_font, fill=secondary_rgb)
+
+    return img
+
+
+def build_outro_frame(outro_cfg, width, height):
+    """Tegn sluttplakatens bilde (uten lyd/video). Brukes baade av den
+    separate plakat-videoen (jingle-veien) og som ET KLIPP I FILMEN naar
+    musikken skal gaa uavbrutt gjennom plakaten (Lars 31/7: «ingen grunn
+    til aa klippe og lime der»)."""
+    return _draw_outro(outro_cfg, width, height)
+
+
+def render_outro_card(outro_cfg, output_path, width, height, jingle_path=None,
+                      music_path=None, music_start=0.0, music_vol=0.38):
+    """Render a 3-second branded outro card and save as mp4 to output_path.
+
+    outro_cfg dict keys: url, cta, logoUrl, primaryColor, secondaryColor, durationSeconds.
+    """
+    duration = int(outro_cfg.get('durationSeconds') or 3)
+    img = _draw_outro(outro_cfg, width, height)
 
     # 2. Save the frame PNG
     work_dir = os.path.dirname(output_path)
@@ -684,6 +698,18 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
             clip = clip.with_effects([vfx.FadeIn(0.3)])
         clips.append(clip)
 
+    # Sluttplakat UTEN jingle: legg den inn som et KLIPP i filmen i stedet for
+    # aa lage en egen video og skjoete den paa (Lars 31/7: «hoerbart klipp i
+    # musikken akkurat der plakaten begynner … ingen grunn til aa klippe og
+    # lime der»). Da er musikken én sammenhengende stroem hele veien, og
+    # uttoningen skjer én gang — paa slutten av plakaten.
+    outro_in_timeline = bool(outroCard) and not outroCard.get('jingleFile') and os.path.exists(backgroundMusicPath)
+    if outro_in_timeline:
+        _od = float(outroCard.get('durationSeconds') or 3)
+        _frame = np.array(_draw_outro(outroCard, W, H).convert('RGB'))
+        clips.append(ImageClip(_frame, duration=_od))
+        print(f"  🪧 Sluttplakat lagt inn i tidslinjen ({_od:.1f}s) — musikken gaar uavbrutt", flush=True)
+
     total = sum(c.duration for c in clips)
     print(f"⏱️  Total: {total:.1f}s — legger til musikk...")
 
@@ -693,11 +719,11 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         _mix = mix or {}
         # Plakat uten jingle spiller musikken videre — da skal hovedfilmen
         # IKKE tone ut foerst (ellers: ned, opp, ned igjen)
-        _outro_har_musikk = bool(outroCard) and not outroCard.get('jingleFile')
+        # Plakaten ligger naa I tidslinjen naar den ikke har jingle, saa den
+        # normale uttoningen treffer plakatens slutt — akkurat som oensket.
         music = _duck_music(backgroundMusicPath, clips,
                             duck_vol=float(_mix.get('duckVol') or 0.08),
-                            full_vol=float(_mix.get('fullVol') or 0.38),
-                            fade_tail=not _outro_har_musikk)
+                            full_vol=float(_mix.get('fullVol') or 0.38))
         final = concatenate_videoclips(clips, method="compose")
         final_audio = CompositeAudioClip([final.audio, music])
         final = final.with_audio(final_audio)
@@ -709,7 +735,7 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
     main_render_path = output_path
     work_dir = os.path.dirname(output_path)
     # If outro card requested, render main video to a temp path first
-    if outroCard:
+    if outroCard and not outro_in_timeline:
         main_render_path = os.path.join(work_dir, 'main_no_outro.mp4')
     try:
         with tempfile.NamedTemporaryFile(suffix=".mkv", delete=False) as tmp:
@@ -719,7 +745,7 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         print(f"  Enkoder med ffmpeg (libx264, h.264) → {main_render_path}", flush=True)
         encode_video(tmp_path, main_render_path)
 
-        if outroCard:
+        if outroCard and not outro_in_timeline:
             outro_path = os.path.join(work_dir, 'outro_clip.mp4')
             try:
                 # Uten jingle skal musikken fortsette under plakaten — fra
