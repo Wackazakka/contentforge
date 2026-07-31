@@ -189,6 +189,10 @@ export default function DraftPage() {
   // Kling er standard (31/7): PixVerse fikk folk til å «snakke» uansett
   // prompt, og bakgrunnen drev i kjedede ledd. Kling holdt munnen lukket.
   const [aiMotionEngine, setAiMotionEngine] = useState('kling')
+  // «Se animasjonen» per scene: generering + avspilling i redigereren
+  const [motionPreviewState, setMotionPreviewState] = useState<
+    Record<number, { status: 'starting' | 'generating' | 'ready' | 'failed'; url?: string; fp?: string; error?: string }>
+  >({})
   // Musikklengden (fra fila selv) driver scene-anbefalingen: ~5 s per bilde
   // er filmspråk — og gir nøyaktig ett generert klipp per scene (Lars 31/7)
   const [musicDur, setMusicDur] = useState<number | null>(null)
@@ -518,6 +522,45 @@ export default function DraftPage() {
       if (error) console.warn('[regenerateMotion] lagring feilet:', error.message)
     } catch (err) {
       console.warn('[regenerateMotion] error:', err)
+    }
+  }
+
+  // «Se animasjonen» (Lars 31/7): generer scenens bevegelsesklipp og spill det
+  // av her — i stedet for å oppdage en rar animasjon i den ferdige filmen.
+  // Klippet havner i dropletens cache, så produksjonen gjenbruker det gratis.
+  const previewMotion = async (index: number) => {
+    setMotionPreviewState((p) => ({ ...p, [index]: { status: 'starting' } }))
+    try {
+      const res = await fetch('/api/content/preview-motion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId, segmentIndex: index }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Kunne ikke starte forhåndsvisningen')
+      if (Number(data.chargedNok) > 0) addCost(Number(data.chargedNok))
+      if (data.status === 'ready' && data.url) {
+        setMotionPreviewState((p) => ({ ...p, [index]: { status: 'ready', url: data.url } }))
+        return
+      }
+      setMotionPreviewState((p) => ({ ...p, [index]: { status: 'generating', fp: data.fp } }))
+      // Poll til klippet er klart (Kling bruker typisk 1–3 min)
+      const deadline = Date.now() + 10 * 60 * 1000
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 5000))
+        const st = await fetch(`/api/content/preview-motion?fp=${encodeURIComponent(data.fp)}`).then((r) => r.json()).catch(() => null)
+        if (st?.status === 'ready' && st.url) {
+          setMotionPreviewState((p) => ({ ...p, [index]: { status: 'ready', url: st.url } }))
+          return
+        }
+        if (st?.status === 'failed') throw new Error(st.error || 'Genereringen feilet')
+      }
+      throw new Error('Tidsavbrudd — prøv igjen')
+    } catch (err) {
+      setMotionPreviewState((p) => ({
+        ...p,
+        [index]: { status: 'failed', error: err instanceof Error ? err.message : 'Noe gikk galt' },
+      }))
     }
   }
 
@@ -1989,7 +2032,41 @@ export default function DraftPage() {
                             {segment.clip_nonce ? '↻ Lages på nytt ved produksjon' : '↻ Lag animasjonen på nytt'}
                           </button>
                         )}
+                        {/* Se animasjonen FØR produksjon — klippet gjenbrukes
+                            gratis i produksjonen etterpå (samme cache) */}
+                        {(segment.motion || (segment.animate === true ? 'move' : 'none')) === 'move' && (
+                          <button
+                            type="button"
+                            onClick={() => previewMotion(index)}
+                            disabled={['starting', 'generating'].includes(motionPreviewState[index]?.status || '')}
+                            className="px-3 py-1.5 rounded-full border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-xs font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-60"
+                            title="Lager klippet nå så du kan se det før produksjon. Brukes om igjen i produksjonen — du betaler kun én gang."
+                          >
+                            {motionPreviewState[index]?.status === 'starting' && '▶ Starter…'}
+                            {motionPreviewState[index]?.status === 'generating' && '▶ Lager klippet… (1–3 min)'}
+                            {!['starting', 'generating'].includes(motionPreviewState[index]?.status || '') && `▶ Se animasjonen (${fmtCredits(COSTS_NOK.animate5s * pf)})`}
+                          </button>
+                        )}
                       </div>
+                    )}
+                    {/* Resultatet av forhåndsvisningen */}
+                    {motionPreviewState[index]?.status === 'ready' && motionPreviewState[index]?.url && (
+                      <div className="w-full mb-2">
+                        <video
+                          src={motionPreviewState[index].url}
+                          controls
+                          playsInline
+                          className="rounded-lg border border-gray-200 max-h-64 bg-black"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Slik blir bevegelsen. Ikke fornøyd? Trykk «Lag animasjonen på nytt» og se igjen.
+                        </p>
+                      </div>
+                    )}
+                    {motionPreviewState[index]?.status === 'failed' && (
+                      <p className="w-full mb-2 text-xs text-red-700">
+                        {motionPreviewState[index].error}
+                      </p>
                     )}
                     <button
                       onClick={() => toggleApproval(index)}
