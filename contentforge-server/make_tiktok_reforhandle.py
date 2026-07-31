@@ -227,9 +227,13 @@ def make_segment(bg_path, lines, vo_path, sub=None, logo_url=None, hold=0.0):
     hold: ekstra hviletid (sek) ETTER at stemmen er ferdig — bildet blir
     staaende og musikken faar plass (duckingen loefter den automatisk).
     Additivt: hold=0 gir noeyaktig gammel oppfoersel. (Musikkdrevet tempo,
-    Lars/IndigoBoom 2026-07-30.)"""
-    vo = AudioFileClip(_normalize_voice(vo_path))
-    duration = vo.duration + 0.4 + max(0.0, float(hold or 0))
+    Lars/IndigoBoom 2026-07-30.)
+
+    vo_path=None: STILLE segment (Lars 31/7) — bare bilde + musikk.
+    Stemmelengde 0 gir duration = 0.4 + hold, saa film=musikk-matten
+    gaar opp uendret. Ingen audio => duckingen lar musikken staa."""
+    vo = AudioFileClip(_normalize_voice(vo_path)) if vo_path else None
+    duration = (vo.duration if vo else 0.0) + 0.4 + max(0.0, float(hold or 0))
 
     bg_arr = make_bg_frame(bg_path)
     txt_arr = make_text_frame(lines, sub, logo_url=logo_url)
@@ -238,7 +242,8 @@ def make_segment(bg_path, lines, vo_path, sub=None, logo_url=None, hold=0.0):
     txt_clip = ImageClip(txt_arr, duration=duration).with_effects([vfx.FadeIn(0.5)])
 
     comp = CompositeVideoClip([bg_clip, txt_clip], size=(W, H))
-    comp = comp.with_audio(vo)
+    if vo is not None:
+        comp = comp.with_audio(vo)
     return comp
 
 def make_dim_bar_overlay():
@@ -254,9 +259,11 @@ def make_segment_video(clip_path, lines, vo_path, sub=None, logo_url=None, hold=
 
     hold: se make_segment. Bevegelsesklipp saktnes aldri mot hold-tiden
     (ville gitt slow motion-suppe) — de saktnes mot talelengden som foer,
-    og fryses ut hviletiden."""
-    vo = AudioFileClip(_normalize_voice(vo_path))
-    base_duration = vo.duration + 0.4
+    og fryses ut hviletiden.
+
+    vo_path=None: stille segment — klippet fyller 0.4 + hold, ingen lyd."""
+    vo = AudioFileClip(_normalize_voice(vo_path)) if vo_path else None
+    base_duration = (vo.duration if vo else 0.0) + 0.4
     duration = base_duration + max(0.0, float(hold or 0))
 
     # Video background: scale-fill + center-crop to W x H
@@ -292,7 +299,8 @@ def make_segment_video(clip_path, lines, vo_path, sub=None, logo_url=None, hold=
     txt_clip = ImageClip(txt_arr, duration=duration).with_effects([vfx.FadeIn(0.5)])
 
     comp = CompositeVideoClip([v, ov_clip, txt_clip], size=(W, H))
-    comp = comp.with_audio(vo)
+    if vo is not None:
+        comp = comp.with_audio(vo)
     return comp
 
 
@@ -554,10 +562,11 @@ def _duck_music(music_path, clips, duck_vol=0.08, full_vol=0.38, fade_secs=0.30)
     t = 0.0
     for clip in clips:
         dur = clip.duration
-        # Faktisk stemmelengde fra klippets audio (presist ogsaa med hold-tid);
-        # fall tilbake til gammel antakelse om audio mangler.
+        # Faktisk stemmelengde fra klippets audio (presist ogsaa med hold-tid).
+        # Ingen audio = STILLE segment (31/7) — musikken skal staa i full
+        # hoyde, ingen ducking. (Alle segmenter MED tale baerer alltid audio.)
         try:
-            vo_dur = float(clip.audio.duration) if clip.audio is not None else max(0.0, dur - 0.4)
+            vo_dur = float(clip.audio.duration) if clip.audio is not None else 0.0
         except Exception:
             vo_dur = max(0.0, dur - 0.4)
         vo_dur = min(vo_dur, dur)
@@ -606,10 +615,11 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
     for i, seg in enumerate(segments_def):
         print(f"  📹 Segment {i+1}/{len(segments_def)}...")
         seg_hold = float(seg.get("hold") or 0)
+        seg_vo = seg.get("vo_path") or None  # None = stille segment
         if seg.get("clip"):
-            clip = make_segment_video(seg["clip"], seg["lines"], seg["vo_path"], seg.get("sub"), logo_url=logoUrl, hold=seg_hold)
+            clip = make_segment_video(seg["clip"], seg["lines"], seg_vo, seg.get("sub"), logo_url=logoUrl, hold=seg_hold)
         else:
-            clip = make_segment(seg["bg"], seg["lines"], seg["vo_path"], seg.get("sub"), logo_url=logoUrl, hold=seg_hold)
+            clip = make_segment(seg["bg"], seg["lines"], seg_vo, seg.get("sub"), logo_url=logoUrl, hold=seg_hold)
         if i > 0:
             clip = clip.with_effects([vfx.FadeIn(0.3)])
         clips.append(clip)
