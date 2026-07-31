@@ -24,6 +24,11 @@ function clipFingerprint(f, ctx) {
   // musikkandel uansett — da skal ny TTS-take IKKE kaste bevegelsesklipp.
   const voRelevant = f.motion === 'talk' || !ctx.matchMusicLength
   const basis = JSON.stringify([
+    // Oppskriftsversjon per klipptype: bump ved endret generering saa
+    // gamle cache-klipp med utdatert oppskrift ikke gjenbrukes.
+    // tail-v2 (31/7): statue-prompt + Kling for haler (Lars: «hale_statue
+    // var best» — rolig-liv-prompten fikk performer-bilder til aa synge).
+    f.motion === 'talk' ? 'tail-v2' : 'move-v1',
     f.imageUrl || '',
     f.motion,
     ctx.engine,
@@ -747,11 +752,15 @@ router.post('/', async (req, res) => {
                 }
                 const seedUrl = await uploadFrame(fs.readFileSync(tailSeedPng), 'talk_seed.png')
                 const idlePath = `${chainDir}/idle.mp4`
-                // Kombinasjonen (Lars 31/7 etter fullfilm 2 vs 3): Kling er
-                // best paa bevegelsesklipp, men PixVerse lagde de beste
-                // lipsync-halene — halene faar derfor alltid PixVerse,
-                // uavhengig av valgt motor for resten.
-                await imageToVideoChain({ imageUrl: seedUrl, prompt: motionPrompt, negativePrompt: motionNegative, engine: 'pixverse', targetSec: rest, resolution: '720p', outPath: idlePath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
+                // Hale-fasit (Lars 31/7, tredje runde): performer-bilder faar
+                // BEGGE motorer til aa synge med rolig-liv-prompten — men
+                // STATUE-prompten paa Kling holdt munnen («hale_statue var
+                // best»). Passivitet er greit i en hale; personen er ferdig
+                // med aa snakke. Zoom-stillbilde er siste skanse (garantert
+                // stum) hvis ogsaa dette skulle feile hos en artist.
+                const tailPrompt = 'subtle cinematic camera push-in and gentle ambient motion only. The person stays completely still and does NOT talk - mouth closed, no lip movement, no speaking or singing. Photorealistic, no text or letters.'
+                const tailNegative = motionNegative + ', performing on stage, concert'
+                await imageToVideoChain({ imageUrl: seedUrl, prompt: tailPrompt, negativePrompt: tailNegative, engine: 'kling', targetSec: rest, resolution: '720p', outPath: idlePath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
                 await concatClips([talkPath, idlePath], clipPath)
                 console.log(`[job-queue] segment ${i + 1}: snakk ${talkDur.toFixed(1)}s + rolig hale ${rest.toFixed(1)}s skjotet`)
                 clipCachePut(fp, clipPath) // komplett snakk+hale
