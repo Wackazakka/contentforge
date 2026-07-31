@@ -106,6 +106,17 @@ export default function DraftV2Page() {
   const [musicLibrary, setMusicLibrary] = useState<MusicFile[]>([])
   const [openRow, setOpenRow] = useState<string | null>(null)
   const [musicDur, setMusicDur] = useState<number | null>(null)
+  // Sceneverktøy (fase 3)
+  const [imageLibrary, setImageLibrary] = useState<Array<{ url: string; name: string }>>([])
+  const [imagePickerFor, setImagePickerFor] = useState<number | null>(null)
+  const [libUploading, setLibUploading] = useState(false)
+  const [recordingFor, setRecordingFor] = useState<number | null>(null)
+  const [ownVoiceBusy, setOwnVoiceBusy] = useState<Record<number, boolean>>({})
+  const mediaRec = useRef<MediaRecorder | null>(null)
+  const recChunks = useRef<BlobPart[]>([])
+  const [motionPreview, setMotionPreview] = useState<
+    Record<number, { status: 'starting' | 'generating' | 'ready' | 'failed'; url?: string; error?: string }>
+  >({})
 
   // Utpris-faktor (white-label): kunden ser priser med partnerens margin
   const pf = tenant.price_multiplier || 1
@@ -157,6 +168,138 @@ export default function DraftV2Page() {
       console.warn('[v2] lagring av oppsett feilet:', err)
     }
   }
+  // ---- Sceneverktøy (fase 3): bilde, egen stemme, bevegelse, animasjon ----
+  const refreshImageLibrary = async () => {
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      const d = await fetch(`/api/products/images?productId=${productId}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+      if (d.images) setImageLibrary(d.images)
+    } catch { /* biblioteket er valgfritt */ }
+  }
+  useEffect(() => { if (productId) refreshImageLibrary() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setSegmentImage = (index: number, url: string) => {
+    updateSegment(index, { image_url: url, approved: false })
+    setImagePickerFor(null)
+  }
+
+  const uploadLibraryImage = async (file: File): Promise<string | null> => {
+    setLibUploading(true)
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('productId', productId)
+      const res = await fetch('/api/products/images', {
+        method: 'POST',
+        headers: sess?.session?.access_token ? { Authorization: `Bearer ${sess.session.access_token}` } : undefined,
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Opplastingen feilet')
+      await refreshImageLibrary()
+      return data.url as string
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Opplastingen feilet')
+      return null
+    } finally {
+      setLibUploading(false)
+    }
+  }
+
+  const uploadOwnVoice = async (index: number, blob: Blob, mimeType: string, filename: string) => {
+    setOwnVoiceBusy((p) => ({ ...p, [index]: true }))
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const fd = new FormData()
+      fd.append('file', new File([blob], filename, { type: mimeType }))
+      fd.append('draftId', draftId)
+      fd.append('productId', productId)
+      fd.append('segmentIndex', String(index))
+      const res = await fetch('/api/content/own-voice', {
+        method: 'POST',
+        headers: sess?.session?.access_token ? { Authorization: `Bearer ${sess.session.access_token}` } : undefined,
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Opplastingen feilet')
+      updateSegment(index, { voiceover_url: data.url, own_voice: true })
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Opplastingen feilet')
+    } finally {
+      setOwnVoiceBusy((p) => ({ ...p, [index]: false }))
+    }
+  }
+
+  const startRecording = async (index: number) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const rec = new MediaRecorder(stream)
+      recChunks.current = []
+      rec.ondataavailable = (e) => { if (e.data.size > 0) recChunks.current.push(e.data) }
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop())
+        const blob = new Blob(recChunks.current, { type: rec.mimeType || 'audio/webm' })
+        setRecordingFor(null)
+        await uploadOwnVoice(index, blob, rec.mimeType || 'audio/webm', `scene-${index + 1}.webm`)
+      }
+      mediaRec.current = rec
+      rec.start()
+      setRecordingFor(index)
+    } catch {
+      alert('Fikk ikke tilgang til mikrofonen.')
+    }
+  }
+  const stopRecording = () => mediaRec.current?.stop()
+
+  const setNoVoice = (index: number, on: boolean) => {
+    if (!draft) return
+    const patch: Partial<Segment> = { no_voice: on }
+    if (on && draft.segments[index].motion === 'talk') patch.motion = 'move'
+    updateSegment(index, patch)
+  }
+
+  const updateMotion = (index: number, value: 'none' | 'move' | 'talk') =>
+    updateSegment(index, { motion: value, animate: value === 'move' })
+
+  const regenerateMotion = (index: number) =>
+    updateSegment(index, { clip_nonce: String(Date.now()) })
+
+  const previewMotion = async (index: number) => {
+    setMotionPreview((p) => ({ ...p, [index]: { status: 'starting' } }))
+    try {
+      const res = await fetch('/api/content/preview-motion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId, segmentIndex: index }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Kunne ikke starte forhåndsvisningen')
+      if (Number(data.chargedNok) > 0) {
+        setDraft((prev) => (prev ? { ...prev, cost_accumulated: (Number(prev.cost_accumulated) || 0) + Number(data.chargedNok) } : prev))
+      }
+      if (data.status === 'ready' && data.url) {
+        setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: data.url } }))
+        return
+      }
+      setMotionPreview((p) => ({ ...p, [index]: { status: 'generating' } }))
+      const deadline = Date.now() + 10 * 60 * 1000
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 5000))
+        const st = await fetch(`/api/content/preview-motion?fp=${encodeURIComponent(data.fp)}`).then((r) => r.json()).catch(() => null)
+        if (st?.status === 'ready' && st.url) {
+          setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: st.url } }))
+          return
+        }
+        if (st?.status === 'failed') throw new Error(st.error || 'Genereringen feilet')
+      }
+      throw new Error('Tidsavbrudd — prøv igjen')
+    } catch (err) {
+      setMotionPreview((p) => ({ ...p, [index]: { status: 'failed', error: err instanceof Error ? err.message : 'Noe gikk galt' } }))
+    }
+  }
+
   // Bytte av stemme kaster de gamle AI-opptakene (se kommentar i gammel side):
   // ellers vinner de over den nye stemmen i produksjonen. Egne innspillinger
   // (own_voice) er artistens egen røst og beholdes.
@@ -474,12 +617,171 @@ export default function DraftV2Page() {
                                 {voiceLoading[index] ? 'Genererer…' : '▶ Hør stemmen'}
                               </button>
                             )}
-                            {/* Fase 3: Les inn selv · Bytt bilde · Se animasjonen ·
-                                Del scene · Bilde-prompt · Uten tale · bevegelsesvalg */}
-                            <span className="text-[12px] text-gray-400">
-                              Flere sceneverktøy kommer i neste byggefase — bruk den gamle siden for bildebytte og egen stemme inntil videre.
-                            </span>
+                            {/* Egen stemme */}
+                            {seg.no_voice !== true && (
+                              seg.own_voice && seg.voiceover_url ? (
+                                <button
+                                  type="button"
+                                  onClick={() => updateSegment(index, { voiceover_url: undefined, own_voice: false })}
+                                  className="px-3 py-2 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400"
+                                >
+                                  Fjern innspillingen
+                                </button>
+                              ) : ownVoiceBusy[index] ? (
+                                <span className="text-[12.5px] text-gray-500">Laster opp…</span>
+                              ) : recordingFor === index ? (
+                                <button
+                                  type="button"
+                                  onClick={stopRecording}
+                                  className="px-3 py-2 rounded-lg bg-red-600 text-white text-[13px] font-medium animate-pulse"
+                                >
+                                  ⏹ Stopp opptaket
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => startRecording(index)}
+                                    disabled={recordingFor !== null}
+                                    className="px-3 py-2 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400 disabled:opacity-40"
+                                  >
+                                    🎙 Les inn selv
+                                  </button>
+                                  <label className="text-[12.5px] text-gray-500 underline cursor-pointer hover:text-gray-700">
+                                    eller last opp lyd
+                                    <input
+                                      type="file"
+                                      accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/webm"
+                                      className="hidden"
+                                      onChange={async (e) => {
+                                        const f = e.currentTarget.files?.[0]
+                                        e.currentTarget.value = ''
+                                        if (!f) return
+                                        if (f.size > 20 * 1024 * 1024) { alert('Fila er for stor (maks 20 MB).'); return }
+                                        await uploadOwnVoice(index, f, f.type || 'audio/mpeg', f.name)
+                                      }}
+                                    />
+                                  </label>
+                                </>
+                              )
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setImagePickerFor(imagePickerFor === index ? null : index)}
+                              className="px-3 py-2 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400"
+                            >
+                              📸 Bytt bilde
+                            </button>
+                            <label className="flex items-center gap-2 text-[13px] text-gray-600 cursor-pointer ml-auto">
+                              <input
+                                type="checkbox"
+                                checked={seg.no_voice === true}
+                                onChange={(e) => setNoVoice(index, e.currentTarget.checked)}
+                                className="w-4 h-4"
+                              />
+                              Uten tale
+                            </label>
                           </div>
+
+                          {/* Bildevelger */}
+                          {imagePickerFor === index && (
+                            <div className="border border-gray-200 rounded-xl p-3">
+                              <div className="grid grid-cols-5 sm:grid-cols-8 gap-2 mb-2">
+                                {imageLibrary.length === 0 && (
+                                  <p className="col-span-full text-[12px] text-gray-400">Ingen bilder ennå — last opp under.</p>
+                                )}
+                                {imageLibrary.map((img) => (
+                                  <button
+                                    key={img.url}
+                                    type="button"
+                                    onClick={() => setSegmentImage(index, img.url)}
+                                    className={`aspect-square rounded-lg overflow-hidden border-2 ${seg.image_url === img.url ? 'border-[var(--ember-deep)]' : 'border-transparent hover:border-gray-300'}`}
+                                  >
+                                    <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                                  </button>
+                                ))}
+                              </div>
+                              <label className="text-[12.5px] text-gray-600 cursor-pointer underline">
+                                {libUploading ? 'Laster opp…' : '+ Last opp nytt bilde (maks 8 MB)'}
+                                <input
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/webp"
+                                  className="hidden"
+                                  disabled={libUploading}
+                                  onChange={async (e) => {
+                                    const f = e.currentTarget.files?.[0]
+                                    e.currentTarget.value = ''
+                                    if (!f) return
+                                    const url = await uploadLibraryImage(f)
+                                    if (url) setSegmentImage(index, url)
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          )}
+
+                          {/* Bevegelse per scene */}
+                          {draft.ai_motion && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[12px] text-gray-400">Bevegelse:</span>
+                              {([
+                                { v: 'none' as const, label: 'Stillbilde', cost: 'gratis' },
+                                { v: 'move' as const, label: 'Bevegelse', cost: fmtCredits(COSTS_NOK.animate5s * pf) },
+                                { v: 'talk' as const, label: 'Snakk (lip-sync)', cost: `${fmtCredits(COSTS_NOK.lipsyncPerSec * pf)}/sek` },
+                              ]).filter((o) => !(seg.no_voice === true && o.v === 'talk')).map((opt) => {
+                                const current = seg.motion || (seg.animate === true ? 'move' : 'none')
+                                return (
+                                  <button
+                                    key={opt.v}
+                                    type="button"
+                                    onClick={() => updateMotion(index, opt.v)}
+                                    className={`px-3 py-1.5 rounded-full border text-[12px] font-medium ${
+                                      current === opt.v
+                                        ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]'
+                                        : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                    }`}
+                                  >
+                                    {opt.label} <span className="opacity-70">({opt.cost})</span>
+                                  </button>
+                                )
+                              })}
+                              {(seg.motion || (seg.animate === true ? 'move' : 'none')) !== 'none' && (
+                                <button
+                                  type="button"
+                                  onClick={() => regenerateMotion(index)}
+                                  className={`px-3 py-1.5 rounded-full border text-[12px] font-medium ${
+                                    seg.clip_nonce ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400'
+                                  }`}
+                                  title="Neste produksjon lager denne animasjonen på nytt. De andre scenene gjenbrukes gratis."
+                                >
+                                  {seg.clip_nonce ? '↻ Lages på nytt' : '↻ Lag på nytt'}
+                                </button>
+                              )}
+                              {(seg.motion || (seg.animate === true ? 'move' : 'none')) === 'move' && (
+                                <button
+                                  type="button"
+                                  onClick={() => previewMotion(index)}
+                                  disabled={['starting', 'generating'].includes(motionPreview[index]?.status || '')}
+                                  className="px-3 py-1.5 rounded-full border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-[12px] font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-60"
+                                >
+                                  {motionPreview[index]?.status === 'starting' && '▶ Starter…'}
+                                  {motionPreview[index]?.status === 'generating' && '▶ Lager klippet… (1–3 min)'}
+                                  {!['starting', 'generating'].includes(motionPreview[index]?.status || '') && '▶ Se animasjonen'}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {motionPreview[index]?.status === 'ready' && motionPreview[index]?.url && (
+                            <div>
+                              <video src={motionPreview[index].url} controls playsInline className="rounded-lg border border-gray-200 max-h-64 bg-black" />
+                              <p className="text-[11.5px] text-gray-400 mt-1">
+                                Slik blir bevegelsen. Ikke fornøyd? «Lag på nytt» og se igjen.
+                              </p>
+                            </div>
+                          )}
+                          {motionPreview[index]?.status === 'failed' && (
+                            <p className="text-[12px] text-red-700">{motionPreview[index].error}</p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -698,16 +1000,16 @@ export default function DraftV2Page() {
             })()}
 
             <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-              <p className="text-[12px] uppercase tracking-widest text-gray-400 mb-2">Sluttplakat og bilder</p>
+              <p className="text-[12px] uppercase tracking-widest text-gray-400 mb-2">Sluttplakat</p>
               <p className="text-[13px] text-gray-500 leading-relaxed">
-                Sluttplakatens budskap, lenke og bilde — pluss bildevalg per scene —{' '}
+                Budskap, lenke, bilde og farger{' '}
                 <Link
                   href={`/dashboard/products/${productId}/video/draft/${draftId}`}
                   className="text-[var(--ember-deep)] underline hover:text-[var(--ink)]"
                 >
                   endres på den gamle siden
-                </Link>{' '}
-                til neste byggefase er ferdig.
+                </Link>
+                . Medley-verkstedet ligger også der.
               </p>
             </div>
           </aside>
