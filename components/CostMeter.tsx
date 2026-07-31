@@ -34,10 +34,17 @@ export default function CostMeter({
         </div>
       ))}
       {estimat > 0 && (
-        <div className="flex justify-between border-t border-gray-100 mt-1 pt-1 text-gray-900 font-medium">
-          <span>Neste produksjon</span>
-          <span>~{fmtCredits(estimat)}</span>
-        </div>
+        <>
+          <div className="flex justify-between border-t border-gray-100 mt-1 pt-1 text-gray-900 font-medium">
+            <span>Neste produksjon</span>
+            <span>~{fmtCredits(estimat)}</span>
+          </div>
+          {/* Estimatet faller når du bruker egne bilder/klipp — si det, ellers
+              ser en synkende sum ut som en feil (Lars 31/7) */}
+          <div className="text-xs text-gray-400 mt-0.5 leading-snug">
+            Det du lager selv — egne bilder, egen stemme — er gratis og trekker summen ned.
+          </div>
+        </>
       )}
       {typeof saldo === 'number' && (
         <>
