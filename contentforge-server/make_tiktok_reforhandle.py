@@ -437,7 +437,14 @@ def render_outro_card(outro_cfg, output_path, width, height, jingle_path=None):
             y += (bbox[3] - bbox[1]) + 12
         cta_bottom_y = y  # remember where the CTA ended so the URL never overlaps it
 
-    # URL (large bold, near bottom third)
+    # URL (large bold, near bottom third).
+    # Dedup (Lars 31/7): staar lenken allerede i budskapet, vises den ikke
+    # en gang til i gigantskrift — en gang holder.
+    if url:
+        _disp = url.replace('https://', '').replace('http://', '').rstrip('/')
+        if cta and _disp.lower() in cta.lower():
+            print(f"[render_outro_card] Lenken staar i budskapet - egen lenkelinje droppes", flush=True)
+            url = ''
     if url:
         display_url = url.replace('https://', '').replace('http://', '').rstrip('/')
         url_font_size = max(48, min(96, width // 12))
