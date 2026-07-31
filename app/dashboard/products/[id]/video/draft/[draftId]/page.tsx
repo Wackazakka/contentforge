@@ -817,9 +817,19 @@ export default function DraftPage() {
 
         // Persist R2 URL on the segment so production can reuse the approved file.
         // TTS-generering erstatter en ev. egen innspilling — nullstill flagget.
+        // State-oppdateringen er FUNKSJONELL (Lars 31/7): en stale spread her
+        // skrev over taxameter-økningen fra addCost — taxameteret sto stille
+        // ved regenerering selv om serveren førte kostnaden riktig.
+        // DB-kopien bygges separat fra closure (updater-funksjonen kjører
+        // først ved neste render, etter supabase-kallet).
         const updatedSegments = [...draft.segments]
         updatedSegments[index] = { ...updatedSegments[index], voiceover_url: data.url, own_voice: false }
-        setDraft({ ...draft, segments: updatedSegments })
+        setDraft((prev) => {
+          if (!prev) return prev
+          const segs = [...prev.segments]
+          segs[index] = { ...segs[index], voiceover_url: data.url, own_voice: false }
+          return { ...prev, segments: segs }
+        })
 
         const supabase = getSupabase()
         const { error: saveErr } = await supabase
