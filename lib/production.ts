@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { fetchVerticalForOrganization } from '@/lib/senderContext.mjs'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
 
@@ -58,8 +59,15 @@ export async function startProductionForDraft(
       .select('*')
       .eq('product_id', draft.product_id)
       .single(),
-    supabase.from('products').select('logo_url').eq('id', draft.product_id).single(),
+    supabase.from('products').select('logo_url, organization_id').eq('id', draft.product_id).single(),
   ])
+  // Artistenes egne bilder er komposisjoner (Lars 31/7): music-vertikalen
+  // viser HELE bildet med sort rundt i stedet for aa beskjaere til formatet.
+  let imageFit: 'cover' | 'contain' = 'cover'
+  try {
+    const vertical = await fetchVerticalForOrganization(supabase, (product as any)?.organization_id)
+    if (vertical === 'music') imageFit = 'contain'
+  } catch { /* cover er trygg standard */ }
   const logoUrl = productProfile?.logo_url || product?.logo_url || null
   const websiteUrl = productProfile?.website_url || null
 
@@ -144,6 +152,7 @@ export async function startProductionForDraft(
       outroCard,
       aiMotion: !!aiMotion,
       aiMotionEngine,
+      imageFit,
     }),
   })
   const job = await jobRes.json()

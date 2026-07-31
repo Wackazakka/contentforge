@@ -343,6 +343,7 @@ router.post('/', async (req, res) => {
     voiceId,
     cta,
     musicFile, matchMusicLength,
+    imageFit,
     segments,
     video_format,
     imageStyle,
@@ -661,6 +662,8 @@ router.post('/', async (req, res) => {
             ? path.join(MUSIC_DIR, musicFile)
             : '/root/.openclaw/workspace/contentforge-server/music/spor1-upbeat.mp3',
           format: video_format || '9:16', // Pass format to Python script
+          // 'contain' = hele bildet med sort rundt (artistenes egne bilder, 31/7)
+          imageFit: imageFit === 'contain' ? 'contain' : 'cover',
           jobId,
           campaignId,
           service,

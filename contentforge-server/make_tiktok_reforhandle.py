@@ -33,14 +33,27 @@ COLOR_GREEN = "#16a34a"  # Primary green
 COLOR_DARK = "#1f2937"   # Dark gray
 COLOR_WHITE = "#ffffff"  # White
 
+# Bildetilpasning: 'cover' = fyll rammen (beskjaerer), 'contain' = hele
+# bildet med sort rundt (Lars 31/7: artistenes pressebilder/artwork er
+# komposisjoner — de skal ikke beskjaeres). Settes fra config.imageFit.
+_IMAGE_FIT = 'cover'
+
 def make_bg_frame(bg_path):
     """Prepare background with overlays as numpy array."""
     bg = Image.open(bg_path).convert("RGBA")
-    # Scale to fill
-    scale = max(W / bg.width, H / bg.height)
-    bg = bg.resize((int(bg.width*scale), int(bg.height*scale)), Image.LANCZOS)
-    cx, cy = bg.width//2, bg.height//2
-    bg = bg.crop((cx-W//2, cy-H//2, cx+W//2, cy+H//2))
+    if _IMAGE_FIT == 'contain':
+        # Hele bildet synlig, sort utenfor
+        scale = min(W / bg.width, H / bg.height)
+        bg = bg.resize((max(1, int(bg.width*scale)), max(1, int(bg.height*scale))), Image.LANCZOS)
+        canvas = Image.new("RGBA", (W, H), (0, 0, 0, 255))
+        canvas.paste(bg, ((W - bg.width)//2, (H - bg.height)//2))
+        bg = canvas
+    else:
+        # Scale to fill
+        scale = max(W / bg.width, H / bg.height)
+        bg = bg.resize((int(bg.width*scale), int(bg.height*scale)), Image.LANCZOS)
+        cx, cy = bg.width//2, bg.height//2
+        bg = bg.crop((cx-W//2, cy-H//2, cx+W//2, cy+H//2))
 
     # Light overall dim
     dim = Image.new("RGBA", (W, H), (0, 0, 0, 45))
@@ -266,14 +279,19 @@ def make_segment_video(clip_path, lines, vo_path, sub=None, logo_url=None, hold=
     base_duration = (vo.duration if vo else 0.0) + 0.4
     duration = base_duration + max(0.0, float(hold or 0))
 
-    # Video background: scale-fill + center-crop to W x H
+    # Video background: cover = scale-fill + center-crop; contain = hele
+    # bildet med sort rundt (samme valg som stillbildene, Lars 31/7)
     src = VideoFileClip(clip_path)
     # Fabric lip-sync-klipp baerer lyd; pixverse/kling-bevegelsesklipp gjoer ikke det.
     is_talk = src.audio is not None
     v = src.without_audio()
-    scale = max(W / v.w, H / v.h)
-    v = v.resized((round(v.w * scale), round(v.h * scale)))
-    v = v.cropped(x_center=v.w / 2, y_center=v.h / 2, width=W, height=H)
+    if _IMAGE_FIT == 'contain':
+        scale = min(W / v.w, H / v.h)
+        v = v.resized((round(v.w * scale), round(v.h * scale)))
+    else:
+        scale = max(W / v.w, H / v.h)
+        v = v.resized((round(v.w * scale), round(v.h * scale)))
+        v = v.cropped(x_center=v.w / 2, y_center=v.h / 2, width=W, height=H)
     if is_talk:
         # Lip-sync: ALDRI tidsstrekk - munnen maa foelge voiceoveren 1:1.
         # Spill i naturlig tempo fra t=0 (samme start som vo) og frys siste
@@ -298,7 +316,12 @@ def make_segment_video(clip_path, lines, vo_path, sub=None, logo_url=None, hold=
     txt_arr = make_text_frame(lines, sub, logo_url=logo_url)
     txt_clip = ImageClip(txt_arr, duration=duration).with_effects([vfx.FadeIn(0.5)])
 
-    comp = CompositeVideoClip([v, ov_clip, txt_clip], size=(W, H))
+    if _IMAGE_FIT == 'contain':
+        # Sort bakgrunn + sentrert klipp (klippet dekker ikke hele rammen)
+        base = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
+        comp = CompositeVideoClip([base, v.with_position('center'), ov_clip, txt_clip], size=(W, H))
+    else:
+        comp = CompositeVideoClip([v, ov_clip, txt_clip], size=(W, H))
     if vo is not None:
         comp = comp.with_audio(vo)
     return comp
@@ -718,6 +741,10 @@ if __name__ == "__main__":
     backgroundMusicPath = config.get('backgroundMusic', MUSIC)
     logoUrl = config.get('logoUrl')
     outroCard = config.get('outroCard')
+    # Bildetilpasning (31/7): 'contain' = hele bildet, sort rundt
+    if config.get('imageFit') in ('contain', 'cover'):
+        _IMAGE_FIT = config['imageFit']
+        print(f"[imageFit] {_IMAGE_FIT}")
     build_video(config["segments"], config["output"], backgroundMusicPath, logoUrl=logoUrl, outroCard=outroCard, mix=config.get("mix"))
 
     # Signal completion to job-queue
