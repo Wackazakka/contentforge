@@ -553,9 +553,10 @@ router.post('/', async (req, res) => {
             const chainDir = `${jobDir}/chain_${i + 1}`
             fs.mkdirSync(chainDir, { recursive: true })
             const uploadFrame = (buf, name) => uploadBufferToR2(buf, `videos/${jobId}/chain_${i + 1}_${name}`, 'image/png')
-            // +0,5 s margin: rendereren trimmer eksakt uansett; et klipp som
-            // ender et hakk for KORT ville derimot utloest nodlosningen.
-            const targetSec = targetDurs[i] + 0.5
+            // Ingen margin (31/7): +0,5 fikk kjeden til aa bestille et helt
+            // ekstra ledd naar Kling leverte eksakt 10,0 av 10,0. Ender et
+            // klipp marginalt kort (<0,25 s), fyller rendereren umerkelig.
+            const targetSec = targetDurs[i]
             if (motion === 'talk') {
               // Lip-sync: bruk godkjent voiceover-URL; ellers last opp den genererte vo-fila
               let audioUrl = seg.voiceoverUrl || null
@@ -597,7 +598,11 @@ router.post('/', async (req, res) => {
                 }
                 const seedUrl = await uploadFrame(fs.readFileSync(tailSeedPng), 'talk_seed.png')
                 const idlePath = `${chainDir}/idle.mp4`
-                await imageToVideoChain({ imageUrl: seedUrl, prompt: motionPrompt, negativePrompt: motionNegative, engine, targetSec: rest, resolution: '720p', outPath: idlePath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
+                // Kombinasjonen (Lars 31/7 etter fullfilm 2 vs 3): Kling er
+                // best paa bevegelsesklipp, men PixVerse lagde de beste
+                // lipsync-halene — halene faar derfor alltid PixVerse,
+                // uavhengig av valgt motor for resten.
+                await imageToVideoChain({ imageUrl: seedUrl, prompt: motionPrompt, negativePrompt: motionNegative, engine: 'pixverse', targetSec: rest, resolution: '720p', outPath: idlePath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
                 await concatClips([talkPath, idlePath], clipPath)
                 console.log(`[job-queue] segment ${i + 1}: snakk ${talkDur.toFixed(1)}s + rolig hale ${rest.toFixed(1)}s skjotet`)
               } catch (tailErr) {
