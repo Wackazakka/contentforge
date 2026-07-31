@@ -51,6 +51,7 @@ interface Draft {
   outro_jingle?: string | null
   character_id?: string | null
   cost_accumulated?: number | null
+  outro_config?: { message?: string | null; url?: string; imageUrl?: string | null } | null
 }
 
 // Sidepanel-rad: «nåværende verdi + Endre», utvider seg til velgeren
@@ -168,6 +169,92 @@ export default function DraftV2Page() {
       console.warn('[v2] lagring av oppsett feilet:', err)
     }
   }
+  // ---- Sluttplakat (portert fra gammel side) ----
+  const [outroBg, setOutroBg] = useState('#1a1a2e')
+  const [outroText, setOutroText] = useState('#ffffff')
+  const [outroDefaults, setOutroDefaults] = useState<{ url: string; logoUrl: string }>({ url: '', logoUrl: '' })
+  const [outroMessage, setOutroMessage] = useState<string | null>(null)
+  const [outroUrl, setOutroUrl] = useState('')
+  const [outroImage, setOutroImage] = useState('')
+  const [outroPickerOpen, setOutroPickerOpen] = useState(false)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const { data: p } = await getSupabase()
+          .from('product_profiles')
+          .select('primary_color, secondary_color, website_url, logo_url')
+          .eq('product_id', productId)
+          .single()
+        if (p?.primary_color) setOutroBg(p.primary_color)
+        if (p?.secondary_color) setOutroText(p.secondary_color)
+        setOutroDefaults({ url: p?.website_url || '', logoUrl: p?.logo_url || '' })
+      } catch { /* profilen er valgfri */ }
+    })()
+  }, [productId])
+  useEffect(() => {
+    const oc = draft?.outro_config
+    if (oc && typeof oc === 'object') {
+      if (oc.message !== undefined && oc.message !== null) setOutroMessage(String(oc.message))
+      if (oc.url) setOutroUrl(String(oc.url))
+      if (oc.imageUrl === null) setOutroImage('none')
+      else if (oc.imageUrl) setOutroImage(String(oc.imageUrl))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft?.id])
+  const persistOutro = async (next: { message?: string | null; url?: string; image?: string }) => {
+    const msg = next.message !== undefined ? next.message : outroMessage
+    const url = next.url !== undefined ? next.url : outroUrl
+    const img = next.image !== undefined ? next.image : outroImage
+    const oc: Record<string, unknown> = {}
+    if (msg !== null) oc.message = msg
+    if (url.trim()) oc.url = url.trim()
+    if (img === 'none') oc.imageUrl = null
+    else if (img) oc.imageUrl = img
+    try {
+      await getSupabase().from('production_drafts').update({ outro_config: oc }).eq('id', draftId)
+    } catch (err) { console.warn('[v2] plakat-lagring feilet:', err) }
+  }
+  const updateOutroColors = async (bg: string, text: string) => {
+    setOutroBg(bg); setOutroText(text)
+    try {
+      await getSupabase().from('product_profiles').update({ primary_color: bg, secondary_color: text }).eq('product_id', productId)
+    } catch (err) { console.warn('[v2] fargelagring feilet:', err) }
+  }
+
+  // ---- Medley (portert fra gammel side) ----
+  const [medleyPicks, setMedleyPicks] = useState<string[]>([])
+  const [medleyClip, setMedleyClip] = useState<'full' | '10' | '15' | '20' | '30'>('15')
+  const [medleyBuilding, setMedleyBuilding] = useState(false)
+  const [medleyResult, setMedleyResult] = useState<{ filename: string; name: string } | null>(null)
+  const buildMedley = async () => {
+    if (medleyPicks.length < 2) return
+    setMedleyBuilding(true)
+    setMedleyResult(null)
+    try {
+      const now = new Date()
+      const navn = `medley-${now.toISOString().slice(0, 10)}-kl-${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}.${String(now.getSeconds()).padStart(2, '0')}`
+      const res = await fetch('/api/music/medley', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: medleyPicks.map((f) => ({ filename: f, startSec: 0, clipSec: medleyClip === 'full' ? undefined : Number(medleyClip) })),
+          folder: tracksFolder(productId),
+          name: navn,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Miksingen feilet')
+      const lib = await fetch('/api/music').then((r) => r.json())
+      setMusicLibrary(lib.files || [])
+      setMedleyResult({ filename: data.file?.filename || '', name: data.file?.name || navn })
+      if (data.file?.filename) updateDraftFields({ music_file: data.file.filename })
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Miksingen feilet')
+    } finally {
+      setMedleyBuilding(false)
+    }
+  }
+
   // ---- Legg til / fjern scener (Lars 31/7) ----
   // Indeksene renummereres alltid, ellers går rekkefølgen i produksjonen i
   // stykker (job-queue sorterer på index).
@@ -1002,13 +1089,80 @@ export default function DraftV2Page() {
                 {draft.music_file && (
                   <audio controls preload="none" src={`/api/music/${encodeURIComponent(draft.music_file)}`} className="mt-2 w-full h-8" />
                 )}
-                <p className="mt-1.5 text-[11.5px] text-gray-400">
-                  Laste opp låter eller bygge medley?{' '}
-                  <Link href={`/dashboard/products/${productId}/video/draft/${draftId}`} className="underline hover:text-gray-600">
-                    Gjøres på den gamle siden
-                  </Link>{' '}
-                  inntil videre.
-                </p>
+                {/* Medley-verksted */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <p className="text-[12px] font-medium text-gray-700 mb-1.5">Lag medley av låtene dine</p>
+                  {(() => {
+                    const kandidater = ownTracks(musicLibrary, productId).filter((m) => !isMedleyFile(m.filename))
+                    if (kandidater.length < 2) {
+                      return <p className="text-[11.5px] text-gray-400">Du trenger minst to egne låter. Last opp på den gamle siden inntil videre.</p>
+                    }
+                    return (
+                      <>
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                          {kandidater.map((m) => {
+                            const valgt = medleyPicks.indexOf(m.filename)
+                            return (
+                              <button
+                                key={m.filename}
+                                type="button"
+                                onClick={() => setMedleyPicks((p) => valgt >= 0 ? p.filter((f) => f !== m.filename) : [...p, m.filename])}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-[12.5px] flex items-center gap-2 ${
+                                  valgt >= 0 ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <span className={`w-5 text-center ${valgt >= 0 ? 'text-[var(--ember-deep)] font-semibold' : 'text-gray-300'}`}>
+                                  {valgt >= 0 ? valgt + 1 : '+'}
+                                </span>
+                                <span className="truncate">{m.name}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                        {medleyPicks.length > 0 && (
+                          <>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-[11.5px] text-gray-500">Lengde per låt:</span>
+                              <select
+                                value={medleyClip}
+                                onChange={(e) => setMedleyClip(e.target.value as typeof medleyClip)}
+                                className="px-2 py-1 border border-gray-300 rounded text-[12px] bg-white"
+                              >
+                                <option value="10">10 sek</option>
+                                <option value="15">15 sek</option>
+                                <option value="20">20 sek</option>
+                                <option value="30">30 sek</option>
+                                <option value="full">Hele låten</option>
+                              </select>
+                            </div>
+                            {medleyClip !== 'full' && medleyPicks.length >= 2 && (() => {
+                              const bit = Number(medleyClip)
+                              const skjoter = medleyPicks.length - 1
+                              const ferdig = medleyPicks.length * bit - skjoter * 2.5
+                              return (
+                                <p className="mt-1.5 text-[11.5px] text-[var(--ember-deep)]">
+                                  {medleyPicks.length} × {bit} sek = {medleyPicks.length * bit} sek, men de {skjoter} overtoningene
+                                  spiser 2,5 sek hver → <strong>ferdig ca. {Math.round(ferdig)} sek</strong>.
+                                </p>
+                              )
+                            })()}
+                            <button
+                              type="button"
+                              onClick={buildMedley}
+                              disabled={medleyPicks.length < 2 || medleyBuilding}
+                              className="mt-2 w-full px-3 py-2 rounded-lg bg-[var(--ember-deep)] text-white text-[13px] font-medium hover:bg-[var(--ink)] disabled:opacity-40"
+                            >
+                              {medleyBuilding ? 'Mikser låtene…' : `Lag medley (${medleyPicks.length} låter)`}
+                            </button>
+                          </>
+                        )}
+                        {medleyResult && (
+                          <p className="mt-2 text-[11.5px] text-green-700">✓ {medleyResult.name} er laget og valgt som bakgrunnsmusikk.</p>
+                        )}
+                      </>
+                    )
+                  })()}
+                </div>
               </SettingRow>
 
               {/* Jingle */}
@@ -1098,18 +1252,107 @@ export default function DraftV2Page() {
               )
             })()}
 
-            <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-              <p className="text-[12px] uppercase tracking-widest text-gray-400 mb-2">Sluttplakat</p>
-              <p className="text-[13px] text-gray-500 leading-relaxed">
-                Budskap, lenke, bilde og farger{' '}
-                <Link
-                  href={`/dashboard/products/${productId}/video/draft/${draftId}`}
-                  className="text-[var(--ember-deep)] underline hover:text-[var(--ink)]"
-                >
-                  endres på den gamle siden
-                </Link>
-                . Medley-verkstedet ligger også der.
-              </p>
+            {/* Sluttplakat med forhåndsvisning */}
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-900">Sluttplakaten</h3>
+                <p className="text-[12px] text-gray-400 mt-0.5">Siste bildet i videoen</p>
+              </div>
+              <div className="px-5 py-4 space-y-3">
+                {(() => {
+                  const effMsg = outroMessage !== null ? outroMessage : (draft.cta || '')
+                  const effUrl = (outroUrl || outroDefaults.url).replace(/^https?:\/\//, '').replace(/\/$/, '')
+                  const effImg = outroImage === 'none' ? '' : (outroImage || outroDefaults.logoUrl)
+                  const urlInMsg = !!effUrl && effMsg.toLowerCase().includes(effUrl.toLowerCase())
+                  return (
+                    <>
+                      <div
+                        className="w-24 aspect-[9/16] mx-auto rounded-lg border border-gray-200 overflow-hidden flex flex-col items-center justify-center px-1.5 text-center"
+                        style={{ backgroundColor: outroBg, color: outroText }}
+                      >
+                        {effImg ? <img src={effImg} alt="" className="max-h-[45%] max-w-[85%] object-contain mb-1" /> : null}
+                        {effMsg ? <p className="text-[7px] leading-snug mb-0.5">{effMsg}</p> : null}
+                        {effUrl && !urlInMsg ? <p className="text-[8px] font-bold break-all">{effUrl}</p> : null}
+                      </div>
+                      <div>
+                        <label className="block text-[11px] uppercase tracking-widest text-gray-400 mb-1">Budskap</label>
+                        <textarea
+                          value={effMsg}
+                          onChange={(e) => setOutroMessage(e.target.value)}
+                          onBlur={() => persistOutro({ message: outroMessage })}
+                          rows={2}
+                          placeholder="F.eks. Forhåndslagre på Spotify"
+                          className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                        />
+                        {urlInMsg && <p className="text-[11px] text-gray-400 mt-0.5">Lenken står i budskapet — vises ikke to ganger.</p>}
+                      </div>
+                      <div>
+                        <label className="block text-[11px] uppercase tracking-widest text-gray-400 mb-1">Lenke</label>
+                        <input
+                          type="text"
+                          value={outroUrl}
+                          onChange={(e) => setOutroUrl(e.target.value)}
+                          onBlur={() => persistOutro({ url: outroUrl })}
+                          placeholder={outroDefaults.url || 'dittband.no'}
+                          className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-[12.5px] focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] uppercase tracking-widest text-gray-400 mb-1">Bilde</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {([
+                            { v: '', label: 'Artistbilde' },
+                            { v: 'pick', label: 'Fra biblioteket' },
+                            { v: 'none', label: 'Uten bilde' },
+                          ]).map((o) => {
+                            const aktiv = o.v === 'pick' ? (!!outroImage && outroImage !== 'none') : outroImage === o.v
+                            return (
+                              <button
+                                key={o.v}
+                                type="button"
+                                onClick={() => {
+                                  if (o.v === 'pick') { setOutroPickerOpen((v) => !v); return }
+                                  setOutroImage(o.v); setOutroPickerOpen(false); persistOutro({ image: o.v })
+                                }}
+                                className={`px-2.5 py-1 rounded-full border text-[11.5px] font-medium ${
+                                  aktiv ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                }`}
+                              >
+                                {o.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        {outroPickerOpen && (
+                          <div className="mt-2 grid grid-cols-4 gap-1.5">
+                            {imageLibrary.length === 0 && <p className="col-span-full text-[11.5px] text-gray-400">Ingen bilder ennå.</p>}
+                            {imageLibrary.map((img) => (
+                              <button
+                                key={img.url}
+                                type="button"
+                                onClick={() => { setOutroImage(img.url); setOutroPickerOpen(false); persistOutro({ image: img.url }) }}
+                                className={`aspect-square rounded-lg overflow-hidden border-2 ${outroImage === img.url ? 'border-[var(--ember-deep)]' : 'border-transparent hover:border-gray-300'}`}
+                              >
+                                <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <label className="flex items-center gap-1.5 text-[11.5px] text-gray-500">
+                          Bakgrunn
+                          <input type="color" value={outroBg} onChange={(e) => updateOutroColors(e.target.value, outroText)} className="h-7 w-10 rounded border border-gray-300 cursor-pointer" />
+                        </label>
+                        <label className="flex items-center gap-1.5 text-[11.5px] text-gray-500">
+                          Tekst
+                          <input type="color" value={outroText} onChange={(e) => updateOutroColors(outroBg, e.target.value)} className="h-7 w-10 rounded border border-gray-300 cursor-pointer" />
+                        </label>
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
             </div>
           </aside>
         </div>
