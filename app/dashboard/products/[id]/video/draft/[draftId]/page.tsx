@@ -1387,6 +1387,21 @@ export default function DraftPage() {
                     <p className="text-xs text-gray-400 mb-2">
                       Spill låten og trykk «Start her» der utsnittet skal begynne — f.eks. rett før refrenget.
                     </p>
+                    {/* Ferdig lengde FØR bygging (Lars 31/7: «ikke helt intuitivt
+                        at filmen blir kortere enn den totale musikklengden»).
+                        Overtoningen på 2,5 s spiser tid ved hver skjøt. */}
+                    {medleyClip !== 'full' && medleySelection.length >= 2 && (() => {
+                      const bit = Number(medleyClip)
+                      const skjoter = medleySelection.length - 1
+                      const ferdig = medleySelection.length * bit - skjoter * 2.5
+                      return (
+                        <p className="text-xs text-[var(--ember-deep)] mb-2">
+                          {medleySelection.length} × {bit} sek = {medleySelection.length * bit} sek, men de {skjoter} overtoningene
+                          spiser 2,5 sek hver → <strong>ferdig medley ca. {Math.round(ferdig)} sek</strong>.
+                          {' '}Vil du ha lengre, velg større utsnitt.
+                        </p>
+                      )
+                    })()}
                     <div className="space-y-2">
                       {medleySelection.map((f, i) => {
                         const track = ownTracks(musicLibrary, productId).find((m) => m.filename === f)
