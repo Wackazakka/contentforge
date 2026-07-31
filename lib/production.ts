@@ -63,11 +63,11 @@ export async function startProductionForDraft(
   ])
   // Artistenes egne bilder er komposisjoner (Lars 31/7): music-vertikalen
   // viser HELE bildet med sort rundt i stedet for aa beskjaere til formatet.
-  let imageFit: 'cover' | 'contain' = 'cover'
+  let vertical: string | null = null
   try {
-    const vertical = await fetchVerticalForOrganization(supabase, (product as any)?.organization_id)
-    if (vertical === 'music') imageFit = 'contain'
-  } catch { /* cover er trygg standard */ }
+    vertical = await fetchVerticalForOrganization(supabase, (product as any)?.organization_id)
+  } catch { /* ukjent vertikal = trygge standarder */ }
+  const imageFit: 'cover' | 'contain' = vertical === 'music' ? 'contain' : 'cover'
   const logoUrl = productProfile?.logo_url || product?.logo_url || null
   const websiteUrl = productProfile?.website_url || null
 
@@ -81,8 +81,10 @@ export async function startProductionForDraft(
         durationSeconds: 3,
         jingleFile: outroJingle || null,
         // Kontaktlinje på sluttplakaten («url · tlf») — rendres av droplet-python
-        // når den er oppdatert; ukjente felter ignoreres trygt av eldre renderer
-        phone: (productProfile as any)?.phone || null,
+        // når den er oppdatert; ukjente felter ignoreres trygt av eldre renderer.
+        // Artister (music) skal IKKE ha telefonnummer på plakaten (Lars 31/7)
+        // — fansen skal til lenken, ikke ringe booking.
+        phone: vertical === 'music' ? null : ((productProfile as any)?.phone || null),
       }
     : null
 

@@ -9,6 +9,50 @@ const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
 const { imageToVideoClip, imageToVideoChain, lipsyncClip, extractLastFrame, concatClips } = require('./i2v')
 const { edit: falEdit } = require('./fal-edit')
 
+// Klipp-cache (Lars 31/7: «rediger én scene uten å regenerere alt»):
+// ferdige animasjonsklipp lagres keyet på et fingeravtrykk av alt som
+// påvirker klippet. Uendrede scener gjenbrukes GRATIS ved ny produksjon;
+// bare endrede scener genereres. Kun KOMPLETTE klipp caches — aldri
+// nødløsninger (delvis kjede/hale-fallback), ellers fryses degraderingen.
+const CLIP_CACHE_DIR = '/root/.openclaw/workspace/contentforge-clipcache'
+
+// f: { imageUrl, motion (ferdig oppløst), voiceoverUrl, noVoice, holdSeconds }
+// ctx: { engine, musicFile, segmentCount, matchMusicLength }
+function clipFingerprint(f, ctx) {
+  // Stemmen påvirker klippet ved lip-sync (munn = lyd) og ved manuell
+  // lengde (target = talelengde + hold). Med film=musikk er target =
+  // musikkandel uansett — da skal ny TTS-take IKKE kaste bevegelsesklipp.
+  const voRelevant = f.motion === 'talk' || !ctx.matchMusicLength
+  const basis = JSON.stringify([
+    f.imageUrl || '',
+    f.motion,
+    ctx.engine,
+    voRelevant ? (f.voiceoverUrl || '') : '',
+    f.noVoice === true,
+    ctx.musicFile || '',
+    ctx.segmentCount,
+    !!ctx.matchMusicLength,
+    Number(f.holdSeconds) > 0 ? Number(f.holdSeconds) : 0,
+  ])
+  return crypto.createHash('sha1').update(basis).digest('hex')
+}
+
+function clipCacheGet(fp, destPath) {
+  try {
+    const src = `${CLIP_CACHE_DIR}/${fp}.mp4`
+    if (!fs.existsSync(src)) return false
+    fs.copyFileSync(src, destPath)
+    return true
+  } catch (e) { return false }
+}
+
+function clipCachePut(fp, srcPath) {
+  try {
+    fs.mkdirSync(CLIP_CACHE_DIR, { recursive: true })
+    fs.copyFileSync(srcPath, `${CLIP_CACHE_DIR}/${fp}.mp4`)
+  } catch (e) { console.warn('[clip-cache] lagring hoppet over:', e.message) }
+}
+
 const SCRIPT_PATH = '/root/.openclaw/workspace/reforhandle-content/make_tiktok_reforhandle.py'
 const OUTPUT_DIR = '/root/.openclaw/workspace/contentforge-output'
 const ENV_PATH = '/opt/reforhandle/.env.local'
@@ -330,6 +374,89 @@ function buildDynamicConfig(jobId, { headline, bodyCopy, service, cta, musicFile
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
+// POST /jobs/reuse-check — hvilke scener ligger klare i klipp-cachen?
+// Brukes av start-production til aa belaste KUN scener som maa genereres
+// (Lars 31/7: en én-scenes fiks skal koste én scene, ikke hele filmen).
+router.post('/reuse-check', (req, res) => {
+  const { segments, engine, musicFile, matchMusicLength } = req.body || {}
+  if (!Array.isArray(segments)) return res.status(400).json({ error: 'segments mangler' })
+  const eng = engine || 'kling'
+  const reusable = segments.map((s) => {
+    const raw = s.motion || (s.animate === true ? 'move' : 'none')
+    const motion = (s.noVoice === true && raw === 'talk') ? 'move' : raw
+    if (motion === 'none') return false
+    const fp = clipFingerprint(
+      { imageUrl: s.imageUrl, motion, voiceoverUrl: s.voiceoverUrl, noVoice: s.noVoice, holdSeconds: s.holdSeconds },
+      { engine: eng, musicFile, segmentCount: segments.length, matchMusicLength }
+    )
+    try { return fs.existsSync(`${CLIP_CACHE_DIR}/${fp}.mp4`) } catch { return false }
+  })
+  res.json({ reusable })
+})
+
+// «Se animasjonen» (Lars 31/7): generer (eller hent fra cache) klippet for
+// ÉN scene, last opp til R2 og la redigereren spille det av foer produksjon.
+// Async: generering tar minutter — POST starter, GET poller. Klippet legges
+// i klipp-cachen, saa produksjonen etterpaa gjenbruker det gratis.
+const previewJobs = new Map() // fp -> { status: 'generating'|'ready'|'failed', url?, error? }
+
+async function uploadPreviewToR2(fp, clipPath) {
+  const buf = fs.readFileSync(clipPath)
+  return uploadBufferToR2(buf, `videos/previews/${fp}.mp4`, 'video/mp4')
+}
+
+router.post('/preview-clip', async (req, res) => {
+  const { segment, engine, musicFile, matchMusicLength, segmentCount, targetSec } = req.body || {}
+  if (!segment || !segment.imageUrl) return res.status(400).json({ error: 'segment.imageUrl mangler' })
+  const eng = engine || 'kling'
+  const raw = segment.motion || (segment.animate === true ? 'move' : 'none')
+  const motion = (segment.noVoice === true && raw === 'talk') ? 'move' : raw
+  if (motion !== 'move') return res.status(400).json({ error: 'Forhaandsvisning finnes forelopig kun for Bevegelse-scener' })
+  const fp = clipFingerprint(
+    { imageUrl: segment.imageUrl, motion, voiceoverUrl: segment.voiceoverUrl, noVoice: segment.noVoice, holdSeconds: segment.holdSeconds },
+    { engine: eng, musicFile: musicFile || null, segmentCount: Number(segmentCount) || 1, matchMusicLength: !!matchMusicLength }
+  )
+  const cachedClip = `${CLIP_CACHE_DIR}/${fp}.mp4`
+  try {
+    if (fs.existsSync(cachedClip)) {
+      const url = await uploadPreviewToR2(fp, cachedClip)
+      previewJobs.set(fp, { status: 'ready', url })
+      return res.json({ fp, status: 'ready', url, reused: true })
+    }
+  } catch (e) { /* fall videre til generering */ }
+  const existing = previewJobs.get(fp)
+  if (existing && existing.status === 'generating') return res.json({ fp, status: 'generating' })
+
+  previewJobs.set(fp, { status: 'generating' })
+  res.json({ fp, status: 'generating' })
+
+  setImmediate(async () => {
+    const workDir = `${OUTPUT_DIR}/preview-${fp.slice(0, 12)}`
+    try {
+      fs.mkdirSync(workDir, { recursive: true })
+      const clipPath = `${workDir}/clip.mp4`
+      const sec = Math.min(60, Math.max(3, Number(targetSec) || 5))
+      const motionPrompt = 'cinematic camera push-in. Gentle lifelike motion: the person breathes calmly, blinks naturally, subtle small head movement, calm silent expression. The mouth stays completely closed and still the entire time, lips gently pressed together. He is quietly observing, not talking. Photorealistic, no text or letters.'
+      const motionNegative = 'talking, speaking, singing, moving lips, lip movement, mouth opening and closing, conversation, open mouth, jaw movement, mouthing words, interview, presenting, explaining'
+      const uploadFrame = (buf, name) => uploadBufferToR2(buf, `videos/previews/${fp}-${name}`, 'image/png')
+      const chain = await imageToVideoChain({ imageUrl: segment.imageUrl, prompt: motionPrompt, negativePrompt: motionNegative, engine: eng, targetSec: sec, resolution: '720p', outPath: clipPath, workDir, uploadFrame, log: (m) => console.log('[preview]', m) })
+      if (chain.coveredSec >= sec - 0.25) clipCachePut(fp, clipPath)
+      const url = await uploadPreviewToR2(fp, clipPath)
+      previewJobs.set(fp, { status: 'ready', url })
+      console.log(`[preview] klipp klart (${fp.slice(0, 8)}) -> ${url}`)
+    } catch (err) {
+      console.error(`[preview] feilet (${fp.slice(0, 8)}):`, err.message)
+      previewJobs.set(fp, { status: 'failed', error: err.message })
+    }
+  })
+})
+
+router.get('/preview-clip/:fp', (req, res) => {
+  const st = previewJobs.get(req.params.fp)
+  if (!st) return res.status(404).json({ error: 'ukjent forhaandsvisning' })
+  res.json({ fp: req.params.fp, ...st })
+})
+
 // POST /jobs — enqueue a new video production job
 router.post('/', async (req, res) => {
   const {
@@ -561,6 +688,16 @@ router.post('/', async (req, res) => {
             const url = segImageUrls[i]
             if (!url) throw new Error('mangler bilde-URL')
             const clipPath = `${jobDir}/clip_${i + 1}.mp4`
+            // Gjenbruk: identisk scene fra en tidligere produksjon (eller
+            // forhåndsvisning) hentes fra cachen — ingen ny generering.
+            const fp = clipFingerprint(
+              { imageUrl: url, motion, voiceoverUrl: seg.voiceoverUrl, noVoice: seg.noVoice, holdSeconds: seg.holdSeconds },
+              { engine, musicFile, segmentCount: orderedSegments.length, matchMusicLength }
+            )
+            if (clipCacheGet(fp, clipPath)) {
+              console.log(`[job-queue] segment ${i + 1}: GJENBRUKER klipp fra cache (${fp.slice(0, 8)}) - ingen generering`)
+              return clipPath
+            }
             const chainDir = `${jobDir}/chain_${i + 1}`
             fs.mkdirSync(chainDir, { recursive: true })
             const uploadFrame = (buf, name) => uploadBufferToR2(buf, `videos/${jobId}/chain_${i + 1}_${name}`, 'image/png')
@@ -581,6 +718,7 @@ router.post('/', async (req, res) => {
               const rest = targetSec - talkDur
               if (rest < 1.0) {
                 fs.copyFileSync(talkPath, clipPath)
+                clipCachePut(fp, clipPath) // komplett: talen dekker scenen
                 return clipPath
               }
               // Rolig hale: kjede saadd fra snakkeklippets siste bilde, saa
@@ -616,14 +754,16 @@ router.post('/', async (req, res) => {
                 await imageToVideoChain({ imageUrl: seedUrl, prompt: motionPrompt, negativePrompt: motionNegative, engine: 'pixverse', targetSec: rest, resolution: '720p', outPath: idlePath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
                 await concatClips([talkPath, idlePath], clipPath)
                 console.log(`[job-queue] segment ${i + 1}: snakk ${talkDur.toFixed(1)}s + rolig hale ${rest.toFixed(1)}s skjotet`)
+                clipCachePut(fp, clipPath) // komplett snakk+hale
               } catch (tailErr) {
                 console.warn(`[job-queue] segment ${i + 1}: rolig hale feilet (${tailErr.message}) - bruker snakkeklippet alene`)
-                fs.copyFileSync(talkPath, clipPath)
+                fs.copyFileSync(talkPath, clipPath) // noedloesning - caches IKKE
               }
               return clipPath
             }
             const chain = await imageToVideoChain({ imageUrl: url, prompt: motionPrompt, negativePrompt: motionNegative, engine, targetSec, resolution: '720p', outPath: clipPath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
             console.log(`[job-queue] segment ${i + 1}: kjede ferdig (${chain.chunks} ledd, ${chain.coveredSec.toFixed(1)}s av maal ${targetSec.toFixed(1)}s)`)
+            if (chain.coveredSec >= targetSec - 0.25) clipCachePut(fp, clipPath) // kun komplette kjeder
             return clipPath
           }))
           segClips = _r.map((r, i) => {

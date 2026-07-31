@@ -164,11 +164,19 @@ async function imageToVideoChain(o) {
       const chunkPath = `${workDir}/chain_${chunks.length + 1}.mp4`
       // Ett nytt forsøk per ledd: fal-køen har lunefulle dager (31/7: hale
       // tidsavbrøt >8 min og hele halen røk — ett retry hadde reddet den).
+      // Innholdsflagg (content_policy_violation) prøves med DEN ANDRE
+      // motoren — sjekkene er ulike, så den ene slipper ofte gjennom det
+      // den andre stopper (falsk alarm målt i produksjon 6dec2fa9 31/7).
       try {
         await imageToVideoClip({ imageUrl: seed, prompt, engine, durationSec, resolution, outPath: chunkPath, log, negativePrompt })
       } catch (firstErr) {
-        log(`[i2v-kjede] ledd ${chunks.length + 1} feilet (${firstErr.message}) — prøver én gang til`)
-        await imageToVideoClip({ imageUrl: seed, prompt, engine, durationSec, resolution, outPath: chunkPath, log, negativePrompt })
+        const policy = /content_policy|flagged by a content checker/i.test(firstErr.message || '')
+        const retryEngine = policy ? (engine === 'kling' ? 'pixverse' : 'kling') : engine
+        // Gyldige lengder: Kling 5/10, PixVerse 5/8 — velg motorens maks
+        // for lange ledd, 5 for korte
+        const retryDur = durationSec <= 5 ? 5 : (retryEngine === 'kling' ? 10 : 8)
+        log(`[i2v-kjede] ledd ${chunks.length + 1} feilet (${firstErr.message.slice(0, 160)}) — prøver ${policy ? `med ${retryEngine}` : 'én gang til'}`)
+        await imageToVideoClip({ imageUrl: seed, prompt, engine: retryEngine, durationSec: retryDur, resolution, outPath: chunkPath, log, negativePrompt })
       }
       chunks.push(chunkPath)
       const dur = await probeSeconds(chunkPath)
