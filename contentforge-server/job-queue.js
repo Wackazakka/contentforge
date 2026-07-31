@@ -536,7 +536,9 @@ router.post('/', async (req, res) => {
           const engine = aiMotionEngine || 'pixverse'
           const _toAnimate = orderedSegments.filter((s) => (s.motion && s.motion !== 'none') || s.animate === true).length
           console.log(`[job-queue] AI-bevegelse PA (${engine}) - animerer ${_toAnimate} av ${orderedSegments.length} segmenter (per-segment valg)`)
-          const motionPrompt = 'subtle cinematic camera push-in and gentle ambient motion only. The people stay still and do NOT talk - mouths closed, no lip movement, no speaking or singing. Photorealistic, no text or letters.'
+          // «Stay still» ga passive statuer (Lars 31/7) — kroppen skal leve,
+          // bare munnen er sperret (stumfilm-effekten fra 30/7).
+          const motionPrompt = 'cinematic camera push-in. The people move naturally and stay alive: subtle head turns, blinking, breathing, shifting weight, small gestures. But mouths stay CLOSED the whole time - no talking, no lip movement, no singing. Photorealistic, no text or letters.'
           const _r = await Promise.allSettled(orderedSegments.map(async (seg, i) => {
             const motion = seg.motion || (seg.animate === true ? 'move' : 'none')
             if (motion === 'none') return null
