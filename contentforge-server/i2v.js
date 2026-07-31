@@ -2,9 +2,46 @@
 // Brukes av job-queue: gjør et stillbilde om til et kort videoklipp med bevegelse.
 'use strict'
 const fs = require('fs')
+const { execFile } = require('child_process')
 
 const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
 const QUEUE = 'https://queue.fal.run'
+
+const ff = (cmd, args) => new Promise((resolve, reject) =>
+  execFile(cmd, args, { maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) =>
+    err ? reject(new Error((stderr || err.message).slice(-400))) : resolve(stdout)))
+
+async function probeSeconds(file) {
+  const out = await ff('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file])
+  const s = parseFloat(String(out).trim())
+  return Number.isFinite(s) ? s : 0
+}
+
+// Siste bilde i et klipp -> PNG (frøet for neste ledd i kjeden)
+async function extractLastFrame(clipPath, outPng) {
+  await ff('ffmpeg', ['-y', '-sseof', '-0.15', '-i', clipPath, '-frames:v', '1', '-update', '1', '-q:v', '2', outPng])
+  return outPng
+}
+
+// Skjøt klipp sømløst: alle skaleres/beskjæres til første klipps mål og
+// felles fps, så concat-filteret aldri snubler i blandede kilder.
+async function concatClips(paths, outPath) {
+  const dims = await ff('ffprobe', ['-v', 'error', '-select_streams', 'v:0',
+    '-show_entries', 'stream=width,height', '-of', 'csv=p=0', paths[0]])
+  const [w, h] = String(dims).trim().split(',').map(Number)
+  if (!w || !h) throw new Error('fant ikke dimensjoner for concat')
+  const inputs = []
+  const filters = []
+  paths.forEach((p, i) => {
+    inputs.push('-i', p)
+    filters.push(`[${i}:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},fps=24,setsar=1[v${i}]`)
+  })
+  const fc = filters.join(';') + ';' + paths.map((_, i) => `[v${i}]`).join('')
+    + `concat=n=${paths.length}:v=1:a=0[out]`
+  await ff('ffmpeg', ['-y', ...inputs, '-filter_complex', fc, '-map', '[out]',
+    '-c:v', 'libx264', '-preset', 'fast', '-crf', '20', '-pix_fmt', 'yuv420p', '-an', outPath])
+  return outPath
+}
 
 // Motor -> fal modell-ID for image-to-video
 const MODELS = {
@@ -87,6 +124,69 @@ async function imageToVideoClip(o) {
 
 
 /**
+ * Kjedegenerering: ett langt, sammenhengende bevegelsesklipp i vilkårlig
+ * lengde (Lars 30/7: «riktig lengde, ingen boomeranging»). Generatorene gir
+ * maks 5/8 s (PixVerse) eller 5/10 s (Kling); lengre segmenter dekkes ved å
+ * så neste ledd fra forrige ledds siste bilde og skjøte leddene sammen.
+ *
+ * Feiler et ledd underveis beholdes det som er generert — rendereren fyller
+ * resten (boomerang som nødløsning). Feiler alt, kastes feilen videre og
+ * job-queue faller tilbake til stillbilde, som før.
+ *
+ * @param {object} o
+ * @param {string} o.imageUrl    Offentlig URL til startbildet
+ * @param {string} o.prompt      Bevegelsesbeskrivelse
+ * @param {string} [o.engine]    'pixverse' (default) | 'kling'
+ * @param {number} o.targetSec   Ønsket samlet lengde (sek)
+ * @param {string} [o.resolution]
+ * @param {string} o.outPath     Ferdig sammensatt klipp (.mp4)
+ * @param {string} o.workDir     Egen mappe for leddene (må finnes)
+ * @param {function} o.uploadFrame  async (buffer, filnavn) -> offentlig URL (frø-bilder)
+ * @param {function} [o.log]
+ * @param {number} [o.maxChunks] Kostnadstak (default 4 ledd)
+ * @returns {Promise<{path: string, chunks: number, coveredSec: number}>}
+ */
+async function imageToVideoChain(o) {
+  const { imageUrl, prompt, engine = 'pixverse', targetSec, resolution = '720p',
+    outPath, workDir, uploadFrame, log = console.log, maxChunks = 4 } = o
+  if (!targetSec || targetSec <= 0) throw new Error('targetSec mangler')
+  const chunkMax = engine === 'kling' ? 10 : 8
+  const chunks = []
+  let seed = imageUrl
+  let covered = 0
+  try {
+    while (covered < targetSec - 0.25 && chunks.length < maxChunks) {
+      const remaining = targetSec - covered
+      // 5 s holder for korte rester; ellers største ledd motoren gir
+      const durationSec = remaining <= 5.5 ? 5 : chunkMax
+      const chunkPath = `${workDir}/chain_${chunks.length + 1}.mp4`
+      await imageToVideoClip({ imageUrl: seed, prompt, engine, durationSec, resolution, outPath: chunkPath, log })
+      chunks.push(chunkPath)
+      const dur = await probeSeconds(chunkPath)
+      covered += dur > 0 ? dur : durationSec
+      log(`[i2v-kjede] ledd ${chunks.length}: ${dur.toFixed(1)}s (${covered.toFixed(1)}/${targetSec.toFixed(1)}s)`)
+      if (covered < targetSec - 0.25 && chunks.length < maxChunks) {
+        const framePath = `${workDir}/chain_${chunks.length}_seed.png`
+        await extractLastFrame(chunkPath, framePath)
+        seed = await uploadFrame(fs.readFileSync(framePath), `chain_${chunks.length}_seed.png`)
+      }
+    }
+    if (covered < targetSec - 0.25 && chunks.length >= maxChunks) {
+      log(`[i2v-kjede] kostnadstak: ${maxChunks} ledd dekker ${covered.toFixed(1)} av ${targetSec.toFixed(1)}s — resten fylles i rendereren`)
+    }
+  } catch (err) {
+    if (!chunks.length) throw err
+    log(`[i2v-kjede] ledd ${chunks.length + 1} FEILET (${err.message}) — bruker ${chunks.length} ledd, resten fylles i rendereren`)
+  }
+  if (chunks.length === 1) {
+    fs.copyFileSync(chunks[0], outPath)
+  } else {
+    await concatClips(chunks, outPath)
+  }
+  return { path: outPath, chunks: chunks.length, coveredSec: covered }
+}
+
+/**
  * Lip-sync-klipp: stillbilde + voiceover-lyd -> snakkende video (VEED Fabric 1.0).
  * Klippets lengde == lydens lengde, saa det matcher segmentet naturlig.
  */
@@ -122,7 +222,7 @@ async function lipsyncClip({ imageUrl, audioUrl, outPath, resolution = '720p', l
   return outPath
 }
 
-module.exports = { imageToVideoClip, lipsyncClip, MODELS }
+module.exports = { imageToVideoClip, imageToVideoChain, lipsyncClip, extractLastFrame, concatClips, probeSeconds, MODELS }
 
 // CLI test-modus:  node i2v.js <imageUrl> <outPath> [engine] [resolution] [duration]
 if (require.main === module) {

@@ -174,11 +174,17 @@ def make_text_frame(lines, sub=None, logo_url=None):
 
 import subprocess as _sp, re as _re, json as _json
 
+# Stemmens peak-maal i dBFS. -1,5 ga tale 7 dB OVER musikken (Lars 31/7:
+# «rett og slett for hoy») — -6 legger den ~2-3 dB over musikkens topper:
+# tydelig foran, uten aa overdoyve. Overstyrbar via config.mix.voicePeakDb.
+_VOICE_PEAK_DB = -6.0
+
 def _normalize_voice(vo_path):
-    """PEAK-normaliser stemmen til -1,5 dBFS — i RENDEREREN, siste ledd foer
-    miksen. loudnorm er UPAALITELIG paa klipp < ~3 s (maalt 2026-07-30:
+    """PEAK-normaliser stemmen til _VOICE_PEAK_DB — i RENDEREREN, siste ledd
+    foer miksen. loudnorm er UPAALITELIG paa klipp < ~3 s (maalt 2026-07-30:
     'target_offset 27.96' men leverte -41 dB — den KNUSTE korte taleklipp).
     Peak-maaling + konstant gain kan ikke bomme, uansett klipplengde.
+    Gain brukes BEGGE veier (ogsaa demping), saa maalet alltid treffes.
     Skriver .mix.mp3 ved siden av; feiler noe, returneres originalen."""
     try:
         out = vo_path + '.mix.mp3'
@@ -187,13 +193,13 @@ def _normalize_voice(vo_path):
         m = _re.search(r'max_volume:\s*(-?[0-9.]+) dB', p1.stderr)
         if not m:
             return vo_path
-        gain = -1.5 - float(m.group(1))
-        if gain <= 0.1:
-            return vo_path  # allerede varm nok
+        gain = _VOICE_PEAK_DB - float(m.group(1))
+        if abs(gain) <= 0.1:
+            return vo_path  # allerede paa maalet
         _sp.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', vo_path,
                  '-af', 'volume=%.2fdB' % gain, '-c:a', 'libmp3lame', '-b:a', '160k', out],
                 check=True, timeout=60)
-        print('[normalize_voice] %s: +%.1f dB (peak -> -1.5)' % (vo_path.split('/')[-1], gain))
+        print('[normalize_voice] %s: %+.1f dB (peak -> %.1f)' % (vo_path.split('/')[-1], gain, _VOICE_PEAK_DB))
         return out
     except Exception as e:
         print(f'[normalize_voice] hoppet over: {e}')
@@ -585,6 +591,16 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
 
     if backgroundMusicPath is None:
         backgroundMusicPath = MUSIC
+
+    # Stemme-peak kan overstyres fra config (mix.voicePeakDb) — settes FOER
+    # segmentbyggingen, det er der _normalize_voice kalles.
+    global _VOICE_PEAK_DB
+    try:
+        if mix and mix.get('voicePeakDb') is not None:
+            _VOICE_PEAK_DB = float(mix['voicePeakDb'])
+            print(f"[mix] voicePeakDb overstyrt: {_VOICE_PEAK_DB}")
+    except Exception as e:
+        print(f"[mix] ugyldig voicePeakDb ignorert: {e}")
 
     clips = []
     for i, seg in enumerate(segments_def):
