@@ -35,6 +35,8 @@ interface Segment {
   motion?: 'none' | 'move' | 'talk'
   // «Uten tale» (31/7): scenen bæres av bilde + musikk — ingen voiceover
   no_voice?: boolean
+  // «Lag animasjonen på nytt»: nytt fingeravtrykk → dropletens cache omgås
+  clip_nonce?: string
 }
 
 interface Draft {
@@ -440,11 +442,25 @@ export default function DraftPage() {
   // Bytt stemme — oppdater state + lagre på draft-raden (brukes av voiceover + produksjon)
   const updateVoice = async (voiceId: string) => {
     if (!draft) return
-    setDraft({ ...draft, voice_id: voiceId })
+    // ⚠️ Bytte av stemme MÅ kaste de gamle AI-lydfilene (Lars 31/7: «plutselig
+    // kommer stemmen til Adam, selv om jeg har valgt en annen»). Produksjonen
+    // foretrekker segmentets voiceover_url foran ny generering, så uten dette
+    // beholder filmen den gamle stemmen. Egne innspillinger (own_voice) er
+    // artistens egen røst og røres ALDRI.
+    const segments = draft.segments.map((s) =>
+      s.own_voice ? s : { ...s, voiceover_url: undefined }
+    )
+    const kastet = draft.segments.filter((s) => !s.own_voice && s.voiceover_url).length
+    setDraft({ ...draft, voice_id: voiceId, segments })
+    setVoicePreviews({})
     try {
       const supabase = getSupabase()
-      const { error } = await supabase.from('production_drafts').update({ voice_id: voiceId }).eq('id', draftId)
+      const { error } = await supabase
+        .from('production_drafts')
+        .update({ voice_id: voiceId, segments })
+        .eq('id', draftId)
       if (error) console.error('[updateVoice] save failed:', error)
+      else if (kastet > 0) console.log(`[updateVoice] ${kastet} gamle AI-opptak forkastet — genereres på nytt med ny stemme`)
     } catch (err) {
       console.error('[updateVoice] error:', err)
     }
@@ -478,6 +494,24 @@ export default function DraftPage() {
   }
 
   // Velg bevegelsesnivå per segment: stillbilde / i2v-bevegelse / lip-sync — lagres på draften
+  // «Lag animasjonen på nytt» (Lars 31/7: en fremmed person dukket opp i et
+  // Kling-klipp). Nonce gir scenen nytt fingeravtrykk → dropletens klipp-cache
+  // omgås og generatoren prøver på nytt ved neste produksjon. De ANDRE scenene
+  // gjenbrukes fortsatt gratis, så en slik omgjøring koster kun denne scenen.
+  const regenerateMotion = async (index: number) => {
+    if (!draft) return
+    const segs = [...draft.segments]
+    segs[index] = { ...segs[index], clip_nonce: String(Date.now()) }
+    setDraft({ ...draft, segments: segs })
+    try {
+      const supabase = getSupabase()
+      const { error } = await supabase.from('production_drafts').update({ segments: segs }).eq('id', draftId)
+      if (error) console.warn('[regenerateMotion] lagring feilet:', error.message)
+    } catch (err) {
+      console.warn('[regenerateMotion] error:', err)
+    }
+  }
+
   const updateMotion = async (index: number, value: 'none' | 'move' | 'talk') => {
     if (!draft) return
     const segs = [...draft.segments]
@@ -1920,6 +1954,22 @@ export default function DraftPage() {
                             </button>
                           )
                         })}
+                        {/* Bommet animasjonen? (fremmed person, rar bevegelse)
+                            — nytt forsøk uten å røre de andre scenene */}
+                        {(segment.motion || (segment.animate === true ? 'move' : 'none')) !== 'none' && (
+                          <button
+                            type="button"
+                            onClick={() => regenerateMotion(index)}
+                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
+                              segment.clip_nonce
+                                ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400'
+                            }`}
+                            title="Neste produksjon lager denne animasjonen på nytt. De andre scenene gjenbrukes gratis."
+                          >
+                            {segment.clip_nonce ? '↻ Lages på nytt ved produksjon' : '↻ Lag animasjonen på nytt'}
+                          </button>
+                        )}
                       </div>
                     )}
                     <button

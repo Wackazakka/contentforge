@@ -124,6 +124,8 @@ export async function startProductionForDraft(
     voiceoverUrl: s.voiceover_url || null,
     // «Uten tale» (31/7): bilde + musikk, ingen voiceover genereres
     noVoice: s.no_voice === true,
+    // «Lag animasjonen på nytt»: nonce omgår dropletens klipp-cache
+    clipNonce: s.clip_nonce || '',
     // Musikkdrevet tempo: hviletid etter stemmen per segment. Stille
     // segmenter uten film=musikk og uten egen verdi får 5 s standard —
     // ellers ville scenen vart 0,4 s.

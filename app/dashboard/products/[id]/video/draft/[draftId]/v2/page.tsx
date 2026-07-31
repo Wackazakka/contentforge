@@ -155,6 +155,24 @@ export default function DraftV2Page() {
       console.warn('[v2] lagring av oppsett feilet:', err)
     }
   }
+  // Bytte av stemme kaster de gamle AI-opptakene (se kommentar i gammel side):
+  // ellers vinner de over den nye stemmen i produksjonen. Egne innspillinger
+  // (own_voice) er artistens egen røst og beholdes.
+  const changeVoice = async (voiceId: string) => {
+    if (!draft) return
+    const segments = draft.segments.map((s) => (s.own_voice ? s : { ...s, voiceover_url: undefined }))
+    setDraft({ ...draft, voice_id: voiceId, segments })
+    setVoicePreviews({})
+    try {
+      await getSupabase()
+        .from('production_drafts')
+        .update({ voice_id: voiceId, segments })
+        .eq('id', draftId)
+    } catch (err) {
+      console.warn('[v2] stemmebytte feilet:', err)
+    }
+  }
+
   // «Film = musikkens lengde» ligger på hvert segment (som i gammel side)
   const setMatchMusic = (on: boolean) => {
     if (!draft) return
@@ -520,7 +538,7 @@ export default function DraftV2Page() {
               >
                 <select
                   value={draft.voice_id || ''}
-                  onChange={(e) => { updateDraftFields({ voice_id: e.target.value }); setOpenRow(null) }}
+                  onChange={(e) => { changeVoice(e.target.value); setOpenRow(null) }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-white"
                 >
                   <option value="own">Din egen stemme — du leser inn selv</option>
