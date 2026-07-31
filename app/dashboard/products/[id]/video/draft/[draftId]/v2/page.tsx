@@ -168,6 +168,42 @@ export default function DraftV2Page() {
       console.warn('[v2] lagring av oppsett feilet:', err)
     }
   }
+  // ---- Legg til / fjern scener (Lars 31/7) ----
+  // Indeksene renummereres alltid, ellers går rekkefølgen i produksjonen i
+  // stykker (job-queue sorterer på index).
+  const reindex = (arr: Segment[]) => arr.map((s, i) => ({ ...s, index: i }))
+
+  const addSegment = (afterIndex?: number) => {
+    if (!draft) return
+    const ny: Segment = {
+      index: 0, text: '', voiceover: '', image_url: '', approved: false,
+      match_music: draft.segments[0]?.match_music === true,
+      motion: draft.ai_motion ? 'move' : undefined,
+    }
+    const arr = [...draft.segments]
+    const pos = typeof afterIndex === 'number' ? afterIndex + 1 : arr.length
+    arr.splice(pos, 0, ny)
+    const segments = reindex(arr)
+    setDraft({ ...draft, segments })
+    persistSegments(segments)
+    setOpenIndex(pos)
+  }
+
+  const removeSegment = (index: number) => {
+    if (!draft) return
+    if (draft.segments.length <= 2) {
+      alert('Videoen må ha minst to scener.')
+      return
+    }
+    const seg = draft.segments[index]
+    const harInnhold = (seg.text || '').trim() || (seg.voiceover || '').trim() || seg.image_url
+    if (harInnhold && !confirm(`Fjerne scene ${index + 1}? Teksten og bildevalget forsvinner.`)) return
+    const segments = reindex(draft.segments.filter((_, i) => i !== index))
+    setDraft({ ...draft, segments })
+    persistSegments(segments)
+    setOpenIndex(-1)
+  }
+
   // ---- Sceneverktøy (fase 3): bilde, egen stemme, bevegelse, animasjon ----
   const refreshImageLibrary = async () => {
     try {
@@ -531,13 +567,22 @@ export default function DraftV2Page() {
                   {approvedCount} av {segments.length} godkjent
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpenIndex(-1)}
-                className="px-3 py-1.5 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400 hover:text-gray-900"
-              >
-                Lukk alle
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpenIndex(-1)}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400 hover:text-gray-900"
+                >
+                  Lukk alle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addSegment()}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400 hover:text-gray-900"
+                >
+                  + Legg til scene
+                </button>
+              </div>
             </div>
 
             {segments.map((seg, index) => {
@@ -799,14 +844,32 @@ export default function DraftV2Page() {
                       >
                         {seg.approved ? 'Angre' : 'Godkjenn'}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setOpenIndex(open ? -1 : index)}
-                        className="w-[34px] h-[34px] rounded-lg border border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-900 text-xs"
-                        title={open ? 'Lukk' : 'Åpne'}
-                      >
-                        {open ? '▲' : '▼'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => addSegment(index)}
+                          className="w-[34px] h-[34px] rounded-lg border border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-900 text-sm"
+                          title="Legg til en scene rett under denne"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeSegment(index)}
+                          className="w-[34px] h-[34px] rounded-lg border border-gray-300 text-gray-400 hover:border-red-300 hover:text-red-600 text-sm"
+                          title="Fjern denne scenen"
+                        >
+                          ✕
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOpenIndex(open ? -1 : index)}
+                          className="w-[34px] h-[34px] rounded-lg border border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-900 text-xs"
+                          title={open ? 'Lukk' : 'Åpne'}
+                        >
+                          {open ? '▲' : '▼'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -815,15 +878,33 @@ export default function DraftV2Page() {
           </div>
           </div>
 
-          {/* Sidepanel: alt globalt samlet (design-handoffens hovedgrep) */}
-          <aside className="lg:sticky lg:top-6 space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+          {/* Sidepanel: alt globalt samlet (design-handoffens hovedgrep).
+              Kreditt-kortet er sticky INNE i panelet, så det følger deg
+              nedover i scenelista (Lars 31/7: «savner taxameteret som er med
+              overalt … nå har det en låst plass») — uten å dekke innholdet
+              slik det gamle flytende taxameteret gjorde. */}
+          <aside className="space-y-4">
+            <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 lg:sticky lg:top-6 lg:z-10 shadow-sm">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-[13.5px] text-gray-500">Påløpt på utkastet</span>
                 <span className="text-xl font-semibold text-gray-900 tabular-nums">{fmtCredits(paaloptNok)}</span>
               </div>
+              {(() => {
+                const ms = draft.ai_motion ? segments.map((s) => s.motion || (s.animate === true ? 'move' : 'none')) : []
+                const nMove = ms.filter((m) => m === 'move').length
+                const nTalk = ms.filter((m) => m === 'talk').length
+                const nImg = segments.filter((s) => !s.image_url || !s.image_url.trim()).length
+                const est = (nMove * COSTS_NOK.animate5s + nTalk * COSTS_NOK.lipsyncTypical + nImg * COSTS_NOK.imageStandard) * pf
+                if (est <= 0) return null
+                return (
+                  <div className="mt-2 pt-2 border-t border-gray-100 flex items-baseline justify-between gap-3">
+                    <span className="text-[13px] text-gray-500">Neste produksjon</span>
+                    <span className="text-[15px] font-medium text-gray-900 tabular-nums">~{fmtCredits(est)}</span>
+                  </div>
+                )
+              })()}
               <p className="mt-2 text-[11.5px] text-gray-400">
-                Bilder og stemmer betales mens du jobber; animasjon ved produksjonsstart. Scener som er generert før gjenbrukes gratis.
+                Det du lager selv — egne bilder, egen stemme — er gratis. Scener du ikke har endret gjenbrukes uten kostnad.
               </p>
             </div>
             {/* Lyd — stemme, musikk, jingle */}
@@ -1014,6 +1095,13 @@ export default function DraftV2Page() {
             </div>
           </aside>
         </div>
+      </div>
+
+      {/* Mobil: sidepanelet ligger under scenene, så taxameteret får en liten
+          flytende visning der i stedet (Lars 31/7) */}
+      <div className="lg:hidden fixed bottom-4 right-4 z-40 bg-white/95 backdrop-blur border border-gray-200 shadow-lg rounded-xl px-3 py-2 text-[12.5px]">
+        <span className="text-gray-500">Påløpt </span>
+        <span className="font-semibold text-gray-900 tabular-nums">{fmtCredits(paaloptNok)}</span>
       </div>
     </div>
   )
