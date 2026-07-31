@@ -534,7 +534,7 @@ router.post('/', async (req, res) => {
         // per segment; stillbilde-fallback som foer om alt feiler.
         let segClips = []
         if (aiMotion) {
-          const engine = aiMotionEngine || 'pixverse'
+          const engine = aiMotionEngine || 'kling'
           const _toAnimate = orderedSegments.filter((s) => (s.motion && s.motion !== 'none') || s.animate === true).length
           console.log(`[job-queue] AI-bevegelse PA (${engine}) - animerer ${_toAnimate} av ${orderedSegments.length} segmenter (per-segment valg)`)
           // Munntest 31/7 (A/B/C-eksperimentet): «stay still» ga statue,

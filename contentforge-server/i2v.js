@@ -79,9 +79,10 @@ async function imageToVideoClip(o) {
   const auth = { Authorization: `Key ${FAL_KEY}` }
 
   // PixVerse bruker duration som streng ("5"/"8"); Kling bruker tall-sekunder.
+  // Begge stoetter negative_prompt (Kling fikk den foerst 31/7 — munnjakten).
   const neg = negativePrompt || 'talking, speaking, singing, moving lips, lip movement, mouth opening and closing, conversation'
   const body = engine === 'kling'
-    ? { image_url: imageUrl, prompt, duration: String(durationSec) }
+    ? { image_url: imageUrl, prompt, duration: String(durationSec), negative_prompt: neg }
     : { image_url: imageUrl, prompt, duration: String(durationSec), resolution, negative_prompt: neg }
 
   // 1) Submit til køen

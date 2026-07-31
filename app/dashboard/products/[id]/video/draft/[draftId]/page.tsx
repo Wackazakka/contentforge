@@ -186,7 +186,9 @@ export default function DraftPage() {
   const [colorSaving, setColorSaving] = useState(false)
   const [starting, setStarting] = useState(false)
   const [aiMotion, setAiMotion] = useState(false)
-  const [aiMotionEngine, setAiMotionEngine] = useState('pixverse')
+  // Kling er standard (31/7): PixVerse fikk folk til å «snakke» uansett
+  // prompt, og bakgrunnen drev i kjedede ledd. Kling holdt munnen lukket.
+  const [aiMotionEngine, setAiMotionEngine] = useState('kling')
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
   const formatFromUrl = searchParams?.get('format') || ''
 
@@ -1474,8 +1476,8 @@ export default function DraftPage() {
                   onChange={(e) => setAiMotionEngine(e.target.value)}
                   className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-white"
                 >
+                  <option value="kling">Kling (anbefalt — best kvalitet)</option>
                   <option value="pixverse">PixVerse (rask/billig)</option>
-                  <option value="kling">Kling (høyere kvalitet)</option>
                 </select>
               </div>
             )}
