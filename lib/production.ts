@@ -87,9 +87,10 @@ export async function startProductionForDraft(
 
   // «Egen stemme»: ingen AI-fallback finnes — alle segmenter MÅ ha lyd før
   // produksjon, ellers feiler vi her med klar beskjed (aldri stille TTS).
+  // Unntak: segmenter merket «uten tale» (31/7) skal nettopp ikke ha lyd.
   if (draft.voice_id === 'own') {
     const missing = segments
-      .map((s: any, i: number) => (!s.voiceover_url ? i + 1 : null))
+      .map((s: any, i: number) => (!s.voiceover_url && s.no_voice !== true ? i + 1 : null))
       .filter((n: number | null) => n !== null)
     if (missing.length > 0) {
       throw new Error(
@@ -106,8 +107,12 @@ export async function startProductionForDraft(
     imagePrompt: s.image_prompt || s.imagePrompt || '',
     imageUrl: s.image_url,
     voiceoverUrl: s.voiceover_url || null,
-    // Musikkdrevet tempo: hviletid etter stemmen per segment
-    holdSeconds: Number(s.hold_seconds) > 0 ? Number(s.hold_seconds) : 0,
+    // «Uten tale» (31/7): bilde + musikk, ingen voiceover genereres
+    noVoice: s.no_voice === true,
+    // Musikkdrevet tempo: hviletid etter stemmen per segment. Stille
+    // segmenter uten film=musikk og uten egen verdi får 5 s standard —
+    // ellers ville scenen vart 0,4 s.
+    holdSeconds: Number(s.hold_seconds) > 0 ? Number(s.hold_seconds) : (s.no_voice === true ? 5 : 0),
     animate: s.animate === true,
     motion: s.motion || (s.animate === true ? 'move' : 'none'),
   }))

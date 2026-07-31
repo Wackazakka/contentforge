@@ -419,6 +419,12 @@ router.post('/', async (req, res) => {
           const segment = orderedSegments[i]
           console.log(`[job-queue] Segment ${i + 1}: text="${(segment.text || '').slice(0, 50)}..." | vo="${(segment.voiceover || segment.text || '').slice(0, 50)}..."`)
           
+          // STILLE segment (Lars 31/7): bare bilde + musikk — hele
+          // stemmesteget hoppes over. Ingen vo-fil skrives; voDurs faar 0
+          // (probe paa manglende fil), og rendereren ser vo_path=null.
+          if (segment.noVoice === true) {
+            console.log(`[job-queue] Segment ${i + 1}: stille segment - ingen tale`)
+          } else {
           // Use the APPROVED (previewed) voiceover if available — ElevenLabs is
           // non-deterministic, so regenerating gives a different take than the one the
           // user reviewed and approved. Fall back to fresh generation only if missing.
@@ -465,6 +471,7 @@ router.post('/', async (req, res) => {
           } catch (nErr) {
             console.error(`[job-queue] Segment ${i + 1}: normalisering hoppet over:`, nErr.message)
           }
+          } // slutt ikke-stille segment
 
           const localImagePath = `${jobDir}/image_${i + 1}.png`
 
@@ -545,7 +552,10 @@ router.post('/', async (req, res) => {
           const motionPrompt = 'cinematic camera push-in. Gentle lifelike motion: the person breathes calmly, blinks naturally, subtle small head movement, calm silent expression. The mouth stays completely closed and still the entire time, lips gently pressed together. He is quietly observing, not talking. Photorealistic, no text or letters.'
           const motionNegative = 'talking, speaking, singing, moving lips, lip movement, mouth opening and closing, conversation, open mouth, jaw movement, mouthing words, interview, presenting, explaining'
           const _r = await Promise.allSettled(orderedSegments.map(async (seg, i) => {
-            const motion = seg.motion || (seg.animate === true ? 'move' : 'none')
+            const rawMotion = seg.motion || (seg.animate === true ? 'move' : 'none')
+            // Lip-sync uten tale gir ikke mening — stille segmenter animeres
+            // som vanlig bevegelse i stedet.
+            const motion = (seg.noVoice === true && rawMotion === 'talk') ? 'move' : rawMotion
             if (motion === 'none') return null
             const url = segImageUrls[i]
             if (!url) throw new Error('mangler bilde-URL')
@@ -635,7 +645,8 @@ router.post('/', async (req, res) => {
             return {
               bg: `${jobDir}/image_${i + 1}.png`,
               clip: segClips[i] || undefined,
-              vo_path: `${jobDir}/vo_${i + 1}.mp3`,
+              // Stille segment: ingen vo_path -> rendereren lager bilde+musikk
+              vo_path: seg.noVoice === true ? undefined : `${jobDir}/vo_${i + 1}.mp3`,
               lines: [],
               sub: subText.length > 80 ? subText.substring(0, 77) + '...' : subText,
               // Musikkdrevet tempo (2026-07-30): hviletid etter stemmen —

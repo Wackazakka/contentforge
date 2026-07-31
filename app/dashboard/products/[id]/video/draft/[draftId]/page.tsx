@@ -42,6 +42,8 @@ interface Segment {
   image_prompt?: string
   animate?: boolean
   motion?: 'none' | 'move' | 'talk'
+  // «Uten tale» (31/7): scenen bæres av bilde + musikk — ingen voiceover
+  no_voice?: boolean
 }
 
 interface Draft {
@@ -189,6 +191,19 @@ export default function DraftPage() {
   // Kling er standard (31/7): PixVerse fikk folk til å «snakke» uansett
   // prompt, og bakgrunnen drev i kjedede ledd. Kling holdt munnen lukket.
   const [aiMotionEngine, setAiMotionEngine] = useState('kling')
+  // Musikklengden (fra fila selv) driver scene-anbefalingen: ~5 s per bilde
+  // er filmspråk — og gir nøyaktig ett generert klipp per scene (Lars 31/7)
+  const [musicDur, setMusicDur] = useState<number | null>(null)
+  useEffect(() => {
+    const f = draft?.music_file
+    if (!f) { setMusicDur(null); return }
+    const a = new Audio(`/api/music/${encodeURIComponent(f)}`)
+    a.preload = 'metadata'
+    a.onloadedmetadata = () => setMusicDur(Number.isFinite(a.duration) ? a.duration : null)
+    a.onerror = () => setMusicDur(null)
+    return () => { a.onloadedmetadata = null; a.onerror = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft?.music_file])
   const imageStyle = searchParams?.get('imageStyle') || 'editorial'
   const formatFromUrl = searchParams?.get('format') || ''
 
@@ -700,6 +715,17 @@ export default function DraftPage() {
   const setMatchMusic = async (on: boolean) => {
     if (!draft) return
     const updatedSegments = draft.segments.map((s) => ({ ...s, match_music: on }))
+    setDraft({ ...draft, segments: updatedSegments })
+    await persistSegments(updatedSegments)
+  }
+  // «Uten tale» (31/7): scenen bæres av bilde + musikk. Lip-sync uten tale
+  // gir ikke mening — bytt til vanlig bevegelse hvis den var valgt.
+  const setNoVoice = async (index: number, on: boolean) => {
+    if (!draft) return
+    const updatedSegments = [...draft.segments]
+    const seg = { ...updatedSegments[index], no_voice: on }
+    if (on && seg.motion === 'talk') seg.motion = 'move'
+    updatedSegments[index] = seg
     setDraft({ ...draft, segments: updatedSegments })
     await persistSegments(updatedSegments)
   }
@@ -1410,6 +1436,19 @@ export default function DraftPage() {
                 ? `Musikkens lengde deles på ${draft.segments.length} segmenter — hvert bilde står til neste del av låten er spilt. Stemmen får alltid plass; musikken løftes automatisk i pausene.`
                 : 'Velg bakgrunnsmusikk først — uten musikk har valget ingen effekt.'}
             </p>
+            {/* Scene-anbefaling (Lars 31/7): ~5 s per bilde er filmspråk.
+                10+ s per bilde blir dvelende — anbefal flere scener. */}
+            {draft.segments[0]?.match_music === true && musicDur !== null && musicDur > 1 && (() => {
+              const anbefalt = Math.max(2, Math.round(musicDur / 5))
+              const perScene = musicDur / draft.segments.length
+              if (Math.abs(anbefalt - draft.segments.length) <= 1) return null
+              return (
+                <p className="text-xs mt-2 ml-7 text-[var(--ember-deep)]">
+                  💡 Musikken er {Math.round(musicDur)} sek — med {draft.segments.length} scener står hvert bilde i ~{Math.round(perScene)} sek.
+                  Vi anbefaler rundt {anbefalt} scener (~5 sek per bilde). Del gjerne opp scenene — og scener uten tale er helt fint, da bærer musikken.
+                </p>
+              )
+            })()}
           </div>
 
           {/* Karakter-modus: konsistent vert i segmentbildene (flux-lora) */}
@@ -1593,7 +1632,24 @@ export default function DraftPage() {
                       />
                     </div>
 
+                    {/* «Uten tale» (Lars 31/7): scenen bæres av bilde + musikk */}
+                    <label className="mb-3 flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={segment.no_voice === true}
+                        onChange={(e) => setNoVoice(index, e.currentTarget.checked)}
+                        className="w-4 h-4"
+                      />
+                      <span>🔇 Uten tale — bare bilde og musikk</span>
+                    </label>
+                    {segment.no_voice === true && (
+                      <p className="mb-4 text-xs text-gray-500">
+                        Denne scenen får ingen stemme — musikken spiller i full styrke. Teksten over kan stå tom, eller vises som undertekst.
+                      </p>
+                    )}
+
                     {/* Voiceover */}
+                    {segment.no_voice !== true && (
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">{t('voiceoverLabel')}</label>
                       <textarea
@@ -1676,6 +1732,7 @@ export default function DraftPage() {
                         )}
                       </div>
                     </div>
+                    )}
 
                     {/* Approval Status */}
                     <div className="mb-4">
@@ -1698,7 +1755,8 @@ export default function DraftPage() {
                           { v: 'none' as const, label: 'Stillbilde', cost: 'gratis' },
                           { v: 'move' as const, label: '🎥 Bevegelse', cost: `ca. ${fmtCredits(COSTS_NOK.animate5s * pf)}` },
                           { v: 'talk' as const, label: '🗣️ Snakk (lip-sync)', cost: `ca. ${fmtCredits(COSTS_NOK.lipsyncPerSec * pf)}/sek` },
-                        ].map((opt) => {
+                          // Lip-sync uten tale gir ikke mening — skjul valget for stille scener
+                        ].filter((opt) => !(segment.no_voice === true && opt.v === 'talk')).map((opt) => {
                           const current = segment.motion || (segment.animate === true ? 'move' : 'none')
                           return (
                             <button
