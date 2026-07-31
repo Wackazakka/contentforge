@@ -1069,8 +1069,19 @@ export default function DraftPage() {
           <Link href={`/dashboard/products/${productId}`} className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">
             {t('backToProduct')}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-          <p className="text-gray-600 mt-2">{t('subtitle')}</p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+              <p className="text-gray-600 mt-2">{t('subtitle')}</p>
+            </div>
+            {/* Ny sideutgave under bygging (31/7) — lenke i stedet for URL-fikling */}
+            <Link
+              href={`/dashboard/products/${productId}/video/draft/${draftId}/v2`}
+              className="flex-shrink-0 px-4 py-2 rounded-lg border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-sm font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)]"
+            >
+              Prøv den nye sidevisningen →
+            </Link>
+          </div>
         </div>
 
         {/* Video-innstillinger: stemme, bakgrunnsmusikk, jingle — kan endres når som helst,

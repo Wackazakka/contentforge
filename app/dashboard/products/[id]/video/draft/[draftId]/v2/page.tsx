@@ -201,12 +201,21 @@ export default function DraftV2Page() {
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-10 pb-20">
         {/* Sidehode */}
-        <Link
-          href={`/dashboard/products/${productId}`}
-          className="text-[13px] text-gray-500 hover:text-[var(--ink)]"
-        >
-          ← Tilbake til artisten
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={`/dashboard/products/${productId}`}
+            className="text-[13px] text-gray-500 hover:text-[var(--ink)]"
+          >
+            ← Tilbake til artisten
+          </Link>
+          {/* Veien tilbake til den gamle siden mens V2 bygges ferdig */}
+          <Link
+            href={`/dashboard/products/${productId}/video/draft/${draftId}`}
+            className="text-[13px] text-gray-500 underline hover:text-[var(--ink)]"
+          >
+            Tilbake til den gamle sidevisningen
+          </Link>
+        </div>
         <div className="mt-4 flex flex-col sm:flex-row sm:items-end gap-5 sm:gap-8">
           <div className="flex-1 min-w-0">
             <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Godkjenn video-utkastet</h1>
