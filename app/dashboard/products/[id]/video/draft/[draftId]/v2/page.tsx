@@ -790,10 +790,12 @@ export default function DraftV2Page() {
                         <span className="text-[11px] uppercase tracking-widest text-gray-400 whitespace-nowrap">
                           Scene {index + 1}
                         </span>
-                        <span className={`inline-flex items-center gap-1.5 text-[11.5px] ${seg.approved ? 'text-green-700' : 'text-amber-700'}`}>
-                          <span className={`w-[5px] h-[5px] rounded-full ${seg.approved ? 'bg-green-600' : 'bg-amber-500'}`} />
-                          {seg.approved ? 'Godkjent' : 'Til gjennomgang'}
-                        </span>
+                        {!seg.approved && (
+                          <span className="inline-flex items-center gap-1.5 text-[11.5px] text-amber-700">
+                            <span className="w-[5px] h-[5px] rounded-full bg-amber-500" />
+                            Til gjennomgang
+                          </span>
+                        )}
                         {seg.no_voice === true && (
                           <span className="text-[11.5px] text-gray-400">🔇 uten tale</span>
                         )}
@@ -1067,18 +1069,23 @@ export default function DraftV2Page() {
 
                     {/* Radkontroller */}
                     <div className="flex flex-col items-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleApproved(index)}
-                        title={seg.approved ? 'Ta tilbake godkjenningen av denne scenen' : 'Godkjenn denne scenen'}
-                        className={`min-w-[104px] px-3.5 py-2 rounded-lg border text-[13px] font-medium transition-colors ${
-                          seg.approved
-                            ? 'border-gray-300 text-gray-600 hover:border-gray-400'
-                            : 'border-[var(--ember-deep)] bg-[var(--ember-deep)] text-white hover:bg-[var(--ink)]'
-                        }`}
-                      >
-                        {seg.approved ? 'Ta tilbake' : 'Godkjenn'}
-                      </button>
+                      {/* Godkjenning er porten til produksjon. Endrer du noe i
+                          scenen, settes den automatisk tilbake til gjennomgang —
+                          derfor trengs ingen «ta tilbake»-knapp (Lars 1/8:
+                          «jeg skjoenner rett og slett ikke poenget»). */}
+                      {seg.approved ? (
+                        <span className="min-w-[104px] px-3.5 py-2 text-[13px] text-green-700 text-center">
+                          ✓ Godkjent
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleApproved(index)}
+                          className="min-w-[104px] px-3.5 py-2 rounded-lg border text-[13px] font-medium transition-colors border-[var(--ember-deep)] bg-[var(--ember-deep)] text-white hover:bg-[var(--ink)]"
+                        >
+                          Godkjenn
+                        </button>
+                      )}
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
