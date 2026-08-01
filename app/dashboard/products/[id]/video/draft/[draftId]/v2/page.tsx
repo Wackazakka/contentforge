@@ -35,6 +35,10 @@ interface Segment {
   voice_used?: string
   motion_style?: string
   motion_prompt?: string
+  // Historikk over genererte klipp (Lars 1/8: «hadde vært fint om de gamle
+  // blir lagret slik at man kan skifte tilbake»). Filene ligger allerede i
+  // dropletens cache — vi husker bare hvilken oppskrift som ga hvilket klipp.
+  clip_history?: Array<{ nonce: string; url: string; style?: string; prompt?: string; ts: number }>
 }
 
 interface Draft {
@@ -422,6 +426,42 @@ export default function DraftV2Page() {
     await previewMotion(index)
   }
 
+  // Legg klippet i scenens historikk (nyeste først, maks 6 — nok til å
+  // sammenligne varianter uten at raden drukner)
+  const huskKlipp = (index: number, url: string) => {
+    setDraft((prev) => {
+      if (!prev) return prev
+      const seg = prev.segments[index]
+      const nonce = seg.clip_nonce || 'original'
+      const uten = (seg.clip_history || []).filter((h) => h.nonce !== nonce)
+      const historikk = [
+        { nonce, url, style: seg.motion_style || 'push-in', prompt: seg.motion_prompt || '', ts: Date.now() },
+        ...uten,
+      ].slice(0, 6)
+      const segments = [...prev.segments]
+      segments[index] = { ...seg, clip_history: historikk }
+      persistSegments(segments)
+      return { ...prev, segments }
+    })
+  }
+
+  // Bytt tilbake til et tidligere klipp: sett oppskriften (nonce + stil +
+  // tekst) tilbake, så treffer fingeravtrykket det gamle klippet i cachen —
+  // gratis, ingen ny generering.
+  const brukTidligereKlipp = async (index: number, h: { nonce: string; url: string; style?: string; prompt?: string }) => {
+    if (!draft) return
+    const segments = [...draft.segments]
+    segments[index] = {
+      ...segments[index],
+      clip_nonce: h.nonce === 'original' ? undefined : h.nonce,
+      motion_style: h.style || 'push-in',
+      motion_prompt: h.prompt || '',
+    }
+    setDraft({ ...draft, segments })
+    await persistSegments(segments)
+    setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: h.url } }))
+  }
+
   const previewMotion = async (index: number) => {
     setMotionPreview((p) => ({ ...p, [index]: { status: 'starting' } }))
     try {
@@ -437,6 +477,7 @@ export default function DraftV2Page() {
       }
       if (data.status === 'ready' && data.url) {
         setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: data.url } }))
+        huskKlipp(index, data.url)
         return
       }
       setMotionPreview((p) => ({ ...p, [index]: { status: 'generating' } }))
@@ -446,6 +487,7 @@ export default function DraftV2Page() {
         const st = await fetch(`/api/content/preview-motion?fp=${encodeURIComponent(data.fp)}`).then((r) => r.json()).catch(() => null)
         if (st?.status === 'ready' && st.url) {
           setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: st.url } }))
+          huskKlipp(index, st.url)
           return
         }
         if (st?.status === 'failed') throw new Error(st.error || 'Genereringen feilet')
@@ -972,6 +1014,41 @@ export default function DraftV2Page() {
                           )}
                           {motionPreview[index]?.status === 'failed' && (
                             <p className="text-[12px] text-red-700">{motionPreview[index].error}</p>
+                          )}
+
+                          {/* Tidligere klipp for denne scenen — bytt tilbake
+                              gratis (filene ligger i cachen, Lars 1/8) */}
+                          {(seg.clip_history || []).length > 1 && (
+                            <div>
+                              <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-1.5">
+                                Tidligere klipp ({(seg.clip_history || []).length})
+                              </p>
+                              <div className="flex gap-2 flex-wrap">
+                                {(seg.clip_history || []).map((h) => {
+                                  const aktiv = (seg.clip_nonce || 'original') === h.nonce
+                                  const stil = MOTION_STYLES.find((m) => m.v === h.style)?.label || h.style
+                                  return (
+                                    <button
+                                      key={h.nonce}
+                                      type="button"
+                                      onClick={() => brukTidligereKlipp(index, h)}
+                                      className={`rounded-lg border-2 overflow-hidden text-left ${
+                                        aktiv ? 'border-[var(--ember-deep)]' : 'border-transparent hover:border-gray-300'
+                                      }`}
+                                      title={`${stil}${h.prompt ? ` — ${h.prompt}` : ''}`}
+                                    >
+                                      <video src={h.url} muted playsInline preload="metadata" className="w-20 h-32 object-cover bg-black" />
+                                      <span className={`block px-1 py-0.5 text-[10px] text-center ${aktiv ? 'text-[var(--ember-deep)] font-medium' : 'text-gray-400'}`}>
+                                        {aktiv ? 'i bruk' : 'bruk denne'}
+                                      </span>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                              <p className="text-[11px] text-gray-400 mt-1">
+                                Gratis å bytte mellom — klippene er allerede laget.
+                              </p>
+                            </div>
                           )}
                         </div>
                       )}
