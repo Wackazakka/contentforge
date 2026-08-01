@@ -35,6 +35,8 @@ interface Segment {
   voice_used?: string
   motion_style?: string
   motion_prompt?: string
+  // Slipp munnen fri for mimikk (smil, latter) — prating holdes ute
+  allow_mouth?: boolean
   // Historikk over genererte klipp (Lars 1/8: «hadde vært fint om de gamle
   // blir lagret slik at man kan skifte tilbake»). Filene ligger allerede i
   // dropletens cache — vi husker bare hvilken oppskrift som ga hvilket klipp.
@@ -1012,8 +1014,23 @@ export default function DraftV2Page() {
                                 placeholder="F.eks. slow drift to the right, dust in the air, flickering neon behind him"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                               />
+                              <label className="flex items-center gap-2 mt-2 text-[12px] text-gray-600 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={seg.allow_mouth === true}
+                                  onChange={(e) => {
+                                    updateSegment(index, { allow_mouth: e.currentTarget.checked, clip_nonce: String(Date.now()) })
+                                    setMotionPreview((p) => { const n = { ...p }; delete n[index]; return n })
+                                  }}
+                                  className="w-4 h-4"
+                                />
+                                <span>Tillat smil og latter (åpen munn)</span>
+                              </label>
                               <p className="text-[11.5px] text-gray-400 mt-1">
-                                Skriv på engelsk — det er språket generatoren forstår best. Munnen holdes lukket uansett.
+                                Skriv på engelsk — det er språket generatoren forstår best.
+                                {seg.allow_mouth === true
+                                  ? ' Ansiktsuttrykk er tillatt; prating og synging holdes fortsatt ute.'
+                                  : ' Munnen holdes lukket — kryss av over hvis du vil ha smil eller latter.'}
                               </p>
                             </div>
                           )}

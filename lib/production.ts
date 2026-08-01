@@ -173,6 +173,7 @@ export async function startProductionForDraft(
     // Bevegelsesstil per scene (Lars 1/8) — 'custom' bruker motionPrompt
     motionStyle: s.motion_style || 'push-in',
     motionPrompt: s.motion_prompt || '',
+    allowMouth: s.allow_mouth === true,
     // Musikkdrevet tempo: hviletid etter stemmen per segment. Stille
     // segmenter uten film=musikk og uten egen verdi får 5 s standard —
     // ellers ville scenen vart 0,4 s.

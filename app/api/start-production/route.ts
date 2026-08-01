@@ -118,6 +118,7 @@ export async function POST(request: Request) {
                 clipNonce: s.clip_nonce || '',
                 motionStyle: s.motion_style || 'push-in',
                 motionPrompt: s.motion_prompt || '',
+                allowMouth: s.allow_mouth === true,
               })),
             }),
             signal: AbortSignal.timeout(5000),

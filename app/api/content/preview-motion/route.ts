@@ -66,6 +66,7 @@ export async function POST(request: Request) {
           clipNonce: seg.clip_nonce || '',
           motionStyle: seg.motion_style || 'push-in',
           motionPrompt: seg.motion_prompt || '',
+          allowMouth: seg.allow_mouth === true,
         },
         engine: draft.ai_motion_engine || 'kling',
         musicFile: draft.music_file || null,
