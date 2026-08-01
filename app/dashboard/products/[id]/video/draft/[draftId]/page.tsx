@@ -1193,8 +1193,7 @@ export default function DraftPage() {
                   // Grupper på aksent så artisten finner norsk/britisk/amerikansk raskt
                   const grupper = new Map<string, VoiceOption[]>()
                   for (const v of VOICES) {
-                    const nokkel = (v as any).accent || (v as any).language || 'Stemmer'
-                    const navn = String(nokkel).charAt(0).toUpperCase() + String(nokkel).slice(1)
+                    const navn = (v as any).gruppe || 'Stemmer'
                     if (!grupper.has(navn)) grupper.set(navn, [])
                     grupper.get(navn)!.push(v)
                   }
@@ -1203,7 +1202,9 @@ export default function DraftPage() {
                       <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
                     ))
                   }
-                  return [...grupper.entries()].map(([navn, liste]) => (
+                  const RANG = ['Norske stemmer', 'Britiske stemmer', 'Amerikanske stemmer', 'Andre engelske', 'Australske stemmer', 'Kanadiske stemmer', 'Andre nordiske', 'Andre stemmer']
+                  const sortert = [...grupper.entries()].sort((a, b) => (RANG.indexOf(a[0]) + 1 || 99) - (RANG.indexOf(b[0]) + 1 || 99))
+                  return sortert.map(([navn, liste]) => (
                     <optgroup key={navn} label={navn}>
                       {liste.map((v) => (
                         <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>

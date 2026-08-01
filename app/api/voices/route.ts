@@ -10,6 +10,20 @@ import { VOICES as FALLBACK } from '@/lib/voices'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 
+// ElevenLabs merker aksent inkonsekvent («oslo», «no-oslo», «en-british»,
+// «en», «standard»). Samles til grupper artisten forstår.
+function gruppeFor(accent: string, language: string): string {
+  const t = `${accent} ${language}`.toLowerCase()
+  if (/oslo|norweg|\bno\b|nb/.test(t)) return 'Norske stemmer'
+  if (/british|uk|england|irish|scottish/.test(t)) return 'Britiske stemmer'
+  if (/american|\bus\b|usa/.test(t)) return 'Amerikanske stemmer'
+  if (/australian|aussie/.test(t)) return 'Australske stemmer'
+  if (/canadian/.test(t)) return 'Kanadiske stemmer'
+  if (/swedish|danish|finnish/.test(t)) return 'Andre nordiske'
+  if (/\ben\b|english|standard/.test(t)) return 'Andre engelske'
+  return 'Andre stemmer'
+}
+
 let cache: { at: number; voices: unknown[] } | null = null
 const TTL_MS = 5 * 60 * 1000
 
@@ -42,6 +56,7 @@ export async function GET() {
           preview: v.preview_url || '',
           language: lab.language || '',
           accent: lab.accent || '',
+          gruppe: gruppeFor(lab.accent || '', lab.language || ''),
           category: v.category || '',
         }
       })
