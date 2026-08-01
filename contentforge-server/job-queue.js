@@ -424,7 +424,9 @@ router.post('/preview-clip', async (req, res) => {
   const motion = (segment.noVoice === true && raw === 'talk') ? 'move' : raw
   if (motion !== 'move') return res.status(400).json({ error: 'Forhaandsvisning finnes forelopig kun for Bevegelse-scener' })
   const fp = clipFingerprint(
-    { imageUrl: segment.imageUrl, motion, voiceoverUrl: segment.voiceoverUrl, noVoice: segment.noVoice, holdSeconds: segment.holdSeconds },
+    // MAA ha nonce + stil, ellers spoer forhaandsvisningen alltid etter det
+    // SAMME klippet og «Lag en ny» gir det gamle tilbake (Lars 1/8)
+    { imageUrl: segment.imageUrl, motion, voiceoverUrl: segment.voiceoverUrl, noVoice: segment.noVoice, holdSeconds: segment.holdSeconds, clipNonce: segment.clipNonce, motionStyle: segment.motionStyle, motionPrompt: segment.motionPrompt },
     { engine: eng, musicFile: musicFile || null, segmentCount: Number(segmentCount) || 1, matchMusicLength: !!matchMusicLength }
   )
   const cachedClip = `${CLIP_CACHE_DIR}/${fp}.mp4`
@@ -450,7 +452,16 @@ router.post('/preview-clip', async (req, res) => {
       fs.mkdirSync(workDir, { recursive: true })
       const clipPath = `${workDir}/clip.mp4`
       const sec = Math.min(60, Math.max(3, Number(targetSec) || 5))
-      const motionPrompt = 'cinematic camera push-in. Gentle lifelike motion: the person breathes calmly, blinks naturally, subtle small head movement, calm silent expression. The mouth stays completely closed and still the entire time, lips gently pressed together. He is quietly observing, not talking. Photorealistic, no text or letters.'
+      const KAM = {
+        'push-in': 'slow cinematic camera push-in toward the subject',
+        'pull-out': 'slow cinematic camera pull-back, gradually revealing more of the scene',
+        'pan-left': 'slow cinematic camera pan to the left across the scene',
+        'pan-right': 'slow cinematic camera pan to the right across the scene',
+        'still': 'locked-off camera with no camera movement at all',
+      }
+      const _egen = (segment.motionPrompt || '').trim()
+      const _kam = (segment.motionStyle === 'custom' && _egen) ? _egen : (KAM[segment.motionStyle] || KAM['push-in'])
+      const motionPrompt = `${_kam}. Gentle lifelike motion: the person breathes calmly, blinks naturally, subtle small head movement, calm silent expression. The mouth stays completely closed and still the entire time, lips gently pressed together. Not talking, not singing. Photorealistic, no text or letters.`
       const motionNegative = 'talking, speaking, singing, moving lips, lip movement, mouth opening and closing, conversation, open mouth, jaw movement, mouthing words, interview, presenting, explaining'
       const uploadFrame = (buf, name) => uploadBufferToR2(buf, `videos/previews/${fp}-${name}`, 'image/png')
       const chain = await imageToVideoChain({ imageUrl: segment.imageUrl, prompt: motionPrompt, negativePrompt: motionNegative, engine: eng, targetSec: sec, resolution: '720p', outPath: clipPath, workDir, uploadFrame, log: (m) => console.log('[preview]', m) })
