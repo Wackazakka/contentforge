@@ -97,6 +97,15 @@ export default function DraftPage() {
   const productId = params?.id as string
   const draftId = params?.draftId as string
 
+  // V2 er standard fra 1/8. Den gamle siden ligger igjen som reserve på
+  // ?classic=1 til Lars har kjørt en full runde uten å savne noe.
+  const [omdirigerer, setOmdirigerer] = useState(true)
+  useEffect(() => {
+    if (searchParams?.get('classic') === '1') { setOmdirigerer(false); return }
+    const qs = searchParams?.toString()
+    router.replace(`/dashboard/products/${productId}/video/draft/${draftId}/v2${qs ? `?${qs}` : ''}`)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [draft, setDraft] = useState<Draft | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -1185,6 +1194,14 @@ export default function DraftPage() {
     )
   }
 
+  if (omdirigerer) {
+    return (
+      <div className="min-h-screen bg-[var(--paper)] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[var(--ember-deep)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -1203,7 +1220,7 @@ export default function DraftPage() {
               href={`/dashboard/products/${productId}/video/draft/${draftId}/v2`}
               className="flex-shrink-0 px-4 py-2 rounded-lg border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-sm font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)]"
             >
-              Prøv den nye sidevisningen →
+              Du er på den gamle sidevisningen
             </Link>
           </div>
         </div>
