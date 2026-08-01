@@ -1571,133 +1571,6 @@ export default function DraftPage() {
             </div>
           </div>
 
-          {/* Sluttplakat — full kontroll (Lars 31/7): budskap, lenke, bilde og
-              farger, med forhåndsvisning som ligner det ferdige resultatet */}
-          <div className="mt-5 pt-4 border-t border-gray-100">
-            <label className="block text-sm font-medium text-gray-700 mb-2">🪧 Sluttplakaten</label>
-            {(() => {
-              const effMsg = outroMessage !== null ? outroMessage : (draft.cta || '')
-              const effUrl = (outroUrl || outroDefaults.url).replace(/^https?:\/\//, '').replace(/\/$/, '')
-              const effImg = outroImage === 'none' ? '' : (outroImage || outroDefaults.logoUrl)
-              const urlInMsg = !!effUrl && effMsg.toLowerCase().includes(effUrl.toLowerCase())
-              return (
-                <div className="flex flex-col sm:flex-row gap-5">
-                  {/* Forhåndsvisning (omtrentlig — samme innhold og farger som i filmen) */}
-                  <div
-                    className="flex-shrink-0 w-40 aspect-[9/16] rounded-lg border border-gray-200 overflow-hidden flex flex-col items-center justify-center px-2 text-center"
-                    style={{ backgroundColor: outroBg, color: outroText }}
-                  >
-                    {effImg ? (
-                      <img src={effImg} alt="" className="max-h-[45%] max-w-[85%] object-contain mb-2" />
-                    ) : null}
-                    {effMsg ? <p className="text-[10px] leading-snug mb-1">{effMsg}</p> : null}
-                    {effUrl && !urlInMsg ? <p className="text-xs font-bold break-all">{effUrl}</p> : null}
-                  </div>
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Budskapet på plakaten</label>
-                      <textarea
-                        value={effMsg}
-                        onChange={(e) => setOutroMessage(e.target.value)}
-                        onBlur={() => persistOutro({ message: outroMessage })}
-                        rows={2}
-                        placeholder="F.eks. Forhåndslagre på Spotify i dag"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
-                      />
-                      {urlInMsg && (
-                        <p className="text-[11px] text-gray-400 mt-0.5">Lenken står i budskapet — da vises den ikke en gang til under.</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Lenken (vises stor nederst)</label>
-                      <input
-                        type="text"
-                        value={outroUrl}
-                        onChange={(e) => setOutroUrl(e.target.value)}
-                        onBlur={() => persistOutro({ url: outroUrl })}
-                        placeholder={outroDefaults.url || 'f.eks. dittband.no eller linktr.ee/dittband'}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Bildet på plakaten</label>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => { setOutroImage(''); setOutroPickerOpen(false); persistOutro({ image: '' }) }}
-                          className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === '' ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
-                        >
-                          Artistbilde/logo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setOutroPickerOpen((v) => !v)}
-                          className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage && outroImage !== 'none' ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
-                        >
-                          📸 Velg fra biblioteket
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setOutroImage('none'); setOutroPickerOpen(false); persistOutro({ image: 'none' }) }}
-                          className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === 'none' ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
-                        >
-                          Uten bilde
-                        </button>
-                      </div>
-                      {outroPickerOpen && (
-                        <div className="mt-2 grid grid-cols-4 sm:grid-cols-6 gap-2">
-                          {imageLibrary.length === 0 && (
-                            <p className="col-span-full text-xs text-gray-400">Ingen bilder i biblioteket ennå — last opp via et scenekort.</p>
-                          )}
-                          {imageLibrary.map((img) => (
-                            <button
-                              key={img.url}
-                              type="button"
-                              onClick={() => { setOutroImage(img.url); setOutroPickerOpen(false); persistOutro({ image: img.url }) }}
-                              className={`aspect-square rounded-lg overflow-hidden border-2 ${outroImage === img.url ? 'border-[var(--ember-deep)]' : 'border-transparent hover:border-gray-300'}`}
-                            >
-                              <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">Bakgrunn</span>
-                        <input
-                          type="color"
-                          value={outroBg}
-                          onChange={(e) => updateOutroColors(e.target.value, outroText)}
-                          className="h-8 w-12 rounded border border-gray-300 cursor-pointer"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">Tekst</span>
-                        <input
-                          type="color"
-                          value={outroText}
-                          onChange={(e) => updateOutroColors(outroBg, e.target.value)}
-                          className="h-8 w-12 rounded border border-gray-300 cursor-pointer"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => updateOutroColors('#ffffff', '#1a1a2e')}
-                        className="px-3 py-1.5 rounded-lg text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300"
-                      >
-                        Hvit bakgrunn + mørk tekst
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-400">
-                      {outroSaving || colorSaving ? 'Lagrer…' : 'Lagres automatisk. Forhåndsvisningen er omtrentlig — innhold og farger stemmer, finish gjøres i filmen.'}
-                    </p>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
-
           {/* Film = musikkens lengde (Lars 30/7: matematikken til systemet,
               kreativiteten til artisten) */}
           <div className="mt-5 pt-4 border-t border-gray-100">
@@ -2260,6 +2133,135 @@ export default function DraftPage() {
         )}
 
         {/* Start Production Button */}
+          {/* Sluttplakaten kommer SIST i filmen — da skal den staa sist her ogsaa
+            (Lars 1/8: «ikke intuitivt at sluttplakaten staar oeverst»).
+            Full kontroll (Lars 31/7): budskap, lenke, bilde og
+            farger, med forhåndsvisning som ligner det ferdige resultatet */}
+        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-5">
+          <label className="block text-sm font-medium text-gray-700 mb-2">🪧 Sluttplakaten</label>
+          {(() => {
+            const effMsg = outroMessage !== null ? outroMessage : (draft.cta || '')
+            const effUrl = (outroUrl || outroDefaults.url).replace(/^https?:\/\//, '').replace(/\/$/, '')
+            const effImg = outroImage === 'none' ? '' : (outroImage || outroDefaults.logoUrl)
+            const urlInMsg = !!effUrl && effMsg.toLowerCase().includes(effUrl.toLowerCase())
+            return (
+              <div className="flex flex-col sm:flex-row gap-5">
+                {/* Forhåndsvisning (omtrentlig — samme innhold og farger som i filmen) */}
+                <div
+                  className="flex-shrink-0 w-40 aspect-[9/16] rounded-lg border border-gray-200 overflow-hidden flex flex-col items-center justify-center px-2 text-center"
+                  style={{ backgroundColor: outroBg, color: outroText }}
+                >
+                  {effImg ? (
+                    <img src={effImg} alt="" className="max-h-[45%] max-w-[85%] object-contain mb-2" />
+                  ) : null}
+                  {effMsg ? <p className="text-[10px] leading-snug mb-1">{effMsg}</p> : null}
+                  {effUrl && !urlInMsg ? <p className="text-xs font-bold break-all">{effUrl}</p> : null}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Budskapet på plakaten</label>
+                    <textarea
+                      value={effMsg}
+                      onChange={(e) => setOutroMessage(e.target.value)}
+                      onBlur={() => persistOutro({ message: outroMessage })}
+                      rows={2}
+                      placeholder="F.eks. Forhåndslagre på Spotify i dag"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                    />
+                    {urlInMsg && (
+                      <p className="text-[11px] text-gray-400 mt-0.5">Lenken står i budskapet — da vises den ikke en gang til under.</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Lenken (vises stor nederst)</label>
+                    <input
+                      type="text"
+                      value={outroUrl}
+                      onChange={(e) => setOutroUrl(e.target.value)}
+                      onBlur={() => persistOutro({ url: outroUrl })}
+                      placeholder={outroDefaults.url || 'f.eks. dittband.no eller linktr.ee/dittband'}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Bildet på plakaten</label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setOutroImage(''); setOutroPickerOpen(false); persistOutro({ image: '' }) }}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === '' ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                      >
+                        Artistbilde/logo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOutroPickerOpen((v) => !v)}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage && outroImage !== 'none' ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                      >
+                        📸 Velg fra biblioteket
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setOutroImage('none'); setOutroPickerOpen(false); persistOutro({ image: 'none' }) }}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === 'none' ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                      >
+                        Uten bilde
+                      </button>
+                    </div>
+                    {outroPickerOpen && (
+                      <div className="mt-2 grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        {imageLibrary.length === 0 && (
+                          <p className="col-span-full text-xs text-gray-400">Ingen bilder i biblioteket ennå — last opp via et scenekort.</p>
+                        )}
+                        {imageLibrary.map((img) => (
+                          <button
+                            key={img.url}
+                            type="button"
+                            onClick={() => { setOutroImage(img.url); setOutroPickerOpen(false); persistOutro({ image: img.url }) }}
+                            className={`aspect-square rounded-lg overflow-hidden border-2 ${outroImage === img.url ? 'border-[var(--ember-deep)]' : 'border-transparent hover:border-gray-300'}`}
+                          >
+                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Bakgrunn</span>
+                      <input
+                        type="color"
+                        value={outroBg}
+                        onChange={(e) => updateOutroColors(e.target.value, outroText)}
+                        className="h-8 w-12 rounded border border-gray-300 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Tekst</span>
+                      <input
+                        type="color"
+                        value={outroText}
+                        onChange={(e) => updateOutroColors(outroBg, e.target.value)}
+                        className="h-8 w-12 rounded border border-gray-300 cursor-pointer"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateOutroColors('#ffffff', '#1a1a2e')}
+                      className="px-3 py-1.5 rounded-lg text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300"
+                    >
+                      Hvit bakgrunn + mørk tekst
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    {outroSaving || colorSaving ? 'Lagrer…' : 'Lagres automatisk. Forhåndsvisningen er omtrentlig — innhold og farger stemmer, finish gjøres i filmen.'}
+                  </p>
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+
         <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex justify-between items-center">
           <div className="text-sm text-gray-600">
             {allApproved ? (
