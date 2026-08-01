@@ -2,12 +2,12 @@
 --
 -- Bakgrunn: tenant-oppslaget utleder slug fra SUBDOMENE av TENANT_BASE_DOMAIN
 -- (norditech.io). Et eget domene som voicebank.ai matcher ingen regel og falt
--- derfor til root-tenanten (CenterForge): feil navn, logo og farger — og
+-- derfor til root-tenanten (CenterForge): feil navn, logo og farger - og
 -- verre, credit-checkout avviser alle privat-*-pakkene fordi de er gatet paa
 -- slug = 'voicebank'. Prisene ville sett riktige ut (VoiceBanks kjedefaktor er
 -- ogsaa 1), saa feilen ville dukket opp foerst i kassen.
 --
--- Lagres UTEN www — koden stripper www foer oppslaget, saa baade
+-- Lagres UTEN www - koden stripper www foer oppslaget, saa baade
 -- voicebank.ai og www.voicebank.ai treffer samme rad.
 
 alter table tenants add column if not exists custom_domain text;
