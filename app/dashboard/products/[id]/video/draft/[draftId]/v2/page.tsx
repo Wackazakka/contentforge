@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { COSTS_NOK, fmtCredits } from '@/lib/costs'
-import { VOICES, voiceName } from '@/lib/voices'
+import { VOICES as VOICES_FALLBACK, voiceName, type VoiceOption } from '@/lib/voices'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
 
 interface Segment {
@@ -107,6 +107,14 @@ export default function DraftV2Page() {
   const [musicLibrary, setMusicLibrary] = useState<MusicFile[]>([])
   const [openRow, setOpenRow] = useState<string | null>(null)
   const [musicDur, setMusicDur] = useState<number | null>(null)
+  // Stemmeutvalget hentes fra ElevenLabs-kontoen (se gammel side)
+  const [VOICES, setVoices] = useState<VoiceOption[]>(VOICES_FALLBACK)
+  useEffect(() => {
+    fetch('/api/voices')
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d.voices) && d.voices.length) setVoices(d.voices) })
+      .catch(() => { /* beholder fallback */ })
+  }, [])
   // Sceneverktøy (fase 3)
   const [imageLibrary, setImageLibrary] = useState<Array<{ url: string; name: string }>>([])
   const [imagePickerFor, setImagePickerFor] = useState<number | null>(null)
@@ -1032,9 +1040,27 @@ export default function DraftV2Page() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-white"
                 >
                   <option value="own">Din egen stemme — du leser inn selv</option>
-                  {VOICES.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
-                  ))}
+                  {(() => {
+                    const grupper = new Map<string, VoiceOption[]>()
+                    for (const v of VOICES) {
+                      const nokkel = (v as any).accent || (v as any).language || 'Stemmer'
+                      const navn = String(nokkel).charAt(0).toUpperCase() + String(nokkel).slice(1)
+                      if (!grupper.has(navn)) grupper.set(navn, [])
+                      grupper.get(navn)!.push(v)
+                    }
+                    if (grupper.size <= 1) {
+                      return VOICES.map((v) => (
+                        <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
+                      ))
+                    }
+                    return [...grupper.entries()].map(([navn, liste]) => (
+                      <optgroup key={navn} label={navn}>
+                        {liste.map((v) => (
+                          <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
+                        ))}
+                      </optgroup>
+                    ))
+                  })()}
                 </select>
                 {draft.voice_id === 'own' && (
                   <p className="mt-1.5 text-[11.5px] text-gray-400">
