@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { COSTS_NOK, fmtNok, fmtCredits } from '@/lib/costs'
-import { VOICES } from '@/lib/voices'
+import { VOICES as VOICES_FALLBACK, type VoiceOption } from '@/lib/voices'
 import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
@@ -192,6 +192,16 @@ export default function DraftPage() {
   // Kling er standard (31/7): PixVerse fikk folk til å «snakke» uansett
   // prompt, og bakgrunnen drev i kjedede ledd. Kling holdt munnen lukket.
   const [aiMotionEngine, setAiMotionEngine] = useState('kling')
+  // Stemmeutvalget kommer fra ElevenLabs-kontoen (Lars 1/8: artister trenger
+  // britiske/amerikanske stemmer). Legges en stemme til i «My Voices», dukker
+  // den opp her. Faller tilbake til den innebygde lista om API-et er nede.
+  const [VOICES, setVoices] = useState<VoiceOption[]>(VOICES_FALLBACK)
+  useEffect(() => {
+    fetch('/api/voices')
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d.voices) && d.voices.length) setVoices(d.voices) })
+      .catch(() => { /* beholder fallback */ })
+  }, [])
   // «Se animasjonen» per scene: generering + avspilling i redigereren
   const [motionPreviewState, setMotionPreviewState] = useState<
     Record<number, { status: 'starting' | 'generating' | 'ready' | 'failed'; url?: string; fp?: string; error?: string }>
@@ -1179,9 +1189,28 @@ export default function DraftPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
               >
                 <option value="own">🎙️ Egen stemme — jeg leser inn per segment</option>
-                {VOICES.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
-                ))}
+                {(() => {
+                  // Grupper på aksent så artisten finner norsk/britisk/amerikansk raskt
+                  const grupper = new Map<string, VoiceOption[]>()
+                  for (const v of VOICES) {
+                    const nokkel = (v as any).accent || (v as any).language || 'Stemmer'
+                    const navn = String(nokkel).charAt(0).toUpperCase() + String(nokkel).slice(1)
+                    if (!grupper.has(navn)) grupper.set(navn, [])
+                    grupper.get(navn)!.push(v)
+                  }
+                  if (grupper.size <= 1) {
+                    return VOICES.map((v) => (
+                      <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
+                    ))
+                  }
+                  return [...grupper.entries()].map(([navn, liste]) => (
+                    <optgroup key={navn} label={navn}>
+                      {liste.map((v) => (
+                        <option key={v.id} value={v.id}>{v.name}{v.desc ? ` — ${v.desc}` : ''}</option>
+                      ))}
+                    </optgroup>
+                  ))
+                })()}
                 {actorVoices.length > 0 && (
                   <optgroup label="🎙️ Skuespillere (per bruk)">
                     {actorVoices.map((v) => (
