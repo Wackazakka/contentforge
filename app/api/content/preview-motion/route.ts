@@ -64,6 +64,8 @@ export async function POST(request: Request) {
           noVoice: seg.no_voice,
           holdSeconds,
           clipNonce: seg.clip_nonce || '',
+          motionStyle: seg.motion_style || 'push-in',
+          motionPrompt: seg.motion_prompt || '',
         },
         engine: draft.ai_motion_engine || 'kling',
         musicFile: draft.music_file || null,

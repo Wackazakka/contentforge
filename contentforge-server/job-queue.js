@@ -38,6 +38,8 @@ function clipFingerprint(f, ctx) {
     ctx.segmentCount,
     !!ctx.matchMusicLength,
     Number(f.holdSeconds) > 0 ? Number(f.holdSeconds) : 0,
+    f.motionStyle || 'push-in',
+    (f.motionPrompt || '').trim(),
     // «Lag animasjonen på nytt» (Lars 31/7: en fremmed person dukket opp i
     // et Kling-klipp). Nonce fra redigereren gir nytt fingeravtrykk, saa
     // cachen omgaas og generatoren faar et nytt forsoek.
@@ -395,7 +397,7 @@ router.post('/reuse-check', (req, res) => {
     const motion = (s.noVoice === true && raw === 'talk') ? 'move' : raw
     if (motion === 'none') return false
     const fp = clipFingerprint(
-      { imageUrl: s.imageUrl, motion, voiceoverUrl: s.voiceoverUrl, noVoice: s.noVoice, holdSeconds: s.holdSeconds, clipNonce: s.clipNonce },
+      { imageUrl: s.imageUrl, motion, voiceoverUrl: s.voiceoverUrl, noVoice: s.noVoice, holdSeconds: s.holdSeconds, clipNonce: s.clipNonce, motionStyle: s.motionStyle, motionPrompt: s.motionPrompt },
       { engine: eng, musicFile, segmentCount: segments.length, matchMusicLength }
     )
     try { return fs.existsSync(`${CLIP_CACHE_DIR}/${fp}.mp4`) } catch { return false }
@@ -700,7 +702,25 @@ router.post('/', async (req, res) => {
           // stillhet («quietly observing») + utvidet negativ — liv i pust,
           // blunk og hodebevegelse, munn lukket hele veien (verifisert i
           // enkeltbilder). Ikke gjeninnfoer «gestures»/«stay alive»-ordlyd.
-          const motionPrompt = 'cinematic camera push-in. Gentle lifelike motion: the person breathes calmly, blinks naturally, subtle small head movement, calm silent expression. The mouth stays completely closed and still the entire time, lips gently pressed together. He is quietly observing, not talking. Photorealistic, no text or letters.'
+          // Bevegelsesstil per scene (Lars 1/8: «burde jeg ikke kunne paavirke
+          // det?»). Prompten var hardkodet til push-in, derfor zoomet ALT inn.
+          // Munnsperren henges alltid paa til slutt, uansett artistens valg.
+          const LIV = 'Gentle lifelike motion: the person breathes calmly, blinks naturally, subtle small head movement, calm silent expression.'
+          const MUNNSPERRE = 'The mouth stays completely closed and still the entire time, lips gently pressed together. Not talking, not singing. Photorealistic, no text or letters.'
+          const KAMERA = {
+            'push-in': 'slow cinematic camera push-in toward the subject',
+            'pull-out': 'slow cinematic camera pull-back, gradually revealing more of the scene',
+            'pan-left': 'slow cinematic camera pan to the left across the scene',
+            'pan-right': 'slow cinematic camera pan to the right across the scene',
+            'still': 'locked-off camera with no camera movement at all',
+          }
+          const promptFor = (seg) => {
+            const egen = (seg.motionPrompt || '').trim()
+            const kamera = (seg.motionStyle === 'custom' && egen)
+              ? egen
+              : (KAMERA[seg.motionStyle] || KAMERA['push-in'])
+            return `${kamera}. ${LIV} ${MUNNSPERRE}`
+          }
           const motionNegative = 'talking, speaking, singing, moving lips, lip movement, mouth opening and closing, conversation, open mouth, jaw movement, mouthing words, interview, presenting, explaining'
           const _r = await Promise.allSettled(orderedSegments.map(async (seg, i) => {
             const rawMotion = seg.motion || (seg.animate === true ? 'move' : 'none')
@@ -714,7 +734,7 @@ router.post('/', async (req, res) => {
             // Gjenbruk: identisk scene fra en tidligere produksjon (eller
             // forhåndsvisning) hentes fra cachen — ingen ny generering.
             const fp = clipFingerprint(
-              { imageUrl: url, motion, voiceoverUrl: seg.voiceoverUrl, noVoice: seg.noVoice, holdSeconds: seg.holdSeconds, clipNonce: seg.clipNonce },
+              { imageUrl: url, motion, voiceoverUrl: seg.voiceoverUrl, noVoice: seg.noVoice, holdSeconds: seg.holdSeconds, clipNonce: seg.clipNonce, motionStyle: seg.motionStyle, motionPrompt: seg.motionPrompt },
               { engine, musicFile, segmentCount: orderedSegments.length, matchMusicLength }
             )
             if (clipCacheGet(fp, clipPath)) {
@@ -788,7 +808,7 @@ router.post('/', async (req, res) => {
               }
               return clipPath
             }
-            const chain = await imageToVideoChain({ imageUrl: url, prompt: motionPrompt, negativePrompt: motionNegative, engine, targetSec, resolution: '720p', outPath: clipPath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
+            const chain = await imageToVideoChain({ imageUrl: url, prompt: promptFor(seg), negativePrompt: motionNegative, engine, targetSec, resolution: '720p', outPath: clipPath, workDir: chainDir, uploadFrame, log: (m) => console.log(m) })
             console.log(`[job-queue] segment ${i + 1}: kjede ferdig (${chain.chunks} ledd, ${chain.coveredSec.toFixed(1)}s av maal ${targetSec.toFixed(1)}s)`)
             if (chain.coveredSec >= targetSec - 0.25) clipCachePut(fp, clipPath) // kun komplette kjeder
             return clipPath

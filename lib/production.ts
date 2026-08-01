@@ -170,6 +170,9 @@ export async function startProductionForDraft(
     noVoice: s.no_voice === true,
     // «Lag animasjonen på nytt»: nonce omgår dropletens klipp-cache
     clipNonce: s.clip_nonce || '',
+    // Bevegelsesstil per scene (Lars 1/8) — 'custom' bruker motionPrompt
+    motionStyle: s.motion_style || 'push-in',
+    motionPrompt: s.motion_prompt || '',
     // Musikkdrevet tempo: hviletid etter stemmen per segment. Stille
     // segmenter uten film=musikk og uten egen verdi får 5 s standard —
     // ellers ville scenen vart 0,4 s.

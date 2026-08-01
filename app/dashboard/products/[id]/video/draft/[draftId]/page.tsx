@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { COSTS_NOK, fmtNok, fmtCredits } from '@/lib/costs'
+import { MOTION_STYLES } from '@/lib/motionStyles'
 import { VOICES as VOICES_FALLBACK, type VoiceOption, languageForGroup } from '@/lib/voices'
 import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
@@ -37,6 +38,9 @@ interface Segment {
   no_voice?: boolean
   // «Lag animasjonen på nytt»: nytt fingeravtrykk → dropletens cache omgås
   clip_nonce?: string
+  // Bevegelsesstil per scene; 'custom' bruker motion_prompt
+  motion_style?: string
+  motion_prompt?: string
   // Hvilken stemme som faktisk lagde opptaket — så et opptak fra en gammel
   // stemme aldri overlever et stemmebytte (Lars 31/7: «Adam er fremdeles der»)
   voice_used?: string
@@ -524,6 +528,36 @@ export default function DraftPage() {
   // Kling-klipp). Nonce gir scenen nytt fingeravtrykk → dropletens klipp-cache
   // omgås og generatoren prøver på nytt ved neste produksjon. De ANDRE scenene
   // gjenbrukes fortsatt gratis, så en slik omgjøring koster kun denne scenen.
+  // Bevegelsesstil per scene (Lars 1/8: «burde jeg ikke kunne påvirke det?»)
+  const setMotionStyle = async (index: number, style: string) => {
+    if (!draft) return
+    const segs = [...draft.segments]
+    // Ny stil = nytt klipp: nonce sikrer at cachen ikke gir det gamle tilbake
+    segs[index] = { ...segs[index], motion_style: style, clip_nonce: String(Date.now()) }
+    setDraft({ ...draft, segments: segs })
+    setMotionPreviewState((p) => { const n = { ...p }; delete n[index]; return n })
+    try {
+      await getSupabase().from('production_drafts').update({ segments: segs }).eq('id', draftId)
+    } catch (err) { console.warn('[setMotionStyle]', err) }
+  }
+  const setMotionPrompt = async (index: number, tekst: string) => {
+    if (!draft) return
+    const segs = [...draft.segments]
+    segs[index] = { ...segs[index], motion_prompt: tekst, clip_nonce: String(Date.now()) }
+    setDraft({ ...draft, segments: segs })
+    try {
+      await getSupabase().from('production_drafts').update({ segments: segs }).eq('id', draftId)
+    } catch (err) { console.warn('[setMotionPrompt]', err) }
+  }
+
+  // «Lag en ny» = forkast dagens klipp og generer med én gang (Lars 1/8:
+  // «kan ikke finne ut hvordan jeg skal forkaste den og lage en ny»).
+  // Nonce må være LAGRET før preview-kallet — serveren leser draften.
+  const nyAnimasjon = async (index: number) => {
+    await regenerateMotion(index)
+    await previewMotion(index)
+  }
+
   const regenerateMotion = async (index: number) => {
     if (!draft) return
     const segs = [...draft.segments]
@@ -1937,39 +1971,55 @@ export default function DraftPage() {
                             </button>
                           )
                         })}
-                        {/* Bommet animasjonen? (fremmed person, rar bevegelse)
-                            — nytt forsøk uten å røre de andre scenene */}
-                        {(segment.motion || (segment.animate === true ? 'move' : 'none')) !== 'none' && (
-                          <button
-                            type="button"
-                            onClick={() => regenerateMotion(index)}
-                            className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
-                              segment.clip_nonce
-                                ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                : 'bg-white text-gray-500 border-gray-300 hover:border-gray-400'
-                            }`}
-                            title="Neste produksjon lager denne animasjonen på nytt. De andre scenene gjenbrukes gratis."
-                          >
-                            {segment.clip_nonce ? '↻ Lages på nytt ved produksjon' : '↻ Lag animasjonen på nytt'}
-                          </button>
-                        )}
-                        {/* Se animasjonen FØR produksjon — klippet gjenbrukes
-                            gratis i produksjonen etterpå (samme cache) */}
+                        {/* Bevegelsesstil + én tydelig vei til nytt forsøk
+                            (Lars 1/8: prompten var hardkodet til zoom inn, og
+                            det var uklart hvordan man forkastet et klipp) */}
                         {(segment.motion || (segment.animate === true ? 'move' : 'none')) === 'move' && (
-                          <button
-                            type="button"
-                            onClick={() => previewMotion(index)}
-                            disabled={['starting', 'generating'].includes(motionPreviewState[index]?.status || '')}
-                            className="px-3 py-1.5 rounded-full border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-xs font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-60"
-                            title="Lager klippet nå så du kan se det før produksjon. Brukes om igjen i produksjonen — du betaler kun én gang."
-                          >
-                            {motionPreviewState[index]?.status === 'starting' && '▶ Starter…'}
-                            {motionPreviewState[index]?.status === 'generating' && '▶ Lager klippet… (1–3 min)'}
-                            {!['starting', 'generating'].includes(motionPreviewState[index]?.status || '') && `▶ Se animasjonen (${fmtCredits(COSTS_NOK.animate5s * pf)})`}
-                          </button>
+                          <>
+                            <select
+                              value={segment.motion_style || 'push-in'}
+                              onChange={(e) => setMotionStyle(index, e.target.value)}
+                              className="px-2.5 py-1.5 rounded-full border border-gray-300 text-xs bg-white text-gray-700"
+                              title="Hvordan kameraet skal bevege seg i denne scenen"
+                            >
+                              {MOTION_STYLES.map((m) => (
+                                <option key={m.v} value={m.v}>{m.label}</option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => (motionPreviewState[index]?.status === 'ready' ? nyAnimasjon(index) : previewMotion(index))}
+                              disabled={['starting', 'generating'].includes(motionPreviewState[index]?.status || '')}
+                              className="px-3 py-1.5 rounded-full border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-xs font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-60"
+                            >
+                              {motionPreviewState[index]?.status === 'starting' && '▶ Starter…'}
+                              {motionPreviewState[index]?.status === 'generating' && '▶ Lager klippet… (1–3 min)'}
+                              {!['starting', 'generating'].includes(motionPreviewState[index]?.status || '') && (
+                                motionPreviewState[index]?.status === 'ready'
+                                  ? `↻ Lag en ny (${fmtCredits(COSTS_NOK.animate5s * pf)})`
+                                  : `▶ Se animasjonen (${fmtCredits(COSTS_NOK.animate5s * pf)})`
+                              )}
+                            </button>
+                          </>
                         )}
                       </div>
                     )}
+                    {/* Egen beskrivelse av bevegelsen */}
+                    {aiMotion && segment.motion_style === 'custom' && (
+                      <div className="w-full mb-2">
+                        <input
+                          type="text"
+                          defaultValue={segment.motion_prompt || ''}
+                          onBlur={(e) => setMotionPrompt(index, e.target.value)}
+                          placeholder="F.eks. slow drift to the right, dust in the air, flickering neon behind him"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Skriv på engelsk — det er språket generatoren forstår best. Munnen holdes lukket uansett hva du skriver.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Resultatet av forhåndsvisningen */}
                     {motionPreviewState[index]?.status === 'ready' && motionPreviewState[index]?.url && (
                       <div className="w-full mb-2">
@@ -1980,7 +2030,7 @@ export default function DraftPage() {
                           className="rounded-lg border border-gray-200 max-h-64 bg-black"
                         />
                         <p className="text-xs text-gray-400 mt-1">
-                          Slik blir bevegelsen. Ikke fornøyd? Trykk «Lag animasjonen på nytt» og se igjen.
+                          Slik blir bevegelsen i filmen. Ikke fornøyd? Bytt stil i nedtrekket, eller trykk «↻ Lag en ny» for et nytt forsøk med samme stil.
                         </p>
                       </div>
                     )}
