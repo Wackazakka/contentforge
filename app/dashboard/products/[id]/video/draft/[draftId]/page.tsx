@@ -584,19 +584,23 @@ export default function DraftPage() {
   // «Se animasjonen» (Lars 31/7): generer scenens bevegelsesklipp og spill det
   // av her — i stedet for å oppdage en rar animasjon i den ferdige filmen.
   // Klippet havner i dropletens cache, så produksjonen gjenbruker det gratis.
-  const previewMotion = async (index: number) => {
+  const previewMotion = async (index: number, viewOnly = false) => {
     setMotionPreviewState((p) => ({ ...p, [index]: { status: 'starting' } }))
     try {
       const res = await fetch('/api/content/preview-motion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId, segmentIndex: index }),
+        body: JSON.stringify({ draftId, segmentIndex: index, viewOnly }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Kunne ikke starte forhåndsvisningen')
       if (Number(data.chargedNok) > 0) addCost(Number(data.chargedNok))
       if (data.status === 'ready' && data.url) {
         setMotionPreviewState((p) => ({ ...p, [index]: { status: 'ready', url: data.url } }))
+        return
+      }
+      if (data.status === 'none') {
+        setMotionPreviewState((p) => ({ ...p, [index]: { status: 'failed', error: 'Ingen animasjon er laget for denne scenen ennå — trykk «↻ Lag en ny».' } }))
         return
       }
       setMotionPreviewState((p) => ({ ...p, [index]: { status: 'generating', fp: data.fp } }))
@@ -2010,7 +2014,7 @@ export default function DraftPage() {
                                 <>
                                   <button
                                     type="button"
-                                    onClick={() => previewMotion(index)}
+                                    onClick={() => previewMotion(index, true)}
                                     disabled={jobber}
                                     className="px-3 py-1.5 rounded-full border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-xs font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-60"
                                     title="Viser klippet som blir brukt i filmen. Er det laget fra før, er det gratis å se."

@@ -19,7 +19,7 @@ function admin() {
 
 export async function POST(request: Request) {
   try {
-    const { draftId, segmentIndex } = await request.json()
+    const { draftId, segmentIndex, viewOnly } = await request.json()
     if (!draftId || typeof segmentIndex !== 'number') {
       return NextResponse.json({ error: 'draftId og segmentIndex kreves' }, { status: 400 })
     }
@@ -72,6 +72,7 @@ export async function POST(request: Request) {
         matchMusicLength,
         segmentCount: segments.length,
         targetSec,
+        viewOnly: viewOnly === true,
       }),
       signal: AbortSignal.timeout(20000),
     })

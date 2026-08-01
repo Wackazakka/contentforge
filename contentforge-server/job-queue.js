@@ -417,7 +417,7 @@ async function uploadPreviewToR2(fp, clipPath) {
 }
 
 router.post('/preview-clip', async (req, res) => {
-  const { segment, engine, musicFile, matchMusicLength, segmentCount, targetSec } = req.body || {}
+  const { segment, engine, musicFile, matchMusicLength, segmentCount, targetSec, viewOnly } = req.body || {}
   if (!segment || !segment.imageUrl) return res.status(400).json({ error: 'segment.imageUrl mangler' })
   const eng = engine || 'kling'
   const raw = segment.motion || (segment.animate === true ? 'move' : 'none')
@@ -437,6 +437,9 @@ router.post('/preview-clip', async (req, res) => {
   } catch (e) { /* fall videre til generering */ }
   const existing = previewJobs.get(fp)
   if (existing && existing.status === 'generating') return res.json({ fp, status: 'generating' })
+  // «Se animasjonen» skal VISE, ikke lage (Lars 1/8) — uten et ferdig klipp
+  // svarer vi 'none' i stedet for aa sette i gang en generering.
+  if (viewOnly) return res.json({ fp, status: 'none' })
 
   previewJobs.set(fp, { status: 'generating' })
   res.json({ fp, status: 'generating' })

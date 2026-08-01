@@ -462,13 +462,13 @@ export default function DraftV2Page() {
     setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: h.url } }))
   }
 
-  const previewMotion = async (index: number) => {
+  const previewMotion = async (index: number, viewOnly = false) => {
     setMotionPreview((p) => ({ ...p, [index]: { status: 'starting' } }))
     try {
       const res = await fetch('/api/content/preview-motion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId, segmentIndex: index }),
+        body: JSON.stringify({ draftId, segmentIndex: index, viewOnly }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Kunne ikke starte forhåndsvisningen')
@@ -478,6 +478,14 @@ export default function DraftV2Page() {
       if (data.status === 'ready' && data.url) {
         setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: data.url } }))
         huskKlipp(index, data.url)
+        return
+      }
+      // Ingen animasjon laget ennå — «Se animasjonen» skal ikke sette i gang noe
+      if (data.status === 'none') {
+        setMotionPreview((p) => ({
+          ...p,
+          [index]: { status: 'failed', error: 'Ingen animasjon er laget for denne scenen ennå — trykk «↻ Lag en ny».' },
+        }))
         return
       }
       setMotionPreview((p) => ({ ...p, [index]: { status: 'generating' } }))
@@ -969,7 +977,7 @@ export default function DraftV2Page() {
                                     </select>
                                     <button
                                       type="button"
-                                      onClick={() => previewMotion(index)}
+                                      onClick={() => previewMotion(index, true)}
                                       disabled={jobber}
                                       className="px-3 py-1.5 rounded-full border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-[12px] font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-60"
                                       title="Viser klippet som blir brukt i filmen. Er det laget fra før, er det gratis å se."
