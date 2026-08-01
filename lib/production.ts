@@ -25,6 +25,34 @@ function admin() {
   )
 }
 
+
+// Språket til en ElevenLabs-stemme: 'en' for engelske aksenter, ellers 'no'.
+// Egen innspilling ('own') genererer ingen TTS — språket spiller ingen rolle.
+const langCache = new Map<string, 'no' | 'en'>()
+async function voiceLanguageFor(voiceId?: string | null): Promise<'no' | 'en'> {
+  if (!voiceId || voiceId === 'own') return 'no'
+  const cached = langCache.get(voiceId)
+  if (cached) return cached
+  try {
+    const key = process.env.ELEVENLABS_API_KEY
+    if (!key) return 'no'
+    const res = await fetch(`https://api.elevenlabs.io/v1/voices/${voiceId}`, {
+      headers: { 'xi-api-key': key },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return 'no'
+    const v = await res.json()
+    const t = `${v?.labels?.accent || ''} ${v?.labels?.language || ''}`.toLowerCase()
+    const lang: 'no' | 'en' = /oslo|norweg|\bno\b|nb|swedish|danish/.test(t)
+      ? 'no'
+      : (/british|american|australian|canadian|irish|scottish|\ben\b|english/.test(t) ? 'en' : 'no')
+    langCache.set(voiceId, lang)
+    return lang
+  } catch {
+    return 'no'
+  }
+}
+
 /**
  * Start produksjon for en draft. Kalles både fra /api/start-production (gratis-sti)
  * og fra Stripe-webhooken etter betaling (ingen HTTP-hopp).
@@ -178,6 +206,10 @@ export async function startProductionForDraft(
       aiMotion: !!aiMotion,
       aiMotionEngine,
       imageFit,
+      // Engelsk stemme trenger 'en' — ellers leses teksten med norske
+      // uttaleregler (Lars 1/8). Slaas opp direkte hos ElevenLabs, saa det
+      // ikke krever en ny kolonne og aldri kan komme i utakt med stemmevalget.
+      voiceLanguage: await voiceLanguageFor(draft.voice_id),
     }),
   })
   const job = await jobRes.json()

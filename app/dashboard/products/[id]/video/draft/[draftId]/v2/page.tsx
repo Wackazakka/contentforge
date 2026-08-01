@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { COSTS_NOK, fmtCredits } from '@/lib/costs'
-import { VOICES as VOICES_FALLBACK, voiceName, type VoiceOption } from '@/lib/voices'
+import { VOICES as VOICES_FALLBACK, voiceName, type VoiceOption, languageForGroup } from '@/lib/voices'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
 
 interface Segment {
@@ -498,7 +498,7 @@ export default function DraftV2Page() {
       const res = await fetch('/api/content/preview-voiceover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: seg.voiceover, voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX', draftId, segmentIndex: index }),
+        body: JSON.stringify({ text: seg.voiceover, voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX', draftId, segmentIndex: index, languageCode: languageForGroup((VOICES.find((v) => v.id === draft.voice_id) as any)?.gruppe) }),
       })
       const data = await res.json()
       if (data.url) {

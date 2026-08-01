@@ -203,10 +203,10 @@ async function normalizeVoiceover(voPath) {
 }
 
 // Call ElevenLabs text-to-speech, save mp3 to outputPath — retries up to 3x
-async function generateVoiceover(text, voiceId, outputPath, apiKey) {
+async function generateVoiceover(text, voiceId, outputPath, apiKey, lang = 'no') {
   const bodyBuffer = Buffer.from(JSON.stringify({
     text,
-    model_id: 'eleven_turbo_v2_5', language_code: 'no', apply_text_normalization: 'off',
+    model_id: 'eleven_turbo_v2_5', language_code: (lang === 'en' ? 'en' : 'no'), apply_text_normalization: 'off',
     voice_settings: {
       stability: 0.5,
       similarity_boost: 0.75,
@@ -480,6 +480,7 @@ router.post('/', async (req, res) => {
     cta,
     musicFile, matchMusicLength,
     imageFit,
+    voiceLanguage,
     segments,
     video_format,
     imageStyle,
@@ -526,6 +527,9 @@ router.post('/', async (req, res) => {
       if (!openaiKey) throw new Error('OPENAI_API_KEY not found in ' + ENV_PATH)
 
       const vid = voiceId || DEFAULT_VOICE_ID
+      // Spraakkode til ElevenLabs: engelske stemmer MAA ha 'en', ellers
+      // leses teksten med norske uttaleregler (Lars 1/8)
+      const voLang = voiceLanguage === 'en' ? 'en' : 'no'
       const mood = tone || 'professional'
       let config
       let configPath
@@ -592,10 +596,10 @@ router.post('/', async (req, res) => {
               console.log(`[job-queue] Segment ${i + 1}: Approved voiceover saved (${voBuf.byteLength} bytes)`)
             } catch (voErr) {
               console.error(`[job-queue] Segment ${i + 1}: approved voiceover download failed, regenerating:`, voErr.message)
-              await generateVoiceover(segment.voiceover || segment.text, vid, voPath, elevenKey)
+              await generateVoiceover(segment.voiceover || segment.text, vid, voPath, elevenKey, voLang)
             }
           } else {
-            await generateVoiceover(segment.voiceover || segment.text, vid, voPath, elevenKey)
+            await generateVoiceover(segment.voiceover || segment.text, vid, voPath, elevenKey, voLang)
           }
 
           // Normaliser ALLE stemmer til fast nivaa (I=-16) — ogsaa AI-stemmene
@@ -855,7 +859,7 @@ router.post('/', async (req, res) => {
 
         console.log(`[job-queue] Generating 3 voiceovers for job ${jobId}...`)
         for (let i = 0; i < 3; i++) {
-          await generateVoiceover(voTexts[i], vid, `${jobDir}/vo_${i + 1}.mp3`, elevenKey)
+          await generateVoiceover(voTexts[i], vid, `${jobDir}/vo_${i + 1}.mp3`, elevenKey, voLang)
         }
 
         console.log(`[job-queue] Generating 3 images for job ${jobId}...`)

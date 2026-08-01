@@ -19,6 +19,17 @@ export const VOICES: VoiceOption[] = [
   { id: 'uNsWM1StCcpydKYOjKyu', name: 'Mia', desc: 'Norsk kvinne', preview: 'https://storage.googleapis.com/eleven-public-prod/database/workspace/a2175a4ce5a74c88868dd9d4a000c9a6/voices/uNsWM1StCcpydKYOjKyu/868f87d5-7724-4786-a7fa-a48e01b2ba54.mp3' },
 ]
 
+// Språkkode til ElevenLabs. Hardkodet 'no' ga engelsk tekst lest med norske
+// uttaleregler så snart artistene fikk britiske/amerikanske stemmer
+// (Lars 1/8). Gruppen kommer fra /api/voices; ukjent = norsk som før.
+export function languageForGroup(gruppe?: string | null): 'no' | 'en' {
+  const g = (gruppe || '').toLowerCase()
+  if (!g) return 'no'
+  if (g.includes('norsk') || g.includes('nordisk')) return 'no'
+  if (/britisk|amerikansk|engelsk|australsk|kanadisk/.test(g)) return 'en'
+  return 'no'
+}
+
 export const voiceName = (id?: string | null): string => {
   if (id === 'own') return 'Din egen stemme'
   return VOICES.find((v) => v.id === id)?.name || 'Ikke valgt'

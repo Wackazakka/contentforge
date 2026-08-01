@@ -16,7 +16,9 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740fe
 
 export async function POST(request: Request) {
   try {
-    const { text, voiceId, draftId, segmentIndex } = await request.json()
+    const { text, voiceId, draftId, segmentIndex, languageCode } = await request.json()
+    // Engelsk stemme MÅ få 'en', ellers leses teksten med norske uttaleregler
+    const lang = languageCode === 'en' ? 'en' : 'no'
 
     console.log(`[preview-voiceover] Generating preview for segment ${segmentIndex} of draft ${draftId}`)
 
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         text,
         model_id: 'eleven_turbo_v2_5',
-        language_code: 'no',
+        language_code: lang,
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     })
