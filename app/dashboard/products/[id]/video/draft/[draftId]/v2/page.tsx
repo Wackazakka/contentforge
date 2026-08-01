@@ -477,7 +477,10 @@ export default function DraftV2Page() {
       }
       if (data.status === 'ready' && data.url) {
         setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: data.url } }))
-        huskKlipp(index, data.url)
+        // Bare NYE klipp skal i historikken. Ved ren visning ville en
+        // oppdatering her tegnet siden paa nytt midt i avspillingen
+        // (Lars 1/8: «et sekund foer jeg faar tid til aa velge en annen»).
+        if (!viewOnly && !data.reused) huskKlipp(index, data.url)
         return
       }
       // Ingen animasjon laget ennå — «Se animasjonen» skal ikke sette i gang noe
@@ -1014,7 +1017,7 @@ export default function DraftV2Page() {
                           )}
                           {motionPreview[index]?.status === 'ready' && motionPreview[index]?.url && (
                             <div>
-                              <video src={motionPreview[index].url} controls playsInline className="rounded-lg border border-gray-200 max-h-64 bg-black" />
+                              <video key={motionPreview[index].url} src={motionPreview[index].url} controls playsInline className="rounded-lg border border-gray-200 max-h-64 bg-black" />
                               <p className="text-[11.5px] text-gray-400 mt-1">
                                 Slik blir bevegelsen i filmen. Ikke fornøyd? Bytt stil, eller trykk «↻ Lag en ny».
                               </p>
@@ -1045,7 +1048,7 @@ export default function DraftV2Page() {
                                       }`}
                                       title={`${stil}${h.prompt ? ` — ${h.prompt}` : ''}`}
                                     >
-                                      <video src={h.url} muted playsInline preload="metadata" className="w-20 h-32 object-cover bg-black" />
+                                      <video src={h.url} muted playsInline preload="metadata" tabIndex={-1} className="w-20 h-32 object-cover bg-black pointer-events-none" />
                                       <span className={`block px-1 py-0.5 text-[10px] text-center ${aktiv ? 'text-[var(--ember-deep)] font-medium' : 'text-gray-400'}`}>
                                         {aktiv ? 'i bruk' : 'bruk denne'}
                                       </span>
@@ -1067,13 +1070,14 @@ export default function DraftV2Page() {
                       <button
                         type="button"
                         onClick={() => toggleApproved(index)}
+                        title={seg.approved ? 'Ta tilbake godkjenningen av denne scenen' : 'Godkjenn denne scenen'}
                         className={`min-w-[104px] px-3.5 py-2 rounded-lg border text-[13px] font-medium transition-colors ${
                           seg.approved
                             ? 'border-gray-300 text-gray-600 hover:border-gray-400'
                             : 'border-[var(--ember-deep)] bg-[var(--ember-deep)] text-white hover:bg-[var(--ink)]'
                         }`}
                       >
-                        {seg.approved ? 'Angre' : 'Godkjenn'}
+                        {seg.approved ? 'Ta tilbake' : 'Godkjenn'}
                       </button>
                       <div className="flex items-center gap-2">
                         <button
