@@ -1986,20 +1986,35 @@ export default function DraftPage() {
                                 <option key={m.v} value={m.v}>{m.label}</option>
                               ))}
                             </select>
-                            <button
-                              type="button"
-                              onClick={() => (motionPreviewState[index]?.status === 'ready' ? nyAnimasjon(index) : previewMotion(index))}
-                              disabled={['starting', 'generating'].includes(motionPreviewState[index]?.status || '')}
-                              className="px-3 py-1.5 rounded-full border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-xs font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-60"
-                            >
-                              {motionPreviewState[index]?.status === 'starting' && '▶ Starter…'}
-                              {motionPreviewState[index]?.status === 'generating' && '▶ Lager klippet… (1–3 min)'}
-                              {!['starting', 'generating'].includes(motionPreviewState[index]?.status || '') && (
-                                motionPreviewState[index]?.status === 'ready'
-                                  ? `↻ Lag en ny (${fmtCredits(COSTS_NOK.animate5s * pf)})`
-                                  : `▶ Se animasjonen (${fmtCredits(COSTS_NOK.animate5s * pf)})`
-                              )}
-                            </button>
+                            {(() => {
+                              const st = motionPreviewState[index]?.status || ''
+                              const jobber = ['starting', 'generating'].includes(st)
+                              return (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => previewMotion(index)}
+                                    disabled={jobber}
+                                    className="px-3 py-1.5 rounded-full border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-xs font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-60"
+                                    title="Viser klippet som blir brukt i filmen. Er det laget fra før, er det gratis å se."
+                                  >
+                                    {st === 'starting' ? '▶ Starter…' : st === 'generating' ? '▶ Lager klippet… (1–3 min)' : '▶ Se animasjonen'}
+                                  </button>
+                                  {/* Alltid tilgjengelig — ikke bare når en forhåndsvisning
+                                      ligger i denne økten (Lars 1/8: «kan ikke finne ut
+                                      hvordan jeg skal forkaste den og lage en ny») */}
+                                  <button
+                                    type="button"
+                                    onClick={() => nyAnimasjon(index)}
+                                    disabled={jobber}
+                                    className="px-3 py-1.5 rounded-full border border-gray-300 text-xs font-medium text-gray-600 hover:border-gray-400 disabled:opacity-60"
+                                    title="Forkaster dagens klipp og lager et helt nytt"
+                                  >
+                                    ↻ Lag en ny ({fmtCredits(COSTS_NOK.animate5s * pf)})
+                                  </button>
+                                </>
+                              )
+                            })()}
                           </>
                         )}
                       </div>
