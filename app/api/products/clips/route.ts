@@ -10,7 +10,10 @@ import { createClient } from '@supabase/supabase-js'
 // utilgjengelige i dag.
 
 const BUCKET = process.env.R2_BUCKET_NAME || 'contentforge-assets'
-const PUBLIC = process.env.R2_PUBLIC_URL || ''
+// R2_PUBLIC_URL finnes paa dropleten, men IKKE i Netlify-miljoeet — uten
+// fallback ble klipp-URL-ene relative og videoene lastet aldri (Lars 2/8).
+// Samme fallback som avatar-rutene bruker.
+const PUBLIC = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
 function r2() {
   return new S3Client({
