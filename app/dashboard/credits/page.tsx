@@ -100,9 +100,6 @@ export default function CreditsPage() {
               disabled={!!busy}
               className="bg-white rounded-xl border border-gray-200 p-5 text-left hover:border-[var(--ember-deep)] disabled:opacity-50 transition-colors"
             >
-              {p.tittel && (
-                <div className="text-[12px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{p.tittel}</div>
-              )}
               <div className="text-2xl font-bold text-gray-900">{nok(p.amount)}</div>
               <div className="text-base font-semibold text-gray-700 mb-1">
                 {p.credits.toLocaleString('nb-NO')} kreditter
