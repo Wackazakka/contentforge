@@ -1207,34 +1207,38 @@ export default function DraftV2Page() {
                               <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-1.5">
                                 Klippene dine — gratis å bruke om igjen
                               </p>
-                              <div className="flex gap-2 flex-wrap">
+                              {/* Spillbare direkte (Lars 2/8: «ingen av dem
+                                  spiller») — miniatyrene hadde ingen kontroller */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 {klippBank.map((k) => (
                                   <div key={k.name} className="relative group">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: k.url } }))
-                                        setKlippVelgerFor(null)
-                                      }}
-                                      className="rounded-lg border-2 border-transparent hover:border-[var(--ember-deep)] overflow-hidden block"
-                                      title={k.laget ? new Date(k.laget).toLocaleString('nb-NO') : k.name}
-                                    >
-                                      <video src={`${k.url}#t=0.1`} muted playsInline preload="metadata" tabIndex={-1} className="w-20 h-32 object-cover bg-black pointer-events-none" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => slettKlipp(k.name)}
-                                      title="Slett fra biblioteket"
-                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white/90 border border-gray-300 text-gray-500 text-[11px] leading-none opacity-0 group-hover:opacity-100 hover:text-red-600 hover:border-red-300"
-                                    >
-                                      ✕
-                                    </button>
+                                    <video
+                                      src={`${k.url}#t=0.1`}
+                                      controls
+                                      muted
+                                      playsInline
+                                      preload="metadata"
+                                      className="w-full rounded-lg bg-black"
+                                    />
+                                    <div className="flex items-center justify-between gap-2 mt-1">
+                                      <span className="text-[10.5px] text-gray-400 truncate">
+                                        {k.laget ? new Date(k.laget).toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => slettKlipp(k.name)}
+                                        title="Slett fra biblioteket"
+                                        className="text-[11px] text-gray-400 hover:text-red-600 flex-shrink-0"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
                               <p className="text-[11px] text-gray-400 mt-1">
-                                Klikk for å se klippet. Vil du bruke det i denne scenen, last det opp som egen video —
-                                klipp fra biblioteket knyttes til scener i neste runde.
+                                Alt du har laget, nyeste først. Trykk play for å se dem. Å sette et klipp inn i
+                                en scene kommer i neste runde — inntil da kan du laste det ned og opp igjen som egen video.
                               </p>
                             </div>
                           )}
