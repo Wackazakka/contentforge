@@ -88,6 +88,14 @@ export async function POST(request: Request) {
       } catch (costErr) {
         console.warn('[preview-motion] add_draft_cost feilet:', costErr)
       }
+      // Maa ogsaa i usage_events, ellers faar white-labelen ingen andel av
+      // animasjonene — det dyreste vi lager (Lars 1/8)
+      try {
+        const { logUsageEvent } = await import('@/lib/tenantBilling')
+        logUsageEvent({ draftId, eventType: 'animation', costNok: COSTS_NOK.animate5s, meta: { kilde: 'forhaandsvisning' } })
+      } catch (uErr) {
+        console.warn('[preview-motion] usage-logging feilet:', uErr)
+      }
     }
 
     return NextResponse.json({ ...data, chargedNok: data.reused ? 0 : COSTS_NOK.animate5s })

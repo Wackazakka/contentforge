@@ -26,6 +26,7 @@ const TYPE_NAVN: Record<string, string> = {
   voiceover: 'Stemmer',
   avatar: 'Avatar-videoer',
   radio: 'Radiospoter',
+  animation: 'Animasjoner (forhåndsvisning)',
 }
 
 function maanedStart(d: Date) {
