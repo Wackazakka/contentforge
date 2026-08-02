@@ -148,6 +148,32 @@ export default function DraftV2Page() {
   const [imagePickerFor, setImagePickerFor] = useState<number | null>(null)
   const [libUploading, setLibUploading] = useState(false)
   const [videoUploading, setVideoUploading] = useState<Record<number, boolean>>({})
+  // Artistens klippbibliotek — ALLE genererte klipp, uavhengig av hvilken
+  // produksjon de tilhoerte (Lars 2/8: «klippene tilhoerer artisten»)
+  const [klippBank, setKlippBank] = useState<Array<{ name: string; url: string; laget: string | null }>>([])
+  const [klippVelgerFor, setKlippVelgerFor] = useState<number | null>(null)
+  const hentKlipp = async () => {
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const d = await fetch(`/api/products/clips?productId=${productId}`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
+      if (Array.isArray(d.clips)) setKlippBank(d.clips)
+    } catch { /* biblioteket er valgfritt */ }
+  }
+  useEffect(() => { if (productId) hentKlipp() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const slettKlipp = async (navn: string) => {
+    if (!confirm('Slette dette klippet fra biblioteket ditt?')) return
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      await fetch(`/api/products/clips?productId=${productId}&name=${encodeURIComponent(navn)}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      await hentKlipp()
+    } catch { alert('Sletting feilet') }
+  }
   const [lagring, setLagring] = useState<{ brukteMB: number; grenseMB: number; prosent: number } | null>(null)
   const hentLagring = async () => {
     try {
@@ -1126,6 +1152,16 @@ export default function DraftV2Page() {
                                     >
                                       ↻ Lag en ny ({fmtCredits(COSTS_NOK.animate5s * pf)})
                                     </button>
+                                    {klippBank.length > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setKlippVelgerFor(klippVelgerFor === index ? null : index)}
+                                        className="px-3 py-1.5 rounded-full border border-gray-300 text-[12px] font-medium text-gray-600 hover:border-gray-400"
+                                        title="Alle klipp du har laget — gratis å bruke om igjen"
+                                      >
+                                        🎞️ Klippene dine ({klippBank.length})
+                                      </button>
+                                    )}
                                   </>
                                 )
                               })()}
@@ -1160,6 +1196,45 @@ export default function DraftV2Page() {
                               </p>
                             </div>
                           )}
+                          {/* Artistens klippbibliotek — ALT som er laget, uansett
+                              hvilken produksjon det tilhoerte (Lars 2/8) */}
+                          {klippVelgerFor === index && (
+                            <div>
+                              <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-1.5">
+                                Klippene dine — gratis å bruke om igjen
+                              </p>
+                              <div className="flex gap-2 flex-wrap">
+                                {klippBank.map((k) => (
+                                  <div key={k.name} className="relative group">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: k.url } }))
+                                        setKlippVelgerFor(null)
+                                      }}
+                                      className="rounded-lg border-2 border-transparent hover:border-[var(--ember-deep)] overflow-hidden block"
+                                      title={k.laget ? new Date(k.laget).toLocaleString('nb-NO') : k.name}
+                                    >
+                                      <video src={k.url} muted playsInline preload="metadata" tabIndex={-1} className="w-20 h-32 object-cover bg-black pointer-events-none" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => slettKlipp(k.name)}
+                                      title="Slett fra biblioteket"
+                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white/90 border border-gray-300 text-gray-500 text-[11px] leading-none opacity-0 group-hover:opacity-100 hover:text-red-600 hover:border-red-300"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-[11px] text-gray-400 mt-1">
+                                Klikk for å se klippet. Vil du bruke det i denne scenen, last det opp som egen video —
+                                klipp fra biblioteket knyttes til scener i neste runde.
+                              </p>
+                            </div>
+                          )}
+
                           {motionPreview[index]?.status === 'ready' && motionPreview[index]?.url && (
                             <div>
                               <video key={motionPreview[index].url} src={motionPreview[index].url} controls playsInline className="rounded-lg border border-gray-200 max-h-64 bg-black" />
@@ -1287,7 +1362,7 @@ export default function DraftV2Page() {
               overalt … nå har det en låst plass») — uten å dekke innholdet
               slik det gamle flytende taxameteret gjorde. */}
           <aside className="space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 lg:sticky lg:top-6 lg:z-10 shadow-sm">
+            <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 lg:sticky lg:top-24 lg:z-10 shadow-sm">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-[13.5px] text-gray-500">Påløpt på utkastet</span>
                 <span className="text-xl font-semibold text-gray-900 tabular-nums">{fmtCredits(paaloptNok)}</span>
@@ -1300,8 +1375,25 @@ export default function DraftV2Page() {
                 const est = (nMove * COSTS_NOK.animate5s + nTalk * COSTS_NOK.lipsyncTypical + nImg * COSTS_NOK.imageStandard) * pf
                 const nok = saldo
                 const dekning = nok !== null && est > 0 ? nok >= est : null
+                const linjer = [
+                  { navn: `AI-bilder som mangler × ${nImg}`, verdi: nImg * COSTS_NOK.imageStandard * pf },
+                  { navn: `Bevegelse × ${nMove}`, verdi: nMove * COSTS_NOK.animate5s * pf },
+                  { navn: `Lip-sync × ${nTalk}`, verdi: nTalk * COSTS_NOK.lipsyncTypical * pf },
+                ].filter((l) => l.verdi > 0)
                 return (
                   <>
+                    {/* Spesifisert igjen (Lars 2/8) — en sum uten forklaring
+                        sier ikke hva man betaler for */}
+                    {linjer.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
+                        {linjer.map((l) => (
+                          <div key={l.navn} className="flex items-baseline justify-between gap-3">
+                            <span className="text-[12px] text-gray-500">{l.navn}</span>
+                            <span className="text-[12px] text-gray-600 tabular-nums">~{fmtCredits(l.verdi)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {est > 0 && (
                       <div className="mt-2 pt-2 border-t border-gray-100 flex items-baseline justify-between gap-3">
                         <span className="text-[13px] text-gray-500">Neste produksjon</span>

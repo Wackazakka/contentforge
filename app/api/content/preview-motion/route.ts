@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const supabase = admin()
     const { data: draft, error } = await supabase
       .from('production_drafts')
-      .select('segments, ai_motion_engine, music_file')
+      .select('segments, ai_motion_engine, music_file, product_id')
       .eq('id', draftId)
       .single()
     if (error || !draft) return NextResponse.json({ error: 'Fant ikke utkastet' }, { status: 404 })
@@ -74,6 +74,10 @@ export async function POST(request: Request) {
         segmentCount: segments.length,
         targetSec,
         viewOnly: viewOnly === true,
+        // Klippet tilhoerer ARTISTEN (Lars 2/8) — lagres i produktets
+        // egen mappe, ikke en anonym previews-mappe, saa det er
+        // gjenfinnbart uansett hva som skjer med fingeravtrykkene
+        productId: draft.product_id || null,
       }),
       signal: AbortSignal.timeout(20000),
     })

@@ -412,13 +412,16 @@ router.post('/reuse-check', (req, res) => {
 // i klipp-cachen, saa produksjonen etterpaa gjenbruker det gratis.
 const previewJobs = new Map() // fp -> { status: 'generating'|'ready'|'failed', url?, error? }
 
-async function uploadPreviewToR2(fp, clipPath) {
+async function uploadPreviewToR2(fp, clipPath, productId) {
   const buf = fs.readFileSync(clipPath)
-  return uploadBufferToR2(buf, `videos/previews/${fp}.mp4`, 'video/mp4')
+  // Artistens egen klippmappe naar vi vet hvem det er — da er klippet
+  // gjenfinnbart selv om oppskriften (fingeravtrykket) endrer seg.
+  const key = productId ? `artist-clips/${productId}/${fp}.mp4` : `videos/previews/${fp}.mp4`
+  return uploadBufferToR2(buf, key, 'video/mp4')
 }
 
 router.post('/preview-clip', async (req, res) => {
-  const { segment, engine, musicFile, matchMusicLength, segmentCount, targetSec, viewOnly } = req.body || {}
+  const { segment, engine, musicFile, matchMusicLength, segmentCount, targetSec, viewOnly, productId } = req.body || {}
   if (!segment || !segment.imageUrl) return res.status(400).json({ error: 'segment.imageUrl mangler' })
   const eng = engine || 'kling'
   const raw = segment.motion || (segment.animate === true ? 'move' : 'none')
@@ -433,7 +436,7 @@ router.post('/preview-clip', async (req, res) => {
   const cachedClip = `${CLIP_CACHE_DIR}/${fp}.mp4`
   try {
     if (fs.existsSync(cachedClip)) {
-      const url = await uploadPreviewToR2(fp, cachedClip)
+      const url = await uploadPreviewToR2(fp, cachedClip, productId)
       previewJobs.set(fp, { status: 'ready', url })
       return res.json({ fp, status: 'ready', url, reused: true })
     }
@@ -471,7 +474,7 @@ router.post('/preview-clip', async (req, res) => {
       const uploadFrame = (buf, name) => uploadBufferToR2(buf, `videos/previews/${fp}-${name}`, 'image/png')
       const chain = await imageToVideoChain({ imageUrl: segment.imageUrl, prompt: motionPrompt, negativePrompt: motionNegative, engine: eng, targetSec: sec, resolution: '720p', outPath: clipPath, workDir, uploadFrame, log: (m) => console.log('[preview]', m) })
       if (chain.coveredSec >= sec - 0.25) clipCachePut(fp, clipPath)
-      const url = await uploadPreviewToR2(fp, clipPath)
+      const url = await uploadPreviewToR2(fp, clipPath, productId)
       previewJobs.set(fp, { status: 'ready', url })
       console.log(`[preview] klipp klart (${fp.slice(0, 8)}) -> ${url}`)
     } catch (err) {
