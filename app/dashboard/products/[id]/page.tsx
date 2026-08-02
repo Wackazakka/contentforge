@@ -485,17 +485,34 @@ export default function ProductPage() {
         const jobIds = (videosData || []).map((v: any) => v.job_id).filter(Boolean)
         let formatByJobId: Record<string, string> = {}
         if (jobIds.length > 0) {
+          // Hent ALLE utkast for produktet, ikke bare de med treff paa job_id:
+          // eldre utkast kan mangle koblingen, men har campaign_id — og jobben
+          // husker campaignId i ai_parameters. To veier gir robust treff.
           const { data: drafts } = await supabase
             .from('production_drafts')
-            .select('id, job_id, video_format')
-            .in('job_id', jobIds)
+            .select('id, job_id, campaign_id, video_format')
+            .eq('product_id', productId)
           const draftIds: Record<string, string> = {}
+          const draftByCampaign: Record<string, string> = {}
           ;(drafts || []).forEach((d: any) => {
             if (d.job_id) {
               formatByJobId[d.job_id] = d.video_format || ''
               draftIds[d.job_id] = d.id
             }
+            if (d.campaign_id) draftByCampaign[d.campaign_id] = d.id
           })
+          // Vei 2: via jobbens campaignId for de som mangler direkte kobling
+          const utenTreff = jobIds.filter((j: string) => !draftIds[j])
+          if (utenTreff.length > 0) {
+            const { data: js } = await supabase
+              .from('production_jobs')
+              .select('id, ai_parameters')
+              .in('id', utenTreff)
+            ;(js || []).forEach((j: any) => {
+              const c = j.ai_parameters?.campaignId
+              if (c && draftByCampaign[c]) draftIds[j.id] = draftByCampaign[c]
+            })
+          }
           setDraftByJobId(draftIds)
         }
 
