@@ -106,6 +106,8 @@ export default function ProductPage() {
   const [product, setProduct] = useState<Product | null>(null)
   const [profile, setProfile] = useState<ProductProfile | null>(null)
   const [jobs, setJobs] = useState<ProductionJob[]>([])
+  // Fra ferdig video tilbake til utkastet som lagde den (Lars 2/8)
+  const [draftByJobId, setDraftByJobId] = useState<Record<string, string>>({})
   const [jobsLoading, setJobsLoading] = useState(false)
   // Bildebiblioteket (artist-images/<productId> i R2): administreres her,
   // brukes som segmentbilder i editorene. For music-vertikalen er dette
@@ -485,11 +487,16 @@ export default function ProductPage() {
         if (jobIds.length > 0) {
           const { data: drafts } = await supabase
             .from('production_drafts')
-            .select('job_id, video_format')
+            .select('id, job_id, video_format')
             .in('job_id', jobIds)
+          const draftIds: Record<string, string> = {}
           ;(drafts || []).forEach((d: any) => {
-            if (d.job_id) formatByJobId[d.job_id] = d.video_format || ''
+            if (d.job_id) {
+              formatByJobId[d.job_id] = d.video_format || ''
+              draftIds[d.job_id] = d.id
+            }
           })
+          setDraftByJobId(draftIds)
         }
 
         setVideos((videosData || []).map((v: any) => ({ ...v, video_format: formatByJobId[v.job_id] || null })))
@@ -1352,6 +1359,22 @@ export default function ProductPage() {
                             >
                               {t('download')}
                             </a>
+                            {/* Tilbake til utkastet som lagde filmen (Lars 2/8:
+                                «det kan hende man plutselig ser en detalj man
+                                vil forandre»). Aa endre én scene og produsere
+                                paa nytt koster nesten ingenting — resten
+                                gjenbrukes fra klipp-cachen. */}
+                            {draftByJobId[video.job_id] && (
+                              <button
+                                onClick={() =>
+                                  router.push(`/dashboard/products/${productId}/video/draft/${draftByJobId[video.job_id]}`)
+                                }
+                                className="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                title="Åpne utkastet som lagde denne filmen"
+                              >
+                                Rediger
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteVideo(video.id)}
                               className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors"
