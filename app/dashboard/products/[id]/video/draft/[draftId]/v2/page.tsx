@@ -1219,7 +1219,7 @@ export default function DraftV2Page() {
                                       className="rounded-lg border-2 border-transparent hover:border-[var(--ember-deep)] overflow-hidden block"
                                       title={k.laget ? new Date(k.laget).toLocaleString('nb-NO') : k.name}
                                     >
-                                      <video src={k.url} muted playsInline preload="metadata" tabIndex={-1} className="w-20 h-32 object-cover bg-black pointer-events-none" />
+                                      <video src={`${k.url}#t=0.1`} muted playsInline preload="metadata" tabIndex={-1} className="w-20 h-32 object-cover bg-black pointer-events-none" />
                                     </button>
                                     <button
                                       type="button"
@@ -1272,7 +1272,7 @@ export default function DraftV2Page() {
                                       }`}
                                       title={`${stil}${h.prompt ? ` — ${h.prompt}` : ''}`}
                                     >
-                                      <video src={h.url} muted playsInline preload="metadata" tabIndex={-1} className="w-20 h-32 object-cover bg-black pointer-events-none" />
+                                      <video src={`${h.url}#t=0.1`} muted playsInline preload="metadata" tabIndex={-1} className="w-20 h-32 object-cover bg-black pointer-events-none" />
                                       <span className={`block px-1 py-0.5 text-[10px] text-center ${aktiv ? 'text-[var(--ember-deep)] font-medium' : 'text-gray-400'}`}>
                                         {aktiv ? 'i bruk' : 'bruk denne'}
                                       </span>
