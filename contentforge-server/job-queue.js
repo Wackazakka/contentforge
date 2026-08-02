@@ -756,6 +756,24 @@ router.post('/', async (req, res) => {
             const url = segImageUrls[i]
             if (!url) throw new Error('mangler bilde-URL')
             const clipPath = `${jobDir}/clip_${i + 1}.mp4`
+            // Artistens EGEN video vinner over AI-animasjon (Lars 1/8):
+            // ekte liveopptak slaar generert bevegelse. Lyden strippes (-an)
+            // saa musikken baerer filmen — og saa rendereren ikke tolker
+            // klippet som et lip-sync-klipp (den kjenner dem paa lydsporet).
+            if (seg.videoUrl) {
+              try {
+                const raw = `${jobDir}/egen_${i + 1}_raw`
+                const r = await fetch(seg.videoUrl)
+                if (!r.ok) throw new Error(`HTTP ${r.status}`)
+                fs.writeFileSync(raw, Buffer.from(await r.arrayBuffer()))
+                await execAsync(`ffmpeg -y -loglevel error -i "${raw}" -an -c:v libx264 -preset fast -crf 21 -pix_fmt yuv420p "${clipPath}"`)
+                fs.unlink(raw, () => {})
+                console.log(`[job-queue] segment ${i + 1}: bruker artistens egen video (lyd strippet)`)
+                return clipPath
+              } catch (vErr) {
+                console.warn(`[job-queue] segment ${i + 1}: egen video feilet (${vErr.message}) - faller tilbake til bilde/animasjon`)
+              }
+            }
             // Gjenbruk: identisk scene fra en tidligere produksjon (eller
             // forhåndsvisning) hentes fra cachen — ingen ny generering.
             const fp = clipFingerprint(

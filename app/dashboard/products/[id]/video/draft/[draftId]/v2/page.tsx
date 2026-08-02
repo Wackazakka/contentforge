@@ -14,6 +14,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { COSTS_NOK, fmtCredits } from '@/lib/costs'
 import { MOTION_STYLES } from '@/lib/motionStyles'
+import { uploadSegmentVideo, VIDEO_MAX_BYTES } from '@/lib/uploadSegmentVideo'
 import { VOICES as VOICES_FALLBACK, voiceName, type VoiceOption, languageForGroup } from '@/lib/voices'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
 
@@ -37,6 +38,9 @@ interface Segment {
   motion_prompt?: string
   // Slipp munnen fri for mimikk (smil, latter) — prating holdes ute
   allow_mouth?: boolean
+  // Artistens egen video som scenebakgrunn (1/8)
+  video_url?: string
+  video_name?: string
   // Historikk over genererte klipp (Lars 1/8: «hadde vært fint om de gamle
   // blir lagret slik at man kan skifte tilbake»). Filene ligger allerede i
   // dropletens cache — vi husker bare hvilken oppskrift som ga hvilket klipp.
@@ -141,6 +145,18 @@ export default function DraftV2Page() {
   const [imageLibrary, setImageLibrary] = useState<Array<{ url: string; name: string }>>([])
   const [imagePickerFor, setImagePickerFor] = useState<number | null>(null)
   const [libUploading, setLibUploading] = useState(false)
+  const [videoUploading, setVideoUploading] = useState<Record<number, boolean>>({})
+  const [lagring, setLagring] = useState<{ brukteMB: number; grenseMB: number; prosent: number } | null>(null)
+  const hentLagring = async () => {
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const d = await fetch(`/api/storage-usage?productId=${productId}`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
+      if (typeof d.brukteMB === 'number') setLagring(d)
+    } catch { /* maaling er valgfri */ }
+  }
+  useEffect(() => { if (productId) hentLagring() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
   const [recordingFor, setRecordingFor] = useState<number | null>(null)
   const [ownVoiceBusy, setOwnVoiceBusy] = useState<Record<number, boolean>>({})
   const mediaRec = useRef<MediaRecorder | null>(null)
@@ -352,6 +368,21 @@ export default function DraftV2Page() {
       alert(err instanceof Error ? err.message : 'Sletting feilet')
     }
   }
+
+  const lastOppVideo = async (index: number, file: File) => {
+    setVideoUploading((p) => ({ ...p, [index]: true }))
+    try {
+      const v = await uploadSegmentVideo(file, productId)
+      updateSegment(index, { video_url: v.url, video_name: v.name, approved: false })
+      hentLagring()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Opplastingen feilet')
+    } finally {
+      setVideoUploading((p) => ({ ...p, [index]: false }))
+    }
+  }
+  const fjernVideo = (index: number) =>
+    updateSegment(index, { video_url: undefined, video_name: undefined })
 
   const setSegmentImage = (index: number, url: string) => {
     updateSegment(index, { image_url: url, approved: false })
@@ -990,8 +1021,46 @@ export default function DraftV2Page() {
                             </div>
                           )}
 
-                          {/* Bevegelse per scene */}
-                          {draft.ai_motion && (
+                          {/* Egen video som scenebakgrunn — gratis, slaar AI-animasjon */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {seg.video_url ? (
+                              <>
+                                <span className="text-[12px] text-green-700">🎬 Egen video: {seg.video_name || 'klipp'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => fjernVideo(index)}
+                                  className="text-[12px] text-gray-500 underline hover:text-gray-700"
+                                >
+                                  Fjern
+                                </button>
+                              </>
+                            ) : (
+                              <label className="text-[12px] text-gray-600 cursor-pointer">
+                                <span className="underline hover:text-gray-900">
+                                  {videoUploading[index] ? 'Laster opp klippet…' : '🎬 Bruk egen video i denne scenen'}
+                                </span>
+                                <input
+                                  type="file"
+                                  accept="video/mp4,video/quicktime,video/webm"
+                                  className="hidden"
+                                  disabled={!!videoUploading[index]}
+                                  onChange={async (e) => {
+                                    const f = e.currentTarget.files?.[0]
+                                    e.currentTarget.value = ''
+                                    if (f) await lastOppVideo(index, f)
+                                  }}
+                                />
+                              </label>
+                            )}
+                            <span className="text-[11.5px] text-gray-400">
+                              {seg.video_url
+                                ? 'Lyden fra klippet tas bort — musikken spiller.'
+                                : `Liveopptak e.l., maks ${Math.round(VIDEO_MAX_BYTES / 1024 / 1024)} MB. Gratis — ingen animasjon lages.`}
+                            </span>
+                          </div>
+
+                          {/* Bevegelse per scene — skjules naar egen video brukes */}
+                          {draft.ai_motion && !seg.video_url && (
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-[12px] text-gray-400">Bevegelse:</span>
                               {([
@@ -1249,6 +1318,28 @@ export default function DraftV2Page() {
                 Det du lager selv — egne bilder, egen stemme — er gratis. Scener du ikke har endret gjenbrukes uten kostnad.
               </p>
             </div>
+            {lagring && lagring.prosent >= 50 && (
+              <div className={`rounded-2xl border px-5 py-4 ${lagring.prosent >= 90 ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[13px] text-gray-500">Lagringsplass</span>
+                  <span className="text-[13px] font-medium text-gray-900 tabular-nums">
+                    {lagring.brukteMB} av {lagring.grenseMB} MB
+                  </span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                  <div
+                    className={`h-full ${lagring.prosent >= 90 ? 'bg-red-500' : 'bg-[var(--ember-deep)]'}`}
+                    style={{ width: `${lagring.prosent}%` }}
+                  />
+                </div>
+                {lagring.prosent >= 90 && (
+                  <p className="mt-2 text-[11.5px] text-red-700">
+                    Nesten fullt. Slett bilder, låter eller klipp du ikke trenger.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Lyd — stemme, musikk, jingle */}
             <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-3.5 border-b border-gray-100">

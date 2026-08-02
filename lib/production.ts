@@ -168,6 +168,9 @@ export async function startProductionForDraft(
     })(),
     // «Uten tale» (31/7): bilde + musikk, ingen voiceover genereres
     noVoice: s.no_voice === true,
+    // Artistens egen video som scenebakgrunn (1/8) — brukes i stedet for
+    // AI-animasjon, gratis. Lyden strippes på dropleten.
+    videoUrl: s.video_url || null,
     // «Lag animasjonen på nytt»: nonce omgår dropletens klipp-cache
     clipNonce: s.clip_nonce || '',
     // Bevegelsesstil per scene (Lars 1/8) — 'custom' bruker motionPrompt
