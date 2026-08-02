@@ -378,6 +378,43 @@ def _wrap_text(draw, text, font, max_width):
     return lines
 
 
+
+def _draw_brand_card(cfg, width, height):
+    """Merkekort til slutt (Lars 1/8): tenantens logo + «<Navn> VideoMaker».
+    Kommer ETTER artistens sluttplakat og erstatter den aldri — artistens
+    egen oppfordring er det viktigste i filmen."""
+    bg = _hex_to_rgb(cfg.get('bgColor'), (20, 20, 30))
+    fg = _hex_to_rgb(cfg.get('textColor'), (255, 255, 255))
+    img = Image.new('RGB', (width, height), bg)
+    draw = ImageDraw.Draw(img)
+
+    logo_bottom = int(height * 0.46)
+    logo_url = cfg.get('logoUrl')
+    if logo_url:
+        try:
+            tmp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+            req = urllib.request.Request(logo_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                tmp.write(resp.read())
+            tmp.flush()
+            logo = Image.open(tmp.name).convert('RGBA')
+            ratio = min((width * 0.42) / logo.width, (height * 0.22) / logo.height)
+            logo = logo.resize((max(1, int(logo.width * ratio)), max(1, int(logo.height * ratio))), Image.LANCZOS)
+            lx = (width - logo.width) // 2
+            ly = int(height * 0.40) - logo.height // 2
+            img.paste(logo, (lx, ly), logo)
+            logo_bottom = ly + logo.height
+        except Exception as e:
+            print(f'[brand_card] logo hoppet over: {e}', file=sys.stderr)
+
+    tekst = cfg.get('text') or 'VideoMaker'
+    size = max(34, min(64, width // 20))
+    font = ImageFont.truetype(FONT_REG, size)
+    bb = draw.textbbox((0, 0), tekst, font=font)
+    draw.text(((width - (bb[2] - bb[0])) // 2, logo_bottom + int(height * 0.035)), tekst, font=font, fill=fg)
+    return img
+
+
 def _draw_outro(outro_cfg, width, height):
     primary = _hex_to_rgb(outro_cfg.get('primaryColor'), (26, 26, 46))
     secondary_hex = outro_cfg.get('secondaryColor') or '#ffffff'
@@ -668,7 +705,7 @@ def _duck_music(music_path, clips, duck_vol=0.08, full_vol=0.38, fade_secs=0.30,
     return AudioArrayClip(result, fps=fps)
 
 
-def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=None, outroCard=None, mix=None):
+def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=None, outroCard=None, mix=None, brandCard=None):
     """Build full video from segments."""
     print("🎬 Bygger Reforhandle TikTok video...")
 
@@ -709,6 +746,14 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         _frame = np.array(_draw_outro(outroCard, W, H).convert('RGB'))
         clips.append(ImageClip(_frame, duration=_od))
         print(f"  🪧 Sluttplakat lagt inn i tidslinjen ({_od:.1f}s) — musikken gaar uavbrutt", flush=True)
+
+    # Merkekort ETTER artistens plakat (aldri i stedet for). Ligger ogsaa i
+    # tidslinjen, saa musikken gaar uavbrutt helt ut.
+    if brandCard and os.path.exists(backgroundMusicPath):
+        _bd = float(brandCard.get('durationSeconds') or 2)
+        _bframe = np.array(_draw_brand_card(brandCard, W, H).convert('RGB'))
+        clips.append(ImageClip(_bframe, duration=_bd))
+        print(f"  🏷️  Merkekort lagt inn ({_bd:.1f}s): {brandCard.get('text')}", flush=True)
 
     total = sum(c.duration for c in clips)
     print(f"⏱️  Total: {total:.1f}s — legger til musikk...")
@@ -826,7 +871,7 @@ if __name__ == "__main__":
     if config.get('imageFit') in ('contain', 'cover'):
         _IMAGE_FIT = config['imageFit']
         print(f"[imageFit] {_IMAGE_FIT}")
-    build_video(config["segments"], config["output"], backgroundMusicPath, logoUrl=logoUrl, outroCard=outroCard, mix=config.get("mix"))
+    build_video(config["segments"], config["output"], backgroundMusicPath, logoUrl=logoUrl, outroCard=outroCard, mix=config.get("mix"), brandCard=config.get("brandCard"))
 
     # Signal completion to job-queue
     done_path = config["output"] + ".done"

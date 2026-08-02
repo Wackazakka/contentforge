@@ -121,6 +121,27 @@ export async function startProductionForDraft(
       }
     : null
 
+  // Merkekort mot rabatt (Lars 1/8): valgfritt 2-sekunders kort ETTER
+  // artistens sluttplakat — aldri i stedet for. Tenanten betaler for sin
+  // egen synlighet ved å gi fra seg halve påslaget sitt.
+  const { data: tenantRad } = (product as any)?.organization_id
+    ? await supabase
+        .from('organizations')
+        .select('tenants(app_name, name, logo_url, colors, markup_percent)')
+        .eq('id', (product as any).organization_id)
+        .single()
+    : { data: null }
+  const tn: any = (tenantRad as any)?.tenants || null
+  const brandCard = (draft.brand_card === true && tn)
+    ? {
+        text: `${tn.app_name || tn.name || ''} VideoMaker`.trim(),
+        logoUrl: tn.logo_url || null,
+        bgColor: (tn.colors && (tn.colors['--paper'] || tn.colors['--ink'])) || '#14161B',
+        textColor: (tn.colors && tn.colors['--paper']) ? '#14161B' : '#FFFFFF',
+        durationSeconds: 2,
+      }
+    : null
+
   const segments = draft.segments || []
   const allApproved = segments.every((s: any) => s.approved === true)
   if (!allApproved) {
@@ -217,6 +238,7 @@ export async function startProductionForDraft(
       // uttaleregler (Lars 1/8). Slaas opp direkte hos ElevenLabs, saa det
       // ikke krever en ny kolonne og aldri kan komme i utakt med stemmevalget.
       voiceLanguage: await voiceLanguageFor(draft.voice_id),
+      brandCard,
     }),
   })
   const job = await jobRes.json()

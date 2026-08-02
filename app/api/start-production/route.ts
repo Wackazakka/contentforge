@@ -133,6 +133,46 @@ export async function POST(request: Request) {
           else if (m === 'talk') motionNok += COSTS_NOK.lipsyncTypical
         })
       }
+
+      // Merkekort mot rabatt (Lars 1/8): tenanten gir fra seg HALVE paaslaget
+      // sitt mot at filmen avsluttes med kortet deres. Rabatten tas altsaa av
+      // white-labelens andel — ContentForge faar sitt uansett.
+      //
+      // ⚠️ ANTI-JUKS: rabattbeloepet huskes paa utkastet. Produseres samme
+      // utkast SENERE uten kortet, legges beloepet til — ellers kunne man
+      // valgt rabatt, produsert, og saa produsert en ren film nesten gratis
+      // via klipp-gjenbruken (som gjoer runde to nesten kostnadsfri).
+      try {
+        const { data: d4 } = await supabase
+          .from('production_drafts')
+          .select('brand_card, brand_discount_nok')
+          .eq('id', draftId)
+          .single()
+        const tidligereRabatt = Number(d4?.brand_discount_nok) || 0
+        if (d4?.brand_card === true) {
+          // Halve white-label-andelen: (kundepris − engros) / 2
+          const { chainFactorByTenantId, getProductTenant: gpt3 } = await import('@/lib/tenantBilling')
+          const pt3 = draftProductId ? await gpt3(draftProductId) : { tenantId: null as string | null }
+          const faktor = pt3.tenantId ? await chainFactorByTenantId(pt3.tenantId) : 1
+          const wlAndel = Math.max(0, motionNok * (faktor - 1))
+          const rabatt = Math.round(wlAndel * 50) / 100 // halvparten, 2 desimaler
+          if (rabatt > 0) {
+            await supabase.from('production_drafts')
+              .update({ brand_discount_nok: tidligereRabatt + rabatt })
+              .eq('id', draftId)
+            motionNok = Math.max(0, motionNok - rabatt)
+          }
+        } else if (tidligereRabatt > 0) {
+          // Kortet er fjernet etter en rabattert produksjon → kreves inn
+          motionNok += tidligereRabatt
+          await supabase.from('production_drafts')
+            .update({ brand_discount_nok: 0 })
+            .eq('id', draftId)
+          console.log(`[start-production] merkerabatt paa ${tidligereRabatt} kr kreves inn (kortet fjernet)`)
+        }
+      } catch (bErr) {
+        console.warn('[start-production] merkerabatt hoppet over:', bErr)
+      }
       logUsageEvent({ productId: draftProductId, draftId, userId: userId || null, eventType: 'video_production', costNok: motionNok, meta: { jobId } })
       // Stemmebank: royalty-hendelser hvis produksjonen bruker en registrert
       // skuespillers stemme og/eller ansikt (LoRA-karakter)

@@ -502,6 +502,7 @@ router.post('/', async (req, res) => {
     musicFile, matchMusicLength,
     imageFit,
     voiceLanguage,
+    brandCard,
     segments,
     video_format,
     imageStyle,
@@ -901,6 +902,8 @@ router.post('/', async (req, res) => {
           campaignId,
           service,
           outroCard: outroCard ? { ...outroCard, jinglePath: outroCard.jingleFile ? path.join(MUSIC_DIR, outroCard.jingleFile) : null } : null,
+          // Merkekort mot rabatt (Lars 1/8) — 2 s ETTER artistens plakat
+          brandCard: brandCard || null,
         }
         configPath = `${jobDir}/config.json`
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2))

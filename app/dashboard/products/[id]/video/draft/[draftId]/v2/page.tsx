@@ -65,6 +65,8 @@ interface Draft {
   character_id?: string | null
   cost_accumulated?: number | null
   outro_config?: { message?: string | null; url?: string; imageUrl?: string | null } | null
+  // Merkekort mot rabatt (1/8)
+  brand_card?: boolean
 }
 
 // Sidepanel-rad: «nåværende verdi + Endre», utvider seg til velgeren
@@ -1686,6 +1688,28 @@ export default function DraftV2Page() {
                           </div>
                         )}
                       </div>
+                      {/* Merkekort mot rabatt (Lars 1/8) — kommer ETTER
+                          artistens plakat, aldri i stedet for */}
+                      {tenant.vertical === 'music' && (
+                        <label className="flex items-start gap-2 pt-2 border-t border-gray-100 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={draft.brand_card === true}
+                            onChange={(e) => updateDraftFields({ brand_card: e.currentTarget.checked } as any)}
+                            className="w-4 h-4 mt-0.5"
+                          />
+                          <span className="min-w-0">
+                            <span className="block text-[12.5px] text-gray-900">
+                              Avslutt med «{tenant.app_name || 'IndigoBoom'} VideoMaker» — få rabatt
+                            </span>
+                            <span className="block text-[11.5px] text-gray-400 leading-relaxed mt-0.5">
+                              Et lite kort på 2 sekunder helt til slutt, etter din egen sluttplakat.
+                              Du betaler mindre for produksjonen. Fjerner du kortet senere, går prisen tilbake til full.
+                            </span>
+                          </span>
+                        </label>
+                      )}
+
                       <div className="flex items-center gap-3 flex-wrap">
                         <label className="flex items-center gap-1.5 text-[11.5px] text-gray-500">
                           Bakgrunn
