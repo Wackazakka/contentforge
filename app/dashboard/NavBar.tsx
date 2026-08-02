@@ -29,7 +29,17 @@ export default function NavBar() {
     ...(tenant.billing_mode === 'invoice'
       ? [{ href: '/dashboard/credits', label: t('buy_credits') }]
       : [{ href: '/dashboard/billing', label: t('billing') }]),
-    ...(voiceBankAdmin ? [{ href: '/dashboard/voice-bank', label: t('voicebank') }, { href: '/dashboard/partners', label: t('partners') }, { href: '/dashboard/avregning', label: 'Avregning' }, { href: '/dashboard/api-keys', label: t('apikeys') }] : []),
+    // Admin-lenker (kun tenant-admins — vanlige artister ser dem aldri).
+    // Stemmebanken er skjult for artist-tenanter inntil videre (Lars 1/8):
+    // skuespiller-royalty er ikke tema for IndigoBoom ennå.
+    ...(voiceBankAdmin
+      ? [
+          ...(tenant.vertical === 'music' ? [] : [{ href: '/dashboard/voice-bank', label: t('voicebank') }]),
+          { href: '/dashboard/partners', label: t('partners') },
+          { href: '/dashboard/avregning', label: 'Avregning' },
+          { href: '/dashboard/api-keys', label: t('apikeys') },
+        ]
+      : []),
   ]
 
   // Stemmebank-lenken vises kun for tenant-admins (avgjøres server-side)

@@ -859,6 +859,10 @@ export default function ProductPage() {
               <p className="text-sm text-gray-600 mt-1">{t('createVideoApprovalDesc')}</p>
             </Link>
 
+            {/* Radioreklame og artikkel er ikke for artister (Lars 1/8:
+                «IndigoBooms artister er mest interessert i video») — men
+                bestaar for de andre vertikalene */}
+            {tenant.vertical !== 'music' && (
             <Link
               href={`/dashboard/products/${productId}/radio`}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#D97706] hover:bg-[#FFFBEB] transition-all text-left block"
@@ -867,6 +871,7 @@ export default function ProductPage() {
               <h3 className="font-semibold text-gray-900">Radioreklame</h3>
               <p className="text-sm text-gray-600 mt-1">Manus og innlest stemme — ferdig MP3 klar til nedlasting</p>
             </Link>
+            )}
 
             <Link
               href={`/dashboard/products/${productId}/avatar`}
@@ -877,6 +882,7 @@ export default function ProductPage() {
               <p className="text-sm text-gray-600 mt-1">En AI-vert fremfører manuset ditt med lyd og leppebevegelser</p>
             </Link>
 
+            {tenant.vertical !== 'music' && (
             <button
               onClick={() => router.push(`/dashboard/products/${productId}/article`)}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#3F7A4E] hover:bg-[#f0fdf8] transition-all text-left"
@@ -885,6 +891,7 @@ export default function ProductPage() {
               <h3 className="font-semibold text-gray-900">{t('createArticle')}</h3>
               <p className="text-sm text-gray-600 mt-1">{t('createArticleDesc')}</p>
             </button>
+            )}
           </div>
         </div>
 
