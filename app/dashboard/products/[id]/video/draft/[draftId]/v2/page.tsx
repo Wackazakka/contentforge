@@ -332,6 +332,27 @@ export default function DraftV2Page() {
   }
   useEffect(() => { if (productId) refreshImageLibrary() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Slett bilde fra biblioteket (Lars 1/8: «man kan ikke slette bilder»).
+  // API-et fantes, men var aldri koblet til noe man kunne trykke paa.
+  const slettBilde = async (img: { url: string; name: string }) => {
+    if (!confirm(`Slette «${img.name}» fra biblioteket? Scener som bruker bildet beholder det til du velger et annet.`)) return
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      const res = await fetch(`/api/products/images?productId=${productId}&name=${encodeURIComponent(img.name)}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error || 'Sletting feilet')
+      }
+      await refreshImageLibrary()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Sletting feilet')
+    }
+  }
+
   const setSegmentImage = (index: number, url: string) => {
     updateSegment(index, { image_url: url, approved: false })
     setImagePickerFor(null)
@@ -931,14 +952,23 @@ export default function DraftV2Page() {
                                   <p className="col-span-full text-[12px] text-gray-400">Ingen bilder ennå — last opp under.</p>
                                 )}
                                 {imageLibrary.map((img) => (
-                                  <button
-                                    key={img.url}
-                                    type="button"
-                                    onClick={() => setSegmentImage(index, img.url)}
-                                    className={`aspect-square rounded-lg overflow-hidden border-2 ${seg.image_url === img.url ? 'border-[var(--ember-deep)]' : 'border-transparent hover:border-gray-300'}`}
-                                  >
-                                    <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
-                                  </button>
+                                  <div key={img.url} className="relative group">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSegmentImage(index, img.url)}
+                                      className={`w-full aspect-square rounded-lg overflow-hidden border-2 ${seg.image_url === img.url ? 'border-[var(--ember-deep)]' : 'border-transparent hover:border-gray-300'}`}
+                                    >
+                                      <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => slettBilde(img)}
+                                      title="Slett fra biblioteket"
+                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white/90 border border-gray-300 text-gray-500 text-[11px] leading-none opacity-0 group-hover:opacity-100 hover:text-red-600 hover:border-red-300"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
                                 ))}
                               </div>
                               <label className="text-[12.5px] text-gray-600 cursor-pointer underline">
