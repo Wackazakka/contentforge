@@ -29,7 +29,7 @@ export default function NavBar() {
     ...(tenant.billing_mode === 'invoice'
       ? [{ href: '/dashboard/credits', label: t('buy_credits') }]
       : [{ href: '/dashboard/billing', label: t('billing') }]),
-    ...(voiceBankAdmin ? [{ href: '/dashboard/voice-bank', label: t('voicebank') }, { href: '/dashboard/partners', label: t('partners') }, { href: '/dashboard/api-keys', label: t('apikeys') }] : []),
+    ...(voiceBankAdmin ? [{ href: '/dashboard/voice-bank', label: t('voicebank') }, { href: '/dashboard/partners', label: t('partners') }, { href: '/dashboard/avregning', label: 'Avregning' }, { href: '/dashboard/api-keys', label: t('apikeys') }] : []),
   ]
 
   // Stemmebank-lenken vises kun for tenant-admins (avgjøres server-side)
