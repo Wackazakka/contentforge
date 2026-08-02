@@ -108,6 +108,7 @@ export default function ProductPage() {
   const [jobs, setJobs] = useState<ProductionJob[]>([])
   // Fra ferdig video tilbake til utkastet som lagde den (Lars 2/8)
   const [draftByJobId, setDraftByJobId] = useState<Record<string, string>>({})
+  const [titleByJobId, setTitleByJobId] = useState<Record<string, string>>({})
   const [jobsLoading, setJobsLoading] = useState(false)
   // Bildebiblioteket (artist-images/<productId> i R2): administreres her,
   // brukes som segmentbilder i editorene. For music-vertikalen er dette
@@ -514,6 +515,16 @@ export default function ProductPage() {
             })
           }
           setDraftByJobId(draftIds)
+
+          // Jobbens tittel gjoer filmene skillbare (Lars 2/8: alle het
+          // «Video – 1 Aug 2026», umulig aa se hvilken som var hvilken)
+          const { data: alleJobs } = await supabase
+            .from('production_jobs')
+            .select('id, title')
+            .in('id', jobIds)
+          const titler: Record<string, string> = {}
+          ;(alleJobs || []).forEach((j: any) => { if (j.title) titler[j.id] = j.title })
+          setTitleByJobId(titler)
         }
 
         setVideos((videosData || []).map((v: any) => ({ ...v, video_format: formatByJobId[v.job_id] || null })))
@@ -1335,8 +1346,14 @@ export default function ProductPage() {
                 ) : videos.length > 0 ? (
                   <div className="space-y-4">
                     {videos.map((video) => {
-                      const title =
-                        video.metadata?.title || `Video – ${formatDate(video.created_at)}`
+                      // Tittel fra utkastet naar den finnes; ellers dato.
+                      // Klokkeslett ALLTID med — flere filmer samme dag var
+                      // umulige aa skille (Lars 2/8).
+                      const tid = new Date(video.created_at).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })
+                      const navn = video.metadata?.title || titleByJobId[video.job_id]
+                      const title = navn
+                        ? `${navn} — ${formatDate(video.created_at)} kl. ${tid}`
+                        : `Video – ${formatDate(video.created_at)} kl. ${tid}`
                       return (
                         <div key={video.id} className="border border-gray-200 rounded-lg p-3">
                           <div className="flex items-center gap-2 mb-2">
