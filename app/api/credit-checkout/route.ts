@@ -40,13 +40,16 @@ export async function POST(request: Request) {
       .single()
     if (!org) return NextResponse.json({ error: 'Fant ingen organisasjon' }, { status: 404 })
     const { data: tenant } = org.tenant_id
-      ? await supabase.from('tenants').select('billing_mode, slug').eq('id', org.tenant_id).single()
+      ? await supabase.from('tenants').select('billing_mode, slug, vertical').eq('id', org.tenant_id).single()
       : { data: null }
     if (tenant?.billing_mode !== 'invoice') {
       return NextResponse.json({ error: 'Kredittkjøp gjelder kun white-label-kunder' }, { status: 400 })
     }
-    // Privatpakkene har bedre kurs enn bedriftskurven — kun for voicebank-tenanten
-    if (packageId.startsWith('privat-') && tenant.slug !== 'voicebank') {
+    // Privatpakkene har bedre kurs enn bedriftskurven. Gjelder VoiceBank og
+    // artist-tenanter (music) — artister er enkeltpersoner, ikke byraaer
+    // (Lars 1/8: IndigoBoom-artister skal kunne kjoepe dem).
+    const privatOK = tenant.slug === 'voicebank' || (tenant as any).vertical === 'music'
+    if (packageId.startsWith('privat-') && !privatOK) {
       return NextResponse.json({ error: 'Ukjent pakke' }, { status: 400 })
     }
 

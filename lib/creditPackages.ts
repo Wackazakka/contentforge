@@ -26,13 +26,20 @@ export const CREDIT_PACKAGES = [
   { id: 'byraa', amount: 100000, credits: 1000000 },
 ] as const
 
-// Forbrukerpakker (/for-deg): flat kurs 1 kr = 10 kreditter (Lars 2026-07-28).
-// Bedre kurs enn bedriftskurven — derfor gates privat-* til voicebank-tenanten
-// i credit-checkout.
+// Forbrukerpakker (/for-deg og artist-tenanter). Grunnkurs 1 kr = 10 kreditter;
+// bonus oppover gir en reell grunn til aa ta en stoerre pakke (Lars 1/8).
+// Bedre kurs enn bedriftskurven — derfor gates privat-* i credit-checkout.
+// «rekker» er til kundevendt tekst: en typisk artistvideo (8 scener med
+// bevegelse) koster ~590 kreditter, ~800 med proeving paa animasjonene.
 export const CONSUMER_CREDIT_PACKAGES = [
-  { id: 'privat-liten', amount: 200, credits: 2000 },
-  { id: 'privat-mellom', amount: 500, credits: 5000 },
-  { id: 'privat-stor', amount: 1000, credits: 10000 },
+  { id: 'privat-liten', amount: 200, credits: 2000, bonusPct: 0, tittel: 'Ett slipp', rekker: '2–3 filmer' },
+  { id: 'privat-mellom', amount: 500, credits: 5500, bonusPct: 10, tittel: 'En kampanje', rekker: '6–8 filmer' },
+  { id: 'privat-stor', amount: 1000, credits: 12000, bonusPct: 20, tittel: 'Et helt år', rekker: '13–18 filmer' },
 ] as const
+
+// Kredittene utloeper ALDRI (Lars 1/8): en artist som slipper album annethvert
+// aar skal ikke miste saldoen — og tidsbegrenset forskudd er dessuten et
+// forbrukerrettslig minefelt i Norge.
+export const CREDITS_EXPIRE = false
 
 export const ALL_CREDIT_PACKAGES = [...CREDIT_PACKAGES, ...CONSUMER_CREDIT_PACKAGES]

@@ -138,8 +138,14 @@ export default function KredittClient() {
       <div className="fd-packages">
         {CONSUMER_CREDIT_PACKAGES.map((p) => (
           <div key={p.id} className="fd-package">
+            {/* Selg paa hva pakken GJOER, ikke paa kredittallet (Lars 1/8) */}
+            <span className="fd-package-title">{(p as any).tittel}</span>
             <span className="fd-package-price fd-num">{p.amount.toLocaleString('nb-NO')} kr</span>
-            <span className="fd-package-credits fd-num">{p.credits.toLocaleString('nb-NO')} kreditter</span>
+            <span className="fd-package-credits fd-num">
+              {p.credits.toLocaleString('nb-NO')} kreditter
+              {(p as any).bonusPct > 0 && <em className="fd-package-bonus"> +{(p as any).bonusPct} %</em>}
+            </span>
+            {(p as any).rekker && <span className="fd-package-help">Rekker til {(p as any).rekker}</span>}
             <span className="fd-package-help">{PACKAGE_HELP[p.id]}</span>
             {BILLING_ON && loggedIn && (
               <button type="button" className="fd-cta" onClick={() => buy(p.id)} disabled={!!busy} style={{ opacity: busy && busy !== p.id ? 0.5 : 1 }}>

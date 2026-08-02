@@ -257,6 +257,9 @@
 .fd-package-price { font-family: var(--fd-display); font-weight: 600; font-size: 36px; }
 .fd-package-credits { font-size: 15px; color: var(--fd-ink-soft); }
 .fd-package-help { font-size: 14px; color: var(--fd-ink-muted); flex: 1; }
+/* Pakketittel + bonusmerke (Lars 1/8) */
+.fd-package-title { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fd-ink-muted); margin-bottom: 4px; }
+.fd-package-bonus { font-style: normal; font-weight: 600; color: var(--fd-terracotta-dark, #A5128A); margin-left: 6px; }
 .fd-package button {
   border: 0; cursor: pointer; font-family: inherit;
 }
