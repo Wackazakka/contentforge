@@ -113,6 +113,19 @@ export default function DraftV2Page() {
   const [productName, setProductName] = useState('')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Sidepanel (fase 2): musikkbibliotek + hvilken rad som er åpen for endring
+  // Artistens saldo (Lars 1/8: «hvor mange credits artisten har igjen»)
+  const [saldo, setSaldo] = useState<number | null>(null)
+  const hentSaldo = async () => {
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const d = await fetch('/api/org-balance', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
+      if (typeof d.balance === 'number') setSaldo(d.balance)
+    } catch { /* ingen saldo aa vise */ }
+  }
+  useEffect(() => { hentSaldo() }, [])
+
   const [musicLibrary, setMusicLibrary] = useState<MusicFile[]>([])
   const [openRow, setOpenRow] = useState<string | null>(null)
   const [musicDur, setMusicDur] = useState<number | null>(null)
@@ -673,6 +686,11 @@ export default function DraftV2Page() {
             </p>
           </div>
           <div className="flex flex-col items-start sm:items-end gap-2">
+            {saldo !== null && (
+              <p className="text-[13px] text-gray-500">
+                Du har <span className="font-semibold text-gray-900 tabular-nums">{fmtCredits(saldo)}</span> igjen
+              </p>
+            )}
             <p className={`text-[13px] font-medium ${allApproved ? 'text-green-700' : 'text-amber-700'}`}>
               {allApproved
                 ? `Alle ${segments.length} scenene er godkjent`
@@ -1172,12 +1190,29 @@ export default function DraftV2Page() {
                 const nTalk = ms.filter((m) => m === 'talk').length
                 const nImg = segments.filter((s) => !s.image_url || !s.image_url.trim()).length
                 const est = (nMove * COSTS_NOK.animate5s + nTalk * COSTS_NOK.lipsyncTypical + nImg * COSTS_NOK.imageStandard) * pf
-                if (est <= 0) return null
+                const nok = saldo
+                const dekning = nok !== null && est > 0 ? nok >= est : null
                 return (
-                  <div className="mt-2 pt-2 border-t border-gray-100 flex items-baseline justify-between gap-3">
-                    <span className="text-[13px] text-gray-500">Neste produksjon</span>
-                    <span className="text-[15px] font-medium text-gray-900 tabular-nums">~{fmtCredits(est)}</span>
-                  </div>
+                  <>
+                    {est > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-100 flex items-baseline justify-between gap-3">
+                        <span className="text-[13px] text-gray-500">Neste produksjon</span>
+                        <span className="text-[15px] font-medium text-gray-900 tabular-nums">~{fmtCredits(est)}</span>
+                      </div>
+                    )}
+                    {nok !== null && (
+                      <div className={`mt-2 pt-2 border-t border-gray-100 flex items-baseline justify-between gap-3 ${dekning === false ? 'text-red-600' : 'text-green-700'}`}>
+                        <span className="text-[13px]">Du har igjen</span>
+                        <span className="text-[15px] font-semibold tabular-nums">{fmtCredits(nok)}</span>
+                      </div>
+                    )}
+                    {dekning === false && (
+                      <p className="mt-1 text-[11.5px] text-red-600">
+                        Ikke nok til denne produksjonen.{' '}
+                        <Link href="/for-deg/kreditt" className="underline">Kjøp flere kreditter</Link>
+                      </p>
+                    )}
+                  </>
                 )
               })()}
               <p className="mt-2 text-[11.5px] text-gray-400">
@@ -1554,6 +1589,13 @@ export default function DraftV2Page() {
       <div className="lg:hidden fixed bottom-4 right-4 z-40 bg-white/95 backdrop-blur border border-gray-200 shadow-lg rounded-xl px-3 py-2 text-[12.5px]">
         <span className="text-gray-500">Påløpt </span>
         <span className="font-semibold text-gray-900 tabular-nums">{fmtCredits(paaloptNok)}</span>
+        {saldo !== null && (
+          <>
+            <span className="text-gray-300"> · </span>
+            <span className="text-gray-500">igjen </span>
+            <span className="font-semibold text-gray-900 tabular-nums">{fmtCredits(saldo)}</span>
+          </>
+        )}
       </div>
     </div>
   )

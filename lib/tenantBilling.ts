@@ -155,23 +155,15 @@ export async function logUsageEvent(e: {
     const pt = await getProductTenant(productId)
     if (!pt.tenantId) return // ingen tenant-kobling (eldre data) → hopp over
     const supabase = admin()
-    // Skaler til partnerpris: COSTS_NOK er råkost×2 (100 %); hvis vårt påslag mot
-    // denne partneren er endret (markup_percent på partner-nivået), justeres grunnlaget.
-    let costNok = e.costNok
-    try {
-      const { data: t } = await supabase.from('tenants').select('id, parent_tenant_id, markup_percent').eq('id', pt.tenantId).single()
-      if (t) {
-        // finn partner-nivået (direkte barn av root): tenanten selv eller dens forelder
-        let partner = t
-        if (t.parent_tenant_id) {
-          const { data: p } = await supabase.from('tenants').select('id, parent_tenant_id, markup_percent').eq('id', t.parent_tenant_id).single()
-          if (p && p.parent_tenant_id === null) partner = t // forelder er root → t ER partner-nivå... 
-          else if (p) partner = p
-        }
-        const ourMarkup = Number(partner.markup_percent ?? 100)
-        costNok = e.costNok * ((1 + ourMarkup / 100) / 2)
-      }
-    } catch { /* behold standard */ }
+    // ContentForges engrospris = COSTS_NOK: råkost + vårt eget påslag (Lars 1/8:
+    // «ContentForges andel er produksjonsprisen + påslaget»).
+    //
+    // ⚠️ Her sto tidligere en skalering med partnerens markup_percent. Men det
+    // feltet styrer KUNDEPRISEN (chainPriceFactor) — brukt begge steder ble
+    // cost_nok og customer_cost_nok identiske, og white-labelens margin ble 0
+    // i avregningen. Engrosprisen er den samme uansett hva partneren tar av
+    // sine egne kunder; vil vi differensiere den, trengs et eget felt.
+    const costNok = e.costNok
     // Kundepris (hele kjedens påslag) fryses på raden — sluttkundens saldo
     // trekkes til DERES pris, partnersaldoen til partnerpris (cost_nok)
     const customerCostNok = e.costNok * (await chainFactorByTenantId(pt.tenantId))
