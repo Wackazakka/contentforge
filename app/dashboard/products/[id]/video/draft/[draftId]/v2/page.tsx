@@ -921,7 +921,11 @@ export default function DraftV2Page() {
                                 rows={2}
                                 className="w-full resize-none bg-transparent text-[14px] leading-relaxed text-gray-700 focus:outline-none"
                               />
-                              {(voicePreviews[index] || (seg.own_voice && seg.voiceover_url)) && (
+                              {/* Vis avspilleren for ALL lyd som finnes — ikke bare
+                                  egne innspillinger. AI-stemmer fra en tidligere
+                                  oekt laa der uten avspiller, saa man ikke kunne
+                                  hoere dem uten aa lage nye (Lars 2/8). */}
+                              {(voicePreviews[index] || seg.voiceover_url) && (
                                 <audio controls src={voicePreviews[index] || seg.voiceover_url} className="mt-2 w-full h-8" />
                               )}
                             </div>

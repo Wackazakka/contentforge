@@ -1884,7 +1884,7 @@ export default function DraftPage() {
 
                       {/* Voiceover preview */}
                       <div className="mt-2 flex items-center gap-2">
-                        {(voicePreviews[index] || (segment.own_voice && segment.voiceover_url)) ? (
+                        {(voicePreviews[index] || segment.voiceover_url) ? (
                           <audio controls src={voicePreviews[index] || segment.voiceover_url} className="w-full h-8" />
                         ) : null}
                         {/* TTS-preview skjules når «Egen stemme» er valgt — det finnes ingen AI-stemme å generere */}
