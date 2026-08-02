@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
-import { CREDIT_PACKAGES } from '@/lib/creditPackages'
+import { CREDIT_PACKAGES, CONSUMER_CREDIT_PACKAGES } from '@/lib/creditPackages'
+import { useTenant } from '@/lib/tenantContext'
 
 // Selvbetjent kredittkjøp for white-label-sluttkunder: se saldo, kjøp pakke.
 // Saldoen trekkes automatisk for hver produksjon (vises også i taxameteret).
@@ -13,6 +14,11 @@ const nok = (n: number) => `${n.toLocaleString('nb-NO')} kr`
 
 export default function CreditsPage() {
   const searchParams = useSearchParams()
+  // Artister er enkeltpersoner, ikke byraaer: de skal se 200-1000-pakkene,
+  // ikke bedriftskurven som starter paa 1 000 kr (Lars 2/8).
+  const tenant = useTenant()
+  const erArtist = tenant.vertical === 'music'
+  const PAKKER: readonly any[] = erArtist ? CONSUMER_CREDIT_PACKAGES : CREDIT_PACKAGES
   const [saldo, setSaldo] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -87,25 +93,39 @@ export default function CreditsPage() {
 
         <h2 className="font-semibold text-gray-900 mb-3">Kjøp mer</h2>
         <div className="grid sm:grid-cols-3 gap-4 mb-4">
-          {CREDIT_PACKAGES.map((p) => (
+          {PAKKER.map((p) => (
             <button
               key={p.id}
               onClick={() => buy(p.id)}
               disabled={!!busy}
               className="bg-white rounded-xl border border-gray-200 p-5 text-left hover:border-[var(--ember-deep)] disabled:opacity-50 transition-colors"
             >
+              {p.tittel && (
+                <div className="text-[12px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{p.tittel}</div>
+              )}
               <div className="text-2xl font-bold text-gray-900">{nok(p.amount)}</div>
-              <div className="text-base font-semibold text-gray-700 mb-1">{p.credits.toLocaleString('nb-NO')} kreditter</div>
-              <div className={`text-sm font-medium mb-2 ${p.amount >= 100000 ? 'text-green-700' : 'text-gray-500'}`}>
-                kurs {(p.amount / p.credits).toFixed(3).replace('.', ',')} kr/kreditt{p.amount >= 100000 ? ' — beste kurs' : ''}
+              <div className="text-base font-semibold text-gray-700 mb-1">
+                {p.credits.toLocaleString('nb-NO')} kreditter
+                {p.bonusPct > 0 && <span className="ml-1.5 text-[var(--ember-deep)]">+{p.bonusPct} %</span>}
               </div>
+              {p.rekker ? (
+                <div className="text-sm text-gray-500 mb-2">Rekker til {p.rekker}</div>
+              ) : (
+                <div className={`text-sm font-medium mb-2 ${p.amount >= 100000 ? 'text-green-700' : 'text-gray-500'}`}>
+                  kurs {(p.amount / p.credits).toFixed(3).replace('.', ',')} kr/kreditt{p.amount >= 100000 ? ' — beste kurs' : ''}
+                </div>
+              )}
               <div className="text-sm text-[var(--ember-deep)] font-semibold">
                 {busy === p.id ? 'Åpner betaling …' : 'Kjøp →'}
               </div>
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-400 mb-4">Betaling med kort. Kursen bedres med kjøpets størrelse — beste kurs er 1 kreditt = 0,10 kr. Taxameteret i editoren viser alltid hva en produksjon vil trekke fra saldoen.</p>
+        <p className="text-xs text-gray-400 mb-4">
+          {erArtist
+            ? 'Betaling med kort. Kredittene utløper aldri. Taxameteret i redigereren viser alltid hva en produksjon vil trekke fra saldoen — og det du lager selv (egne bilder, egen stemme, egen video) er gratis.'
+            : 'Betaling med kort. Kursen bedres med kjøpets størrelse — beste kurs er 1 kreditt = 0,10 kr. Taxameteret i editoren viser alltid hva en produksjon vil trekke fra saldoen.'}
+        </p>
 
         {error && <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
       </div>
