@@ -901,6 +901,9 @@ export default function DraftV2Page() {
                             </div>
                           )}
                           <div className="flex flex-wrap items-center gap-2">
+                            {/* Finnes lyden alt, ligger den i avspilleren over —
+                                da skal knappen LAGE en ny, ikke «hoere» (Lars 2/8:
+                                samme feil som paa animasjonen). */}
                             {seg.no_voice !== true && draft.voice_id !== 'own' && (
                               <button
                                 type="button"
@@ -908,7 +911,11 @@ export default function DraftV2Page() {
                                 disabled={voiceLoading[index]}
                                 className="px-3.5 py-2 rounded-lg border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-[13px] font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-50"
                               >
-                                {voiceLoading[index] ? 'Genererer…' : '▶ Hør stemmen'}
+                                {voiceLoading[index]
+                                  ? 'Lager stemmen…'
+                                  : (voicePreviews[index] || seg.voiceover_url)
+                                    ? `↻ Lag ny stemme (${fmtCredits(COSTS_NOK.voiceoverPreview * pf)})`
+                                    : `▶ Lag stemmen (${fmtCredits(COSTS_NOK.voiceoverPreview * pf)})`}
                               </button>
                             )}
                             {/* Egen stemme */}

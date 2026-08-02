@@ -1897,7 +1897,7 @@ export default function DraftPage() {
                           >
                             {voiceLoading[index]
                               ? t('generatingVoiceover')
-                              : voicePreviews[index]
+                              : (voicePreviews[index] || segment.voiceover_url)
                                 ? t('regenerateAudio')
                                 : t('previewVoice')}
                           </button>
