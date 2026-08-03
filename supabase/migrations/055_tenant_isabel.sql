@@ -1,6 +1,6 @@
 -- Isabel's VideoMaker -- en kopi av IndigoBoom-white-labelen, paa engelsk
--- (Lars 3/8: «en kopi av dette til min niese Isabel ... engelsk hele veien,
--- men ellers identisk»).
+-- (Lars 3/8: "en kopi av dette til min niese Isabel ... engelsk hele veien,
+-- men ellers identisk").
 --
 -- Hvorfor temp-tabell i stedet for en INSERT med kolonneliste: da arver Isabel
 -- ALT fra IndigoBoom -- ogsaa kolonner som kommer til senere, og som en
