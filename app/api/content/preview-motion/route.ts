@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { COSTS_NOK } from '@/lib/costs'
+import { holdSecondsFor } from '@/lib/sceneTiming'
 
 // «Se animasjonen» (Lars 31/7): generer ÉN scenes bevegelsesklipp og vis det
 // i redigereren FØR produksjon — i stedet for å oppdage en rar animasjon i
@@ -50,7 +51,9 @@ export async function POST(request: Request) {
     // Scenens lengde: klienten kjenner musikklengden, men serveren skal ikke
     // stole på den — send heller hold + antatt tale. Dropletens preview
     // klamrer til [3, 60] uansett.
-    const holdSeconds = Number(seg.hold_seconds) > 0 ? Number(seg.hold_seconds) : 0
+    // MÅ være nøyaktig samme regel som produksjonen bruker — tallet inngår i
+    // klippets fingeravtrykk (se lib/sceneTiming.ts)
+    const holdSeconds = holdSecondsFor(seg)
     const targetSec = Math.max(5, holdSeconds + 3)
 
     const res = await fetch(`${DROPLET}/jobs/preview-clip`, {

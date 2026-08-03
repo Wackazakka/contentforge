@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { holdSecondsFor } from './sceneTiming'
 import { fetchVerticalForOrganization } from '@/lib/senderContext.mjs'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
@@ -179,6 +180,11 @@ export async function startProductionForDraft(
     voiceoverUrl: (() => {
       if (!s.voiceover_url) return null
       if (s.own_voice) return s.voiceover_url
+      // Tom talelinje + gammelt AI-opptak = en lyd som ikke hoerer til noe.
+      // Lars 3/8: et 0,55 s stemmefragment satt igjen paa en scene uten tekst
+      // og hoertes som et smell i overgangen. Egne innspillinger unntas —
+      // der ER opptaket innholdet, uavhengig av hva som staar skrevet.
+      if (!String(s.voiceover || '').trim()) return null
       if (draft.voice_id === 'own') return null // AI-lyd har ingen plass her
       // Uten stempel vet vi ikke hvilken stemme som lagde opptaket — og et
       // opptak vi ikke kan gå god for skal ikke inn i filmen. Det koster en
@@ -202,7 +208,7 @@ export async function startProductionForDraft(
     // Musikkdrevet tempo: hviletid etter stemmen per segment. Stille
     // segmenter uten film=musikk og uten egen verdi får 5 s standard —
     // ellers ville scenen vart 0,4 s.
-    holdSeconds: Number(s.hold_seconds) > 0 ? Number(s.hold_seconds) : (s.no_voice === true ? 5 : 0),
+    holdSeconds: holdSecondsFor(s),
     animate: s.animate === true,
     motion: s.motion || (s.animate === true ? 'move' : 'none'),
   }))

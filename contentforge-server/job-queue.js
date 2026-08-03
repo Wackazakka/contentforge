@@ -626,8 +626,16 @@ router.post('/', async (req, res) => {
           // STILLE segment (Lars 31/7): bare bilde + musikk — hele
           // stemmesteget hoppes over. Ingen vo-fil skrives; voDurs faar 0
           // (probe paa manglende fil), og rendereren ser vo_path=null.
-          if (segment.noVoice === true) {
-            console.log(`[job-queue] Segment ${i + 1}: stille segment - ingen tale`)
+          // Ingen tekst OG ingen godkjent lyd = ingenting aa si. Uten dette
+          // sendte vi en tom streng til TTS og fikk et lydfragment som smalt
+          // i overgangen (Lars 3/8: 0,55 s stemme paa en scene uten tekst).
+          // NB: vi setter IKKE segment.noVoice — det tallet inngaar i klippets
+          // fingeravtrykk, og aa endre det her ville gitt produksjonen et annet
+          // fingeravtrykk enn forhaandsvisningen (samme felle som hviletiden).
+          const harNoeAaSi = !!segment.voiceoverUrl || !!String(segment.voiceover || segment.text || '').trim()
+          segment._utenLyd = segment.noVoice === true || !harNoeAaSi
+          if (segment._utenLyd) {
+            console.log(`[job-queue] Segment ${i + 1}: ${segment.noVoice === true ? 'stille segment - ingen tale' : 'ingen tekst og ingen lyd - hopper over stemmen'}`)
           } else {
           // Use the APPROVED (previewed) voiceover if available — ElevenLabs is
           // non-deterministic, so regenerating gives a different take than the one the
@@ -927,7 +935,9 @@ router.post('/', async (req, res) => {
               bg: `${jobDir}/image_${i + 1}.png`,
               clip: segClips[i] || undefined,
               // Stille segment: ingen vo_path -> rendereren lager bilde+musikk
-              vo_path: seg.noVoice === true ? undefined : `${jobDir}/vo_${i + 1}.mp3`,
+              // _utenLyd daekker baade «uten tale» og scener der teksten er
+              // toemt men et gammelt opptak laa igjen (Lars 3/8)
+              vo_path: (seg._utenLyd || seg.noVoice === true) ? undefined : `${jobDir}/vo_${i + 1}.mp3`,
               lines: [],
               sub: subText.length > 80 ? subText.substring(0, 77) + '...' : subText,
               // Musikkdrevet tempo (2026-07-30): hviletid etter stemmen —
