@@ -613,11 +613,20 @@ export default function DraftV2Page() {
   const brukTidligereKlipp = async (index: number, h: { nonce: string; url: string; style?: string; prompt?: string }) => {
     if (!draft) return
     const segments = [...draft.segments]
+    const seg = segments[index]
+    const erBevegelse = (seg.motion || (seg.animate === true ? 'move' : 'none')) === 'move'
     segments[index] = {
-      ...segments[index],
+      ...seg,
       clip_nonce: h.nonce === 'original' ? undefined : h.nonce,
       motion_style: h.style || 'push-in',
       motion_prompt: h.prompt || '',
+      // FEST fila, ikke bare oppskriften (Lars 3/8). Å gjenopprette oppskriften
+      // traff bare det gamle klippet hvis ALLE ingrediensene var like — og
+      // klipp laget før hviletid-fiksen i dag ligger under et fingeravtrykk
+      // produksjonen aldri kan naa. Da viste redigereren ett klipp mens filmen
+      // hentet et annet, og begge «hadde rett». Nå brukes nøyaktig fila du ser.
+      // Kun for bevegelsesklipp: lip-sync bærer tale, og den skal ikke pinnes.
+      ...(erBevegelse ? { video_url: h.url, video_name: 'valgt klipp' } : {}),
     }
     setDraft({ ...draft, segments })
     await persistSegments(segments)
