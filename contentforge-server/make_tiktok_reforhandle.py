@@ -404,17 +404,25 @@ def _draw_brand_card(cfg, width, height):
                 tmp.write(resp.read())
             tmp.flush()
             logo = Image.open(tmp.name).convert('RGBA')
-            ratio = min((width * 0.42) / logo.width, (height * 0.22) / logo.height)
+            # Bredden er styrbar per merkevare: et kompakt merke klarer seg med
+            # 42 % av bredden, mens et bredt lockup blir uleselig paa samme mal.
+            _bw = float(cfg.get('logoScale') or 0.42)
+            _bh = float(cfg.get('logoScaleH') or 0.22)
+            ratio = min((width * _bw) / logo.width, (height * _bh) / logo.height)
             logo = logo.resize((max(1, int(logo.width * ratio)), max(1, int(logo.height * ratio))), Image.LANCZOS)
         except Exception as e:
             print(f'[brand_card] logo hoppet over: {e}', file=sys.stderr)
             logo = None
 
-    tekst = cfg.get('text') or 'VideoMaker'
+    # Tom streng = INGEN tekst. Baerer logoen allerede navnet (Isabels lockup
+    # har baade navn og undertittel), blir en gjentakelse under bare stoy.
+    # Mangler noekkelen helt, gjelder standarden som foer.
+    tekst = cfg['text'] if 'text' in cfg else 'VideoMaker'
+    tekst = (tekst or '').strip()
     size = max(34, min(64, width // 20))
     font = ImageFont.truetype(FONT_REG, size)
-    tbb = draw.textbbox((0, 0), tekst, font=font)
-    t_h = tbb[3] - tbb[1]
+    tbb = draw.textbbox((0, 0), tekst, font=font) if tekst else (0, 0, 0, 0)
+    t_h = (tbb[3] - tbb[1]) if tekst else 0
 
     url = (cfg.get('url') or '').strip()
     ufont = None
@@ -427,13 +435,14 @@ def _draw_brand_card(cfg, width, height):
 
     gap1 = int(height * 0.035)
     gap2 = int(height * 0.022)
-    total = (logo.height + gap1 if logo else 0) + t_h + (gap2 + u_h if url else 0)
+    total = (logo.height + (gap1 if tekst or url else 0) if logo else 0) + t_h + (gap2 + u_h if url else 0)
     y = (height - total) // 2
 
     if logo:
         img.paste(logo, ((width - logo.width) // 2, y), logo)
-        y += logo.height + gap1
-    draw.text(((width - (tbb[2] - tbb[0])) // 2, y - tbb[1]), tekst, font=font, fill=fg)
+        y += logo.height + (gap1 if tekst or url else 0)
+    if tekst:
+        draw.text(((width - (tbb[2] - tbb[0])) // 2, y - tbb[1]), tekst, font=font, fill=fg)
     if url:
         y += t_h + gap2
         draw.text(((width - (ubb[2] - ubb[0])) // 2, y - ubb[1]), url, font=ufont, fill=fg)

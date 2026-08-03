@@ -15,6 +15,27 @@ const DROPLET = 'http://139.59.212.218:3002'
 const BUCKET = process.env.R2_BUCKET_NAME || 'contentforge-assets'
 const PUBLIC = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
+// Lesbar tekstfarge paa en gitt bakgrunn. Foer ble den utledet av «finnes
+// --paper?», som antok at enhver tenantfarge var lys — en moerk merkevare
+// ville faatt moerk tekst paa moerkt kort (Lars 3/8, Isabels lilla/sorte
+// uttrykk). Naa avgjoer selve lysstyrken.
+function lesbarTekst(bg: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec((bg || '').trim())
+  if (!m) return '#FFFFFF'
+  const n = parseInt(m[1], 16)
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  return lum > 0.55 ? '#14161B' : '#FFFFFF'
+}
+
+// Merkekortets tekst: «<Navn> VideoMaker» — men heter tenanten allerede
+// «Isabel's VideoMaker», skal ordet ikke dubleres (Lars 3/8).
+function merkekortTekst(navn: string): string {
+  const n = (navn || '').trim()
+  if (!n) return 'VideoMaker'
+  return /videomaker/i.test(n) ? n : `${n} VideoMaker`
+}
+
 function admin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -58,11 +79,11 @@ export async function GET(request: Request) {
     // Nøyaktig samme oppskrift som lib/production.ts bygger for filmen
     const colors = (tn.colors || {}) as Record<string, string>
     const cfg = {
-      text: `${tn.app_name || ''} VideoMaker`.trim(),
+      text: merkekortTekst(tn.app_name || ''),
       url: tn.brand_card_url || null,
       logoUrl: tn.logo_url || null,
-      bgColor: colors['--paper'] || colors['--ink'] || '#14161B',
-      textColor: colors['--paper'] ? '#14161B' : '#FFFFFF',
+      bgColor: colors['--brand-card-bg'] || colors['--paper'] || colors['--ink'] || '#14161B',
+      textColor: lesbarTekst(colors['--brand-card-bg'] || colors['--paper'] || colors['--ink'] || '#14161B'),
     }
 
     const key = `brand-cards/${createHash('sha1')

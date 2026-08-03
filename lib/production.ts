@@ -11,6 +11,27 @@ function stripEmojis(text: string): string {
     .trim()
 }
 
+// Lesbar tekstfarge paa en gitt bakgrunn. Foer ble den utledet av «finnes
+// --paper?», som antok at enhver tenantfarge var lys — en moerk merkevare
+// ville faatt moerk tekst paa moerkt kort (Lars 3/8, Isabels lilla/sorte
+// uttrykk). Naa avgjoer selve lysstyrken.
+function lesbarTekst(bg: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec((bg || '').trim())
+  if (!m) return '#FFFFFF'
+  const n = parseInt(m[1], 16)
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  return lum > 0.55 ? '#14161B' : '#FFFFFF'
+}
+
+// Merkekortets tekst: «<Navn> VideoMaker» — men heter tenanten allerede
+// «Isabel's VideoMaker», skal ordet ikke dubleres (Lars 3/8).
+function merkekortTekst(navn: string): string {
+  const n = (navn || '').trim()
+  if (!n) return 'VideoMaker'
+  return /videomaker/i.test(n) ? n : `${n} VideoMaker`
+}
+
 export interface ProductionOptions {
   imageStyle?: string
   includeOutroCard?: boolean
@@ -135,11 +156,11 @@ export async function startProductionForDraft(
   const tn: any = (tenantRad as any)?.tenants || null
   const brandCard = (draft.brand_card === true && tn)
     ? {
-        text: `${tn.app_name || tn.name || ''} VideoMaker`.trim(),
+        text: merkekortTekst(tn.app_name || tn.name || ''),
         logoUrl: tn.logo_url || null,
         url: tn.brand_card_url || null,
-        bgColor: (tn.colors && (tn.colors['--paper'] || tn.colors['--ink'])) || '#14161B',
-        textColor: (tn.colors && tn.colors['--paper']) ? '#14161B' : '#FFFFFF',
+        bgColor: (tn.colors && (tn.colors['--brand-card-bg'] || tn.colors['--paper'] || tn.colors['--ink'])) || '#14161B',
+        textColor: lesbarTekst((tn.colors && (tn.colors['--brand-card-bg'] || tn.colors['--paper'] || tn.colors['--ink'])) || '#14161B'),
         durationSeconds: 2,
       }
     : null
