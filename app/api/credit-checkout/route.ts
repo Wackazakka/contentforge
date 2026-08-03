@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       .single()
     if (!org) return NextResponse.json({ error: 'Fant ingen organisasjon' }, { status: 404 })
     const { data: tenant } = org.tenant_id
-      ? await supabase.from('tenants').select('billing_mode, slug, vertical').eq('id', org.tenant_id).single()
+      ? await supabase.from('tenants').select('billing_mode, slug, vertical, currency').eq('id', org.tenant_id).single()
       : { data: null }
     if (tenant?.billing_mode !== 'invoice') {
       return NextResponse.json({ error: 'Kredittkjøp gjelder kun white-label-kunder' }, { status: 400 })
