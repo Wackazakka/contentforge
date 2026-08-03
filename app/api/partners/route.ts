@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     if (g.fail) return g.fail
     const { data: children } = await admin()
       .from('tenants')
-      .select('id, slug, app_name, logo_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, license_fee_pct, billing_mode')
+      .select('id, slug, app_name, logo_url, brand_card_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, license_fee_pct, billing_mode')
       .eq('parent_tenant_id', g.tenant!.id)
       .order('app_name')
 
@@ -135,7 +135,7 @@ export async function PATCH(request: Request) {
   try {
     const g = await guard(request)
     if (g.fail) return g.fail
-    const { tenantId, markupPercent, feeDirectPct, feeIndirectPct, licenseFeePct, appName, logoUrl, colors } = await request.json()
+    const { tenantId, markupPercent, feeDirectPct, feeIndirectPct, licenseFeePct, appName, logoUrl, brandCardUrl, colors } = await request.json()
     if (!tenantId) return NextResponse.json({ error: 'Mangler tenantId' }, { status: 400 })
 
     const patch: Record<string, unknown> = {}
@@ -145,6 +145,9 @@ export async function PATCH(request: Request) {
       patch.app_name = v.slice(0, 60)
     }
     if (logoUrl !== undefined) patch.logo_url = logoUrl ? String(logoUrl).trim() : null
+    // Adressen paa merkekortet (Lars 3/8) — vises under «<Navn> VideoMaker».
+    // Ren tekst, ikke lenke: den skal LESES av noen som ser en video.
+    if (brandCardUrl !== undefined) patch.brand_card_url = brandCardUrl ? String(brandCardUrl).trim().slice(0, 80) : null
     if (colors !== undefined) {
       // Fargeprofil: kun CSS-variabler med hex-verdier slipper gjennom
       const clean: Record<string, string> = {}

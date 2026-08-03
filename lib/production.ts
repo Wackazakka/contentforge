@@ -127,7 +127,7 @@ export async function startProductionForDraft(
   const { data: tenantRad } = (product as any)?.organization_id
     ? await supabase
         .from('organizations')
-        .select('tenants(app_name, name, logo_url, colors, markup_percent)')
+        .select('tenants(app_name, name, logo_url, brand_card_url, colors, markup_percent)')
         .eq('id', (product as any).organization_id)
         .single()
     : { data: null }
@@ -136,6 +136,7 @@ export async function startProductionForDraft(
     ? {
         text: `${tn.app_name || tn.name || ''} VideoMaker`.trim(),
         logoUrl: tn.logo_url || null,
+        url: tn.brand_card_url || null,
         bgColor: (tn.colors && (tn.colors['--paper'] || tn.colors['--ink'])) || '#14161B',
         textColor: (tn.colors && tn.colors['--paper']) ? '#14161B' : '#FFFFFF',
         durationSeconds: 2,

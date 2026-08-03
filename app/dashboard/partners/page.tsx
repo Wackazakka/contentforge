@@ -14,6 +14,7 @@ interface Partner {
   slug: string
   app_name: string
   logo_url: string | null
+  brand_card_url?: string | null
   colors: Record<string, string>
   markup_percent: number
   license_fee_pct?: number | null
@@ -50,7 +51,7 @@ export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [income, setIncome] = useState<Record<string, { grossNok: number; licenseNok: number; uses: number }>>({})
   const [infraIncome, setInfraIncome] = useState<Array<{ tenantName: string; uses: number; grossNok: number; infraNok: number }> | null>(null)
-  const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; license: string; name: string; logo: string; colors: Record<string, string>; colorKeys: string[] }>>({})
+  const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; license: string; name: string; logo: string; brandUrl: string; colors: Record<string, string>; colorKeys: string[] }>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   // Lagrede fargeprofiler, eid av denne tenanten. `palettesOn` er false til
@@ -83,7 +84,7 @@ export default function PartnersPage() {
         const colors: Record<string, string> = {}
         for (const f of COLOR_FIELDS) colors[f.key] = p.colors?.[f.key] || f.fallback
         const colorKeys = COLOR_FIELDS.filter((f) => p.colors?.[f.key]).map((f) => f.key)
-        e[p.id] = { markup: String(p.markup_percent), feeDirect: String(p.fee_direct_pct ?? 3), feeIndirect: String(p.fee_indirect_pct ?? 7.5), license: String(p.license_fee_pct ?? 0), name: p.app_name, logo: p.logo_url || '', colors, colorKeys }
+        e[p.id] = { markup: String(p.markup_percent), feeDirect: String(p.fee_direct_pct ?? 3), feeIndirect: String(p.fee_indirect_pct ?? 7.5), license: String(p.license_fee_pct ?? 0), name: p.app_name, logo: p.logo_url || '', brandUrl: p.brand_card_url || '', colors, colorKeys }
       }
       setEdits(e)
     } catch (err: any) {
@@ -129,6 +130,7 @@ export default function PartnersPage() {
           licenseFeePct: Number(e.license),
           appName: e.name,
           logoUrl: e.logo || null,
+          brandCardUrl: e.brandUrl || null,
           // Kun de eksplisitt valgte — resten forblir «ikke satt» og arver standarden
           colors: Object.fromEntries(e.colorKeys.map((k) => [k, e.colors[k]])),
         }),
@@ -159,6 +161,7 @@ export default function PartnersPage() {
     if (Number(e.license) !== Number(p.license_fee_pct ?? 0)) return true
     if (e.name !== p.app_name) return true
     if ((e.logo || '') !== (p.logo_url || '')) return true
+    if ((e.brandUrl || '') !== (p.brand_card_url || '')) return true
     // Fargene: sammenlign settet av VALGTE nøkler og verdiene deres mot det lagrede.
     const lagret = p.colors || {}
     const lagredeNokler = Object.keys(lagret).filter((k) => COLOR_FIELDS.some((f) => f.key === k))
@@ -392,6 +395,16 @@ export default function PartnersPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Logo-URL</label>
                     <input value={e.logo} onChange={(ev) => setEdit(p.id, 'logo', ev.target.value)} placeholder="https://…"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Adresse på merkekortet</label>
+                    <input value={e.brandUrl} onChange={(ev) => setEdit(p.id, 'brandUrl', ev.target.value)}
+                      placeholder="indigoboom.com/videomaker"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+                    <p className="mt-1 text-[12px] text-gray-500">
+                      Står under navnet på sluttplakaten kunder får mot rabatt. Skriv den som den skal
+                      leses av noen som ser en video — uten https:// La feltet stå tomt for ingen adresse.
+                    </p>
                   </div>
                 </div>
 

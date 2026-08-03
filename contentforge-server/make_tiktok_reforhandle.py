@@ -380,15 +380,21 @@ def _wrap_text(draw, text, font, max_width):
 
 
 def _draw_brand_card(cfg, width, height):
-    """Merkekort til slutt (Lars 1/8): tenantens logo + «<Navn> VideoMaker».
-    Kommer ETTER artistens sluttplakat og erstatter den aldri — artistens
-    egen oppfordring er det viktigste i filmen."""
+    """Merkekort til slutt (Lars 1/8): tenantens logo + «<Navn> VideoMaker»
+    + adressen (Lars 3/8: «du kan også skrive indigoboom.com/videomaker på
+    plakaten»). Kommer ETTER artistens sluttplakat og erstatter den aldri —
+    artistens egen oppfordring er det viktigste i filmen.
+
+    Hele blokken sentreres som ÉN enhet. Før lå logoen fast på 40 % høyde og
+    teksten fulgte under; siden tekststørrelsen følger BREDDEN, endte blokken
+    ulikt i de tre formatene — 16:9 fikk en stor tom flate under seg.
+    """
     bg = _hex_to_rgb(cfg.get('bgColor'), (20, 20, 30))
     fg = _hex_to_rgb(cfg.get('textColor'), (255, 255, 255))
     img = Image.new('RGB', (width, height), bg)
     draw = ImageDraw.Draw(img)
 
-    logo_bottom = int(height * 0.46)
+    logo = None
     logo_url = cfg.get('logoUrl')
     if logo_url:
         try:
@@ -400,18 +406,37 @@ def _draw_brand_card(cfg, width, height):
             logo = Image.open(tmp.name).convert('RGBA')
             ratio = min((width * 0.42) / logo.width, (height * 0.22) / logo.height)
             logo = logo.resize((max(1, int(logo.width * ratio)), max(1, int(logo.height * ratio))), Image.LANCZOS)
-            lx = (width - logo.width) // 2
-            ly = int(height * 0.40) - logo.height // 2
-            img.paste(logo, (lx, ly), logo)
-            logo_bottom = ly + logo.height
         except Exception as e:
             print(f'[brand_card] logo hoppet over: {e}', file=sys.stderr)
+            logo = None
 
     tekst = cfg.get('text') or 'VideoMaker'
     size = max(34, min(64, width // 20))
     font = ImageFont.truetype(FONT_REG, size)
-    bb = draw.textbbox((0, 0), tekst, font=font)
-    draw.text(((width - (bb[2] - bb[0])) // 2, logo_bottom + int(height * 0.035)), tekst, font=font, fill=fg)
+    tbb = draw.textbbox((0, 0), tekst, font=font)
+    t_h = tbb[3] - tbb[1]
+
+    url = (cfg.get('url') or '').strip()
+    ufont = None
+    ubb = None
+    u_h = 0
+    if url:
+        ufont = ImageFont.truetype(FONT_REG, max(24, int(size * 0.62)))
+        ubb = draw.textbbox((0, 0), url, font=ufont)
+        u_h = ubb[3] - ubb[1]
+
+    gap1 = int(height * 0.035)
+    gap2 = int(height * 0.022)
+    total = (logo.height + gap1 if logo else 0) + t_h + (gap2 + u_h if url else 0)
+    y = (height - total) // 2
+
+    if logo:
+        img.paste(logo, ((width - logo.width) // 2, y), logo)
+        y += logo.height + gap1
+    draw.text(((width - (tbb[2] - tbb[0])) // 2, y - tbb[1]), tekst, font=font, fill=fg)
+    if url:
+        y += t_h + gap2
+        draw.text(((width - (ubb[2] - ubb[0])) // 2, y - ubb[1]), url, font=ufont, fill=fg)
     return img
 
 
