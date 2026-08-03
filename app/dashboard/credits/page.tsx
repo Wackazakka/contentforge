@@ -65,7 +65,12 @@ export default function CreditsPage() {
         body: JSON.stringify({ packageId }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Kunne ikke starte betaling')
+      // Serverens tekst er norsk. Koden er spraaknoeytral, saa den oversettes
+      // her — der spraaket er kjent (Lars 3/8).
+      if (!res.ok) {
+        const kjent = ['BILLING_OFF', 'UNKNOWN_PACKAGE', 'NOT_SIGNED_IN', 'NO_ORG', 'NOT_WHITELABEL']
+        throw new Error(kjent.includes(data.code) ? t(`err${data.code}`) : t('failed'))
+      }
       window.location.href = data.url
     } catch (err: any) {
       setError(err.message)

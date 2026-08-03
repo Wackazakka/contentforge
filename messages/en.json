@@ -906,6 +906,11 @@
     "films1318": "13–18 films",
     "mustSignIn": "You must be signed in.",
     "thanks": "Thank you! Payment received — your balance updates in a few seconds.",
-    "failed": "Could not start the payment"
+    "failed": "Could not start the payment",
+    "errBILLING_OFF": "Card payment isn't open yet. Please try again later.",
+    "errUNKNOWN_PACKAGE": "Unknown package.",
+    "errNOT_SIGNED_IN": "You must be signed in.",
+    "errNO_ORG": "No account found to top up.",
+    "errNOT_WHITELABEL": "Credit purchases aren't open for this account."
   }
 }

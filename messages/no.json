@@ -906,6 +906,11 @@
     "films1318": "13–18 filmer",
     "mustSignIn": "Du må være innlogget.",
     "thanks": "Takk! Betalingen er mottatt — saldoen oppdateres om få sekunder.",
-    "failed": "Kunne ikke starte betalingen"
+    "failed": "Kunne ikke starte betalingen",
+    "errBILLING_OFF": "Kortbetaling er ikke åpnet ennå. Prøv igjen senere.",
+    "errUNKNOWN_PACKAGE": "Ukjent pakke.",
+    "errNOT_SIGNED_IN": "Du må være innlogget.",
+    "errNO_ORG": "Fant ingen konto å fylle på.",
+    "errNOT_WHITELABEL": "Kredittkjøp er ikke åpnet for denne kontoen."
   }
 }
