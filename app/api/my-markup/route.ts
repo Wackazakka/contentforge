@@ -25,7 +25,7 @@ function admin() {
 async function guard(request: Request) {
   const tenant = await getTenant()
   if (tenant.id === 'root') {
-    return { fail: NextResponse.json({ error: 'Gjelder ikke denne kontoen' }, { status: 403 }) }
+    return { fail: NextResponse.json({ error: 'Tenant-oppsett mangler' }, { status: 404 }) }
   }
   const auth = request.headers.get('authorization')
   let email: string | null = null
@@ -50,9 +50,13 @@ export async function GET(request: Request) {
       .eq('id', g.tenant!.id)
       .single()
     if (!t) return NextResponse.json({ error: 'Fant ikke kontoen' }, { status: 404 })
-    // Root har ingen innpris å legge på — påslaget gjelder bare underledd
-    if (!t.parent_tenant_id) return NextResponse.json({ error: 'Gjelder ikke denne kontoen' }, { status: 403 })
-    return NextResponse.json({ navn: t.app_name, markupPercent: Number(t.markup_percent ?? 0) })
+    // Rot-leddet har ingen innpris å legge på — der er påslaget VÅRT påslag på
+    // råkosten, altså det som setter innprisen for alle partnere (Lars 3/8).
+    return NextResponse.json({
+      navn: t.app_name,
+      markupPercent: Number(t.markup_percent ?? (t.parent_tenant_id ? 0 : 100)),
+      erPlattform: !t.parent_tenant_id,
+    })
   } catch {
     return NextResponse.json({ error: 'Noe gikk galt' }, { status: 500 })
   }
@@ -62,13 +66,6 @@ export async function PATCH(request: Request) {
   try {
     const g = await guard(request)
     if (g.fail) return g.fail
-    const { data: t } = await admin()
-      .from('tenants')
-      .select('parent_tenant_id')
-      .eq('id', g.tenant!.id)
-      .single()
-    if (!t?.parent_tenant_id) return NextResponse.json({ error: 'Gjelder ikke denne kontoen' }, { status: 403 })
-
     const { markupPercent } = await request.json().catch(() => ({}))
     const v = Number(markupPercent)
     if (!Number.isFinite(v)) {

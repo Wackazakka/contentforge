@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
+import { wholesaleFactor } from './platformMarkup'
 
 // White-label tenant-oppslag: host-header → tenants-rad (subdomene = slug).
 // Trygg fallback til root-tenant (CenterForge) hvis tabellen mangler eller
@@ -139,18 +140,25 @@ async function chainPriceFactor(t: Tenant): Promise<number> {
     )
     let product = 1
     let cur: any = t
+    let rootMarkup: number | null = null
     for (let hop = 0; hop < 4 && cur; hop++) {
       product *= 1 + (Number(cur.markup_percent ?? 0) / 100)
       if (!cur.parent_tenant_id) break
       const { data } = await supabase.from('tenants').select('id, parent_tenant_id, markup_percent').eq('id', cur.parent_tenant_id).single()
-      cur = data && data.parent_tenant_id !== null ? data : null // root (parent=null) teller ikke
+      // Root teller ikke som PARTNER-ledd, men paaslaget der er VAART — det
+      // settes paa innprisen til slutt i stedet for i produktet.
+      if (data && data.parent_tenant_id === null) rootMarkup = Number(data.markup_percent)
+      cur = data && data.parent_tenant_id !== null ? data : null
     }
-    // Ingen halvering (Lars 3/8): «naar de velger 100 % boer det vaere 100 %
-    // paaslag paa den prisen de faar fra ContentForge». Partneren faktureres
-    // COSTS_NOK, saa kundeprisen MAA vaere COSTS_NOK x (1 + paaslag/100) for at
-    // tallet skal bety det det sier. Foer delte vi paa 2, og da var «100 %» i
-    // virkeligheten null margin — det motsatte av hva feltet lovet.
-    return product
+    // Ingen halvering av PARTNERENS paaslag (Lars 3/8): «naar de velger 100 %
+    // boer det vaere 100 % paaslag paa den prisen de faar fra ContentForge».
+    // Foer delte vi paa 2, og da var «100 %» i virkeligheten null margin.
+    //
+    // Halveringen hoerer hjemme paa VAART paaslag i stedet: innprisen er
+    // raakost x (1 + vaart paaslag/100), og COSTS_NOK er raakost x 2. Med
+    // standard 100 % gir det faktor 1,0 — akkurat som foer. Skrur vi vaart
+    // paaslag opp, stiger innprisen, og partnerens prosent staar urort.
+    return product * wholesaleFactor(rootMarkup)
   } catch {
     return 1
   }

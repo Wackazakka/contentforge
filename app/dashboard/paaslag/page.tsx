@@ -19,6 +19,9 @@ export default function PaaslagPage() {
   const [navn, setNavn] = useState<string>('')
   const [verdi, setVerdi] = useState<string>('')
   const [lagret, setLagret] = useState<number | null>(null)
+  // Rot-leddet setter VAART paaslag paa raakosten (= innprisen til partnerne),
+  // partnerne setter sitt eget paa toppen av innprisen (Lars 3/8)
+  const [erPlattform, setErPlattform] = useState(false)
   const [laster, setLaster] = useState(true)
   const [lagrer, setLagrer] = useState(false)
   const [feil, setFeil] = useState<string | null>(null)
@@ -33,6 +36,7 @@ export default function PaaslagPage() {
         const d = await res.json()
         if (!res.ok) throw new Error(d.error || 'Kunne ikke hente påslaget')
         setNavn(d.navn || '')
+        setErPlattform(d.erPlattform === true)
         setVerdi(String(d.markupPercent))
         setLagret(Number(d.markupPercent))
       } catch (err) {
@@ -65,8 +69,11 @@ export default function PaaslagPage() {
 
   const tall = Number(verdi)
   const gyldig = Number.isFinite(tall) && tall >= 0 && tall <= 500
-  const kundepris = gyldig ? EKSEMPEL_INNPRIS * (1 + tall / 100) : 0
-  const margin = kundepris - EKSEMPEL_INNPRIS
+  // COSTS_NOK er raakost x 2, saa raakosten er halvparten
+  const RAAKOST = EKSEMPEL_INNPRIS / 2
+  const grunnlag = erPlattform ? RAAKOST : EKSEMPEL_INNPRIS
+  const utpris = gyldig ? grunnlag * (1 + tall / 100) : 0
+  const margin = utpris - grunnlag
   const endret = lagret !== null && gyldig && tall !== lagret
 
   return (
@@ -75,10 +82,13 @@ export default function PaaslagPage() {
         <Link href="/dashboard" className="text-[13px] text-gray-500 hover:text-[var(--ink)]">
           ← Tilbake til oversikten
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">Påslaget deres</h1>
+        <h1 className="mt-4 text-3xl font-bold text-gray-900">
+          {erPlattform ? 'Vårt påslag' : 'Påslaget deres'}
+        </h1>
         <p className="mt-2 text-[15px] text-gray-500 max-w-[60ch]">
-          Hva kundene deres betaler over innprisen. Innprisen er den samme uansett hva dere velger —
-          påslaget er deres egen fortjeneste, og deres beslutning.
+          {erPlattform
+            ? 'Påslaget vi tar på råkosten. Det setter innprisen alle partnere faktureres. Partnernes egne påslag står urørt — de regnes av innprisen, så kundeprisene følger etter av seg selv.'
+            : 'Hva kundene deres betaler over innprisen. Innprisen er den samme uansett hva dere velger — påslaget er deres egen fortjeneste, og deres beslutning.'}
         </p>
 
         {laster && (
@@ -121,15 +131,15 @@ export default function PaaslagPage() {
                   En vanlig promovideo — 20 sekunder, fire animerte scener med tale:
                 </p>
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-gray-600">Innprisen deres</span>
-                  <span className="tabular-nums text-gray-900">{fmtNok(EKSEMPEL_INNPRIS)}</span>
+                  <span className="text-gray-600">{erPlattform ? 'Vår råkost' : 'Innprisen deres'}</span>
+                  <span className="tabular-nums text-gray-900">{fmtNok(grunnlag)}</span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 mt-1">
-                  <span className="text-gray-600">Kunden betaler</span>
-                  <span className="tabular-nums font-semibold text-gray-900">{gyldig ? fmtNok(kundepris) : '—'}</span>
+                  <span className="text-gray-600">{erPlattform ? 'Innpris til partnerne' : 'Kunden betaler'}</span>
+                  <span className="tabular-nums font-semibold text-gray-900">{gyldig ? fmtNok(utpris) : '—'}</span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 mt-1 pt-2 border-t border-gray-200">
-                  <span className="text-[var(--ember-deep)]">Dere sitter igjen med</span>
+                  <span className="text-[var(--ember-deep)]">{erPlattform ? 'Vi sitter igjen med' : 'Dere sitter igjen med'}</span>
                   <span className="tabular-nums font-semibold text-[var(--ember-deep)]">{gyldig ? fmtNok(margin) : '—'}</span>
                 </div>
                 {gyldig && tall === 0 && (

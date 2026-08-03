@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { platformWholesaleFactor } from './platformMarkup'
 
 // Tenant-fakturering: avgjør om et produkt tilhører en invoice-fakturert tenant
 // (white-label-partner/kunde) — de skal ALDRI møte kreditt-/betalingsmur;
@@ -165,10 +166,15 @@ export async function logUsageEvent(e: {
     // cost_nok og customer_cost_nok identiske, og white-labelens margin ble 0
     // i avregningen. Engrosprisen er den samme uansett hva partneren tar av
     // sine egne kunder; vil vi differensiere den, trengs et eget felt.
-    const costNok = e.costNok
+    // Innprisen partneren faktureres = raakost x (1 + VAART paaslag/100).
+    // COSTS_NOK er raakost x 2, saa faktoren er 1,0 ved standard 100 % — ingen
+    // tall flytter seg foer noen bevisst skrur paa plattformpaaslaget (3/8).
+    const costNok = e.costNok * (await platformWholesaleFactor())
     // Kundepris (hele kjedens påslag) fryses på raden — sluttkundens saldo
     // trekkes til DERES pris, partnersaldoen til partnerpris (cost_nok)
-    const customerCostNok = e.costNok * (await chainFactorByTenantId(pt.tenantId))
+    // Kundeprisen bygger paa INNPRISEN, ikke listeprisen — saa partnerens
+    // prosent staar urort naar vaart paaslag endres (Lars 3/8)
+    const customerCostNok = costNok * (await chainFactorByTenantId(pt.tenantId))
     const row = {
       tenant_id: pt.tenantId,
       organization_id: pt.organizationId,
