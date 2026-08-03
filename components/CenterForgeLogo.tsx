@@ -55,7 +55,7 @@ export function CenterForgeLogo({
         <img
           src={tenant.logo_url}
           alt={tenant.app_name}
-          style={{ height: size * 2.4, width: 'auto', maxWidth: '58vw', objectFit: 'contain' }}
+          style={{ height: size * 2.4, width: 'auto', maxWidth: '42vw', objectFit: 'contain' }}
         />
       </span>
     )

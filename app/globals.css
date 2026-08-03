@@ -306,22 +306,27 @@ body {
 }
 
 /* Toppraden paa smale skjermer (Lars 3/8, mobilbilde fra isabel.norditech.io).
-   Lenkene laa i en flex-rad med flexWrap: wrap — paa mobil braket de til en
-   hoy kolonne som spiste hele skjermen foer innholdet begynte. Her ruller de
-   sidelengs i stedet: alt er naadd med en sveip, og hoyden er konstant. */
+   Foerste forsoek lot lenkene rulle sidelengs PAA SAMME LINJE som logo og
+   spraakvelger — da ble de klemt til en ubrukelig stripe paa noen faa piksler.
+   Menyen faar egen linje under: raden bryter, lenkene tar full bredde og
+   ruller sidelengs der. Logo og hoyremeny beholder linje 1. */
 @media (max-width: 900px) {
   .cf-nav-row {
     padding: 10px 14px !important;
     gap: 10px !important;
+    flex-wrap: wrap !important;
   }
   .cf-nav-links {
+    order: 3;
+    flex: 0 0 100% !important;
+    width: 100%;
+    margin-top: 2px;
     flex-wrap: nowrap !important;
     justify-content: flex-start !important;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    /* Rullefeltet skal ikke tegne en strek under lenkene */
     scroll-snap-type: x proximity;
   }
   .cf-nav-links::-webkit-scrollbar { display: none; }
