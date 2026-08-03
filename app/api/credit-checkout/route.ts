@@ -79,6 +79,11 @@ export async function POST(request: Request) {
     const erGbp = (tenant as any)?.currency === 'gbp'
     // Beloepet MAA hentes for valutaen. Foer sto kronetallet her og ble krevd
     // som pund: £15-knappen ga £200 i kassen (Lars 3/8).
+    // Kunden skal se HENNES navn i betalingen, ikke plattformens (Lars 3/8).
+    // Kortutskriftens tekst har streng tegnbegrensning og maks 22 tegn.
+    const tjeneste = String((tenant as any)?.app_name || '').trim()
+    const kortTekst = tjeneste.replace(/[^A-Za-z0-9 ]/g, '').trim().slice(0, 22) || undefined
+
     const prisPkg = packageFor(packageId, erGbp ? 'gbp' : 'nok') ?? pkg
     const beloep = prisPkg.amount
 
@@ -93,13 +98,21 @@ export async function POST(request: Request) {
           // Dette er teksten kunden ser i Stripe-kassen og paa kvitteringen.
           // Den sa «kreditter» og «kr/kreditt» ogsaa naar beloepet var i pund
           // (Lars 3/8). Foelger naa valutaen - og med den, spraaket.
-          product_data: { name: erGbp
+          product_data: { name: (tjeneste ? `${tjeneste} — ` : '') + (erGbp
             ? `${credits.toLocaleString('en-GB')} credits (${(beloep / credits).toFixed(4)} GBP per credit)`
-            : `${credits.toLocaleString('nb-NO')} kreditter (kurs ${(beloep / credits).toFixed(3).replace('.', ',')} kr/kreditt)` },
+            : `${credits.toLocaleString('nb-NO')} kreditter (kurs ${(beloep / credits).toFixed(3).replace('.', ',')} kr/kreditt)`) },
         },
         quantity: 1,
       }],
       metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(ledgerNok), bonus_nok: '0', paid_nok: String(beloep), paid_currency: erGbp ? 'gbp' : 'nok', credits: String(credits), rate: (beloep / credits).toFixed(4) },
+      // Beskrivelsen foelger med paa Stripes kvittering; kortteksten havner
+      // paa kontoutskriften. Selve kassesiden viser fortsatt plattformens
+      // kontonavn — det krever Stripe Connect aa endre.
+      payment_intent_data: {
+        description: tjeneste ? `${tjeneste} — ${credits.toLocaleString('en-GB')} credits` : undefined,
+        ...(kortTekst ? { statement_descriptor_suffix: kortTekst } : {}),
+      },
+      custom_text: tjeneste ? { submit: { message: `${tjeneste} — credits are added to your balance right away.` } } : undefined,
       success_url: `${origin}${backTo}?paid=1`,
       cancel_url: `${origin}${backTo}`,
     })

@@ -55,6 +55,53 @@ export async function POST(request: Request) {
         } catch (err: any) {
           console.error('[stripe/webhook] org_topup-registrering feilet:', err.message)
         }
+
+        // Si fra til white-labelen at en kunde har kjoept (Lars 3/8: «hun burde
+        // faa beskjed»). Foer dette skjedde salget helt lydloest - hun maatte
+        // aapne avregningssiden for aa oppdage det.
+        // Feiler varselet, er paafyllet likevel registrert: pengene er
+        // viktigere enn e-posten.
+        try {
+          const { data: o } = await supabase
+            .from('organizations')
+            .select('name, tenant_id')
+            .eq('id', session.metadata.organization_id)
+            .single()
+          const { data: tn } = o?.tenant_id
+            ? await supabase.from('tenants').select('app_name, admin_emails, default_locale').eq('id', o.tenant_id).single()
+            : { data: null }
+          const mottakere: string[] = Array.isArray(tn?.admin_emails)
+            ? (tn!.admin_emails as unknown[]).map((e) => String(e).trim()).filter(Boolean)
+            : []
+          if (mottakere.length > 0 && process.env.RESEND_API_KEY) {
+            const paa = session.metadata.paid_currency === 'gbp' ? 'gbp' : 'nok'
+            const beloep = paa === 'gbp'
+              ? `£${Number(session.metadata.paid_nok).toLocaleString('en-GB')}`
+              : `${Number(session.metadata.paid_nok).toLocaleString('nb-NO')} kr`
+            const kreditter = Number(session.metadata.credits).toLocaleString(paa === 'gbp' ? 'en-GB' : 'nb-NO')
+            const engelsk = (tn?.default_locale || 'no') === 'en'
+            const kunde = o?.name || (engelsk ? 'A customer' : 'En kunde')
+            const emne = engelsk
+              ? `${kunde} bought ${kreditter} credits (${beloep})`
+              : `${kunde} kjøpte ${kreditter} kreditter (${beloep})`
+            const brodtekst = engelsk
+              ? `${kunde} just topped up with ${kreditter} credits for ${beloep}. Your share is shown on the settlement page.`
+              : `${kunde} har fylt på med ${kreditter} kreditter for ${beloep}. Din andel står på avregningssiden.`
+            const { Resend } = await import('resend')
+            await new Resend(process.env.RESEND_API_KEY).emails.send({
+              from: `${tn?.app_name || 'CenterForge'} <hello@centerforge.app>`,
+              to: mottakere,
+              subject: emne,
+              html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.6;color:#181C17">
+                <p>${brodtekst}</p>
+                <p style="color:#6B655C;font-size:13px">${tn?.app_name || ''}</p>
+              </div>`,
+            })
+            console.log('[stripe/webhook] varsel sendt til', mottakere.length, 'admin(er)')
+          }
+        } catch (err: any) {
+          console.error('[stripe/webhook] varsel feilet (paafyllet staar):', err?.message)
+        }
         break
       }
 
