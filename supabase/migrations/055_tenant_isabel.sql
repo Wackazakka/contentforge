@@ -37,9 +37,10 @@ update t_isabel set
   wholesale_markup_pct = 100,
   brand_card_url       = null,
   custom_domain        = null,
-  is_active            = true,
-  created_at           = now(),
-  updated_at           = now();
+  is_active            = true;
+-- Tidsstempler settes IKKE: tenants har ingen updated_at, og hvilke
+-- timestamp-kolonner som finnes skal ikke avgjoere om oppsettet virker.
+-- Raden arver IndigoBooms verdier -- ingenting i koden leser dem.
 
 insert into public.tenants select * from t_isabel;
 
