@@ -126,6 +126,9 @@
     "ill_voice_name": "Your voice, or one of ours",
     "ill_voice_note": "Read it yourself, or pick a voice",
     "ill_ledger": "Your own track underneath — the film follows the music",
-    "ill_pill_article": "MEDLEY"
+    "ill_pill_article": "MEDLEY",
+    "demo_t": "Made with this, start to finish",
+    "demo_d": "A real release promo — the artist's own photos, their own track underneath, and a voice tying it together. Nothing filmed, nothing edited by hand.",
+    "mid_cta": "Make your first promo"
   }
 }

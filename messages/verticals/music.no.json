@@ -126,6 +126,9 @@
     "ill_voice_name": "Din egen stemme, eller en av våre",
     "ill_voice_note": "Les inn selv, eller velg en stemme",
     "ill_ledger": "Din egen låt under — filmen følger musikken",
-    "ill_pill_article": "MEDLEY"
+    "ill_pill_article": "MEDLEY",
+    "demo_t": "Laget med dette, fra start til slutt",
+    "demo_d": "En ekte slipp-promo — artistens egne bilder, egen låt under, og en stemme som binder det sammen. Ingenting filmet, ingenting klippet for hånd.",
+    "mid_cta": "Lag din første promo"
   }
 }

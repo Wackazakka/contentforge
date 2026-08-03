@@ -285,6 +285,25 @@ export default function Home() {
               </div>
             ))}
           </div>
+          {/* Ekte produksjon som bevis (Lars 3/8). En mock-up viser hva vi
+              lover; denne viser hva som faktisk kom ut. Plakatbilde saa den
+              ikke staar som en sort boks, og preload=none saa 11 MB ikke
+              lastes for noen som bare skroller forbi. */}
+          {erArtist && (
+            <div style={{ marginTop: 'clamp(40px,5vw,56px)', textAlign: 'center' }}>
+              <h3 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(24px,3vw,34px)', lineHeight: 1.1, color: 'var(--ink)', margin: '0 0 10px' }}>{t('demo_t')}</h3>
+              <p style={{ fontFamily: HANKEN, fontSize: 16, lineHeight: 1.6, color: 'var(--text-muted)', margin: '0 auto 22px', maxWidth: 560 }}>{t('demo_d')}</p>
+              <video
+                src="https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/assets/demo-artist-promo.mp4"
+                poster="https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/assets/demo-artist-promo.jpg"
+                controls
+                playsInline
+                preload="none"
+                style={{ width: 'min(300px, 78vw)', aspectRatio: '9 / 16', borderRadius: 18, background: '#000', border: '1px solid var(--ds-border)', display: 'block', margin: '0 auto' }}
+              />
+            </div>
+          )}
+
           <div style={{ textAlign: 'center', marginTop: 'clamp(40px,5vw,52px)' }}>
             <Link href="/register" className="cf-btn-ink" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: 'var(--paper)', background: 'var(--ink)', borderRadius: 999, padding: '15px 30px', textDecoration: 'none', boxShadow: '0 12px 30px -12px color-mix(in srgb, var(--ink) 50%, transparent)' }}>
               {t('mid_cta')} →
