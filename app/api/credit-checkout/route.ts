@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     const org = await orgForVert(supabase, userId)
     if (!org) return NextResponse.json({ error: 'Fant ingen organisasjon', code: 'NO_ORG' }, { status: 404 })
     const { data: tenant } = org.tenant_id
-      ? await supabase.from('tenants').select('billing_mode, slug, vertical, currency').eq('id', org.tenant_id).single()
+      ? await supabase.from('tenants').select('billing_mode, slug, vertical, currency, app_name').eq('id', org.tenant_id).single()
       : { data: null }
     if (tenant?.billing_mode !== 'invoice') {
       return NextResponse.json({ error: 'Kredittkjøp gjelder kun white-label-kunder', code: 'NOT_WHITELABEL' }, { status: 400 })
