@@ -108,6 +108,8 @@ export default function ProductPage() {
   const [jobs, setJobs] = useState<ProductionJob[]>([])
   // Fra ferdig video tilbake til utkastet som lagde den (Lars 2/8)
   const [draftByJobId, setDraftByJobId] = useState<Record<string, string>>({})
+  // Siste utvei naar koblingen mangler (Lars 3/8, fjerde runde paa samme knapp)
+  const [nyesteDraftId, setNyesteDraftId] = useState<string | null>(null)
   const [titleByJobId, setTitleByJobId] = useState<Record<string, string>>({})
   const [jobsLoading, setJobsLoading] = useState(false)
   // Bildebiblioteket (artist-images/<productId> i R2): administreres her,
@@ -485,13 +487,24 @@ export default function ProductPage() {
 
         const jobIds = (videosData || []).map((v: any) => v.job_id).filter(Boolean)
         let formatByJobId: Record<string, string> = {}
+        // Utkastene hentes ALLTID. Foer laa hele oppslaget bak «har videoene
+        // job_id?» — mangler den koblingen, ble ingen utkast lest, og da fantes
+        // det ikke engang et utkast aa falle tilbake paa. Da var «Rediger»
+        // borte fra alle filmene uansett hva vi ellers fikset (Lars 3/8).
+        const { data: alleUtkast } = await supabase
+          .from('production_drafts')
+          .select('id, created_at')
+          .eq('product_id', productId)
+          .order('created_at', { ascending: false })
+        if ((alleUtkast || []).length > 0) setNyesteDraftId((alleUtkast as any[])[0].id)
         if (jobIds.length > 0) {
           // Hent ALLE utkast for produktet, ikke bare de med treff paa job_id:
           // eldre utkast kan mangle koblingen, men har campaign_id — og jobben
           // husker campaignId i ai_parameters. To veier gir robust treff.
           const { data: drafts } = await supabase
             .from('production_drafts')
-            .select('id, job_id, campaign_id, video_format')
+            .select('id, job_id, campaign_id, video_format, created_at')
+            .order('created_at', { ascending: false })
             .eq('product_id', productId)
           const draftIds: Record<string, string> = {}
           const draftByCampaign: Record<string, string> = {}
@@ -1416,17 +1429,26 @@ export default function ProductPage() {
                                 vil forandre»). Aa endre én scene og produsere
                                 paa nytt koster nesten ingenting — resten
                                 gjenbrukes fra klipp-cachen. */}
-                            {draftByJobId[video.job_id] && (
-                              <button
-                                onClick={() =>
-                                  router.push(`/dashboard/products/${productId}/video/draft/${draftByJobId[video.job_id]}`)
-                                }
-                                className="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                                title="Åpne utkastet som lagde denne filmen"
-                              >
-                                Rediger
-                              </button>
-                            )}
+                            {(() => {
+                              // Knappen skal ALDRI vaere borte naar det finnes et
+                              // utkast aa gaa til. Er koblingen sikker, gaar vi
+                              // dit; ellers til nyeste utkast — og sier fra at
+                              // det er en antakelse (Lars 3/8: fjerde runde).
+                              const sikker = draftByJobId[video.job_id]
+                              const maal = sikker || nyesteDraftId
+                              if (!maal) return null
+                              return (
+                                <button
+                                  onClick={() => router.push(`/dashboard/products/${productId}/video/draft/${maal}`)}
+                                  className="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                  title={sikker
+                                    ? 'Åpne utkastet som lagde denne filmen'
+                                    : 'Koblingen til akkurat denne filmen mangler — åpner nyeste utkast'}
+                                >
+                                  {sikker ? 'Rediger' : 'Rediger *'}
+                                </button>
+                              )
+                            })()}
                             <button
                               onClick={() => handleDeleteVideo(video.id)}
                               className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors"
