@@ -52,10 +52,15 @@ export function CenterForgeLogo({
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* Naar wordmarket er borte, ER logoen hele merket — da taaler den aa
+            vaere stor (Lars 3/8). 2,4 -> 4,0 gir ~112 px hoeyde paa PC.
+            Full 3x (200 px) ville gjort den klebende toppen hoeyere enn
+            innholdet under paa mobil, saa hoeyden er den ekte grensen her.
+            Paa mobil ligger menyen paa egen linje, saa logoen faar 60vw. */}
         <img
           src={tenant.logo_url}
           alt={tenant.app_name}
-          style={{ height: size * 2.4, width: 'auto', maxWidth: '42vw', objectFit: 'contain' }}
+          style={{ height: size * 4.0, width: 'auto', maxWidth: '60vw', objectFit: 'contain' }}
         />
       </span>
     )
