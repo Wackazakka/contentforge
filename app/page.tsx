@@ -33,6 +33,9 @@ export default function Home() {
   const t = useTranslations('home')
   const tenant = useTenant()
   const isDirect = tenant.billing_mode !== 'invoice'
+  // Artist-tenanter (IndigoBoom, Isabel) selger promo til band — ikke
+  // skuespillerstemmer, artikler eller radiospoter
+  const erArtist = tenant.vertical === 'music'
   const stats = t.raw('stats') as Stat[]
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [voicePlaying, setVoicePlaying] = useState(false)
@@ -289,8 +292,12 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Stemmebanken */}
-        <section id="stemmebank" style={{ position: 'relative', background: 'var(--band)', borderTop: '1px solid #E0D7C6', borderBottom: '1px solid #E0D7C6' }}>
+        {/* Stemmebanken — skuespiller-royalty er ikke tema for artist-tenanter
+            (Lars 1/8 skjulte den i menyen; 3/8 stod den fortsatt paa forsiden
+            til Isabel og solgte noe hun ikke tilbyr). Rammefargene var
+            dessuten hardkodet beige og lyste opp paa moerk drakt. */}
+        {!erArtist && (
+        <section id="stemmebank" style={{ position: 'relative', background: 'var(--band)', borderTop: '1px solid var(--ds-border)', borderBottom: '1px solid var(--ds-border)' }}>
           <div style={{ maxWidth: 1180, margin: '0 auto', padding: 'clamp(56px,8vw,104px) 28px' }}>
             <div style={{ maxWidth: 720, margin: '0 auto clamp(40px,5vw,56px)', textAlign: 'center' }}>
               <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4.3vw,50px)', lineHeight: 1.06, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 14px' }}>{t('vb_title')}</h2>
@@ -315,6 +322,7 @@ export default function Home() {
             <p style={{ textAlign: 'center', fontFamily: HANKEN, fontSize: 15, color: 'var(--ember-deep)', margin: '30px auto 0', maxWidth: 620 }}>{t('vb_note')}</p>
           </div>
         </section>
+        )}
 
         {/* Plattformen: white-label + API */}
         <section id="plattform" style={{ position: 'relative', maxWidth: 1180, margin: '0 auto', padding: 'clamp(56px,8vw,104px) 28px' }}>
