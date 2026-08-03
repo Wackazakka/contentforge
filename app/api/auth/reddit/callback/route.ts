@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// state baerer «bruker.organisasjon» (Lars 3/8). Gammelt format — bare
+// bruker-ID — virker fortsatt, og gir da organisasjon null.
+function tydState(state: string | null): { userId: string | null; orgId: string | null } {
+  if (!state) return { userId: null, orgId: null }
+  const i = state.indexOf('.')
+  return i === -1
+    ? { userId: state, orgId: null }
+    : { userId: state.slice(0, i), orgId: state.slice(i + 1) || null }
+}
+
 const BASE_URL = 'https://contentforge-610.netlify.app'
 
 export async function GET(request: Request) {
@@ -32,8 +42,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=state_mismatch`)
     }
 
-    // Extract userId from state (format: "userId:randomHex")
-    const userId = state.split(':')[0]
+    // state er «bruker[.organisasjon]:tilfeldig» — CSRF-delen kastes her,
+    // etter at den er sjekket mot cookien over
+    const { userId, orgId } = tydState(state.split(':')[0])
 
     const credentials = Buffer.from(
       `${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`
@@ -84,13 +95,14 @@ export async function GET(request: Request) {
     await supabase.from('social_connections').upsert(
       {
         user_id: userId,
+        organization_id: orgId,
         platform: 'reddit',
         page_id: userData.id,
         page_name: `u/${userData.name}`,
         access_token: tokenData.access_token,
         user_access_token: tokenData.refresh_token || null,
       },
-      { onConflict: 'user_id,platform,page_id' }
+      { onConflict: 'organization_id,platform,page_id' }
     )
 
     console.log('[reddit/callback] ✅ Connected: u/', userData.name)

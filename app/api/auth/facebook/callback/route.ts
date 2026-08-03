@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// state baerer «bruker.organisasjon» (Lars 3/8). Gammelt format — bare
+// bruker-ID — virker fortsatt, og gir da organisasjon null.
+function tydState(state: string | null): { userId: string | null; orgId: string | null } {
+  if (!state) return { userId: null, orgId: null }
+  const i = state.indexOf('.')
+  return i === -1
+    ? { userId: state, orgId: null }
+    : { userId: state.slice(0, i), orgId: state.slice(i + 1) || null }
+}
+
 const BASE_URL = 'https://contentforge-610.netlify.app'
 
 export async function GET(request: Request) {
@@ -25,7 +35,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_state`)
     }
 
-    const userId = state
+    const { userId, orgId } = tydState(state)
     console.log('[facebook/callback] Received code for user:', userId)
 
     // Exchange code for access token
@@ -126,13 +136,14 @@ export async function GET(request: Request) {
       await supabase.from('social_connections').upsert(
         {
           user_id: userId,
+          organization_id: orgId,
           platform: 'facebook',
           page_id: page.id,
           page_name: page.name,
           access_token: page.access_token,
           user_access_token: longLivedToken, // Long-lived token (60 days) for Instagram publishing
         },
-        { onConflict: 'user_id,platform,page_id' }
+        { onConflict: 'organization_id,platform,page_id' }
       )
     }
 

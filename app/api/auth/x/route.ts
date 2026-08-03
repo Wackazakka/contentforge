@@ -15,6 +15,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
+    // Organisasjonen tres gjennom state. UUID-er har ingen punktum, saa
+    // separatoren er trygg — og gammelt format (bare userId) virker fortsatt.
+    const orgId = searchParams.get('orgId')
 
     if (!userId) {
       return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_user`)
@@ -64,7 +67,8 @@ export async function GET(request: Request) {
 
     // Persist state + userId for the callback. The callback verifies the
     // returned `state` matches and recovers the userId from this cookie.
-    response.cookies.set('x_state_user', `${state}:${userId}`, {
+    // Organisasjonen legges paa brukerdelen: «state:bruker[.organisasjon]»
+    response.cookies.set('x_state_user', `${state}:${orgId ? `${userId}.${orgId}` : userId}`, {
       httpOnly: true,
       secure: true,
       maxAge: 600,

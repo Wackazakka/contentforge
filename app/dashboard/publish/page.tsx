@@ -38,6 +38,9 @@ function PublishPage() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  // Organisasjonen koblingen skal festes til — foelger med gjennom OAuth-runden
+  // saa den nye kontoen havner i RIKTIG tjeneste (Lars 3/8)
+  const [orgId, setOrgId] = useState<string | null>(null)
   const [products, setProducts] = useState<any[]>([])
   const [selectedProduct, setSelectedProduct] = useState<string>('')
   const [contentType, setContentType] = useState<'video' | 'article' | 'avatar'>('video')
@@ -206,13 +209,19 @@ function PublishPage() {
         let oq = supabase.from('organizations').select('id')
         oq = tenant.slug === 'centerforge' ? oq.or(`tenant_id.eq.${tenant.id},tenant_id.is.null`) : oq.eq('tenant_id', tenant.id)
         const { data: tenantOrgs } = await oq
+        setOrgId(tenantOrgs?.[0]?.id ?? null)
         if (!tenantOrgs || tenantOrgs.length === 0) {
           setConnections([])
           return
         }
+        // tenantOrgs ble regnet ut og deretter KASTET — spoerringen hadde
+        // ingen avgrensning, saa alle koblingene brukeren har noen gang laget
+        // dukket opp uansett hvilken tjeneste han var inne paa (Lars 3/8: hans
+        // BilDeal-side sto paa Isabels domene).
         const { data, error } = await supabase
           .from('social_connections')
           .select('*')
+          .in('organization_id', tenantOrgs.map((o: { id: string }) => o.id))
           .order('created_at', { ascending: false })
 
         if (error) {
@@ -935,22 +944,22 @@ function PublishPage() {
             <p className="text-gray-500 mb-4 text-sm">{t('noAccounts')}</p>
             {userId ? (
               <div className="flex flex-wrap gap-2">
-                <a href={`/api/auth/facebook?userId=${userId}`} className="cf-ink-btn px-4 py-2 rounded-lg text-sm">
+                <a href={`/api/auth/facebook?userId=${userId}&orgId=${orgId ?? ''}`} className="cf-ink-btn px-4 py-2 rounded-lg text-sm">
                   {t('connectFacebook')}
                 </a>
-                <a href={`/api/auth/tiktok?userId=${userId}`} className="bg-black text-white px-4 py-2 rounded-lg text-sm">
+                <a href={`/api/auth/tiktok?userId=${userId}&orgId=${orgId ?? ''}`} className="bg-black text-white px-4 py-2 rounded-lg text-sm">
                   {t('connectTikTok')}
                 </a>
-                <a href={`/api/auth/linkedin?userId=${userId}`} className="bg-[#0077B5] text-white px-4 py-2 rounded-lg text-sm">
+                <a href={`/api/auth/linkedin?userId=${userId}&orgId=${orgId ?? ''}`} className="bg-[#0077B5] text-white px-4 py-2 rounded-lg text-sm">
                   {t('connectLinkedIn')}
                 </a>
-                <a href={`/api/auth/x?userId=${userId}`} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm">
+                <a href={`/api/auth/x?userId=${userId}&orgId=${orgId ?? ''}`} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm">
                   {t('connectX')}
                 </a>
-                <a href={`/api/auth/reddit?userId=${userId}`} className="bg-[#FF4500] text-white px-4 py-2 rounded-lg text-sm">
+                <a href={`/api/auth/reddit?userId=${userId}&orgId=${orgId ?? ''}`} className="bg-[#FF4500] text-white px-4 py-2 rounded-lg text-sm">
                   {t('connectReddit')}
                 </a>
-                <a href={`/api/auth/youtube?userId=${userId}`} className="bg-[#FF0000] text-white px-4 py-2 rounded-lg text-sm">
+                <a href={`/api/auth/youtube?userId=${userId}&orgId=${orgId ?? ''}`} className="bg-[#FF0000] text-white px-4 py-2 rounded-lg text-sm">
                   {t('connectYouTube')}
                 </a>
               </div>
@@ -969,22 +978,22 @@ function PublishPage() {
             ))}
             {userId && (
               <div className="flex flex-wrap gap-2 mt-3">
-                <a href={`/api/auth/facebook?userId=${userId}`} className="text-sm text-[var(--ember-deep)] hover:underline">
+                <a href={`/api/auth/facebook?userId=${userId}&orgId=${orgId ?? ''}`} className="text-sm text-[var(--ember-deep)] hover:underline">
                   + {t('connectFacebook')}
                 </a>
-                <a href={`/api/auth/tiktok?userId=${userId}`} className="text-sm text-gray-800 hover:underline">
+                <a href={`/api/auth/tiktok?userId=${userId}&orgId=${orgId ?? ''}`} className="text-sm text-gray-800 hover:underline">
                   + {t('connectTikTok')}
                 </a>
-                <a href={`/api/auth/linkedin?userId=${userId}`} className="text-sm text-[#0077B5] hover:underline">
+                <a href={`/api/auth/linkedin?userId=${userId}&orgId=${orgId ?? ''}`} className="text-sm text-[#0077B5] hover:underline">
                   + {t('connectLinkedIn')}
                 </a>
-                <a href={`/api/auth/x?userId=${userId}`} className="text-sm text-gray-900 hover:underline">
+                <a href={`/api/auth/x?userId=${userId}&orgId=${orgId ?? ''}`} className="text-sm text-gray-900 hover:underline">
                   + {t('connectX')}
                 </a>
-                <a href={`/api/auth/reddit?userId=${userId}`} className="text-sm text-[#FF4500] hover:underline">
+                <a href={`/api/auth/reddit?userId=${userId}&orgId=${orgId ?? ''}`} className="text-sm text-[#FF4500] hover:underline">
                   + {t('connectReddit')}
                 </a>
-                <a href={`/api/auth/youtube?userId=${userId}`} className="text-sm text-[#FF0000] hover:underline">
+                <a href={`/api/auth/youtube?userId=${userId}&orgId=${orgId ?? ''}`} className="text-sm text-[#FF0000] hover:underline">
                   + {t('connectYouTube')}
                 </a>
               </div>

@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// state baerer «bruker.organisasjon» (Lars 3/8). Gammelt format — bare
+// bruker-ID — virker fortsatt, og gir da organisasjon null.
+function tydState(state: string | null): { userId: string | null; orgId: string | null } {
+  if (!state) return { userId: null, orgId: null }
+  const i = state.indexOf('.')
+  return i === -1
+    ? { userId: state, orgId: null }
+    : { userId: state.slice(0, i), orgId: state.slice(i + 1) || null }
+}
+
 const BASE_URL = 'https://contentforge-610.netlify.app'
 
 export async function GET(request: Request) {
@@ -41,7 +51,9 @@ export async function GET(request: Request) {
 
     const sep = stateUser.indexOf(':')
     const cookieState = sep === -1 ? stateUser : stateUser.slice(0, sep)
-    const userId = sep === -1 ? '' : stateUser.slice(sep + 1)
+    // Brukerdelen er «bruker[.organisasjon]» — X baerer den i cookien, ikke
+    // i state, saa den tydes her i stedet
+    const { userId, orgId } = tydState(sep === -1 ? '' : stateUser.slice(sep + 1))
 
     if (!userId || cookieState !== state) {
       console.error(
@@ -149,13 +161,14 @@ export async function GET(request: Request) {
       .upsert(
         {
           user_id: userId,
+          organization_id: orgId,
           platform: 'x',
           page_id: xUserId,
           page_name: displayName,
           access_token: tokenData.access_token,
           user_access_token: tokenData.refresh_token || null,
         },
-        { onConflict: 'user_id,platform,page_id' }
+        { onConflict: 'organization_id,platform,page_id' }
       )
 
     if (insertError) {

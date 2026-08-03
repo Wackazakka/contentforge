@@ -6,6 +6,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
+    // Organisasjonen tres gjennom state. UUID-er har ingen punktum, saa
+    // separatoren er trygg — og gammelt format (bare userId) virker fortsatt.
+    const orgId = searchParams.get('orgId')
 
     if (!userId) {
       console.error('[facebook] No userId provided')
@@ -19,7 +22,7 @@ export async function GET(request: Request) {
       redirect_uri: process.env.META_REDIRECT_URI!,
       scope: 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_content_publish',
       response_type: 'code',
-      state: userId,
+      state: orgId ? `${userId}.${orgId}` : userId,
     })
 
     return NextResponse.redirect(`https://www.facebook.com/dialog/oauth?${params.toString()}`)

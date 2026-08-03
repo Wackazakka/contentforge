@@ -7,12 +7,15 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
+    // Organisasjonen tres gjennom state. UUID-er har ingen punktum, saa
+    // separatoren er trygg — og gammelt format (bare userId) virker fortsatt.
+    const orgId = searchParams.get('orgId')
 
     if (!userId) {
       return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_user`)
     }
 
-    const state = `${userId}:${randomBytes(8).toString('hex')}`
+    const state = `${orgId ? `${userId}.${orgId}` : userId}:${randomBytes(8).toString('hex')}`
 
     const params = new URLSearchParams({
       client_id: process.env.REDDIT_CLIENT_ID!,

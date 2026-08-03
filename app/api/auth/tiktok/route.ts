@@ -6,6 +6,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
+    // Organisasjonen tres gjennom state. UUID-er har ingen punktum, saa
+    // separatoren er trygg — og gammelt format (bare userId) virker fortsatt.
+    const orgId = searchParams.get('orgId')
 
     if (!userId) {
       return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_user`)
@@ -16,7 +19,7 @@ export async function GET(request: Request) {
       redirect_uri: `${BASE_URL}/api/auth/tiktok/callback`,
       response_type: 'code',
       scope: 'user.info.basic,video.upload,video.publish',
-      state: userId,
+      state: orgId ? `${userId}.${orgId}` : userId,
     })
 
     return NextResponse.redirect(
