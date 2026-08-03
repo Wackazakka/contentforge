@@ -159,6 +159,31 @@ export default function Home() {
 
                 <div style={{ display: 'flex', gap: 20 }}>
                   <div className="vb-slides" style={{ width: '38%', maxWidth: 190, flexShrink: 0, aspectRatio: '9 / 16', borderRadius: 14, position: 'relative', overflow: 'hidden' }}>
+                  {erArtist ? (<>
+                    {/* Artist-varianten (Lars 3/8): karusellen viste avatar og
+                        en artikkel med tekstlinjer - to ting artisten ikke
+                        faar. Naa: promoen, laata under, coveret og reelen. */}
+                    <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #2B2140, #171024)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 46, height: 46, borderRadius: 999, background: 'rgba(255,255,255,0.92)', color: '#1B1226', fontSize: 15 }}>&#9654;</span>
+                      <span className="vb-slide-cap" style={{ color: '#C4AEEA' }}>{t('ill2_s_video')}</span>
+                    </div>
+                    <div className="vb-slide" style={{ background: '#14110F', gap: 3 }}>
+                      <i style={{ width: 4, height: '38%', borderRadius: 3, background: '#7848C0' }} /><i style={{ width: 4, height: '72%', borderRadius: 3, background: '#8B5AD0' }} /><i style={{ width: 4, height: '94%', borderRadius: 3, background: '#9060C0' }} /><i style={{ width: 4, height: '56%', borderRadius: 3, background: '#A97FE0' }} /><i style={{ width: 4, height: '84%', borderRadius: 3, background: '#8B5AD0' }} /><i style={{ width: 4, height: '44%', borderRadius: 3, background: '#7848C0' }} /><i style={{ width: 4, height: '66%', borderRadius: 3, background: '#9060C0' }} />
+                      <span className="vb-slide-cap" style={{ color: '#C4AEEA' }}>{t('ill2_s_radio')}</span>
+                    </div>
+                    <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #3A2456, #1E1330)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 74, height: 74, borderRadius: 999, background: 'radial-gradient(circle at 50% 50%, #C9B3EC 0 12%, #3B2A57 12% 46%, #55407A 46% 100%)' }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 999, background: '#F3ECFB' }} />
+                      </span>
+                      <span className="vb-slide-cap" style={{ color: '#C4AEEA' }}>{t('ill2_s_avatar')}</span>
+                    </div>
+                    <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #241A38, #120C1E)', flexDirection: 'column', gap: 6 }}>
+                      <span style={{ width: '52%', height: '34%', borderRadius: 4, background: 'linear-gradient(160deg, #6E4BAE, #3D2A63)' }} />
+                      <span style={{ width: '62%', height: 5, borderRadius: 3, background: '#7C5EB8' }} />
+                      <span style={{ width: '44%', height: 4, borderRadius: 3, background: '#4E3A78' }} />
+                      <span className="vb-slide-cap" style={{ color: '#C4AEEA' }}>{t('ill2_s_article')}</span>
+                    </div>
+                  </>) : (<>
                     <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #DFE3F7, #D7D5F0)' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 46, height: 46, borderRadius: 999, background: 'color-mix(in srgb, var(--paper-raised) 90%, transparent)', color: 'var(--ink)', fontSize: 15 }}>▶</span>
                       <span className="vb-slide-cap" style={{ color: '#6A6C95' }}>{t('ill2_s_video')}</span>
@@ -179,6 +204,7 @@ export default function Home() {
                       <span style={{ width: '66%', height: 4, borderRadius: 3, background: '#DDD5C6' }} />
                       <span className="vb-slide-cap" style={{ color: '#6B655C' }}>{t('ill2_s_article')}</span>
                     </div>
+                  </>)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: '#8A8478' }}>{t('ill2_vo')}</span>
