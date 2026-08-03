@@ -36,11 +36,18 @@ export default function NavBar() {
     ...(voiceBankAdmin
       ? [
           ...(tenant.vertical === 'music' ? [] : [{ href: '/dashboard/voice-bank', label: t('voicebank') }]),
-          { href: '/dashboard/partners', label: t('partners') },
-          // Eget påslag (Lars 3/8) — Partnere viser BARNA dine, dette er deg selv
+          // Partnere og API-nøkler er «avansert admin» og skjules for tjenester
+          // som ikke trenger dem ennå (Lars 3/8: «ikke så overveldende i
+          // starten»). Påslag og Avregning blir stående — de handler om
+          // pengene deres, og dem trenger de fra dag én.
+          ...(tenant.show_advanced_admin !== false
+            ? [{ href: '/dashboard/partners', label: t('partners') }]
+            : []),
           { href: '/dashboard/paaslag', label: t('markup') },
           { href: '/dashboard/avregning', label: t('settlement') },
-          { href: '/dashboard/api-keys', label: t('apikeys') },
+          ...(tenant.show_advanced_admin !== false
+            ? [{ href: '/dashboard/api-keys', label: t('apikeys') }]
+            : []),
         ]
       : []),
   ]

@@ -14,6 +14,7 @@ export interface TenantInfo {
   vertical: string | null
   currency?: string | null
   show_language_toggle?: boolean | null
+  show_advanced_admin?: boolean | null
 }
 
 const DEFAULT: TenantInfo = {
@@ -26,6 +27,7 @@ const DEFAULT: TenantInfo = {
   vertical: null,
   currency: 'nok',
   show_language_toggle: true,
+  show_advanced_admin: true,
 }
 
 const TenantCtx = createContext<TenantInfo>(DEFAULT)
