@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { generatePalette, paletteFromBrand, paletteBoldSurface } from '@/lib/palette'
+import { useTranslations } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 
 // Partner-admin: dine direkte underledd — påslaget du tar av dem, royalty-satsen
@@ -46,6 +47,7 @@ const COLOR_FIELDS: Array<{ key: string; label: string; fallback: string; group:
 ]
 
 export default function PartnersPage() {
+  const tp = useTranslations('partners')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tenantName, setTenantName] = useState('')
@@ -77,7 +79,7 @@ export default function PartnersPage() {
     try {
       const res = await authedFetch()
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Kunne ikke hente partnerne'); return }
+      if (!res.ok) { setError(data.error || tp('loadError')); return }
       setError(null)
       setTenantName(data.tenant?.name || '')
       setTenantSlug(data.tenant?.slug || '')
@@ -124,7 +126,7 @@ export default function PartnersPage() {
   const save = async (p: Partner) => {
     const e = edits[p.id]
     if (!e) return
-    if (isNaN(Number(e.markup)) || isNaN(Number(e.license))) { setError('Påslag og lisensavgift må være tall.'); return }
+    if (isNaN(Number(e.markup)) || isNaN(Number(e.license))) { setError(tp('numberError')); return }
     setBusy(p.id); setSaved(null); setError(null)
     try {
       const res = await authedFetch({
@@ -142,7 +144,7 @@ export default function PartnersPage() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Lagring feilet')
+      if (!res.ok) throw new Error(data.error || tp('saveError'))
       setSaved(p.id)
       await refresh()
     } catch (err: any) {
@@ -285,41 +287,39 @@ export default function PartnersPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Tilbake</Link>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">🤝 Partnere</h1>
-        <p className="text-gray-600 mb-8">
-          {tenantName ? `${tenantName} sine direkte underledd` : 'Dine direkte underledd'} — påslaget de tar av sine egne kunder,
-          lisensavgiften fra partneravtalen, og merkevaren deres (navn, logo og farger på deres eget domene).
+        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">{tp('back')}</Link>
+        <h1 className="text-3xl font-bold text-[var(--ink)] mb-2">🤝 {tp('title')}</h1>
+        <p className="text-[var(--text-muted)] mb-8">
+          {tp('intro', { name: tenantName || 'CenterForge' })}
         </p>
 
-        {loading && <p className="text-gray-500">Henter partnerne …</p>}
+        {loading && <p className="text-[var(--text-muted)]">{tp('loading')}</p>}
         {error && <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
 
         {!loading && partners.length === 0 && !error && (
-          <div className="text-sm text-gray-500">
-            <p>Ingen partnere under dette leddet ennå.</p>
+          <div className="text-sm text-[var(--text-muted)]">
+            <p>{tp('none')}</p>
             {/* Hvilket ledd? Verten avgjør hvem du er, og på en ukjent vert
                 lander man på rot-leddet. Uten dette ser «tomt» og «feil sted»
                 helt likt ut (Lars 3/8). */}
             {tenantSlug && (
-              <p className="mt-1 text-[12.5px] text-gray-400">
-                Du ser dette som <span className="font-mono">{tenantSlug}</span>. Partnerlisten følger
-                domenet du er logget inn på — er du på feil adresse, ser du feil ledd.
+              <p className="mt-1 text-[12.5px] text-[var(--text-faint)]">
+                {tp('noneWho', { slug: tenantSlug })}
               </p>
             )}
           </div>
         )}
 
         {infraIncome && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
-            <h2 className="font-semibold text-gray-900 mb-1">Infrastrukturinntekter denne måneden</h2>
-            <p className="text-xs text-gray-400 mb-3">Plattformens 3 % av stemme- og ansiktsomsetningen i ALLE banker i treet — rettighetshåndtering, logging og utbetaling.</p>
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-[var(--ds-border)] p-5 mb-8">
+            <h2 className="font-semibold text-[var(--ink)] mb-1">{tp('infraTitle')}</h2>
+            <p className="text-xs text-[var(--text-faint)] mb-3">Plattformens 3 % av stemme- og ansiktsomsetningen i ALLE banker i treet — rettighetshåndtering, logging og utbetaling.</p>
             {infraIncome.length === 0 ? (
-              <p className="text-sm text-gray-500">Ingen aktiva-omsetning i treet denne måneden ennå.</p>
+              <p className="text-sm text-[var(--text-muted)]">{tp('infraNone')}</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
+                  <tr className="text-left text-xs text-[var(--text-muted)] border-b border-[var(--ds-border)]">
                     <th className="py-2">Bank</th>
                     <th className="py-2">Bruk</th>
                     <th className="py-2">Aktiva-omsetning</th>
@@ -328,7 +328,7 @@ export default function PartnersPage() {
                 </thead>
                 <tbody>
                   {infraIncome.map((r) => (
-                    <tr key={r.tenantName} className="border-b border-gray-100 last:border-0">
+                    <tr key={r.tenantName} className="border-b border-[var(--ds-border-faint)] last:border-0">
                       <td className="py-2 font-medium">{r.tenantName}</td>
                       <td className="py-2">{r.uses}</td>
                       <td className="py-2">{r.grossNok.toLocaleString('nb-NO')} kr</td>
@@ -346,12 +346,12 @@ export default function PartnersPage() {
         )}
 
         {Object.keys(income).length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
-            <h2 className="font-semibold text-gray-900 mb-1">Partnerinntekter denne måneden</h2>
-            <p className="text-xs text-gray-400 mb-3">Lisensavgiften av partnernes stemme- og ansiktsomsetning — samme hovedbok som partneren selv ser. Endelig oppgjør skjer ved månedsavregningen.</p>
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-[var(--ds-border)] p-5 mb-8">
+            <h2 className="font-semibold text-[var(--ink)] mb-1">{tp('incomeTitle')}</h2>
+            <p className="text-xs text-[var(--text-faint)] mb-3">Lisensavgiften av partnernes stemme- og ansiktsomsetning — samme hovedbok som partneren selv ser. Endelig oppgjør skjer ved månedsavregningen.</p>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
+                <tr className="text-left text-xs text-[var(--text-muted)] border-b border-[var(--ds-border)]">
                   <th className="py-2">Partner</th>
                   <th className="py-2">Bruk</th>
                   <th className="py-2">Aktiva-omsetning</th>
@@ -363,7 +363,7 @@ export default function PartnersPage() {
                 {partners.filter((p) => income[p.id]).map((p) => {
                   const inc = income[p.id]
                   return (
-                    <tr key={p.id} className="border-b border-gray-100 last:border-0">
+                    <tr key={p.id} className="border-b border-[var(--ds-border-faint)] last:border-0">
                       <td className="py-2 font-medium">{p.app_name}</td>
                       <td className="py-2">{inc.uses}</td>
                       <td className="py-2">{inc.grossNok.toLocaleString('nb-NO')} kr</td>
@@ -382,13 +382,13 @@ export default function PartnersPage() {
             const e = edits[p.id]
             if (!e) return null
             return (
-              <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-6">
+              <div key={p.id} className="bg-[var(--paper-raised)] rounded-xl border border-[var(--ds-border)] p-6">
                 <div className="flex items-center justify-between gap-4 mb-5">
                   <div>
-                    <h2 className="font-semibold text-gray-900 text-lg">{p.app_name}</h2>
-                    <p className="text-xs text-gray-400 font-mono">{p.slug} · {p.billing_mode === 'invoice' ? 'forskudd/avregning' : 'direktebetaling'}</p>
+                    <h2 className="font-semibold text-[var(--ink)] text-lg">{p.app_name}</h2>
+                    <p className="text-xs text-[var(--text-faint)] font-mono">{p.slug} · {p.billing_mode === 'invoice' ? 'forskudd/avregning' : 'direktebetaling'}</p>
                   </div>
-                  <div className="w-10 h-10 rounded-lg border border-gray-200 flex-none" style={{ background: e.colors['--ember'] }} title="Hovedfarge" />
+                  <div className="w-10 h-10 rounded-lg border border-[var(--ds-border)] flex-none" style={{ background: e.colors['--ember'] }} title="Hovedfarge" />
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">
@@ -396,111 +396,108 @@ export default function PartnersPage() {
                     {/* To paaslag, ett per ledd (Lars 3/8). VAART setter
                         innprisen deres; DERES setter sluttprisen. Foer fantes
                         bare ett felt, og da saa det ut som de smittet. */}
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Vårt påslag mot {p.app_name} (%)
+                    <label className="block text-sm font-medium text-[var(--ink)] mb-1">
+                      {tp('ourMarkup', { name: p.app_name })}
                     </label>
                     <input value={e.wholesale} onChange={(ev) => setEdit(p.id, 'wholesale', ev.target.value)}
                       type="number" min={0} max={500}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm tabular-nums" />
-                    <p className="text-xs text-gray-400 mt-1 mb-4">
-                      Vår margin. Setter <em>innprisen</em> {p.app_name} faktureres — og bare den.
-                      100 % = dagens nivå.
+                      className="w-full px-3 py-2 border border-[var(--ds-border-strong)] rounded-lg text-sm tabular-nums" />
+                    <p className="text-xs text-[var(--text-faint)] mt-1 mb-4">
+                      {tp('ourMarkupHint', { name: p.app_name })}
                     </p>
                     {/* Partnerens eget tall staar LAAST (Lars 3/8: «lett aa
                         gjoere feil slik at man endrer IndigoBooms paaslag naar
                         man mente aa endre sitt eget»). Muligheten beholdes —
                         den er nyttig ved oppstart — men den krever et bevisst
                         klikk, saa den ikke kan treffes ved et uhell. */}
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
-                      <label className="block text-sm font-medium text-gray-600 mb-1">
-                        {p.app_name} sitt eget påslag (%)
+                    <div className="rounded-lg border border-[var(--ds-border)] bg-[var(--paper-sunken)] px-3 py-2.5">
+                      <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">
+                        {tp('theirMarkup', { name: p.app_name })}
                       </label>
                       {laasteOpp[p.id] ? (
                         <>
                           <input value={e.markup} onChange={(ev) => setEdit(p.id, 'markup', ev.target.value)} inputMode="decimal"
                             autoFocus
-                            className="w-full px-3 py-2 border border-[var(--ember-deep)] rounded-lg text-sm bg-white" />
+                            className="w-full px-3 py-2 border border-[var(--ember-deep)] rounded-lg text-sm bg-[var(--paper-raised)]" />
                           <p className="text-xs text-[var(--ember-deep)] mt-1">
-                            Du overstyrer nå {p.app_name} sitt eget tall. De ser endringen som sin egen.
+                            {tp('theirMarkupWarn', { name: p.app_name })}
                           </p>
                         </>
                       ) : (
                         <div className="flex items-baseline gap-3">
-                          <span className="text-lg tabular-nums text-gray-900">{e.markup} %</span>
+                          <span className="text-lg tabular-nums text-[var(--ink)]">{e.markup} %</span>
                           <button
                             type="button"
                             onClick={() => setLaasteOpp((f) => ({ ...f, [p.id]: true }))}
-                            className="text-xs text-gray-500 underline hover:text-[var(--ember-deep)]"
+                            className="text-xs text-[var(--text-muted)] underline hover:text-[var(--ember-deep)]"
                           >
                             Endre likevel
                           </button>
                         </div>
                       )}
-                      <p className="text-xs text-gray-400 mt-1">
-                        Avgjør hva sluttbrukeren betaler: innprisen × (1 + påslag/100).
-                        Dette er partnerens beslutning — de setter det selv under «Påslag».
+                      <p className="text-xs text-[var(--text-faint)] mt-1">
+                        {tp('theirMarkupHint')}
                       </p>
                     </div>
 
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Lisensavgift (%)</label>
+                    <label className="block text-sm font-medium text-[var(--ink)] mb-1">{tp('license')}</label>
                     <input value={e.license} onChange={(ev) => setEdit(p.id, 'license', ev.target.value)} inputMode="decimal"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                    <p className="text-xs text-gray-400 mt-1">Din forhandlede andel av partnerens stemme- og ansiktsomsetning. 0 = ingen. I tillegg går infrastrukturavgiften (3 %) til plattformen i alle ledd.</p>
+                      className="w-full px-3 py-2 border border-[var(--ds-border-strong)] rounded-lg text-sm" />
+                    <p className="text-xs text-[var(--text-faint)] mt-1">Din forhandlede andel av partnerens stemme- og ansiktsomsetning. 0 = ingen. I tillegg går infrastrukturavgiften (3 %) til plattformen i alle ledd.</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Visningsnavn</label>
+                    <label className="block text-sm font-medium text-[var(--ink)] mb-1">{tp('displayName')}</label>
                     <input value={e.name} onChange={(ev) => setEdit(p.id, 'name', ev.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                      className="w-full px-3 py-2 border border-[var(--ds-border-strong)] rounded-lg text-sm" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Logo-URL</label>
+                    <label className="block text-sm font-medium text-[var(--ink)] mb-1">{tp('logoUrl')}</label>
                     <input value={e.logo} onChange={(ev) => setEdit(p.id, 'logo', ev.target.value)} placeholder="https://…"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+                      className="w-full px-3 py-2 border border-[var(--ds-border-strong)] rounded-lg text-sm font-mono" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Adresse på merkekortet</label>
+                    <label className="block text-sm font-medium text-[var(--ink)] mb-1">{tp('brandCardUrl')}</label>
                     <input value={e.brandUrl} onChange={(ev) => setEdit(p.id, 'brandUrl', ev.target.value)}
                       placeholder="indigoboom.com/videomaker"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
-                    <p className="mt-1 text-[12px] text-gray-500">
-                      Står under navnet på sluttplakaten kunder får mot rabatt. Skriv den som den skal
-                      leses av noen som ser en video — uten https:// La feltet stå tomt for ingen adresse.
+                      className="w-full px-3 py-2 border border-[var(--ds-border-strong)] rounded-lg text-sm font-mono" />
+                    <p className="mt-1 text-[12px] text-[var(--text-muted)]">
+                      {tp('brandCardHint')}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <label className="block text-sm font-medium text-gray-700">Fargeprofil (partnerens domene)</label>
+                  <label className="block text-sm font-medium text-[var(--ink)]">{tp('colors')}</label>
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={() => suggestColors(p.id)}
-                      className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                      className="px-3 py-1.5 rounded-lg text-sm border border-[var(--ds-border-strong)] text-[var(--ink)] hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                       🎲 Forslag
                     </button>
-                    <span className="inline-flex rounded-lg border border-gray-300 overflow-hidden">
+                    <span className="inline-flex rounded-lg border border-[var(--ds-border-strong)] overflow-hidden">
                       <button type="button" onClick={() => buildFromBrand(p.id, false)}
                         title="Behold Hovedfarge som den er, og bygg en lys palett rundt den"
-                        className="px-3 py-1.5 text-sm text-gray-700 hover:text-[var(--ember-deep)] transition-colors">
+                        className="px-3 py-1.5 text-sm text-[var(--ink)] hover:text-[var(--ember-deep)] transition-colors">
                         Bygg rundt hovedfargen
                       </button>
                       <button type="button" onClick={() => buildFromBrand(p.id, true)}
                         title="Samme, men med mørk sideflate"
-                        className="px-2.5 py-1.5 text-sm text-gray-700 border-l border-gray-300 hover:text-[var(--ember-deep)] transition-colors">
+                        className="px-2.5 py-1.5 text-sm text-[var(--ink)] border-l border-[var(--ds-border-strong)] hover:text-[var(--ember-deep)] transition-colors">
                         🌙
                       </button>
                     </span>
                     <button type="button" onClick={() => buildBoldSurface(p.id)}
                       title="Hovedfargen blir selve sideflaten. Dristig, men teksthierarkiet flates ut — passer landingssider, ikke dashbord."
-                      className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                      className="px-3 py-1.5 rounded-lg text-sm border border-[var(--ds-border-strong)] text-[var(--ink)] hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                       Sterk flate
                     </button>
                     <button type="button" onClick={() => savePalette(p.id)}
-                      className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                      className="px-3 py-1.5 rounded-lg text-sm border border-[var(--ds-border-strong)] text-[var(--ink)] hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                       Lagre som profil
                     </button>
                     <button type="button" onClick={() => resetColors(p.id)} disabled={e.colorKeys.length === 0}
-                      className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:text-gray-700 transition-colors">
+                      className="px-3 py-1.5 rounded-lg text-sm border border-[var(--ds-border-strong)] text-[var(--ink)] hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40 disabled:hover:border-[var(--ds-border-strong)] disabled:hover:text-[var(--ink)] transition-colors">
                       Tilbakestill
                     </button>
                   </div>
@@ -508,13 +505,13 @@ export default function PartnersPage() {
 
                 {palettesOn && palettes.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="text-xs text-gray-500">Lagrede profiler:</span>
+                    <span className="text-xs text-[var(--text-muted)]">{tp('savedProfiles')}</span>
                     {palettes.map((pal) => (
-                      <span key={pal.id} className="inline-flex items-center gap-1 rounded-full border border-gray-300 pl-1 pr-2 py-1">
+                      <span key={pal.id} className="inline-flex items-center gap-1 rounded-full border border-[var(--ds-border-strong)] pl-1 pr-2 py-1">
                         <button type="button" onClick={() => applyPalette(p.id, pal.colors)}
                           title={`Bruk «${pal.name}» på ${e.name}`}
-                          className="inline-flex items-center gap-1.5 text-xs text-gray-700 hover:text-[var(--ember-deep)] transition-colors">
-                          <span className="flex rounded-full overflow-hidden border border-gray-200">
+                          className="inline-flex items-center gap-1.5 text-xs text-[var(--ink)] hover:text-[var(--ember-deep)] transition-colors">
+                          <span className="flex rounded-full overflow-hidden border border-[var(--ds-border)]">
                             {['--paper', '--ember', '--ink'].map((k) => (
                               <i key={k} className="block w-3 h-3" style={{ background: pal.colors[k] || '#ccc' }} />
                             ))}
@@ -522,12 +519,12 @@ export default function PartnersPage() {
                           {pal.name}
                         </button>
                         <button type="button" onClick={() => deletePalette(pal.id, pal.name)} title="Slett profilen"
-                          className="text-gray-300 hover:text-red-600 text-xs leading-none transition-colors">×</button>
+                          className="text-[var(--text-faint)] hover:text-red-600 text-xs leading-none transition-colors">×</button>
                       </span>
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-gray-500 mb-3">
+                <p className="text-xs text-[var(--text-muted)] mb-3">
                   {e.colorKeys.length === 0
                     ? 'Ingen egne farger — partneren bruker standardpaletten.'
                     : `${e.colorKeys.length} av ${COLOR_FIELDS.length} farger er satt. Blå prikk = valgt; klikk den for å nullstille.`}
@@ -535,13 +532,13 @@ export default function PartnersPage() {
                 </p>
                 {['Aksent', 'Flater', 'Tekst', 'Kanter'].map((group) => (
                   <div key={group} className="mb-3">
-                    <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5">{group}</div>
+                    <div className="text-xs uppercase tracking-wide text-[var(--text-muted)] mb-1.5">{group}</div>
                     <div className="flex flex-wrap gap-4">
                       {COLOR_FIELDS.filter((f) => f.group === group).map((f) => (
-                        <label key={f.key} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                        <label key={f.key} className="flex items-center gap-2 text-sm text-[var(--text-muted)] cursor-pointer">
                           <span className="relative flex-none">
                             <input type="color" value={e.colors[f.key]} onChange={(ev) => setColor(p.id, f.key, ev.target.value)}
-                              className="w-9 h-9 rounded border border-gray-300 cursor-pointer" />
+                              className="w-9 h-9 rounded border border-[var(--ds-border-strong)] cursor-pointer" />
                             {e.colorKeys.includes(f.key) && (
                               <button type="button" title="Nullstill denne fargen"
                                 onClick={(ev) => { ev.preventDefault(); clearColor(p.id, f.key) }}
@@ -556,7 +553,7 @@ export default function PartnersPage() {
                     </div>
                   </div>
                 ))}
-                <p className="text-xs text-gray-500 mb-5 mt-1">
+                <p className="text-xs text-[var(--text-muted)] mb-5 mt-1">
                   Mørkt merke? Sett Sideflate/Kort mørke og Tekst lyse — hele appen følger fargene, ikke bare forsiden.
                 </p>
 
@@ -566,7 +563,7 @@ export default function PartnersPage() {
                     {busy === p.id ? 'Lagrer …' : 'Lagre endringer'}
                   </button>
                   {saved === p.id
-                    ? <span className="text-sm text-green-700">Partneren er lagret — synlig på deres domene innen ett minutt.</span>
+                    ? <span className="text-sm text-green-700">{tp('saved')}</span>
                     : harUlagredeEndringer(p) && (
                         <span className="text-sm text-amber-700">
                           Ulagrede endringer — partnerens domene er uendret til du trykker «Lagre endringer».

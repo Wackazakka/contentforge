@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 import { fmtNok } from '@/lib/costs'
 
@@ -38,6 +38,8 @@ function maanedStart(d: Date) {
 
 export default function AvregningPage() {
   const t = useTranslations('settlement')
+  // Maanedsnavnene sto laast i nb-NO — «Juli 2026» midt paa en engelsk side
+  const locale = useLocale()
   const [data, setData] = useState<Avregning | null>(null)
   const [laster, setLaster] = useState(true)
   const [feil, setFeil] = useState<string | null>(null)
@@ -60,7 +62,7 @@ export default function AvregningPage() {
         headers: { Authorization: `Bearer ${token}` },
       })
       const d = await res.json()
-      if (!res.ok) throw new Error(d.error || t('loadError'))
+      if (!res.ok) throw new Error(t('loadError'))
       setData(d)
     } catch (err) {
       setFeil(err instanceof Error ? err.message : 'Noe gikk galt')
@@ -74,17 +76,17 @@ export default function AvregningPage() {
   const maanedNavn = (tilbake: number) => {
     const naa = new Date()
     const d = new Date(Date.UTC(naa.getUTCFullYear(), naa.getUTCMonth() - tilbake, 1))
-    return d.toLocaleDateString('nb-NO', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+    return d.toLocaleDateString(locale === 'en' ? 'en-GB' : 'nb-NO', { month: 'long', year: 'numeric', timeZone: 'UTC' })
   }
 
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-4xl mx-auto px-4 sm:px-8 py-10">
-        <Link href="/dashboard" className="text-[13px] text-gray-500 hover:text-[var(--ink)]">
+        <Link href="/dashboard" className="text-[13px] text-[var(--text-muted)] hover:text-[var(--ink)]">
           {t('back')}
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="mt-2 text-[15px] text-gray-500 max-w-[60ch]">
+        <h1 className="mt-4 text-3xl font-bold text-[var(--ink)]">{t('title')}</h1>
+        <p className="mt-2 text-[15px] text-[var(--text-muted)] max-w-[60ch]">
           {t('intro')}
         </p>
 
@@ -98,7 +100,7 @@ export default function AvregningPage() {
               className={`px-3.5 py-2 rounded-lg border text-[13px] font-medium capitalize ${
                 maanedTilbake === tb
                   ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                  : 'bg-[var(--paper-raised)] text-[var(--text-muted)] border-[var(--ds-border-strong)] hover:border-[var(--ember-deep)]'
               }`}
             >
               {tb === 0 ? t('thisMonth') : maanedNavn(tb)}
@@ -113,42 +115,42 @@ export default function AvregningPage() {
         )}
 
         {feil && !laster && (
-          <div className="mt-8 bg-white border border-red-200 rounded-2xl p-5 text-red-700 text-sm">{feil}</div>
+          <div className="mt-8 bg-[var(--paper-raised)] border border-red-200 rounded-2xl p-5 text-red-700 text-sm">{feil}</div>
         )}
 
         {data && !laster && (
           <>
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-                <p className="text-[12px] uppercase tracking-widest text-gray-400">{t('revenue')}</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900 tabular-nums">{fmtNok(data.omsetningNok)}</p>
-                <p className="mt-1 text-[12px] text-gray-400">{t('revenueHint')}</p>
+              <div className="bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] px-5 py-4">
+                <p className="text-[12px] uppercase tracking-widest text-[var(--text-faint)]">{t('revenue')}</p>
+                <p className="mt-1 text-2xl font-semibold text-[var(--ink)] tabular-nums">{fmtNok(data.omsetningNok)}</p>
+                <p className="mt-1 text-[12px] text-[var(--text-faint)]">{t('revenueHint')}</p>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
-                <p className="text-[12px] uppercase tracking-widest text-gray-400">{t('toPlatform')}</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900 tabular-nums">{fmtNok(data.tilContentForgeNok)}</p>
-                <p className="mt-1 text-[12px] text-gray-400">{t('toPlatformHint')}</p>
+              <div className="bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] px-5 py-4">
+                <p className="text-[12px] uppercase tracking-widest text-[var(--text-faint)]">{t('toPlatform')}</p>
+                <p className="mt-1 text-2xl font-semibold text-[var(--ink)] tabular-nums">{fmtNok(data.tilContentForgeNok)}</p>
+                <p className="mt-1 text-[12px] text-[var(--text-faint)]">{t('toPlatformHint')}</p>
               </div>
-              <div className="bg-white rounded-2xl border-2 border-[var(--ember-deep)] px-5 py-4">
+              <div className="bg-[var(--paper-raised)] rounded-2xl border-2 border-[var(--ember-deep)] px-5 py-4">
                 <p className="text-[12px] uppercase tracking-widest text-[var(--ember-deep)]">{t('toYou')}</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900 tabular-nums">{fmtNok(data.tilWhiteLabelNok)}</p>
-                <p className="mt-1 text-[12px] text-gray-400">{t('toYouHint')}</p>
+                <p className="mt-1 text-2xl font-semibold text-[var(--ink)] tabular-nums">{fmtNok(data.tilWhiteLabelNok)}</p>
+                <p className="mt-1 text-[12px] text-[var(--text-faint)]">{t('toYouHint')}</p>
               </div>
             </div>
 
-            <div className="mt-5 bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-gray-100 flex items-baseline justify-between gap-3">
-                <h2 className="text-base font-semibold text-gray-900">{t('breakdown')}</h2>
-                <span className="text-[12.5px] text-gray-400">{t('events', { count: data.antallHendelser })}</span>
+            <div className="mt-5 bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[var(--ds-border-faint)] flex items-baseline justify-between gap-3">
+                <h2 className="text-base font-semibold text-[var(--ink)]">{t('breakdown')}</h2>
+                <span className="text-[12.5px] text-[var(--text-faint)]">{t('events', { count: data.antallHendelser })}</span>
               </div>
               {Object.keys(data.perType).length === 0 ? (
-                <p className="px-5 py-6 text-[13.5px] text-gray-500">
+                <p className="px-5 py-6 text-[13.5px] text-[var(--text-muted)]">
                   {t('none')}
                 </p>
               ) : (
                 <table className="w-full text-[13.5px]">
                   <thead>
-                    <tr className="text-left text-gray-400 text-[12px] uppercase tracking-widest">
+                    <tr className="text-left text-[var(--text-faint)] text-[12px] uppercase tracking-widest">
                       <th className="px-5 py-2 font-normal">{t('colType')}</th>
                       <th className="px-5 py-2 font-normal text-right">{t('colCount')}</th>
                       <th className="px-5 py-2 font-normal text-right">{t('colRevenue')}</th>
@@ -159,11 +161,11 @@ export default function AvregningPage() {
                     {Object.entries(data.perType)
                       .sort((a, b) => b[1].omsetning - a[1].omsetning)
                       .map(([type, v]) => (
-                        <tr key={type} className="border-t border-gray-100">
-                          <td className="px-5 py-2.5 text-gray-900">{TYPE_NOKKEL[type] ? t(TYPE_NOKKEL[type]) : type}</td>
-                          <td className="px-5 py-2.5 text-right text-gray-600 tabular-nums">{v.antall}</td>
-                          <td className="px-5 py-2.5 text-right text-gray-600 tabular-nums">{fmtNok(v.omsetning)}</td>
-                          <td className="px-5 py-2.5 text-right text-gray-900 font-medium tabular-nums">
+                        <tr key={type} className="border-t border-[var(--ds-border-faint)]">
+                          <td className="px-5 py-2.5 text-[var(--ink)]">{TYPE_NOKKEL[type] ? t(TYPE_NOKKEL[type]) : type}</td>
+                          <td className="px-5 py-2.5 text-right text-[var(--text-muted)] tabular-nums">{v.antall}</td>
+                          <td className="px-5 py-2.5 text-right text-[var(--text-muted)] tabular-nums">{fmtNok(v.omsetning)}</td>
+                          <td className="px-5 py-2.5 text-right text-[var(--ink)] font-medium tabular-nums">
                             {fmtNok(Math.max(0, v.omsetning - v.engros))}
                           </td>
                         </tr>
@@ -173,7 +175,7 @@ export default function AvregningPage() {
               )}
             </div>
 
-            <p className="mt-4 text-[12.5px] text-gray-400 max-w-[70ch]">
+            <p className="mt-4 text-[12.5px] text-[var(--text-faint)] max-w-[70ch]">
               {t('vat')}
             </p>
           </>

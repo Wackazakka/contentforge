@@ -149,7 +149,15 @@ export default function PaaslagPage() {
                 type="button"
                 onClick={lagre}
                 disabled={!endret || lagrer}
-                className="mt-4 w-full px-4 py-2.5 rounded-lg bg-[var(--ember-deep)] text-white font-medium disabled:opacity-40"
+                /* Var nedtonet med opacity-40, som bleker BAADE flaten og
+                   teksten samtidig — hvit tekst paa lys lilla, nesten uleselig
+                   (Lars 3/8). Av-tilstanden har naa egne farger i stedet for
+                   gjennomsiktighet, saa kontrasten holder i begge tilstander. */
+                className={`mt-4 w-full px-4 py-2.5 rounded-lg font-medium ${
+                  !endret || lagrer
+                    ? 'bg-transparent text-[var(--ink)] border border-[var(--ds-border-strong)] cursor-default'
+                    : 'bg-[var(--ember-deep)] text-white'
+                }`}
               >
                 {lagrer ? t('saving') : endret ? t('save') : t('saved')}
               </button>
