@@ -1108,18 +1108,22 @@ export default function DraftV2Page() {
 
                           {/* Tidligere innlesninger av DENNE scenen — gratis å
                               bytte tilbake til (Lars 3/8) */}
+                          {/* Sammenslaatt til en mappe (Lars 3/8: «det blir
+                              ofte mange av dem») — lukket som standard, saa
+                              scenen ikke drukner i gamle opptak. */}
                           {seg.no_voice !== true && (seg.voice_history || []).length > 1 && (
-                            <div>
-                              <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-1.5">
+                            <details className="group">
+                              <summary className="cursor-pointer list-none text-[11px] uppercase tracking-widest text-gray-400 hover:text-gray-600 select-none">
+                                <span className="inline-block transition-transform group-open:rotate-90">▸</span>{' '}
                                 Tidligere innlesninger ({(seg.voice_history || []).length})
-                              </p>
-                              <div className="space-y-1.5">
+                              </summary>
+                              <div className="space-y-1.5 mt-1.5">
                                 {(seg.voice_history || []).map((h) => {
                                   const aktiv = seg.voiceover_url === h.url
                                   const brukbar = passerStemmen(h.voice_id)
                                   return (
                                     <div key={h.url} className={`flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 ${aktiv ? 'bg-[var(--ember-tint-bg)]' : 'bg-gray-50'}`}>
-                                      <audio controls src={h.url} className="h-8 flex-1 min-w-[180px]" />
+                                      <audio controls src={h.url} preload="none" className="h-8 flex-1 min-w-[180px]" />
                                       <span className="text-[11px] text-gray-400">
                                         {voiceNavn(h.voice_id)} · {new Date(h.ts).toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                       </span>
@@ -1146,7 +1150,7 @@ export default function DraftV2Page() {
                               <p className="text-[11px] text-gray-400 mt-1">
                                 Gratis å bytte mellom — opptakene er allerede laget.
                               </p>
-                            </div>
+                            </details>
                           )}
 
                           {/* Artistens stemmebibliotek — ALT som er lest inn,
