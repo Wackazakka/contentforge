@@ -140,12 +140,17 @@ async function chainPriceFactor(t: Tenant): Promise<number> {
     let product = 1
     let cur: any = t
     for (let hop = 0; hop < 4 && cur; hop++) {
-      product *= 1 + (Number(cur.markup_percent ?? 100) / 100)
+      product *= 1 + (Number(cur.markup_percent ?? 0) / 100)
       if (!cur.parent_tenant_id) break
       const { data } = await supabase.from('tenants').select('id, parent_tenant_id, markup_percent').eq('id', cur.parent_tenant_id).single()
       cur = data && data.parent_tenant_id !== null ? data : null // root (parent=null) teller ikke
     }
-    return product / 2
+    // Ingen halvering (Lars 3/8): «naar de velger 100 % boer det vaere 100 %
+    // paaslag paa den prisen de faar fra ContentForge». Partneren faktureres
+    // COSTS_NOK, saa kundeprisen MAA vaere COSTS_NOK x (1 + paaslag/100) for at
+    // tallet skal bety det det sier. Foer delte vi paa 2, og da var «100 %» i
+    // virkeligheten null margin — det motsatte av hva feltet lovet.
+    return product
   } catch {
     return 1
   }

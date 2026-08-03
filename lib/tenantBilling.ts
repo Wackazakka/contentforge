@@ -87,7 +87,7 @@ export async function getPartnerBalance(tenantId: string): Promise<number | null
 
 /**
  * Sluttkundepris-faktor for en tenant: Π(1+markup/100) over kjeden root→tenant
- * (uten root) delt på 2 (COSTS_NOK er allerede råkost×2). Samme formel som
+ * (uten root). Samme formel som
  * chainPriceFactor i tenantServer, men oppslag per tenant-id — brukes ved
  * logging så kundeprisen fryses på raden selv om påslag endres senere.
  */
@@ -100,10 +100,12 @@ export async function chainFactorByTenantId(tenantId: string): Promise<number> {
       const res: { data: { parent_tenant_id: string | null; markup_percent: number | null } | null } =
         await supabase.from('tenants').select('parent_tenant_id, markup_percent').eq('id', curId).single()
       if (!res.data || res.data.parent_tenant_id === null) break // root teller ikke
-      product *= 1 + Number(res.data.markup_percent ?? 100) / 100
+      product *= 1 + Number(res.data.markup_percent ?? 0) / 100
       curId = res.data.parent_tenant_id
     }
-    return product / 2
+    // Se tenantServer.chainPriceFactor — halveringen er fjernet 3/8 saa
+    // paaslaget betyr paaslag. MAA holdes lik den funksjonen.
+    return product
   } catch {
     return 1
   }

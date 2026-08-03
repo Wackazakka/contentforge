@@ -378,7 +378,11 @@ export default function PartnersPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Vårt påslag mot partneren (%)</label>
                     <input value={e.markup} onChange={(ev) => setEdit(p.id, 'markup', ev.target.value)} inputMode="decimal"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                    <p className="text-xs text-gray-400 mt-1">0–500. Partnerens innpris = vår kost + dette påslaget. 100 = standard.</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      0–500. Kundeprisen deres = innprisen × (1 + påslag/100).
+                      0 = de selger til innpris og tjener ingenting; 100 = dobbel pris.
+                      Partneren kan justere sitt eget påslag selv.
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Lisensavgift (%)</label>

@@ -36,6 +36,8 @@ export default function NavBar() {
       ? [
           ...(tenant.vertical === 'music' ? [] : [{ href: '/dashboard/voice-bank', label: t('voicebank') }]),
           { href: '/dashboard/partners', label: t('partners') },
+          // Eget påslag (Lars 3/8) — Partnere viser BARNA dine, dette er deg selv
+          { href: '/dashboard/paaslag', label: 'Påslag' },
           { href: '/dashboard/avregning', label: 'Avregning' },
           { href: '/dashboard/api-keys', label: t('apikeys') },
         ]
