@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { useTenant } from '@/lib/tenantContext'
 import { verticalConfig } from '@/lib/verticals'
@@ -134,10 +135,15 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
 
   if (!isOpen) return null
 
-  return (
+  // Modalen laa inne i sidetreet, og toppmenyen har backdrop-filter — som
+  // lager sin egen stablingskontekst. Da hjelper ingen z-index: toppen la seg
+  // over modalens oeverste felt, saa tittelen og foerste etikett forsvant bak
+  // den (Lars 3/8). Portal til <body> tar modalen ut av treet, og da gjelder
+  // z-index igjen. Nav er 50; 1000 gir rikelig klaring.
+  const innhold = (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 100,
+        position: 'fixed', inset: 0, zIndex: 1000,
         background: 'color-mix(in srgb, var(--ink) 45%, transparent)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
       }}
@@ -321,4 +327,8 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: P
       </div>
     </div>
   )
+
+  // Under serverrendering finnes ingen document — da rendres ingenting, og
+  // klienten setter den inn straks etter.
+  return typeof document === 'undefined' ? null : createPortal(innhold, document.body)
 }

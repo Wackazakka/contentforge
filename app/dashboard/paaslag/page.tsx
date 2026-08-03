@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
-import { COSTS_NOK, fmtNok } from '@/lib/costs'
+import { COSTS_NOK, fmtCredits } from '@/lib/costs'
 
 // Partnerens eget påslag (Lars 3/8). Prosent, ikke kroner — ContentForge kan
 // endre innprisen når som helst, og da skal påslaget følge med av seg selv i
@@ -128,15 +128,15 @@ export default function PaaslagPage() {
                 </p>
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-gray-600">{t('cost')}</span>
-                  <span className="tabular-nums text-gray-900">{fmtNok(grunnlag)}</span>
+                  <span className="tabular-nums text-gray-900">{fmtCredits(grunnlag, t('unit'))}</span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 mt-1">
                   <span className="text-gray-600">{t('customerPays')}</span>
-                  <span className="tabular-nums font-semibold text-gray-900">{gyldig ? fmtNok(utpris) : '—'}</span>
+                  <span className="tabular-nums font-semibold text-gray-900">{gyldig ? fmtCredits(utpris, t('unit')) : '—'}</span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 mt-1 pt-2 border-t border-gray-200">
                   <span className="text-[var(--ember-deep)]">{t('youKeep')}</span>
-                  <span className="tabular-nums font-semibold text-[var(--ember-deep)]">{gyldig ? fmtNok(margin) : '—'}</span>
+                  <span className="tabular-nums font-semibold text-[var(--ember-deep)]">{gyldig ? fmtCredits(margin, t('unit')) : '—'}</span>
                 </div>
                 {gyldig && tall === 0 && (
                   <p className="mt-2 text-[12.5px] text-gray-500">

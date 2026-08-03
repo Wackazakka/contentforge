@@ -818,7 +818,8 @@
     "why": "We state the markup in percent, not kroner, because the cost price can change. The markup then follows along instead of becoming an amount that quietly goes wrong. What you have actually earned is on the",
     "settlementLink": "settlement page",
     "loadError": "Could not load your markup",
-    "saveError": "Saving failed"
+    "saveError": "Saving failed",
+    "unit": "credits"
   },
   "settlement": {
     "back": "← Back to overview",
