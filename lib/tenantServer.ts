@@ -22,6 +22,7 @@ export interface Tenant {
   price_multiplier?: number
   wholesale_markup_pct?: number | null // VÅRT påslag mot denne partneren (setter innprisen)
   currency?: string | null // 'nok' | 'gbp' — hva kundene deres betaler i
+  show_language_toggle?: boolean | null // NO/EN-bryteren i toppen
   vertical?: string | null // f.eks. 'craftsman' (Bombaza) — styrer copy/felt-overstyringer
   accept_actor_applications?: boolean | null // «Bli en stemme i banken» åpen for drop-in-skuespillere
   is_active: boolean

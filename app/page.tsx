@@ -90,7 +90,8 @@ export default function Home() {
             <CenterForgeLogo size={30} wordmarkSize={20} />
           </a>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <LangToggle />
+            {/* Skjules paa tjenester som bare tilbyr ett spraak (Lars 3/8) */}
+            {tenant.show_language_toggle !== false && <LangToggle />}
             <Link
               href="/login"
               className="cf-btn-ink"

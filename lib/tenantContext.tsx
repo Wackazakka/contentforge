@@ -13,6 +13,7 @@ export interface TenantInfo {
   price_multiplier: number
   vertical: string | null
   currency?: string | null
+  show_language_toggle?: boolean | null
 }
 
 const DEFAULT: TenantInfo = {
@@ -24,6 +25,7 @@ const DEFAULT: TenantInfo = {
   price_multiplier: 1,
   vertical: null,
   currency: 'nok',
+  show_language_toggle: true,
 }
 
 const TenantCtx = createContext<TenantInfo>(DEFAULT)

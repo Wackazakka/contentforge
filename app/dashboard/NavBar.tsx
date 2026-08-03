@@ -121,7 +121,8 @@ export default function NavBar() {
             </Link>
           )}
 
-          <LangToggle />
+          {/* Skjules paa tjenester som bare tilbyr ett spraak (Lars 3/8) */}
+          {tenant.show_language_toggle !== false && <LangToggle />}
 
           {/* Sesjonen er PER DOMENE (localStorage) — er du innlogget på ett white-label,
               er du ikke det på et annet. «Logg ut» ble tidligere vist ubetinget, så navet
