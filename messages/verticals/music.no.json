@@ -110,6 +110,22 @@
     "ill2_s_article": "TEASER",
     "ill2_s_radio": "REEL",
     "ill2_s_video": "VIDEO",
-    "ill2_s_avatar": "SHORT"
+    "ill2_s_avatar": "SHORT",
+    "ill2_text": "Ny singel ute på fredag — tre år på veien.",
+    "ill2_head": "GODKJENN PROMO-UTKAST",
+    "ill2_seg": "SCENE 1 AV 8",
+    "ill2_img": "9:16 ARTISTBILDE",
+    "ill2_motion": "BEVEGELSE — DU SER PRISEN FØR DU VELGER",
+    "ill2_approve": "Du godkjenner hver scene",
+    "ill2_next": "Neste promo",
+    "ill_divider": "ÉN PROMO, TRE FORMATER",
+    "ill_cap_916": "REELS · TIKTOK",
+    "ill_cap_11": "FEED",
+    "ill_cap_169": "YOUTUBE",
+    "ill_label_voice": "VOICEOVER",
+    "ill_voice_name": "Din egen stemme, eller en av våre",
+    "ill_voice_note": "Les inn selv, eller velg en stemme",
+    "ill_ledger": "Din egen låt under — filmen følger musikken",
+    "ill_pill_article": "MEDLEY"
   }
 }

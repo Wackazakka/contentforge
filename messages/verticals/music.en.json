@@ -110,6 +110,22 @@
     "ill2_s_article": "TEASER",
     "ill2_s_radio": "REEL",
     "ill2_s_video": "VIDEO",
-    "ill2_s_avatar": "SHORT"
+    "ill2_s_avatar": "SHORT",
+    "ill2_text": "New single out Friday — three years in the making.",
+    "ill2_head": "APPROVE PROMO DRAFT",
+    "ill2_seg": "SCENE 1 OF 8",
+    "ill2_img": "9:16 ARTIST PHOTO",
+    "ill2_motion": "MOTION — YOU SEE THE PRICE BEFORE YOU CHOOSE",
+    "ill2_approve": "You approve every scene",
+    "ill2_next": "Next promo",
+    "ill_divider": "ONE PROMO, THREE FORMATS",
+    "ill_cap_916": "REELS · TIKTOK",
+    "ill_cap_11": "FEED",
+    "ill_cap_169": "YOUTUBE",
+    "ill_label_voice": "VOICEOVER",
+    "ill_voice_name": "Your voice, or one of ours",
+    "ill_voice_note": "Read it yourself, or pick a voice",
+    "ill_ledger": "Your own track underneath — the film follows the music",
+    "ill_pill_article": "MEDLEY"
   }
 }

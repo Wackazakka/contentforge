@@ -324,7 +324,10 @@ export default function Home() {
         </section>
         )}
 
-        {/* Plattformen: white-label + API */}
+        {/* Plattformen: white-label + API — «bruk stemmene og ansiktene fra
+            dine egne systemer», partnerskap og API-noekler. Ikke noe en artist
+            skal selges (Lars 3/8: «fjern hele avsnittet med voices and faces»). */}
+        {!erArtist && (
         <section id="plattform" style={{ position: 'relative', maxWidth: 1180, margin: '0 auto', padding: 'clamp(56px,8vw,104px) 28px' }}>
           <div style={{ maxWidth: 680, margin: '0 auto clamp(40px,5vw,56px)', textAlign: 'center' }}>
             <h2 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4.3vw,50px)', lineHeight: 1.06, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 14px' }}>{t('pf_title')}</h2>
@@ -345,6 +348,7 @@ export default function Home() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Footer */}
         <footer style={{ position: 'relative', zIndex: 2, maxWidth: 1180, margin: '0 auto', padding: 'clamp(48px,6vw,72px) 28px 48px' }}>
