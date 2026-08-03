@@ -445,7 +445,11 @@ export default function Home() {
               <p style={{ fontFamily: HANKEN, fontSize: 14, lineHeight: 1.5, color: 'var(--text-faint)', margin: 0 }}>{t('foot_tag')}</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <Link href="/white-label" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_whitelabel')}</Link>
+              {/* «Bli white-label-partner» selger plattformen fra artistens egen
+                  fot (Lars 3/8). Hoerer hjemme paa CenterForge, ikke hos Isabel. */}
+              {!erArtist && (
+                <Link href="/white-label" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_whitelabel')}</Link>
+              )}
               <Link href="/privacy" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_privacy')}</Link>
               <Link href="/terms" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_terms')}</Link>
             </div>
