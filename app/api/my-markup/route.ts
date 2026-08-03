@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { isTenantAdmin } from '@/lib/voiceBank'
+import { wholesaleFactor } from '@/lib/platformMarkup'
 
 // Partnerens EGET påslag (Lars 3/8: «kan vi la dem sette påslag selv i admin?»).
 //
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
     if (g.fail) return g.fail
     const { data: t } = await admin()
       .from('tenants')
-      .select('app_name, markup_percent, parent_tenant_id')
+      .select('app_name, markup_percent, parent_tenant_id, wholesale_markup_pct')
       .eq('id', g.tenant!.id)
       .single()
     if (!t) return NextResponse.json({ error: 'Fant ikke kontoen' }, { status: 404 })
@@ -59,7 +60,14 @@ export async function GET(request: Request) {
         { status: 403 }
       )
     }
-    return NextResponse.json({ navn: t.app_name, markupPercent: Number(t.markup_percent ?? 0) })
+    // Innprisen deres er raakost x (1 + VAART paaslag/100). Uten dette regnet
+    // siden med listeprisen og viste samme innpris uansett hva vi avtalte
+    // (Lars 3/8: «jeg endret CenterForges paaslag, men innprisen endret seg ikke»).
+    return NextResponse.json({
+      navn: t.app_name,
+      markupPercent: Number(t.markup_percent ?? 0),
+      innprisFaktor: wholesaleFactor((t as any).wholesale_markup_pct),
+    })
   } catch {
     return NextResponse.json({ error: 'Noe gikk galt' }, { status: 500 })
   }

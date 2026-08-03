@@ -50,6 +50,8 @@ export default function PartnersPage() {
   const [error, setError] = useState<string | null>(null)
   const [tenantName, setTenantName] = useState('')
   const [tenantSlug, setTenantSlug] = useState('')
+  // Hvilke partneres EGNE paaslag er laast opp for redigering (per kort)
+  const [laasteOpp, setLaasteOpp] = useState<Record<string, boolean>>({})
   const [partners, setPartners] = useState<Partner[]>([])
   const [income, setIncome] = useState<Record<string, { grossNok: number; licenseNok: number; uses: number }>>({})
   const [infraIncome, setInfraIncome] = useState<Array<{ tenantName: string; uses: number; grossNok: number; infraNok: number }> | null>(null)
@@ -404,24 +406,42 @@ export default function PartnersPage() {
                       Vår margin. Setter <em>innprisen</em> {p.app_name} faktureres — og bare den.
                       100 % = dagens nivå.
                     </p>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {p.app_name} sitt påslag mot sine kunder (%)
-                    </label>
-                    <input value={e.markup} onChange={(ev) => setEdit(p.id, 'markup', ev.target.value)} inputMode="decimal"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                    <p className="text-xs text-gray-400 mt-1">
-                      0–500. Kundeprisen deres = innprisen × (1 + påslag/100).
-                      0 = de selger til innpris og tjener ingenting; 100 = dobbel pris.
-                    </p>
-                    {/* Feltet heter ETT tall og eies av partneren (Lars 3/8: «når
-                        jeg setter 150 % her, forandrer IndigoBooms seg også»).
-                        Det var ikke to tall som fulgte hverandre — det var samme
-                        tall med to motsatte etiketter. */}
-                    <p className="text-xs text-gray-400 mt-1">
-                      Deres tall, ikke vårt — samme felt som de selv redigerer under «Påslag».
-                      Det avgjør bare hva sluttbrukeren betaler. Endrer du vårt påslag over,
-                      står dette tallet urørt; det er innprisen som flytter seg.
-                    </p>
+                    {/* Partnerens eget tall staar LAAST (Lars 3/8: «lett aa
+                        gjoere feil slik at man endrer IndigoBooms paaslag naar
+                        man mente aa endre sitt eget»). Muligheten beholdes —
+                        den er nyttig ved oppstart — men den krever et bevisst
+                        klikk, saa den ikke kan treffes ved et uhell. */}
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        {p.app_name} sitt eget påslag (%)
+                      </label>
+                      {laasteOpp[p.id] ? (
+                        <>
+                          <input value={e.markup} onChange={(ev) => setEdit(p.id, 'markup', ev.target.value)} inputMode="decimal"
+                            autoFocus
+                            className="w-full px-3 py-2 border border-[var(--ember-deep)] rounded-lg text-sm bg-white" />
+                          <p className="text-xs text-[var(--ember-deep)] mt-1">
+                            Du overstyrer nå {p.app_name} sitt eget tall. De ser endringen som sin egen.
+                          </p>
+                        </>
+                      ) : (
+                        <div className="flex items-baseline gap-3">
+                          <span className="text-lg tabular-nums text-gray-900">{e.markup} %</span>
+                          <button
+                            type="button"
+                            onClick={() => setLaasteOpp((f) => ({ ...f, [p.id]: true }))}
+                            className="text-xs text-gray-500 underline hover:text-[var(--ember-deep)]"
+                          >
+                            Endre likevel
+                          </button>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">
+                        Avgjør hva sluttbrukeren betaler: innprisen × (1 + påslag/100).
+                        Dette er partnerens beslutning — de setter det selv under «Påslag».
+                      </p>
+                    </div>
+
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Lisensavgift (%)</label>

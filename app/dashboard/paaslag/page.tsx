@@ -12,13 +12,16 @@ import { COSTS_NOK, fmtNok } from '@/lib/costs'
 // Eksempelet under regner likevel om til kroner mens du skriver, for «200 %»
 // sier ingenting før man ser hva artisten faktisk betaler.
 
-// Typisk 20-sekunders promo: 4 animerte scener + 4 innlesninger
-const EKSEMPEL_INNPRIS = COSTS_NOK.animate5s * 4 + COSTS_NOK.voiceoverPreview * 4
+// Typisk 20-sekunders promo: 4 animerte scener + 4 innlesninger.
+// LISTEPRIS — den ekte innprisen er denne ganget med innprisfaktoren fra
+// avtalen (vaart paaslag mot nettopp denne partneren).
+const EKSEMPEL_LISTE = COSTS_NOK.animate5s * 4 + COSTS_NOK.voiceoverPreview * 4
 
 export default function PaaslagPage() {
   const [navn, setNavn] = useState<string>('')
   const [verdi, setVerdi] = useState<string>('')
   const [lagret, setLagret] = useState<number | null>(null)
+  const [innprisFaktor, setInnprisFaktor] = useState(1)
   const [laster, setLaster] = useState(true)
   const [lagrer, setLagrer] = useState(false)
   const [feil, setFeil] = useState<string | null>(null)
@@ -33,6 +36,7 @@ export default function PaaslagPage() {
         const d = await res.json()
         if (!res.ok) throw new Error(d.error || 'Kunne ikke hente påslaget')
         setNavn(d.navn || '')
+        if (Number.isFinite(Number(d.innprisFaktor))) setInnprisFaktor(Number(d.innprisFaktor))
         setVerdi(String(d.markupPercent))
         setLagret(Number(d.markupPercent))
       } catch (err) {
@@ -65,7 +69,7 @@ export default function PaaslagPage() {
 
   const tall = Number(verdi)
   const gyldig = Number.isFinite(tall) && tall >= 0 && tall <= 500
-  const grunnlag = EKSEMPEL_INNPRIS
+  const grunnlag = EKSEMPEL_LISTE * innprisFaktor
   const utpris = gyldig ? grunnlag * (1 + tall / 100) : 0
   const margin = utpris - grunnlag
   const endret = lagret !== null && gyldig && tall !== lagret
