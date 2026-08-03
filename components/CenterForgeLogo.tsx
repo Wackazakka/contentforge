@@ -44,22 +44,19 @@ export function CenterForgeLogo({
   const tenant = useTenant()
 
   if (tenant.logo_url) {
-    // Tenant med eget merke: merke-bilde + app-navn som wordmark
+    // Tenanten har lastet opp sitt eget merke. Da ER logoen merkevaren, og
+    // navnet skal ikke staa en gang til ved siden av (Lars 3/8: «naar det
+    // staar Isabel's VideoMaker i logoen trenger vi ikke en tekst som sier
+    // det samme»). Baade Isabels og IndigoBooms logoer er lockup med navn.
+    // Navnet lever videre i alt-teksten, saa skjermlesere mister ingenting.
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 11 }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={tenant.logo_url} alt={tenant.app_name} style={{ height: size * 2.4, width: 'auto' }} />
-        <span
-          style={{
-            fontFamily: 'var(--font-archivo), sans-serif',
-            fontWeight: 800,
-            fontSize: wordmarkSize,
-            letterSpacing: '-0.02em',
-            color: 'var(--ink)',
-          }}
-        >
-          {tenant.app_name}
-        </span>
+        <img
+          src={tenant.logo_url}
+          alt={tenant.app_name}
+          style={{ height: size * 2.4, width: 'auto', maxWidth: '58vw', objectFit: 'contain' }}
+        />
       </span>
     )
   }

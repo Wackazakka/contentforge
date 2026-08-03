@@ -72,15 +72,18 @@ export default function NavBar() {
       style={{
         position: 'sticky', top: 0, zIndex: 50,
         backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-        background: 'color-mix(in srgb, var(--paper) 82%, transparent)', borderBottom: '1px solid #E2D9C8',
+        background: 'color-mix(in srgb, var(--paper) 82%, transparent)',
+        // Var hardkodet #E2D9C8 — en beige strek som lyste opp paa en moerk
+        // drakt (Lars 3/8). Foelger naa tenantens rammefarge.
+        borderBottom: '1px solid var(--ds-border)',
       }}
     >
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '13px 26px', display: 'flex', alignItems: 'center', gap: 20 }}>
+      <div className="cf-nav-row" style={{ maxWidth: 1180, margin: '0 auto', padding: '13px 26px', display: 'flex', alignItems: 'center', gap: 20 }}>
         <Link href="/dashboard" style={{ textDecoration: 'none', flex: 'none' }}>
           <CenterForgeLogo size={28} wordmarkSize={19} />
         </Link>
 
-        <nav style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <nav className="cf-nav-links" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
           {navLinks.map(({ href, label }) => {
             const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
             return (
