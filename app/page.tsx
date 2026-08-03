@@ -163,8 +163,26 @@ export default function Home() {
                     {/* Artist-varianten (Lars 3/8): karusellen viste avatar og
                         en artikkel med tekstlinjer - to ting artisten ikke
                         faar. Naa: promoen, laata under, coveret og reelen. */}
-                    <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #2B2140, #171024)' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 46, height: 46, borderRadius: 999, background: 'rgba(255,255,255,0.92)', color: '#1B1226', fontSize: 15 }}>&#9654;</span>
+                    <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #2B2140, #140E22)' }}>
+                      {/* Vokalist i spotlight — logoen hennes har band i linsa,
+                          saa silhuetter er allerede merkevarens spraak (Lars 3/8) */}
+                      <svg viewBox="0 0 100 160" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} aria-hidden="true">
+                        <defs>
+                          <linearGradient id="spotA" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stopColor="#C9B3EC" stopOpacity="0.42" />
+                            <stop offset="1" stopColor="#C9B3EC" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M50 0 L84 150 L16 150 Z" fill="url(#spotA)" />
+                        <g fill="#0E0918">
+                          <circle cx="50" cy="66" r="12" />
+                          <path d="M32 150 C32 118 38 100 50 100 C62 100 68 118 68 150 Z" />
+                          <path d="M62 104 C72 100 76 92 74 84" stroke="#0E0918" strokeWidth="5" fill="none" strokeLinecap="round" />
+                        </g>
+                        <circle cx="74" cy="80" r="6" fill="#0E0918" />
+                        <circle cx="74" cy="79" r="2.6" fill="#C9B3EC" opacity="0.75" />
+                      </svg>
+                      <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, borderRadius: 999, background: 'rgba(255,255,255,0.92)', color: '#1B1226', fontSize: 14, marginTop: 54 }}>&#9654;</span>
                       <span className="vb-slide-cap" style={{ color: '#C4AEEA' }}>{t('ill2_s_video')}</span>
                     </div>
                     <div className="vb-slide" style={{ background: '#14110F', gap: 3 }}>
@@ -177,10 +195,31 @@ export default function Home() {
                       </span>
                       <span className="vb-slide-cap" style={{ color: '#C4AEEA' }}>{t('ill2_s_avatar')}</span>
                     </div>
-                    <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #241A38, #120C1E)', flexDirection: 'column', gap: 6 }}>
-                      <span style={{ width: '52%', height: '34%', borderRadius: 4, background: 'linear-gradient(160deg, #6E4BAE, #3D2A63)' }} />
-                      <span style={{ width: '62%', height: 5, borderRadius: 3, background: '#7C5EB8' }} />
-                      <span style={{ width: '44%', height: 4, borderRadius: 3, background: '#4E3A78' }} />
+                    <div className="vb-slide" style={{ background: 'linear-gradient(165deg, #241A38, #100B1C)' }}>
+                      {/* Band paa scene — samme motiv som i logoens linse */}
+                      <svg viewBox="0 0 100 160" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} aria-hidden="true">
+                        <defs>
+                          <linearGradient id="beamA" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stopColor="#A97FE0" stopOpacity="0.5" />
+                            <stop offset="1" stopColor="#A97FE0" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M22 0 L40 128 L4 128 Z" fill="url(#beamA)" />
+                        <path d="M78 0 L96 128 L60 128 Z" fill="url(#beamA)" />
+                        <path d="M50 0 L64 128 L36 128 Z" fill="url(#beamA)" opacity="0.7" />
+                        <g fill="#0B0714">
+                          <circle cx="26" cy="86" r="7" />
+                          <path d="M15 128 C15 106 19 96 26 96 C33 96 37 106 37 128 Z" />
+                          <path d="M20 112 L40 104" stroke="#0B0714" strokeWidth="4" strokeLinecap="round" />
+                          <circle cx="50" cy="92" r="6.5" />
+                          <path d="M40 128 C40 110 44 101 50 101 C56 101 60 110 60 128 Z" />
+                          <rect x="42" y="116" width="16" height="12" rx="2" />
+                          <circle cx="74" cy="86" r="7" />
+                          <path d="M63 128 C63 106 67 96 74 96 C81 96 85 106 85 128 Z" />
+                          <path d="M68 110 L88 118" stroke="#0B0714" strokeWidth="4" strokeLinecap="round" />
+                          <rect x="0" y="128" width="100" height="32" />
+                        </g>
+                      </svg>
                       <span className="vb-slide-cap" style={{ color: '#C4AEEA' }}>{t('ill2_s_article')}</span>
                     </div>
                   </>) : (<>
