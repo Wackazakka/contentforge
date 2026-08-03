@@ -79,11 +79,11 @@ export default function PaaslagPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-2xl mx-auto px-4 sm:px-8 py-10">
-        <Link href="/dashboard" className="text-[13px] text-gray-500 hover:text-[var(--ink)]">
+        <Link href="/dashboard" className="text-[13px] text-[var(--text-muted)] hover:text-[var(--ink)]">
           {t('back')}
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="mt-2 text-[15px] text-gray-500 max-w-[60ch]">
+        <h1 className="mt-4 text-3xl font-bold text-[var(--ink)]">{t('title')}</h1>
+        <p className="mt-2 text-[15px] text-[var(--text-muted)] max-w-[60ch]">
           {t('intro')}
         </p>
 
@@ -94,14 +94,14 @@ export default function PaaslagPage() {
         )}
 
         {feil && !laster && (
-          <div className="mt-6 bg-white border border-red-200 rounded-2xl p-4 text-red-700 text-sm">{feil}</div>
+          <div className="mt-6 bg-[var(--paper-raised)] border border-red-300 rounded-2xl p-4 text-red-700 text-sm">{feil}</div>
         )}
 
         {!laster && lagret !== null && (
           <>
-            <div className="mt-6 bg-white rounded-2xl border border-gray-200 px-5 py-5">
-              {navn && <p className="text-[12px] uppercase tracking-widest text-gray-400 mb-3">{navn}</p>}
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('label')}</label>
+            <div className="mt-6 rounded-2xl border bg-[var(--paper-raised)] border-[var(--ds-border)] px-5 py-5">
+              {navn && <p className="text-[12px] uppercase tracking-widest text-[var(--text-faint)] mb-3">{navn}</p>}
+              <label className="block text-sm font-medium text-[var(--ink)] mb-1">{t('label')}</label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -110,9 +110,9 @@ export default function PaaslagPage() {
                   step={5}
                   value={verdi}
                   onChange={(e) => setVerdi(e.target.value)}
-                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-lg tabular-nums focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                  className="w-32 px-3 py-2 border border-[var(--ds-border-strong)] rounded-lg text-lg tabular-nums bg-[var(--paper)] text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                 />
-                <span className="text-gray-500">%</span>
+                <span className="text-[var(--text-muted)]">%</span>
               </div>
               {!gyldig && verdi !== '' && (
                 <p className="mt-2 text-[12.5px] text-red-600">
@@ -122,24 +122,24 @@ export default function PaaslagPage() {
 
               {/* Prosent er tallet som lagres, men ingen forstår prosent uten
                   et beløp ved siden av */}
-              <div className="mt-4 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 text-[13.5px]">
-                <p className="text-gray-500 mb-2">
+              <div className="mt-4 rounded-xl bg-[var(--paper-sunken)] border border-[var(--ds-border-faint)] px-4 py-3 text-[13.5px]">
+                <p className="text-[var(--text-muted)] mb-2">
                   {t('example')}
                 </p>
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-gray-600">{t('cost')}</span>
-                  <span className="tabular-nums text-gray-900">{fmtCredits(grunnlag, t('unit'))}</span>
+                  <span className="text-[var(--text-muted)]">{t('cost')}</span>
+                  <span className="tabular-nums text-[var(--ink)]">{fmtCredits(grunnlag, t('unit'))}</span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 mt-1">
-                  <span className="text-gray-600">{t('customerPays')}</span>
-                  <span className="tabular-nums font-semibold text-gray-900">{gyldig ? fmtCredits(utpris, t('unit')) : '—'}</span>
+                  <span className="text-[var(--text-muted)]">{t('customerPays')}</span>
+                  <span className="tabular-nums font-semibold text-[var(--ink)]">{gyldig ? fmtCredits(utpris, t('unit')) : '—'}</span>
                 </div>
-                <div className="flex items-baseline justify-between gap-3 mt-1 pt-2 border-t border-gray-200">
+                <div className="flex items-baseline justify-between gap-3 mt-1 pt-2 border-t border-[var(--ds-border)]">
                   <span className="text-[var(--ember-deep)]">{t('youKeep')}</span>
                   <span className="tabular-nums font-semibold text-[var(--ember-deep)]">{gyldig ? fmtCredits(margin, t('unit')) : '—'}</span>
                 </div>
                 {gyldig && tall === 0 && (
-                  <p className="mt-2 text-[12.5px] text-gray-500">
+                  <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
                     {t('zero')}
                   </p>
                 )}
@@ -160,7 +160,7 @@ export default function PaaslagPage() {
               )}
             </div>
 
-            <p className="mt-4 text-[12.5px] text-gray-400 leading-relaxed">
+            <p className="mt-4 text-[12.5px] text-[var(--text-faint)] leading-relaxed">
               {t('why')} <Link href="/dashboard/avregning" className="underline">{t('settlementLink')}</Link>.
             </p>
           </>
