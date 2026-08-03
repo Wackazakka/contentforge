@@ -148,13 +148,19 @@ export default function DashboardPage() {
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 }}>
         <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,42px)', lineHeight: 1, letterSpacing: '-0.01em', color: 'var(--ink)', margin: 0 }}>{t('yourProducts')}</h1>
-        <button
-          onClick={() => setShowProductModal(true)}
-          className="cf-btn-ink"
-          style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--paper)', background: 'var(--ink)', border: 'none', borderRadius: 999, padding: '12px 22px', cursor: 'pointer', boxShadow: '0 10px 24px -12px color-mix(in srgb, var(--ink) 50%, transparent)' }}
-        >
-          {t('newProduct')}
-        </button>
+        {/* Er lista tom, staar den samme oppfordringen i velkomstkortet rett
+            under — to like knapper med et par centimeter mellom seg (Lars 3/8).
+            Kortets knapp er den tydeligste, saa denne viker til det finnes noe
+            aa se paa. */}
+        {products.length > 0 && (
+          <button
+            onClick={() => setShowProductModal(true)}
+            className="cf-btn-ink"
+            style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--paper)', background: 'var(--ink)', border: 'none', borderRadius: 999, padding: '12px 22px', cursor: 'pointer', boxShadow: '0 10px 24px -12px color-mix(in srgb, var(--ink) 50%, transparent)' }}
+          >
+            {t('newProduct')}
+          </button>
+        )}
       </div>
 
       {productsLoading ? (
