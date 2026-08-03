@@ -35,11 +35,26 @@ export async function GET(request: Request) {
     // som ble til «Ingen partnere under dette leddet ennaa» — nøyaktig samme
     // skjerm som en tom liste (Lars 3/8: partnerne FANTES i basen). En tom
     // liste og et feilet oppslag maa aldri se like ut.
-    const { data: children, error: childErr } = await admin()
+    //
+    // VALGFRIE kolonner staar for seg: en kolonne som ennaa ikke er migrert
+    // skal ikke rive med seg hele partneradministrasjonen. Nettopp det skjedde
+    // 3/8 — brand_card_url ble lagt i spørringen foer SQL-en var kjoert, og
+    // Partnere sa «ingen partnere» i timevis. Samme moenster som select('*') i
+    // tenantServer: koden skal vaere deploybar foer migrasjonen.
+    const FASTE = 'id, slug, app_name, logo_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, license_fee_pct, billing_mode'
+    const VALGFRIE = ['brand_card_url']
+    // Kolonnelista er dynamisk, saa radtypen kan ikke utledes — derfor any her
+    const hentBarn = (kolonner: string) => admin()
       .from('tenants')
-      .select('id, slug, app_name, logo_url, brand_card_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, license_fee_pct, billing_mode')
+      .select(kolonner)
       .eq('parent_tenant_id', g.tenant!.id)
-      .order('app_name')
+      .order('app_name') as unknown as Promise<{ data: any[] | null; error: { message: string } | null }>
+
+    let { data: children, error: childErr } = await hentBarn([FASTE, ...VALGFRIE].join(', '))
+    if (childErr && /does not exist/i.test(childErr.message)) {
+      console.warn('[partners] valgfri kolonne mangler (migrasjon ikke kjoert?):', childErr.message)
+      ;({ data: children, error: childErr } = await hentBarn(FASTE))
+    }
     if (childErr) {
       console.error('[partners] oppslag av underledd feilet:', childErr.message, '| tenant:', g.tenant!.id)
       return NextResponse.json(
