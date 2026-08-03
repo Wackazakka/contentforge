@@ -46,12 +46,16 @@ where sc.organization_id is null
 -- 3) Duplikater: behold NYESTE rad per (organisasjon, plattform, side).
 --    Nyeste har det ferskeste tilgangstokenet - eldre rader ville gitt
 --    utloepte tokens og stille publiseringsfeil.
+--    ctid som tiebreaker: har to rader IDENTISK created_at (de ble laget i
+--    samme oppdatering), ville «<» ikke slettet noen av dem - og da hadde den
+--    unike indeksen under feilet, med halv migrasjon som resultat.
 delete from public.social_connections a
 using public.social_connections b
 where a.organization_id is not distinct from b.organization_id
   and a.platform = b.platform
   and a.page_id  = b.page_id
-  and a.created_at < b.created_at;
+  and (a.created_at < b.created_at
+       or (a.created_at = b.created_at and a.ctid < b.ctid));
 
 -- 4) Unik indeks - det er trolig DENNE som har manglet. Uten den gjoer
 --    upsert med onConflict ingen oppdatering, og hver ny tilkobling blir
