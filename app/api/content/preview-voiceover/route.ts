@@ -73,6 +73,22 @@ export async function POST(request: Request) {
       logUsageEvent({ draftId, eventType: 'voiceover', costNok: C2.voiceoverPreview })
     }
 
+    // Hvilket produkt (artist) tilhører opptaket? Brukes både til
+    // skuespiller-royalty og til å arkivere lyden i artistens eget
+    // stemmebibliotek.
+    let productId: string | null = null
+    if (draftId) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+        const { data: d } = await supabase.from('production_drafts').select('product_id').eq('id', draftId).single()
+        productId = d?.product_id || null
+      } catch { /* arkivering og royalty er begge valgfrie */ }
+    }
+
     // Skuespiller-preview? Da får skuespilleren en liten tegnbasert royalty
     // (à la ElevenLabs-satsene), og kundens taxameter belastes tilsvarende.
     let actorExtraNok = 0
@@ -83,10 +99,9 @@ export async function POST(request: Request) {
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         )
-        const { data: d } = await supabase.from('production_drafts').select('product_id').eq('id', draftId).single()
-        if (d?.product_id) {
+        if (productId) {
           const { getProductTenant, logUsageEvent: logUE } = await import('@/lib/tenantBilling')
-          const pt = await getProductTenant(d.product_id)
+          const pt = await getProductTenant(productId)
           if (pt.tenantId) {
             const { logPreviewRoyalty } = await import('@/lib/voiceBank')
             const r = await logPreviewRoyalty({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, chars: String(text).length, draftId })
@@ -111,7 +126,14 @@ export async function POST(request: Request) {
     })
 
     const timestamp = Date.now()
-    const key = `voiceovers/${draftId}/segment_${segmentIndex}_${timestamp}.mp3`
+    // Arkiveres under ARTISTEN når vi vet hvem det er (Lars 3/8) — under
+    // utkastet forsvant opptakene så snart scenen fikk en nyere URL.
+    // Stemme-ID-en må ligge i filnavnet: produksjonen nekter å bruke lyd den
+    // ikke vet hvilken stemme som lagde.
+    const trygtVoiceId = String(voiceId || '').replace(/[^A-Za-z0-9]/g, '')
+    const key = productId && trygtVoiceId
+      ? `artist-voices/${productId}/${trygtVoiceId}__scene${segmentIndex}__${timestamp}.mp3`
+      : `voiceovers/${draftId}/segment_${segmentIndex}_${timestamp}.mp3`
     console.log(`[preview-voiceover] Uploading to R2: ${key}`)
 
     await r2.send(

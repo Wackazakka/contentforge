@@ -45,6 +45,9 @@ interface Segment {
   // blir lagret slik at man kan skifte tilbake»). Filene ligger allerede i
   // dropletens cache — vi husker bare hvilken oppskrift som ga hvilket klipp.
   clip_history?: Array<{ nonce: string; url: string; style?: string; prompt?: string; ts: number }>
+  // Tidligere innlesninger av DENNE scenen (Lars 3/8). Teksten lagres med, så
+  // man ser hva som faktisk ble lest — den kan ha endret seg siden.
+  voice_history?: Array<{ url: string; voice_id: string; text: string; ts: number }>
 }
 
 interface Draft {
@@ -162,6 +165,32 @@ export default function DraftV2Page() {
     } catch { /* biblioteket er valgfritt */ }
   }
   useEffect(() => { if (productId) hentKlipp() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Artistens stemmebibliotek — alle AI-innlesninger, uavhengig av produksjon
+  // (Lars 3/8). Speiler klippbiblioteket.
+  const [stemmeBank, setStemmeBank] = useState<Array<{ name: string; url: string; voiceId: string; scene: number | null; laget: string | null }>>([])
+  const [stemmeVelgerFor, setStemmeVelgerFor] = useState<number | null>(null)
+  const hentStemmer = async () => {
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const d = await fetch(`/api/products/voices?productId=${productId}`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
+      if (Array.isArray(d.opptak)) setStemmeBank(d.opptak)
+    } catch { /* biblioteket er valgfritt */ }
+  }
+  useEffect(() => { if (productId) hentStemmer() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const slettStemme = async (navn: string) => {
+    if (!confirm('Slette dette opptaket fra biblioteket ditt?')) return
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      await fetch(`/api/products/voices?productId=${productId}&name=${encodeURIComponent(navn)}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      await hentStemmer()
+    } catch { alert('Sletting feilet') }
+  }
   const slettKlipp = async (navn: string) => {
     if (!confirm('Slette dette klippet fra biblioteket ditt?')) return
     try {
@@ -691,8 +720,16 @@ export default function DraftV2Page() {
         setDraft((prev) => {
           if (!prev) return prev
           const segments = [...prev.segments]
-          segments[index] = { ...segments[index], voiceover_url: data.url, own_voice: false, voice_used: draft.voice_id || '' }
+          const forrige = segments[index]
+          // Nyeste først, maks 6 — nok til å sammenligne innlesninger uten at
+          // raden drukner (samme grense som klipphistorikken)
+          const historikk = [
+            { url: data.url, voice_id: draft.voice_id || '', text: forrige.voiceover || '', ts: Date.now() },
+            ...(forrige.voice_history || []).filter((h) => h.url !== data.url),
+          ].slice(0, 6)
+          segments[index] = { ...forrige, voiceover_url: data.url, own_voice: false, voice_used: draft.voice_id || '', voice_history: historikk }
           persistSegments(segments)
+          hentStemmer()
           const paalopt = (Number(prev.cost_accumulated) || 0) + COSTS_NOK.voiceoverPreview + (Number(data.actorExtraNok) || 0)
           return { ...prev, segments, cost_accumulated: paalopt }
         })
@@ -703,6 +740,24 @@ export default function DraftV2Page() {
       setVoiceLoading((p) => ({ ...p, [index]: false }))
     }
   }
+
+  // Ta i bruk et tidligere opptak — gratis, fila finnes. voice_used må settes
+  // til stemmen som FAKTISK lagde opptaket: produksjonen forkaster lyd den
+  // ikke kan gå god for (stempelet fra 31/7).
+  // Slår opp i den DYNAMISKE stemmelista (den fra ElevenLabs-kontoen), ikke
+  // bare den hardkodede — ellers ville britiske og amerikanske stemmer stått
+  // som «ukjent» i biblioteket.
+  const voiceNavn = (id?: string | null) =>
+    VOICES.find((v) => v.id === id)?.name || VOICES_FALLBACK.find((v) => v.id === id)?.name || 'ukjent stemme'
+
+  const brukOpptak = (index: number, o: { url: string; voiceId: string }) => {
+    updateSegment(index, { voiceover_url: o.url, own_voice: false, voice_used: o.voiceId, approved: false })
+    setVoicePreviews((p) => ({ ...p, [index]: o.url }))
+    setStemmeVelgerFor(null)
+  }
+  // Et opptak laget med en annen stemme enn den som er valgt nå, ville blitt
+  // stille forkastet i produksjonen. Da er det bedre å si det.
+  const passerStemmen = (voiceId: string) => !!draft && draft.voice_id !== 'own' && voiceId === draft.voice_id
 
   const startProduction = async () => {
     if (!draft) return
@@ -1008,6 +1063,16 @@ export default function DraftV2Page() {
                                 </>
                               )
                             )}
+                            {seg.no_voice !== true && stemmeBank.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setStemmeVelgerFor(stemmeVelgerFor === index ? null : index)}
+                                className="px-3 py-2 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400"
+                                title="Alle innlesninger du har laget — gratis å bruke om igjen"
+                              >
+                                🎙️ Stemmene dine ({stemmeBank.length})
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => setImagePickerFor(imagePickerFor === index ? null : index)}
@@ -1025,6 +1090,101 @@ export default function DraftV2Page() {
                               Uten tale
                             </label>
                           </div>
+
+                          {/* Tidligere innlesninger av DENNE scenen — gratis å
+                              bytte tilbake til (Lars 3/8) */}
+                          {seg.no_voice !== true && (seg.voice_history || []).length > 1 && (
+                            <div>
+                              <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-1.5">
+                                Tidligere innlesninger ({(seg.voice_history || []).length})
+                              </p>
+                              <div className="space-y-1.5">
+                                {(seg.voice_history || []).map((h) => {
+                                  const aktiv = seg.voiceover_url === h.url
+                                  const brukbar = passerStemmen(h.voice_id)
+                                  return (
+                                    <div key={h.url} className={`flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 ${aktiv ? 'bg-[var(--ember-tint-bg)]' : 'bg-gray-50'}`}>
+                                      <audio controls src={h.url} className="h-8 flex-1 min-w-[180px]" />
+                                      <span className="text-[11px] text-gray-400">
+                                        {voiceNavn(h.voice_id)} · {new Date(h.ts).toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                      </span>
+                                      {aktiv ? (
+                                        <span className="text-[11.5px] font-medium text-[var(--ember-deep)]">i bruk</span>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => brukOpptak(index, { url: h.url, voiceId: h.voice_id })}
+                                          disabled={!brukbar}
+                                          title={brukbar ? '' : `Laget med ${voiceNavn(h.voice_id)} — bytt til den stemmen i sidepanelet for å bruke opptaket`}
+                                          className="text-[11.5px] px-2 py-1 rounded-full border border-gray-300 text-gray-600 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:text-gray-600"
+                                        >
+                                          {brukbar ? 'Bruk denne' : 'annen stemme'}
+                                        </button>
+                                      )}
+                                      {h.text && h.text !== seg.voiceover && (
+                                        <span className="w-full text-[11px] text-gray-400 italic truncate">Leste: «{h.text}»</span>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                              <p className="text-[11px] text-gray-400 mt-1">
+                                Gratis å bytte mellom — opptakene er allerede laget.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Artistens stemmebibliotek — ALT som er lest inn,
+                              uansett hvilken produksjon det tilhørte */}
+                          {stemmeVelgerFor === index && (
+                            <div>
+                              <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-1.5">
+                                Stemmene dine — gratis å bruke om igjen
+                              </p>
+                              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                                {stemmeBank.map((o) => {
+                                  const aktiv = seg.voiceover_url === o.url
+                                  const brukbar = passerStemmen(o.voiceId)
+                                  return (
+                                    <div key={o.name} className={`flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 ${aktiv ? 'bg-[var(--ember-tint-bg)]' : 'bg-gray-50'}`}>
+                                      <audio controls src={o.url} preload="none" className="h-8 flex-1 min-w-[180px]" />
+                                      <span className="text-[11px] text-gray-400">
+                                        {voiceNavn(o.voiceId)}
+                                        {o.scene !== null ? ` · scene ${o.scene + 1}` : ''}
+                                        {o.laget ? ` · ${new Date(o.laget).toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}
+                                      </span>
+                                      {aktiv ? (
+                                        <span className="text-[11.5px] font-medium text-[var(--ember-deep)]">i bruk</span>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => brukOpptak(index, o)}
+                                          disabled={!brukbar}
+                                          title={brukbar ? '' : `Laget med ${voiceNavn(o.voiceId)} — bytt til den stemmen i sidepanelet for å bruke opptaket`}
+                                          className="text-[11.5px] px-2 py-1 rounded-full border border-gray-300 text-gray-600 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40 disabled:hover:border-gray-300 disabled:hover:text-gray-600"
+                                        >
+                                          {brukbar ? 'Bruk i denne scenen' : 'annen stemme'}
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => slettStemme(o.name)}
+                                        title="Slett fra biblioteket"
+                                        className="text-[11px] text-gray-400 hover:text-red-600"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                              <p className="text-[11px] text-gray-400 mt-1">
+                                Alt du har lest inn, nyeste først. Opptak laget med en annen stemme enn den
+                                scenen bruker nå, kan ikke velges — bytt stemme i sidepanelet først, ellers
+                                ville filmen fått to forskjellige røster.
+                              </p>
+                            </div>
+                          )}
 
                           {/* Bildevelger */}
                           {imagePickerFor === index && (
@@ -1123,9 +1283,13 @@ export default function DraftV2Page() {
                             </span>
                           </div>
 
-                          {/* Bevegelse per scene — skjules naar egen video brukes */}
-                          {draft.ai_motion && !seg.video_url && (
-                            <div className="flex flex-wrap items-center gap-2">
+                          {/* Bevegelse per scene. Et ferdig klipp overstyrer
+                              animasjonen, men valgene skjules IKKE (Lars 3/8:
+                              «redigeringsmulighetene forsvant») — de blir
+                              dempet, saa scenen fortsatt kan stilles inn og
+                              staar klar den dagen klippet fjernes. */}
+                          {draft.ai_motion && (
+                            <div className={`flex flex-wrap items-center gap-2 ${seg.video_url ? 'opacity-60' : ''}`}>
                               <span className="text-[12px] text-gray-400">Bevegelse:</span>
                               {([
                                 { v: 'none' as const, label: 'Stillbilde', cost: 'gratis' },
@@ -1150,7 +1314,10 @@ export default function DraftV2Page() {
                               })}
                               {(seg.motion || (seg.animate === true ? 'move' : 'none')) === 'move' && (() => {
                                 const st = motionPreview[index]?.status || ''
-                                const jobber = ['starting', 'generating'].includes(st)
+                                // Har scenen et ferdig klipp, ville en ny
+                                // generering kostet penger for noe som ikke
+                                // brukes — derfor sperret, ikke skjult.
+                                const jobber = ['starting', 'generating'].includes(st) || !!seg.video_url
                                 return (
                                   <>
                                     <select
@@ -1194,6 +1361,12 @@ export default function DraftV2Page() {
                                   </>
                                 )
                               })()}
+                              {seg.video_url && (
+                                <span className="w-full text-[11.5px] text-gray-400">
+                                  Scenen bruker et ferdig klipp, så disse valgene tar ikke effekt.
+                                  Fjern klippet over hvis du heller vil animere bildet.
+                                </span>
+                              )}
                             </div>
                           )}
                           {seg.motion_style === 'custom' && (seg.motion || (seg.animate === true ? 'move' : 'none')) === 'move' && (
