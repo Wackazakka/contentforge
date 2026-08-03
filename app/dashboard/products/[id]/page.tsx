@@ -519,6 +519,19 @@ export default function ProductPage() {
               if (c && draftByCampaign[c]) draftIds[j.id] = draftByCampaign[c]
             })
           }
+          // Vei 3 (sikreste): utkast-ID stemplet paa selve videoen da den ble
+          // laget. Vei 1 og 2 er gjetting i ettertid — denne er et faktum.
+          ;(videosData || []).forEach((v: any) => {
+            const d = v.metadata?.draftId
+            if (d && v.job_id) draftIds[v.job_id] = d
+          })
+          // Vei 4: har produktet KUN ETT utkast, finnes det ingen tvil om hvem
+          // som lagde filmen. Dekker alle videoene fra foer stemplingen kom
+          // (Lars 3/8: «fremdeles ingen redigeringsknapp»).
+          if ((drafts || []).length === 1) {
+            const eneste = (drafts as any[])[0].id
+            jobIds.forEach((j: string) => { if (!draftIds[j]) draftIds[j] = eneste })
+          }
           setDraftByJobId(draftIds)
 
           // Jobbens tittel gjoer filmene skillbare (Lars 2/8: alle het

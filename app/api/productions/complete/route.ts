@@ -93,6 +93,20 @@ export async function POST(request: NextRequest) {
       console.log(`[api/productions/complete] Using productId from request: ${productId}`)
     }
 
+    // Hvilket utkast lagde denne filmen? Slaa det opp NAA, mens koblingen
+    // finnes — utkastet peker paa sin SISTE jobb, og neste produksjon
+    // overskriver feltet. Stemples det ikke inn her, er koblingen tapt for
+    // godt, og «Rediger» forsvinner fra filmen (Lars 3/8).
+    let draftIdForAsset: string | null = null
+    try {
+      const { data: d } = await supabase
+        .from('production_drafts')
+        .select('id')
+        .eq('job_id', jobId)
+        .maybeSingle()
+      draftIdForAsset = d?.id ?? null
+    } catch { /* koblingen er en bekvemmelighet, aldri en blokker */ }
+
     // Store generated assets in asset_banks table
     if (imageUrls && imageUrls.length > 0) {
       const assetInserts: Array<Record<string, any>> = imageUrls.map((url: string, index: number) => ({
@@ -121,6 +135,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           source: 'contentforge-server',
           campaignId,
+          draftId: draftIdForAsset,
         },
         created_at: new Date().toISOString(),
       })
@@ -150,6 +165,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           source: 'contentforge-server',
           campaignId,
+          draftId: draftIdForAsset,
         },
         created_at: new Date().toISOString(),
       }
