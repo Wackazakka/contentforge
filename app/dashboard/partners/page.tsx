@@ -388,7 +388,12 @@ export default function PartnersPage() {
 
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Partnerens påslag mot sine kunder (%)</label>
+                    {/* Navnet MAA staa i etiketten (Lars 3/8, to ganger): uten
+                        det leses feltet som «vaart paaslag», og man tror man
+                        endrer sitt eget naar man endrer partnerens. */}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {p.app_name} sitt påslag mot sine kunder (%)
+                    </label>
                     <input value={e.markup} onChange={(ev) => setEdit(p.id, 'markup', ev.target.value)} inputMode="decimal"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                     <p className="text-xs text-gray-400 mt-1">
@@ -400,9 +405,10 @@ export default function PartnersPage() {
                         Det var ikke to tall som fulgte hverandre — det var samme
                         tall med to motsatte etiketter. */}
                     <p className="text-xs text-gray-400 mt-1">
-                      Dette er <em>partnerens</em> tall, ikke vårt. Det er samme felt som de selv ser
-                      under «Påslag», så endrer du det her, endrer du utsalgsprisen deres.
-                      Vår egen inntekt er engrosprisen, som ikke påvirkes.
+                      Dette er <em>{p.app_name} sitt</em> tall, ikke vårt — samme felt som de selv
+                      redigerer under «Påslag». Endrer du det her, endrer du utsalgsprisen deres.
+                      Vår egen inntekt er engrosprisen, og den påvirkes ikke.
+                      Vi har ikke noe eget påslagsfelt: vår margin ligger i prislisten.
                     </p>
                   </div>
                   <div>
