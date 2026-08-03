@@ -625,6 +625,10 @@ export default function DraftV2Page() {
       if (!res.ok) throw new Error(data.error || 'Kunne ikke starte forhåndsvisningen')
       if (Number(data.chargedNok) > 0) {
         setDraft((prev) => (prev ? { ...prev, cost_accumulated: (Number(prev.cost_accumulated) || 0) + Number(data.chargedNok) } : prev))
+        // Saldoen ble hentet EN gang ved sidelasting (Lars 3/8) — «du har
+        // igjen» sto stille mens kreditter faktisk gikk med. Den som har lite
+        // igjen er nettopp den som trenger tallet underveis.
+        hentSaldo()
       }
       if (data.status === 'ready' && data.url) {
         setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: data.url } }))
@@ -749,6 +753,7 @@ export default function DraftV2Page() {
           segments[index] = { ...forrige, voiceover_url: data.url, own_voice: false, voice_used: draft.voice_id || '', voice_history: historikk }
           persistSegments(segments)
           hentStemmer()
+          hentSaldo()
           const paalopt = (Number(prev.cost_accumulated) || 0) + COSTS_NOK.voiceoverPreview + (Number(data.actorExtraNok) || 0)
           return { ...prev, segments, cost_accumulated: paalopt }
         })
