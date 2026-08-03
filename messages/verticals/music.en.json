@@ -52,7 +52,17 @@
     "brandProfile": "Your look and sound",
     "profileSaved": "✅ Saved!",
     "brandVoiceLabel": "Your tone",
-    "brandVoicePlaceholder": "How do you talk to your fans? E.g. raw and direct, warm and close, mysterious …"
+    "brandVoicePlaceholder": "How do you talk to your fans? E.g. raw and direct, warm and close, mysterious …",
+    "brandGuidelinesLabel": "Things to avoid",
+    "brandGuidelinesPlaceholder": "E.g. don't call us a cover band. Never use the word “comeback”. Don't mention the previous singer.",
+    "ctaTextLabel": "Closing line (optional)",
+    "ctaTextPlaceholder": "E.g. Hear “Now!” wherever you listen — link in bio.",
+    "ctaTextHint": "Used word for word at the end. Leave it empty and we'll write one for you.",
+    "websiteUrlLabel": "Website or Linktree",
+    "websiteUrlPlaceholder": "e.g. northernlights.com or linktr.ee/northernlights",
+    "websiteUrlHint": "Shown on the end card in your videos.",
+    "fontFamilyLabel": "Typeface (optional)",
+    "fontFamilyPlaceholder": "Leave empty if you don't have your own typeface"
   },
   "newDraft": {
     "segmentsLabel": "Number of scenes",

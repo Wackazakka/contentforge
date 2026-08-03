@@ -52,7 +52,17 @@
     "brandProfile": "Uttrykket ditt",
     "profileSaved": "✅ Lagret!",
     "brandVoiceLabel": "Tonen deres",
-    "brandVoicePlaceholder": "Hvordan snakker dere til fansen? F.eks. rått og direkte, varmt og nært, mystisk …"
+    "brandVoicePlaceholder": "Hvordan snakker dere til fansen? F.eks. rått og direkte, varmt og nært, mystisk …",
+    "brandGuidelinesLabel": "Ting du vil unngå",
+    "brandGuidelinesPlaceholder": "F.eks. ikke kall oss et coverband. Aldri bruk ordet «comeback». Ikke nevn den forrige vokalisten.",
+    "ctaTextLabel": "Avslutningstekst (valgfri)",
+    "ctaTextPlaceholder": "F.eks. Hør «Nå!» der du hører musikk — lenken ligger i bio.",
+    "ctaTextHint": "Brukes ordrett som avslutning. Lar du feltet stå tomt, skriver vi en for deg.",
+    "websiteUrlLabel": "Nettside eller Linktree",
+    "websiteUrlPlaceholder": "f.eks. northernlights.no eller linktr.ee/northernlights",
+    "websiteUrlHint": "Vises på sluttplakaten i videoene.",
+    "fontFamilyLabel": "Skrifttype (valgfri)",
+    "fontFamilyPlaceholder": "La stå tom hvis du ikke har en egen skrifttype"
   },
   "newDraft": {
     "segmentsLabel": "Antall scener",
