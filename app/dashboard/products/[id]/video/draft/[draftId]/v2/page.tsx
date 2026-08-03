@@ -1283,6 +1283,27 @@ export default function DraftV2Page() {
                             </span>
                           </div>
 
+                          {/* Klippet scenen FAKTISK bruker skal alltid kunne
+                              ses (Lars 3/8). Forhaandsvisningsruta under viser
+                              bare klipp som er GENERERT i denne oekten — et
+                              klipp hentet fra arkivet hadde ingen spiller,
+                              bare en etikett. Samme feil som stemmen hadde. */}
+                          {seg.video_url && (
+                            <div>
+                              <video
+                                key={seg.video_url}
+                                src={seg.video_url}
+                                controls
+                                playsInline
+                                preload="metadata"
+                                className="rounded-lg border border-gray-200 max-h-64 bg-black"
+                              />
+                              <p className="text-[11.5px] text-gray-400 mt-1">
+                                Dette klippet står i scenen nå.
+                              </p>
+                            </div>
+                          )}
+
                           {/* Bevegelse per scene. Et ferdig klipp overstyrer
                               animasjonen, men valgene skjules IKKE (Lars 3/8:
                               «redigeringsmulighetene forsvant») — de blir
