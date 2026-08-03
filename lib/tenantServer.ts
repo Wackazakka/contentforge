@@ -20,6 +20,7 @@ export interface Tenant {
   colors: Record<string, string>
   billing_mode: 'direct' | 'invoice'
   price_multiplier?: number
+  wholesale_markup_pct?: number | null // VÅRT påslag mot denne partneren (setter innprisen)
   vertical?: string | null // f.eks. 'craftsman' (Bombaza) — styrer copy/felt-overstyringer
   accept_actor_applications?: boolean | null // «Bli en stemme i banken» åpen for drop-in-skuespillere
   is_active: boolean
@@ -140,25 +141,21 @@ async function chainPriceFactor(t: Tenant): Promise<number> {
     )
     let product = 1
     let cur: any = t
-    let rootMarkup: number | null = null
     for (let hop = 0; hop < 4 && cur; hop++) {
       product *= 1 + (Number(cur.markup_percent ?? 0) / 100)
       if (!cur.parent_tenant_id) break
       const { data } = await supabase.from('tenants').select('id, parent_tenant_id, markup_percent').eq('id', cur.parent_tenant_id).single()
-      // Root teller ikke som PARTNER-ledd, men paaslaget der er VAART — det
-      // settes paa innprisen til slutt i stedet for i produktet.
-      if (data && data.parent_tenant_id === null) rootMarkup = Number(data.markup_percent)
-      cur = data && data.parent_tenant_id !== null ? data : null
+      cur = data && data.parent_tenant_id !== null ? data : null // root teller ikke
     }
     // Ingen halvering av PARTNERENS paaslag (Lars 3/8): «naar de velger 100 %
     // boer det vaere 100 % paaslag paa den prisen de faar fra ContentForge».
     // Foer delte vi paa 2, og da var «100 %» i virkeligheten null margin.
     //
     // Halveringen hoerer hjemme paa VAART paaslag i stedet: innprisen er
-    // raakost x (1 + vaart paaslag/100), og COSTS_NOK er raakost x 2. Med
-    // standard 100 % gir det faktor 1,0 — akkurat som foer. Skrur vi vaart
-    // paaslag opp, stiger innprisen, og partnerens prosent staar urort.
-    return product * wholesaleFactor(rootMarkup)
+    // raakost x (1 + wholesale_markup_pct/100), og COSTS_NOK er raakost x 2.
+    // Standard 100 % gir faktor 1,0 — akkurat som foer. Skrur vi VAART paaslag
+    // opp, stiger innprisen, og partnerens egen prosent staar urort (Lars 3/8).
+    return product * wholesaleFactor(t.wholesale_markup_pct)
   } catch {
     return 1
   }

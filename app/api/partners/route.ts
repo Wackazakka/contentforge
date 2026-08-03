@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     // Partnere sa «ingen partnere» i timevis. Samme moenster som select('*') i
     // tenantServer: koden skal vaere deploybar foer migrasjonen.
     const FASTE = 'id, slug, app_name, logo_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, license_fee_pct, billing_mode'
-    const VALGFRIE = ['brand_card_url']
+    const VALGFRIE = ['brand_card_url', 'wholesale_markup_pct']
     // Kolonnelista er dynamisk, saa radtypen kan ikke utledes — derfor any her
     const hentBarn = (kolonner: string) => admin()
       .from('tenants')
@@ -163,7 +163,7 @@ export async function PATCH(request: Request) {
   try {
     const g = await guard(request)
     if (g.fail) return g.fail
-    const { tenantId, markupPercent, feeDirectPct, feeIndirectPct, licenseFeePct, appName, logoUrl, brandCardUrl, colors } = await request.json()
+    const { tenantId, markupPercent, wholesaleMarkupPct, feeDirectPct, feeIndirectPct, licenseFeePct, appName, logoUrl, brandCardUrl, colors } = await request.json()
     if (!tenantId) return NextResponse.json({ error: 'Mangler tenantId' }, { status: 400 })
 
     const patch: Record<string, unknown> = {}
@@ -176,6 +176,15 @@ export async function PATCH(request: Request) {
     // Adressen paa merkekortet (Lars 3/8) — vises under «<Navn> VideoMaker».
     // Ren tekst, ikke lenke: den skal LESES av noen som ser en video.
     if (brandCardUrl !== undefined) patch.brand_card_url = brandCardUrl ? String(brandCardUrl).trim().slice(0, 80) : null
+    // VAART paaslag mot denne partneren — setter innprisen deres (Lars 3/8).
+    // Eies av oss; partnerens eget paaslag (markup_percent) eies av dem.
+    if (wholesaleMarkupPct !== undefined) {
+      const w = Number(wholesaleMarkupPct)
+      if (!Number.isFinite(w) || w < 0 || w > 500) {
+        return NextResponse.json({ error: 'Vårt påslag må være mellom 0 og 500.' }, { status: 400 })
+      }
+      patch.wholesale_markup_pct = Math.round(w * 100) / 100
+    }
     if (colors !== undefined) {
       // Fargeprofil: kun CSS-variabler med hex-verdier slipper gjennom
       const clean: Record<string, string> = {}

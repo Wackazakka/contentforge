@@ -17,6 +17,7 @@ interface Partner {
   brand_card_url?: string | null
   colors: Record<string, string>
   markup_percent: number
+  wholesale_markup_pct?: number | null
   license_fee_pct?: number | null
   fee_direct_pct: number
   fee_indirect_pct: number
@@ -52,7 +53,7 @@ export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [income, setIncome] = useState<Record<string, { grossNok: number; licenseNok: number; uses: number }>>({})
   const [infraIncome, setInfraIncome] = useState<Array<{ tenantName: string; uses: number; grossNok: number; infraNok: number }> | null>(null)
-  const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; license: string; name: string; logo: string; brandUrl: string; colors: Record<string, string>; colorKeys: string[] }>>({})
+  const [edits, setEdits] = useState<Record<string, { markup: string; feeDirect: string; feeIndirect: string; license: string; name: string; logo: string; brandUrl: string; wholesale: string; colors: Record<string, string>; colorKeys: string[] }>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   // Lagrede fargeprofiler, eid av denne tenanten. `palettesOn` er false til
@@ -86,7 +87,7 @@ export default function PartnersPage() {
         const colors: Record<string, string> = {}
         for (const f of COLOR_FIELDS) colors[f.key] = p.colors?.[f.key] || f.fallback
         const colorKeys = COLOR_FIELDS.filter((f) => p.colors?.[f.key]).map((f) => f.key)
-        e[p.id] = { markup: String(p.markup_percent), feeDirect: String(p.fee_direct_pct ?? 3), feeIndirect: String(p.fee_indirect_pct ?? 7.5), license: String(p.license_fee_pct ?? 0), name: p.app_name, logo: p.logo_url || '', brandUrl: p.brand_card_url || '', colors, colorKeys }
+        e[p.id] = { markup: String(p.markup_percent), feeDirect: String(p.fee_direct_pct ?? 3), feeIndirect: String(p.fee_indirect_pct ?? 7.5), license: String(p.license_fee_pct ?? 0), name: p.app_name, logo: p.logo_url || '', brandUrl: p.brand_card_url || '', wholesale: String(p.wholesale_markup_pct ?? 100), colors, colorKeys }
       }
       setEdits(e)
     } catch (err: any) {
@@ -129,6 +130,7 @@ export default function PartnersPage() {
         body: JSON.stringify({
           tenantId: p.id,
           markupPercent: Number(e.markup),
+          wholesaleMarkupPct: Number(e.wholesale),
           licenseFeePct: Number(e.license),
           appName: e.name,
           logoUrl: e.logo || null,
@@ -164,6 +166,7 @@ export default function PartnersPage() {
     if (e.name !== p.app_name) return true
     if ((e.logo || '') !== (p.logo_url || '')) return true
     if ((e.brandUrl || '') !== (p.brand_card_url || '')) return true
+    if (Number(e.wholesale) !== Number(p.wholesale_markup_pct ?? 100)) return true
     // Fargene: sammenlign settet av VALGTE nøkler og verdiene deres mot det lagrede.
     const lagret = p.colors || {}
     const lagredeNokler = Object.keys(lagret).filter((k) => COLOR_FIELDS.some((f) => f.key === k))
@@ -388,9 +391,19 @@ export default function PartnersPage() {
 
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">
                   <div>
-                    {/* Navnet MAA staa i etiketten (Lars 3/8, to ganger): uten
-                        det leses feltet som «vaart paaslag», og man tror man
-                        endrer sitt eget naar man endrer partnerens. */}
+                    {/* To paaslag, ett per ledd (Lars 3/8). VAART setter
+                        innprisen deres; DERES setter sluttprisen. Foer fantes
+                        bare ett felt, og da saa det ut som de smittet. */}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Vårt påslag mot {p.app_name} (%)
+                    </label>
+                    <input value={e.wholesale} onChange={(ev) => setEdit(p.id, 'wholesale', ev.target.value)}
+                      type="number" min={0} max={500}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm tabular-nums" />
+                    <p className="text-xs text-gray-400 mt-1 mb-4">
+                      Vår margin. Setter <em>innprisen</em> {p.app_name} faktureres — og bare den.
+                      100 % = dagens nivå.
+                    </p>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       {p.app_name} sitt påslag mot sine kunder (%)
                     </label>
@@ -405,10 +418,9 @@ export default function PartnersPage() {
                         Det var ikke to tall som fulgte hverandre — det var samme
                         tall med to motsatte etiketter. */}
                     <p className="text-xs text-gray-400 mt-1">
-                      Dette er <em>{p.app_name} sitt</em> tall, ikke vårt — samme felt som de selv
-                      redigerer under «Påslag». Endrer du det her, endrer du utsalgsprisen deres.
-                      Vår egen inntekt er engrosprisen, og den påvirkes ikke.
-                      Vi har ikke noe eget påslagsfelt: vår margin ligger i prislisten.
+                      Deres tall, ikke vårt — samme felt som de selv redigerer under «Påslag».
+                      Det avgjør bare hva sluttbrukeren betaler. Endrer du vårt påslag over,
+                      står dette tallet urørt; det er innprisen som flytter seg.
                     </p>
                   </div>
                   <div>

@@ -50,13 +50,16 @@ export async function GET(request: Request) {
       .eq('id', g.tenant!.id)
       .single()
     if (!t) return NextResponse.json({ error: 'Fant ikke kontoen' }, { status: 404 })
-    // Rot-leddet har ingen innpris å legge på — der er påslaget VÅRT påslag på
-    // råkosten, altså det som setter innprisen for alle partnere (Lars 3/8).
-    return NextResponse.json({
-      navn: t.app_name,
-      markupPercent: Number(t.markup_percent ?? (t.parent_tenant_id ? 0 : 100)),
-      erPlattform: !t.parent_tenant_id,
-    })
+    // Kun underledd har et eget påslag her. VÅRT påslag mot hver partner
+    // settes per white-label på Partnere-siden, ikke som ett felles tall
+    // (Lars 3/8: «ContentForge setter påslag for den enkelte white-label»).
+    if (!t.parent_tenant_id) {
+      return NextResponse.json(
+        { error: 'Påslaget mot hver partner settes på Partnere-siden.' },
+        { status: 403 }
+      )
+    }
+    return NextResponse.json({ navn: t.app_name, markupPercent: Number(t.markup_percent ?? 0) })
   } catch {
     return NextResponse.json({ error: 'Noe gikk galt' }, { status: 500 })
   }

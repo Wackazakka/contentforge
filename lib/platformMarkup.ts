@@ -1,32 +1,27 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Plattformens eget påslag — ContentForges margin mot partnerne (Lars 3/8:
-// «IndigoBooms påslag skal jo være upåvirket av CenterForges påslag. Det er
-// bare innprisen som forandrer seg»).
+// De to påslagene (Lars 3/8):
 //
-// Slik henger de tre nivåene sammen:
+//   råkost ──(vårt påslag mot DENNE partneren)──▶ INNPRIS ──(partnerens)──▶ sluttpris
 //
-//     råkost  ──(vårt påslag)──▶  INNPRIS  ──(partnerens påslag)──▶  kundepris
+// «Påslaget påvirker bare én ting for IndigoBoom: innprisen. Så setter
+// IndigoBoom sitt påslag, og det påvirker bare én ting: hvor mye sluttbrukeren
+// må betale.»
 //
-// Vårt påslag flytter innprisen partneren faktureres. Partnerens prosent står
-// urørt — men fordi den regnes av en høyere innpris, følger kundeprisen etter.
-// Det er nettopp den arbeidsdelingen Lars beskriver.
+// Vårt påslag settes PER white-label (`tenants.wholesale_markup_pct`), ikke som
+// ett felles plattformtall — ulike partnere kan ha ulike avtaler.
 //
-// Hvorfor det bor på ROT-raden: `COSTS_NOK` er allerede råkost × 2, altså et
-// hardkodet 100 %-påslag. Rot-tenanten står lagret med markup_percent = 100,
-// og det tallet ble aldri lest (chainPriceFactor hopper over root). Vi tar det
-// i bruk i stedet for å innføre enda et felt — og fordi det ALLEREDE er 100,
-// endrer ingenting seg før noen bevisst skrur på det.
+// Hvorfor halveringen: `COSTS_NOK` er allerede råkost × 2. Innprisen er
+// råkost × (1 + w/100), altså COSTS_NOK × (1 + w/100) / 2. Standard w = 100 gir
+// faktor 1,0, som er nøyaktig dagens tall.
 
 const STANDARD = 100
 
-/** Faktor å gange COSTS_NOK med for å få innprisen. 100 % → 1,0 (som i dag). */
-export function wholesaleFactor(rootMarkupPct: number | null | undefined): number {
-  const p = Number(rootMarkupPct ?? STANDARD)
-  if (!Number.isFinite(p) || p < 0) return 1
-  // COSTS_NOK = råkost × 2. Innpris = råkost × (1 + p/100)
-  //           = COSTS_NOK × (1 + p/100) / 2
-  return (1 + p / 100) / 2
+/** Faktor å gange COSTS_NOK med for å få partnerens innpris. */
+export function wholesaleFactor(wholesaleMarkupPct: number | null | undefined): number {
+  const w = Number(wholesaleMarkupPct ?? STANDARD)
+  if (!Number.isFinite(w) || w < 0) return 1
+  return (1 + w / 100) / 2
 }
 
 function admin() {
@@ -36,22 +31,22 @@ function admin() {
   )
 }
 
-/** Rot-tenantens påslag. Feiler oppslaget, brukes standarden — aldri null-pris. */
-export async function platformMarkupPct(): Promise<number> {
+/**
+ * Innprisfaktor for en gitt tenant. Feiler oppslaget — eller er kolonnen ikke
+ * migrert ennå — brukes standarden, som gir dagens priser. En manglende
+ * migrasjon skal aldri endre hva noen faktureres.
+ */
+export async function wholesaleFactorForTenant(tenantId: string | null | undefined): Promise<number> {
+  if (!tenantId || tenantId === 'root') return 1
   try {
-    const { data } = await admin()
+    const { data, error } = await admin()
       .from('tenants')
-      .select('markup_percent')
-      .is('parent_tenant_id', null)
-      .limit(1)
+      .select('wholesale_markup_pct')
+      .eq('id', tenantId)
       .single()
-    const p = Number(data?.markup_percent)
-    return Number.isFinite(p) ? p : STANDARD
+    if (error) return 1
+    return wholesaleFactor((data as any)?.wholesale_markup_pct)
   } catch {
-    return STANDARD
+    return 1
   }
-}
-
-export async function platformWholesaleFactor(): Promise<number> {
-  return wholesaleFactor(await platformMarkupPct())
 }
