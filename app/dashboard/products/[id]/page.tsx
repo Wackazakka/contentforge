@@ -491,11 +491,13 @@ export default function ProductPage() {
         // job_id?» — mangler den koblingen, ble ingen utkast lest, og da fantes
         // det ikke engang et utkast aa falle tilbake paa. Da var «Rediger»
         // borte fra alle filmene uansett hva vi ellers fikset (Lars 3/8).
+        // Sist ARBEIDET MED, ikke sist opprettet — et gammelt utkast Lars
+        // redigerte i dag er riktigere fallback enn et nyere han forlot
         const { data: alleUtkast } = await supabase
           .from('production_drafts')
-          .select('id, created_at')
+          .select('id, updated_at')
           .eq('product_id', productId)
-          .order('created_at', { ascending: false })
+          .order('updated_at', { ascending: false })
         if ((alleUtkast || []).length > 0) setNyesteDraftId((alleUtkast as any[])[0].id)
         if (jobIds.length > 0) {
           // Hent ALLE utkast for produktet, ikke bare de med treff paa job_id:
@@ -534,8 +536,12 @@ export default function ProductPage() {
           }
           // Vei 3 (sikreste): utkast-ID stemplet paa selve videoen da den ble
           // laget. Vei 1 og 2 er gjetting i ettertid — denne er et faktum.
+          // Vei 3b: videoens EGEN campaignId — ogsaa lagret i det filmen ble
+          // til, og den peker paa utkastet som faktisk lagde akkurat denne
+          // filmen. Gjelder ALLE filmene, ogsaa de fra foer draftId-stemplingen
+          // (Lars 3/8: «Rediger *» aapnet feil utkast — norsk tekst og tale).
           ;(videosData || []).forEach((v: any) => {
-            const d = v.metadata?.draftId
+            const d = v.metadata?.draftId || draftByCampaign[v.metadata?.campaignId]
             if (d && v.job_id) draftIds[v.job_id] = d
           })
           // Vei 4: har produktet KUN ETT utkast, finnes det ingen tvil om hvem
