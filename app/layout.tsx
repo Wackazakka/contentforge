@@ -91,12 +91,21 @@ export async function generateMetadata(): Promise<Metadata> {
       robots: { index: true, follow: true },
     };
   }
+  // Tittel og beskrivelse er det man ser i fanen, i soekeresultater og naar
+  // lenken deles. De var HARDKODET paa norsk for alle white-labels — en
+  // engelsk tjeneste som Isabel's VideoMaker fikk «AI-drevet
+  // innholdsproduksjon» i fanen (Lars 3/8). Foelger naa tenantens spraak.
+  const paaEngelsk = (tenant.default_locale || 'no') === 'en'
   return {
     title: {
-      default: `${tenant.app_name} — AI-drevet innholdsproduksjon`,
+      default: paaEngelsk
+        ? `${tenant.app_name} — AI-powered content production`
+        : `${tenant.app_name} — AI-drevet innholdsproduksjon`,
       template: `%s · ${tenant.app_name}`,
     },
-    description: `Lag profesjonelle videoer og artikler på sekunder med ${tenant.app_name}.`,
+    description: paaEngelsk
+      ? `Create professional videos and articles in seconds with ${tenant.app_name}.`
+      : `Lag profesjonelle videoer og artikler på sekunder med ${tenant.app_name}.`,
     icons: { icon: tenant.icon_url || "/icon.svg" },
     robots: { index: false, follow: false },
   };
