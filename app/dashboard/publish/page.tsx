@@ -41,6 +41,9 @@ function PublishPage() {
   // Organisasjonen koblingen skal festes til — foelger med gjennom OAuth-runden
   // saa den nye kontoen havner i RIKTIG tjeneste (Lars 3/8)
   const [orgId, setOrgId] = useState<string | null>(null)
+  // Alle organisasjoner brukeren har PAA DENNE tenanten — grunnlaget for
+  // baade kontolista og publiseringshistorikken
+  const [orgIds, setOrgIds] = useState<string[] | null>(null)
   const [products, setProducts] = useState<any[]>([])
   const [selectedProduct, setSelectedProduct] = useState<string>('')
   const [contentType, setContentType] = useState<'video' | 'article' | 'avatar'>('video')
@@ -210,6 +213,7 @@ function PublishPage() {
         oq = tenant.slug === 'centerforge' ? oq.or(`tenant_id.eq.${tenant.id},tenant_id.is.null`) : oq.eq('tenant_id', tenant.id)
         const { data: tenantOrgs } = await oq
         setOrgId(tenantOrgs?.[0]?.id ?? null)
+        setOrgIds((tenantOrgs || []).map((o: { id: string }) => o.id))
         if (!tenantOrgs || tenantOrgs.length === 0) {
           setConnections([])
           return
@@ -486,10 +490,23 @@ function PublishPage() {
   // Fetch publications on mount and when publishResult changes
   useEffect(() => {
     const fetchPublications = async () => {
+      // Historikken var uavgrenset, akkurat som kontolista: Lars fikk
+      // BilDeal-artikler i Isabels publiseringshistorikk (3/8). Her trengs
+      // ingen ny kolonne — publications peker paa et produkt, og produktet
+      // peker paa organisasjonen, som baerer tenanten.
+      if (orgIds === null) return
+      if (orgIds.length === 0) { setPublications([]); return }
       try {
+        const { data: prods } = await supabase
+          .from('products')
+          .select('id')
+          .in('organization_id', orgIds)
+        const produktIder = (prods || []).map((p: { id: string }) => p.id)
+        if (produktIder.length === 0) { setPublications([]); return }
         const { data } = await supabase
           .from('publications')
           .select('*')
+          .in('product_id', produktIder)
           .order('created_at', { ascending: false })
           .limit(20)
         setPublications(data || [])
@@ -498,7 +515,7 @@ function PublishPage() {
       }
     }
     fetchPublications()
-  }, [publishResult, supabase])
+  }, [publishResult, supabase, orgIds])
 
   return (
     <div className="max-w-3xl mx-auto">
