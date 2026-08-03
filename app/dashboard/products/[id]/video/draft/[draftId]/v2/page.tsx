@@ -631,7 +631,7 @@ export default function DraftV2Page() {
         // Bare NYE klipp skal i historikken. Ved ren visning ville en
         // oppdatering her tegnet siden paa nytt midt i avspillingen
         // (Lars 1/8: «et sekund foer jeg faar tid til aa velge en annen»).
-        if (!viewOnly && !data.reused) huskKlipp(index, data.url)
+        if (!viewOnly && !data.reused) { huskKlipp(index, data.url); hentKlipp() }
         return
       }
       // Ingen animasjon laget ennå — «Se animasjonen» skal ikke sette i gang noe
@@ -650,6 +650,10 @@ export default function DraftV2Page() {
         if (st?.status === 'ready' && st.url) {
           setMotionPreview((p) => ({ ...p, [index]: { status: 'ready', url: st.url } }))
           huskKlipp(index, st.url)
+          // Biblioteket ble bare hentet ved sidelasting, saa tallet sto stille
+          // mens nye klipp ble laget (Lars 3/8: «samme antall som foer»).
+          hentKlipp()
+          hentLagring()
           return
         }
         if (st?.status === 'failed') throw new Error(st.error || 'Genereringen feilet')
