@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
-import { CREDIT_PACKAGES, CONSUMER_CREDIT_PACKAGES } from '@/lib/creditPackages'
+import { CREDIT_PACKAGES, consumerPackages, fmtBeloep, type Valuta } from '@/lib/creditPackages'
 import { useTenant } from '@/lib/tenantContext'
 
 // Selvbetjent kredittkjøp for white-label-sluttkunder: se saldo, kjøp pakke.
@@ -20,7 +20,10 @@ export default function CreditsPage() {
   // ikke bedriftskurven som starter paa 1 000 kr (Lars 2/8).
   const tenant = useTenant()
   const erArtist = tenant.vertical === 'music'
-  const PAKKER: readonly any[] = erArtist ? CONSUMER_CREDIT_PACKAGES : CREDIT_PACKAGES
+  // Valutaen foelger tenanten (Lars 3/8). Kredittene er de samme overalt;
+  // det er prisen paa pakken som skifter.
+  const valuta = ((tenant.currency as Valuta) || 'nok')
+  const PAKKER: readonly any[] = erArtist ? consumerPackages(valuta) : CREDIT_PACKAGES
   const [saldo, setSaldo] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -86,7 +89,7 @@ export default function CreditsPage() {
         <div className="bg-[var(--paper-raised)] rounded-lg border border-[var(--ds-border)] p-5 mb-8">
           <div className="text-xs text-[var(--text-muted)] mb-1">{t('balance')}</div>
           <div className="text-3xl font-bold text-[var(--ink)]">
-            {loading ? '…' : saldo === null ? '—' : `${Math.round(saldo * 10).toLocaleString('nb-NO')} kreditter`}
+            {loading ? '…' : saldo === null ? '—' : t('credits', { count: Math.round(saldo * 10).toLocaleString(valuta === 'gbp' ? 'en-GB' : 'nb-NO') })}
           </div>
           {saldo === null && !loading && (
             <p className="text-xs text-[var(--text-faint)] mt-1">{t('noAccount')}</p>
@@ -102,9 +105,9 @@ export default function CreditsPage() {
               disabled={!!busy}
               className="bg-[var(--paper-raised)] rounded-xl border border-[var(--ds-border)] p-5 text-left hover:border-[var(--ember-deep)] disabled:opacity-50 transition-colors"
             >
-              <div className="text-2xl font-bold text-[var(--ink)]">{nok(p.amount)}</div>
+              <div className="text-2xl font-bold text-[var(--ink)]">{erArtist ? fmtBeloep(p.amount, valuta) : nok(p.amount)}</div>
               <div className="text-base font-semibold text-[var(--ink)] mb-1">
-                {p.credits.toLocaleString('nb-NO')} kreditter
+                {t('credits', { count: p.credits.toLocaleString(valuta === 'gbp' ? 'en-GB' : 'nb-NO') })}
                 {p.bonusPct > 0 && <span className="ml-1.5 text-[var(--ember-deep)]">+{p.bonusPct} %</span>}
               </div>
               {p.rekker ? (

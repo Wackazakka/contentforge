@@ -37,6 +37,34 @@ export const CONSUMER_CREDIT_PACKAGES = [
   { id: 'privat-stor', amount: 1000, credits: 12000, bonusPct: 20, rekker: 'films1318' },
 ] as const
 
+// Valuta per tenant (Lars 3/8: «Isabels tjeneste maa ta betalt i GBP»).
+// KREDITTENE er den faste stoerrelsen — de er valutanoeytrale og betyr det
+// samme overalt. Det er PRISEN paa pakken som skifter, ikke innholdet, saa en
+// britisk artist faar noeyaktig like mange kreditter for pengene sine.
+// Beloepene er runde tall i hver valuta, ikke maskinomregning: 200 kr -> 15
+// pund er ~13 kr/pund, og et rundt beloep selger bedre enn 14,83.
+export type Valuta = 'nok' | 'gbp'
+
+export const VALUTA_SYMBOL: Record<Valuta, string> = { nok: 'kr', gbp: '£' }
+
+const GBP_BELOEP: Record<string, number> = {
+  'privat-liten': 15,
+  'privat-mellom': 40,
+  'privat-stor': 80,
+}
+
+/** Forbrukerpakkene priset i tenantens valuta. Ukjent valuta -> kroner. */
+export function consumerPackages(valuta: Valuta = 'nok') {
+  if (valuta !== 'gbp') return CONSUMER_CREDIT_PACKAGES.map((p) => ({ ...p }))
+  return CONSUMER_CREDIT_PACKAGES.map((p) => ({ ...p, amount: GBP_BELOEP[p.id] ?? p.amount }))
+}
+
+/** «200 kr» / «£15» — symbolet staar der valutaen forventer det. */
+export function fmtBeloep(amount: number, valuta: Valuta = 'nok'): string {
+  const tall = amount.toLocaleString(valuta === 'gbp' ? 'en-GB' : 'nb-NO')
+  return valuta === 'gbp' ? `£${tall}` : `${tall} kr`
+}
+
 // Kredittene utloeper ALDRI (Lars 1/8): en artist som slipper album annethvert
 // aar skal ikke miste saldoen — og tidsbegrenset forskudd er dessuten et
 // forbrukerrettslig minefelt i Norge.

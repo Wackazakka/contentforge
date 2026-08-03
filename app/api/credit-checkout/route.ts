@@ -63,13 +63,15 @@ export async function POST(request: Request) {
       mode: 'payment',
       line_items: [{
         price_data: {
-          currency: 'nok',
+          // Valutaen foelger tenanten. Var hardkodet 'nok', saa en britisk
+          // artist ville faatt kroner i kassen (Lars 3/8).
+          currency: (tenant as any)?.currency === 'gbp' ? 'gbp' : 'nok',
           unit_amount: pkg.amount * 100,
           product_data: { name: `${credits.toLocaleString('nb-NO')} kreditter (kurs ${(pkg.amount / pkg.credits).toFixed(3).replace('.', ',')} kr/kreditt)` },
         },
         quantity: 1,
       }],
-      metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(ledgerNok), bonus_nok: '0', paid_nok: String(pkg.amount), credits: String(credits), rate: (pkg.amount / pkg.credits).toFixed(4) },
+      metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(ledgerNok), bonus_nok: '0', paid_nok: String(pkg.amount), paid_currency: ((tenant as any)?.currency === 'gbp' ? 'gbp' : 'nok'), credits: String(credits), rate: (pkg.amount / pkg.credits).toFixed(4) },
       success_url: `${origin}${backTo}?paid=1`,
       cancel_url: `${origin}${backTo}`,
     })
