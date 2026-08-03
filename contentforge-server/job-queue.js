@@ -716,7 +716,10 @@ router.post('/', async (req, res) => {
         // kjedes: neste ledd saas fra forrige ledds siste bilde. Parallelt
         // per segment; stillbilde-fallback som foer om alt feiler.
         let segClips = []
-        if (aiMotion) {
+        // Egne videoklipp (opplastet eller valgt fra artistens bibliotek) skal
+        // brukes selv om AI-bevegelse er AV — de trenger ingen generering
+        // (Lars 2/8). Foer dette ble klippet stille droppet.
+        if (aiMotion || orderedSegments.some((s) => s.videoUrl)) {
           const engine = aiMotionEngine || 'kling'
           const _toAnimate = orderedSegments.filter((s) => (s.motion && s.motion !== 'none') || s.animate === true).length
           console.log(`[job-queue] AI-bevegelse PA (${engine}) - animerer ${_toAnimate} av ${orderedSegments.length} segmenter (per-segment valg)`)
@@ -756,14 +759,13 @@ router.post('/', async (req, res) => {
             // Lip-sync uten tale gir ikke mening — stille segmenter animeres
             // som vanlig bevegelse i stedet.
             const motion = (seg.noVoice === true && rawMotion === 'talk') ? 'move' : rawMotion
-            if (motion === 'none') return null
-            const url = segImageUrls[i]
-            if (!url) throw new Error('mangler bilde-URL')
             const clipPath = `${jobDir}/clip_${i + 1}.mp4`
             // Artistens EGEN video vinner over AI-animasjon (Lars 1/8):
             // ekte liveopptak slaar generert bevegelse. Lyden strippes (-an)
             // saa musikken baerer filmen — og saa rendereren ikke tolker
             // klippet som et lip-sync-klipp (den kjenner dem paa lydsporet).
+            // Sjekkes FOER bevegelsesvalget: et ferdig klipp gjelder ogsaa i en
+            // scene som ellers skulle staa stille (Lars 2/8).
             if (seg.videoUrl) {
               try {
                 const raw = `${jobDir}/egen_${i + 1}_raw`
@@ -778,6 +780,9 @@ router.post('/', async (req, res) => {
                 console.warn(`[job-queue] segment ${i + 1}: egen video feilet (${vErr.message}) - faller tilbake til bilde/animasjon`)
               }
             }
+            if (!aiMotion || motion === 'none') return null
+            const url = segImageUrls[i]
+            if (!url) throw new Error('mangler bilde-URL')
             // Gjenbruk: identisk scene fra en tidligere produksjon (eller
             // forhåndsvisning) hentes fra cachen — ingen ny generering.
             const fp = clipFingerprint(

@@ -412,6 +412,18 @@ export default function DraftV2Page() {
   const fjernVideo = (index: number) =>
     updateSegment(index, { video_url: undefined, video_name: undefined })
 
+  // Sett et ferdig klipp fra biblioteket rett inn i scenen (Lars 2/8:
+  // «hvordan velger jeg det for å erstatte det jeg allerede har?»). Klippet
+  // legges i SAMME felt som egen opplastet video — serveren bruker fila som
+  // den er og lager ingen animasjon. Derfor koster det ingenting.
+  const brukKlippFraBiblioteket = (index: number, k: { name: string; url: string }) => {
+    updateSegment(index, { video_url: k.url, video_name: k.name, approved: false })
+    setKlippVelgerFor(null)
+  }
+  // Bibliotek-klipp og egen opplasting deler felt, men skal ikke hete det
+  // samme i grensesnittet
+  const erBibliotekKlipp = (url?: string) => (url || '').includes('/artist-clips/')
+
   const setSegmentImage = (index: number, url: string) => {
     updateSegment(index, { image_url: url, approved: false })
     setImagePickerFor(null)
@@ -1064,7 +1076,20 @@ export default function DraftV2Page() {
                           <div className="flex flex-wrap items-center gap-2">
                             {seg.video_url ? (
                               <>
-                                <span className="text-[12px] text-green-700">🎬 Egen video: {seg.video_name || 'klipp'}</span>
+                                <span className="text-[12px] text-green-700">
+                                  {erBibliotekKlipp(seg.video_url)
+                                    ? '🎞️ Klipp fra biblioteket ditt'
+                                    : `🎬 Egen video: ${seg.video_name || 'klipp'}`}
+                                </span>
+                                {klippBank.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setKlippVelgerFor(klippVelgerFor === index ? null : index)}
+                                    className="text-[12px] text-gray-500 underline hover:text-gray-700"
+                                  >
+                                    Velg et annet
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => fjernVideo(index)}
@@ -1093,7 +1118,7 @@ export default function DraftV2Page() {
                             )}
                             <span className="text-[11.5px] text-gray-400">
                               {seg.video_url
-                                ? 'Lyden fra klippet tas bort — musikken spiller.'
+                                ? 'Brukes som den er, uten lyd — musikken spiller. Ingen animasjon lages, så det koster ingenting.'
                                 : `Liveopptak e.l., maks ${Math.round(VIDEO_MAX_BYTES / 1024 / 1024)} MB. Gratis — ingen animasjon lages.`}
                             </span>
                           </div>
@@ -1210,35 +1235,50 @@ export default function DraftV2Page() {
                               {/* Spillbare direkte (Lars 2/8: «ingen av dem
                                   spiller») — miniatyrene hadde ingen kontroller */}
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                {klippBank.map((k) => (
-                                  <div key={k.name} className="relative group">
-                                    <video
-                                      src={`${k.url}#t=0.1`}
-                                      controls
-                                      muted
-                                      playsInline
-                                      preload="metadata"
-                                      className="w-full rounded-lg bg-black"
-                                    />
-                                    <div className="flex items-center justify-between gap-2 mt-1">
-                                      <span className="text-[10.5px] text-gray-400 truncate">
-                                        {k.laget ? new Date(k.laget).toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
-                                      </span>
+                                {klippBank.map((k) => {
+                                  const iBruk = seg.video_url === k.url
+                                  return (
+                                    <div key={k.name} className="relative group">
+                                      <video
+                                        src={`${k.url}#t=0.1`}
+                                        controls
+                                        muted
+                                        playsInline
+                                        preload="metadata"
+                                        className={`w-full rounded-lg bg-black ${iBruk ? 'ring-2 ring-[var(--ember-deep)]' : ''}`}
+                                      />
                                       <button
                                         type="button"
-                                        onClick={() => slettKlipp(k.name)}
-                                        title="Slett fra biblioteket"
-                                        className="text-[11px] text-gray-400 hover:text-red-600 flex-shrink-0"
+                                        onClick={() => brukKlippFraBiblioteket(index, k)}
+                                        disabled={iBruk}
+                                        className={`w-full mt-1 px-2 py-1 rounded-full text-[11.5px] font-medium ${
+                                          iBruk
+                                            ? 'bg-[var(--ember-tint-bg)] text-[var(--ember-deep)] cursor-default'
+                                            : 'border border-gray-300 text-gray-600 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)]'
+                                        }`}
                                       >
-                                        ✕
+                                        {iBruk ? '✓ i bruk i denne scenen' : 'Bruk i denne scenen'}
                                       </button>
+                                      <div className="flex items-center justify-between gap-2 mt-1">
+                                        <span className="text-[10.5px] text-gray-400 truncate">
+                                          {k.laget ? new Date(k.laget).toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => slettKlipp(k.name)}
+                                          title="Slett fra biblioteket"
+                                          className="text-[11px] text-gray-400 hover:text-red-600 flex-shrink-0"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  )
+                                })}
                               </div>
                               <p className="text-[11px] text-gray-400 mt-1">
-                                Alt du har laget, nyeste først. Trykk play for å se dem. Å sette et klipp inn i
-                                en scene kommer i neste runde — inntil da kan du laste det ned og opp igjen som egen video.
+                                Alt du har laget, nyeste først. «Bruk i denne scenen» setter klippet rett inn — gratis,
+                                ingen ny animasjon. Er klippet kortere enn scenen, fyller filmen ut resten.
                               </p>
                             </div>
                           )}
@@ -1376,7 +1416,11 @@ export default function DraftV2Page() {
                 <span className="text-xl font-semibold text-gray-900 tabular-nums">{fmtCredits(paaloptNok)}</span>
               </div>
               {(() => {
-                const ms = draft.ai_motion ? segments.map((s) => s.motion || (s.animate === true ? 'move' : 'none')) : []
+                // Scener med ferdig klipp (opplastet eller fra biblioteket)
+                // genererer ingenting og skal ikke telle med i anslaget
+                const ms = draft.ai_motion
+                  ? segments.filter((s) => !s.video_url).map((s) => s.motion || (s.animate === true ? 'move' : 'none'))
+                  : []
                 const nMove = ms.filter((m) => m === 'move').length
                 const nTalk = ms.filter((m) => m === 'talk').length
                 const nImg = segments.filter((s) => !s.image_url || !s.image_url.trim()).length
