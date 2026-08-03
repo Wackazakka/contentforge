@@ -48,6 +48,7 @@ export default function PartnersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tenantName, setTenantName] = useState('')
+  const [tenantSlug, setTenantSlug] = useState('')
   const [partners, setPartners] = useState<Partner[]>([])
   const [income, setIncome] = useState<Record<string, { grossNok: number; licenseNok: number; uses: number }>>({})
   const [infraIncome, setInfraIncome] = useState<Array<{ tenantName: string; uses: number; grossNok: number; infraNok: number }> | null>(null)
@@ -76,6 +77,7 @@ export default function PartnersPage() {
       if (!res.ok) { setError(data.error || 'Kunne ikke hente partnerne'); return }
       setError(null)
       setTenantName(data.tenant?.name || '')
+      setTenantSlug(data.tenant?.slug || '')
       setPartners(data.partners || [])
       setIncome(data.income || {})
       setInfraIncome(data.infraIncome ?? null)
@@ -289,7 +291,18 @@ export default function PartnersPage() {
         {error && <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
 
         {!loading && partners.length === 0 && !error && (
-          <p className="text-sm text-gray-500">Ingen partnere under dette leddet ennå.</p>
+          <div className="text-sm text-gray-500">
+            <p>Ingen partnere under dette leddet ennå.</p>
+            {/* Hvilket ledd? Verten avgjør hvem du er, og på en ukjent vert
+                lander man på rot-leddet. Uten dette ser «tomt» og «feil sted»
+                helt likt ut (Lars 3/8). */}
+            {tenantSlug && (
+              <p className="mt-1 text-[12.5px] text-gray-400">
+                Du ser dette som <span className="font-mono">{tenantSlug}</span>. Partnerlisten følger
+                domenet du er logget inn på — er du på feil adresse, ser du feil ledd.
+              </p>
+            )}
+          </div>
         )}
 
         {infraIncome && (

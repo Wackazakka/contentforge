@@ -31,11 +31,22 @@ export async function GET(request: Request) {
   try {
     const g = await guard(request)
     if (g.fail) return g.fail
-    const { data: children } = await admin()
+    // Feilen ble tidligere kastet bort her: et mislykket oppslag ga data=null,
+    // som ble til «Ingen partnere under dette leddet ennaa» — nøyaktig samme
+    // skjerm som en tom liste (Lars 3/8: partnerne FANTES i basen). En tom
+    // liste og et feilet oppslag maa aldri se like ut.
+    const { data: children, error: childErr } = await admin()
       .from('tenants')
       .select('id, slug, app_name, logo_url, brand_card_url, colors, markup_percent, fee_direct_pct, fee_indirect_pct, license_fee_pct, billing_mode')
       .eq('parent_tenant_id', g.tenant!.id)
       .order('app_name')
+    if (childErr) {
+      console.error('[partners] oppslag av underledd feilet:', childErr.message, '| tenant:', g.tenant!.id)
+      return NextResponse.json(
+        { error: `Kunne ikke lese underleddene: ${childErr.message}` },
+        { status: 500 }
+      )
+    }
 
     // Partnerinntekter denne måneden (mottakersiden av lisensavgiften):
     // brutto aktiva-omsetning per partner = kundeprisene i hovedboken for
@@ -125,7 +136,9 @@ export async function GET(request: Request) {
       }
     } catch { /* rot-visningen er tilleggsinfo */ }
 
-    return NextResponse.json({ tenant: { id: g.tenant!.id, name: g.tenant!.app_name }, partners: children || [], income, infraIncome })
+    // tenantId er med for feilsoeking: er lista tom, vil man vite HVILKEN
+    // tenant den var tom for (verten avgjoer, ikke klienten)
+    return NextResponse.json({ tenant: { id: g.tenant!.id, name: g.tenant!.app_name, slug: g.tenant!.slug }, partners: children || [], income, infraIncome })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
