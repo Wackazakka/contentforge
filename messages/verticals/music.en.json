@@ -84,5 +84,32 @@
     "subtitle": "Tell us what the video is about — you approve everything before anything costs money.",
     "outroLabel": "End with an outro card 🔗",
     "outroDesc": "A closing frame with your link (website/Linktree), artist image and call to action — e.g. \"Pre-save on Spotify\". Without a jingle ~3 seconds; with a jingle as long as the jingle (up to 10 sec)."
+  },
+  "home": {
+    "badge": "MVP -- Beta",
+    "hero_a": "Promo for your music, in minutes. ",
+    "hero_em": "Made from what you already have.",
+    "hero_sub": "Tell us about the release, the show or the song. You get a finished promo video with your own music underneath, your own images and a voice that ties it together -- ready for TikTok, Reels and YouTube.",
+    "cta_primary": "Get started",
+    "cta_secondary": "See how it works",
+    "feat_title": "Everything a release needs",
+    "feat_sub": "From idea to posted promo -- no editing software, no design skills.",
+    "f1_t": "Video that moves",
+    "f1_d": "Your photos become moving scenes with camera motion and lip-sync. 9:16, 1:1 and 16:9 -- the same promo for every feed.",
+    "f2_t": "Your own music underneath",
+    "f2_d": "Use your own tracks as the soundtrack -- one song, or several crossfaded into a medley. The film follows the music, not the other way around.",
+    "f3_t": "Your own footage too",
+    "f3_d": "Live clips from the phone drop straight into a scene. Mix them with generated ones, or use only your own.",
+    "f4_t": "Publish where the fans are",
+    "f4_d": "Straight to Facebook, Instagram, YouTube and TikTok -- with a calendar, so the teaser lands the day before the release, not the week after.",
+    "f5_t": "See the cost as you go",
+    "f5_d": "Every choice shows its price while you work, with your balance next to it. Nothing is charged before you approve it.",
+    "f6_t": "One account, every release",
+    "f6_d": "Each single, album or tour keeps its own images, voices and clips -- and everything you have made stays reusable.",
+    "foot_tag": "Promo for artists -- video, voice and your own music.",
+    "ill2_s_article": "TEASER",
+    "ill2_s_radio": "REEL",
+    "ill2_s_video": "VIDEO",
+    "ill2_s_avatar": "SHORT"
   }
 }

@@ -84,5 +84,32 @@
     "subtitle": "Fortell hva videoen skal handle om — du godkjenner alt før noe koster penger.",
     "outroLabel": "Avslutt med sluttplakat 🔗",
     "outroDesc": "Et sluttbilde med lenken din (nettside/Linktree), artistbildet og oppfordringen — f.eks. «Forhåndslagre på Spotify». Uten jingle ca. 3 sekunder; med jingle like lenge som jingelen (opptil 10 sek)."
+  },
+  "home": {
+    "badge": "MVP — Beta",
+    "hero_a": "Promo for musikken din, på minutter. ",
+    "hero_em": "Laget av det du allerede har.",
+    "hero_sub": "Fortell om slippet, konserten eller låta. Du får en ferdig promovideo med din egen musikk under, dine egne bilder og en stemme som binder det sammen — klar for TikTok, Reels og YouTube.",
+    "cta_primary": "Kom i gang",
+    "cta_secondary": "Se hvordan det virker",
+    "feat_title": "Alt et slipp trenger",
+    "feat_sub": "Fra idé til publisert promo — ingen redigeringsprogrammer, ingen designkunnskap.",
+    "f1_t": "Video som beveger seg",
+    "f1_d": "Bildene dine blir levende scener med kamerabevegelse og leppesynk. 9:16, 1:1 og 16:9 — samme promo til hver feed.",
+    "f2_t": "Din egen musikk under",
+    "f2_d": "Bruk dine egne låter som lydspor — én låt, eller flere krysset sammen til en medley. Filmen følger musikken, ikke omvendt.",
+    "f3_t": "Dine egne opptak også",
+    "f3_d": "Liveklipp fra mobilen går rett inn i en scene. Bland dem med genererte, eller bruk bare dine egne.",
+    "f4_t": "Publiser der fansen er",
+    "f4_d": "Rett til Facebook, Instagram, YouTube og TikTok — med kalender, så teaseren lander dagen før slippet, ikke uka etter.",
+    "f5_t": "Se kostnaden underveis",
+    "f5_d": "Hvert valg viser prisen mens du jobber, med saldoen din ved siden av. Ingenting belastes før du har godkjent det.",
+    "f6_t": "Én konto, alle slipp",
+    "f6_d": "Hver singel, hvert album og hver turné beholder sine egne bilder, stemmer og klipp — og alt du har laget kan gjenbrukes.",
+    "foot_tag": "Promo for artister — video, stemme og din egen musikk.",
+    "ill2_s_article": "TEASER",
+    "ill2_s_radio": "REEL",
+    "ill2_s_video": "VIDEO",
+    "ill2_s_avatar": "SHORT"
   }
 }
