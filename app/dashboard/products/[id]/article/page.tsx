@@ -319,7 +319,7 @@ export default function ArticlePage() {
               <button
                 onClick={generateArticles}
                 disabled={loading}
-                className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-[var(--on-ember)] font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 {loading ? t('generating') : t('generate')}
               </button>
@@ -363,7 +363,7 @@ export default function ArticlePage() {
                           <button
                             onClick={() => saveEdit(article.id)}
                             disabled={saving}
-                            className="px-4 py-1.5 bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
+                            className="px-4 py-1.5 bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-[var(--on-ember)] text-sm font-medium rounded-lg transition-colors"
                           >
                             {saving ? t('saving') : t('saveEdit')}
                           </button>

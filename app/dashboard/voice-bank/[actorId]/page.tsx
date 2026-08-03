@@ -368,7 +368,7 @@ export default function VoiceActorPage() {
                   </div>
                   <input type="file" accept="image/*" disabled={uploadBusy === 'photo'}
                     onChange={(e) => { uploadMedia('photo', e.target.files?.[0] || null); e.target.value = '' }}
-                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white" />
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--on-ember)]" />
                   {uploadBusy === 'photo' && <p className="text-xs text-gray-400 mt-1">Laster opp …</p>}
                   <p className="text-xs text-gray-400 mt-1">Første bilde brukes som hovedbilde. Flux LoRA-bilder funker fint.</p>
                 </div>
@@ -384,7 +384,7 @@ export default function VoiceActorPage() {
                   </div>
                   <input type="file" accept="audio/*" disabled={uploadBusy === 'sample'}
                     onChange={(e) => { uploadMedia('sample', e.target.files?.[0] || null); e.target.value = '' }}
-                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white" />
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--on-ember)]" />
                   {uploadBusy === 'sample' && <p className="text-xs text-gray-400 mt-1">Laster opp …</p>}
                   <p className="text-xs text-gray-400 mt-1">MP3/WAV — f.eks. reklamespot-demoer i ulike stiler.</p>
                 </div>
@@ -448,7 +448,7 @@ export default function VoiceActorPage() {
                 </div>
               )}
               <button onClick={saveRates} disabled={saveBusy}
-                className="px-5 py-2.5 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
+                className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
                 {saveBusy ? 'Lagrer …' : 'Lagre takster'}
               </button>
               <p className="text-xs text-gray-400 mt-2">Nye takster gjelder fra neste bruk — historikken beholder satsene som gjaldt da.</p>
@@ -545,7 +545,7 @@ export default function VoiceActorPage() {
                 <input value={earnGross} onChange={(e) => setEarnGross(e.target.value)} placeholder="brutto kr" inputMode="decimal"
                   className="w-28 px-2 py-1.5 border border-gray-300 rounded-lg" />
                 <button onClick={addEarning} disabled={earnBusy}
-                  className="px-4 py-1.5 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
+                  className="px-4 py-1.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
                   {earnBusy ? 'Registrerer …' : 'Registrer utbetaling'}
                 </button>
               </div>

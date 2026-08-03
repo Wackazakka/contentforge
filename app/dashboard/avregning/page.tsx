@@ -99,7 +99,7 @@ export default function AvregningPage() {
               onClick={() => setMaanedTilbake(tb)}
               className={`px-3.5 py-2 rounded-lg border text-[13px] font-medium capitalize ${
                 maanedTilbake === tb
-                  ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]'
+                  ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]'
                   : 'bg-[var(--paper-raised)] text-[var(--text-muted)] border-[var(--ds-border-strong)] hover:border-[var(--ember-deep)]'
               }`}
             >

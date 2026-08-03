@@ -559,7 +559,7 @@ export default function PartnersPage() {
 
                 <div className="flex items-center gap-3">
                   <button onClick={() => save(p)} disabled={busy === p.id}
-                    className="px-5 py-2.5 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
+                    className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
                     {busy === p.id ? 'Lagrer …' : 'Lagre endringer'}
                   </button>
                   {saved === p.id

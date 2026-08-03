@@ -191,7 +191,7 @@ export default function NewCampaignPage() {
             onClick={() => { setCampaignType("reklame"); setSegments([]); }}
             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
               campaignType === "reklame"
-                ? "bg-[var(--ember-deep)] text-white"
+                ? "bg-[var(--ember-deep)] text-[var(--on-ember)]"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
@@ -202,7 +202,7 @@ export default function NewCampaignPage() {
             onClick={() => setCampaignType("storytelling")}
             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
               campaignType === "storytelling"
-                ? "bg-[var(--ember-deep)] text-white"
+                ? "bg-[var(--ember-deep)] text-[var(--on-ember)]"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
@@ -494,7 +494,7 @@ export default function NewCampaignPage() {
                           alert('Upload failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
                         }
                       }}
-                      className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)]"
+                      className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-[var(--on-ember)] hover:file:bg-[var(--ink)]"
                     />
                   </label>
                 </div>
@@ -562,7 +562,7 @@ export default function NewCampaignPage() {
               !form.productName ||
               !form.cta
             }
-            className="rounded-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-50 text-white font-semibold py-3 text-sm transition-colors"
+            className="rounded-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-50 text-[var(--on-ember)] font-semibold py-3 text-sm transition-colors"
           >
             {scriptLoading ? t('generatingScript') : t('generateScript')}
           </button>

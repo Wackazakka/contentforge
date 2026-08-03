@@ -259,7 +259,7 @@ export default function VideoProductionPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-[var(--ember-deep)] text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 px-4 py-3 bg-[var(--ember-deep)] text-[var(--on-ember)] rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
             >
               {loading ? t('starting') : t('startProduction')}
             </button>

@@ -1012,7 +1012,7 @@ export default function ProductPage() {
             )}
           </div>
           <label className="inline-block cursor-pointer">
-            <span className={`px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--ember-deep)] hover:opacity-90 inline-block ${imgLibUploading ? 'opacity-50' : ''}`}>
+            <span className={`px-4 py-2 rounded-lg text-sm font-medium text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 inline-block ${imgLibUploading ? 'opacity-50' : ''}`}>
               {imgLibUploading ? 'Laster opp…' : '+ Last opp bilder'}
             </span>
             <input
@@ -1092,7 +1092,7 @@ export default function ProductPage() {
             {trackBank.length === 0 && <p className="text-sm text-gray-400">Ingen låter ennå.</p>}
           </div>
           <label className="inline-block cursor-pointer">
-            <span className={`px-4 py-2 rounded-lg text-sm font-medium text-white bg-[var(--ember-deep)] hover:opacity-90 inline-block ${trackUploading ? 'opacity-50' : ''}`}>
+            <span className={`px-4 py-2 rounded-lg text-sm font-medium text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 inline-block ${trackUploading ? 'opacity-50' : ''}`}>
               {trackUploading ? 'Laster opp…' : '+ Last opp låter'}
             </span>
             <input

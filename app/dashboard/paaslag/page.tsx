@@ -156,7 +156,7 @@ export default function PaaslagPage() {
                 className={`mt-4 w-full px-4 py-2.5 rounded-lg font-medium ${
                   !endret || lagrer
                     ? 'bg-transparent text-[var(--ink)] border border-[var(--ds-border-strong)] cursor-default'
-                    : 'bg-[var(--ember-deep)] text-white'
+                    : 'bg-[var(--ember-deep)] text-[var(--on-ember)]'
                 }`}
               >
                 {lagrer ? t('saving') : endret ? t('save') : t('saved')}

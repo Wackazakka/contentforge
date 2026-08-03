@@ -90,7 +90,7 @@ export default function WhiteLabelPage() {
             {error && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
 
             <button type="submit" disabled={busy}
-              className="px-5 py-2.5 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
+              className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
               {busy ? 'Sender …' : 'Send søknad'}
             </button>
           </form>

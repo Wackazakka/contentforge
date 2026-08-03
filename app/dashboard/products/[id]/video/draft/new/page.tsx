@@ -497,7 +497,7 @@ export default function NewDraftPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`flex-1 px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
+                className={`flex-1 px-6 py-3 rounded-lg font-semibold text-[var(--on-ember)] transition-colors ${
                   loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--ember-deep)] hover:bg-[var(--ink)]'
                 }`}
               >

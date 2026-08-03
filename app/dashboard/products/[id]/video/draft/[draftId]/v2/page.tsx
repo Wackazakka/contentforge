@@ -891,7 +891,7 @@ export default function DraftV2Page() {
               type="button"
               onClick={startProduction}
               disabled={!allApproved || starting}
-              className="px-6 py-3 rounded-xl text-[14.5px] font-semibold text-white bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 rounded-xl text-[14.5px] font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {starting ? 'Starter…' : 'Start produksjon'}
             </button>
@@ -1373,7 +1373,7 @@ export default function DraftV2Page() {
                                     onClick={() => updateMotion(index, opt.v)}
                                     className={`px-3 py-1.5 rounded-full border text-[12px] font-medium ${
                                       current === opt.v
-                                        ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]'
+                                        ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]'
                                         : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                                     }`}
                                   >
@@ -1618,7 +1618,7 @@ export default function DraftV2Page() {
                         <button
                           type="button"
                           onClick={() => toggleApproved(index)}
-                          className="min-w-[104px] px-3.5 py-2 rounded-lg border text-[13px] font-medium transition-colors border-[var(--ember-deep)] bg-[var(--ember-deep)] text-white hover:bg-[var(--ink)]"
+                          className="min-w-[104px] px-3.5 py-2 rounded-lg border text-[13px] font-medium transition-colors border-[var(--ember-deep)] bg-[var(--ember-deep)] text-[var(--on-ember)] hover:bg-[var(--ink)]"
                         >
                           Godkjenn
                         </button>
@@ -1668,7 +1668,7 @@ export default function DraftV2Page() {
               type="button"
               onClick={startProduction}
               disabled={!allApproved || starting}
-              className="px-6 py-3 rounded-xl text-[14.5px] font-semibold text-white bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 rounded-xl text-[14.5px] font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {starting ? 'Starter…' : 'Start produksjon'}
             </button>
@@ -1921,7 +1921,7 @@ export default function DraftV2Page() {
                               type="button"
                               onClick={buildMedley}
                               disabled={medleyPicks.length < 2 || medleyBuilding}
-                              className="mt-2 w-full px-3 py-2 rounded-lg bg-[var(--ember-deep)] text-white text-[13px] font-medium hover:bg-[var(--ink)] disabled:opacity-40"
+                              className="mt-2 w-full px-3 py-2 rounded-lg bg-[var(--ember-deep)] text-[var(--on-ember)] text-[13px] font-medium hover:bg-[var(--ink)] disabled:opacity-40"
                             >
                               {medleyBuilding ? 'Mikser låtene…' : `Lag medley (${medleyPicks.length} låter)`}
                             </button>
@@ -2086,7 +2086,7 @@ export default function DraftV2Page() {
                                   setOutroImage(o.v); setOutroPickerOpen(false); persistOutro({ image: o.v })
                                 }}
                                 className={`px-2.5 py-1 rounded-full border text-[11.5px] font-medium ${
-                                  aktiv ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                  aktiv ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                                 }`}
                               >
                                 {o.label}

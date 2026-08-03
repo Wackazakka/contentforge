@@ -273,7 +273,7 @@ export default function VoiceBankAdminPage() {
               <h2 className="font-semibold text-gray-900">Skuespillere</h2>
               <button
                 onClick={() => { setShowForm(!showForm); setFError(null) }}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 transition-opacity"
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 transition-opacity"
               >
                 {showForm ? 'Avbryt' : '+ Legg til skuespiller'}
               </button>
@@ -362,7 +362,7 @@ export default function VoiceBankAdminPage() {
 
                 <div>
                   <button onClick={addActor} disabled={fBusy}
-                    className="px-5 py-2.5 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
+                    className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
                     {fBusy ? 'Lagrer …' : 'Lagre skuespiller'}
                   </button>
                 </div>
@@ -451,7 +451,7 @@ export default function VoiceBankAdminPage() {
                     </p>
                   </div>
                   <button onClick={toggleAcceptApps}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold ${acceptApps ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'text-white bg-[var(--ember-deep)] hover:opacity-90'}`}>
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold ${acceptApps ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90'}`}>
                     {acceptApps ? 'Skru av' : 'Skru på'}
                   </button>
                 </div>

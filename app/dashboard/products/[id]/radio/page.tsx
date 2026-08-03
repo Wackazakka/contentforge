@@ -284,7 +284,7 @@ export default function RadioAdPage() {
                 {DURATIONS.map((d) => (
                   <button key={d.value} type="button" onClick={() => setDuration(d.value)}
                     className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                      duration === d.value ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                      duration === d.value ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                     }`}>
                     {d.label}
                     <span className="block text-xs font-normal opacity-70">{d.hint}</span>
@@ -484,7 +484,7 @@ export default function RadioAdPage() {
                       } catch (err) { alert(err instanceof Error ? err.message : 'Opplasting feilet.') }
                       input.value = ''
                     }}
-                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)]"
+                    className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-[var(--on-ember)] hover:file:bg-[var(--ink)]"
                   />
                 </label>
                 {/* Legacy delt-mappe-opplasting: kun rot-tenanten (biblioteksvedlikehold) */}
@@ -515,7 +515,7 @@ export default function RadioAdPage() {
                           } catch { alert('Opplasting feilet.') }
                           input.value = ''
                         }}
-                        className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)]"
+                        className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-[var(--on-ember)] hover:file:bg-[var(--ink)]"
                       />
                     </div>
                   </label>
@@ -635,7 +635,7 @@ export default function RadioAdPage() {
 
           <button type="submit"
             disabled={loading || uploadingSegments || !script.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
-            className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+            className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-300 text-[var(--on-ember)] font-semibold py-3 px-4 rounded-lg transition-colors">
             {uploadingSegments ? 'Laster opp segmenter…' : loading ? 'Starter produksjon…' : '🎙️ Produser radioreklame'}
           </button>
 

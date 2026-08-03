@@ -337,3 +337,16 @@ body {
     padding: 7px 13px !important;
   }
 }
+
+/* Markert tekst (Lars 3/8: «bokstavene blir nesten usynlige»). Nettleserens
+   standard er lys blaa bakgrunn med ARVET tekstfarge — paa en moerk drakt er
+   den arvede fargen naesten hvit, og da forsvinner det man nettopp markerte.
+   Bruker tenantens egne farger, saa kontrasten holder i begge drakter. */
+::selection {
+  background: var(--ember-deep);
+  color: var(--on-ember);
+}
+::-moz-selection {
+  background: var(--ember-deep);
+  color: var(--on-ember);
+}

@@ -253,7 +253,7 @@ export default function ArticleDetailPage() {
                 <button
                   onClick={saveEdit}
                   disabled={saving}
-                  className="px-4 py-2 bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="px-4 py-2 bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-[var(--on-ember)] text-sm font-medium rounded-lg transition-colors"
                 >
                   {saving ? t('saving') : t('save')}
                 </button>
@@ -277,7 +277,7 @@ export default function ArticleDetailPage() {
           <div className="flex flex-wrap gap-3 items-center">
             <Link
               href={`/dashboard/publish?type=article&content_id=${article.id}&product_id=${productId}`}
-              className="inline-flex items-center px-5 py-2 bg-[var(--ember-deep)] hover:bg-[var(--ink)] text-white font-medium rounded-lg transition-colors"
+              className="inline-flex items-center px-5 py-2 bg-[var(--ember-deep)] hover:bg-[var(--ink)] text-[var(--on-ember)] font-medium rounded-lg transition-colors"
             >
               {t('publish')}
             </Link>

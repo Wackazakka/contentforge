@@ -145,7 +145,7 @@ export default function ApplyForm({ appName }: { appName: string }) {
           {error && <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
 
           <button type="submit" disabled={busy}
-            className="w-full py-3 rounded-lg font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
+            className="w-full py-3 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
             {busy ? 'Sender …' : 'Send søknad'}
           </button>
         </form>

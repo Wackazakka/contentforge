@@ -1366,7 +1366,7 @@ export default function DraftPage() {
                       el.value = ''
                     }
                   }}
-                  className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)] disabled:opacity-50"
+                  className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-[var(--on-ember)] hover:file:bg-[var(--ink)] disabled:opacity-50"
                 />
               </div>
               <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene du vil bruke (MP3, maks 50MB) — egen musikk, eller musikk du har rett til å bruke. Kun synlige for denne artisten. Flere låter? Lag en medley.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
@@ -1411,7 +1411,7 @@ export default function DraftPage() {
                         }`}
                       >
                         <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center flex-none ${
-                          idx >= 0 ? 'bg-[var(--ember-deep)] text-white' : 'bg-gray-100 text-gray-400'
+                          idx >= 0 ? 'bg-[var(--ember-deep)] text-[var(--on-ember)]' : 'bg-gray-100 text-gray-400'
                         }`}>
                           {idx >= 0 ? idx + 1 : '+'}
                         </span>
@@ -1542,7 +1542,7 @@ export default function DraftPage() {
                   type="button"
                   disabled={medleySelection.length < 2 || medleyBuilding}
                   onClick={buildMedley}
-                  className="mt-2 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-40"
+                  className="mt-2 px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-40"
                 >
                   {medleyBuilding ? '🎚️ Mikser låtene — tar noen sekunder…' : `Lag medley${medleySelection.length >= 2 ? ` (${medleySelection.length} låter)` : ''}`}
                 </button>
@@ -1619,7 +1619,7 @@ export default function DraftPage() {
                       el.value = ''
                     }
                   }}
-                  className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-[var(--ink)] disabled:opacity-50"
+                  className="block w-full text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-[var(--on-ember)] hover:file:bg-[var(--ink)] disabled:opacity-50"
                 />
               </div>
               <p className="text-xs text-gray-400 mt-1">{jingleUploading ? 'Laster opp jingle…' : 'Spilles på sluttplakaten.'}</p>
@@ -1984,7 +1984,7 @@ export default function DraftPage() {
                               onClick={() => updateMotion(index, opt.v)}
                               className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                                 current === opt.v
-                                  ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]'
+                                  ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]'
                                   : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                               }`}
                             >
@@ -2080,8 +2080,8 @@ export default function DraftPage() {
                       disabled={generatingImages.has(index)}
                       className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                         segment.approved
-                          ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-[var(--ember-deep)] hover:bg-[var(--ink)] text-white'
+                          ? 'bg-green-600 hover:bg-green-700 text-[var(--on-ember)]'
+                          : 'bg-[var(--ember-deep)] hover:bg-[var(--ink)] text-[var(--on-ember)]'
                       }`}
                     >
                       {segment.approved ? t('approvedButton') : t('approveButton')}
@@ -2275,21 +2275,21 @@ export default function DraftPage() {
                       <button
                         type="button"
                         onClick={() => { setOutroImage(''); setOutroPickerOpen(false); persistOutro({ image: '' }) }}
-                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === '' ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === '' ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
                       >
                         Artistbilde/logo
                       </button>
                       <button
                         type="button"
                         onClick={() => setOutroPickerOpen((v) => !v)}
-                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage && outroImage !== 'none' ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage && outroImage !== 'none' ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
                       >
                         📸 Velg fra biblioteket
                       </button>
                       <button
                         type="button"
                         onClick={() => { setOutroImage('none'); setOutroPickerOpen(false); persistOutro({ image: 'none' }) }}
-                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === 'none' ? 'bg-[var(--ember-deep)] text-white border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === 'none' ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
                       >
                         Uten bilde
                       </button>

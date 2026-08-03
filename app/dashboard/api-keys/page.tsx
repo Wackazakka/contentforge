@@ -106,7 +106,7 @@ export default function ApiKeysPage() {
                 <div className="flex items-center justify-between gap-4 mb-3">
                   <h2 className="font-semibold text-gray-900">{org.name}</h2>
                   <button onClick={() => createKey(org)} disabled={busy === org.id}
-                    className="flex-none px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
+                    className="flex-none px-4 py-2 rounded-lg text-sm font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
                     {busy === org.id ? 'Oppretter …' : '+ Ny nøkkel'}
                   </button>
                 </div>

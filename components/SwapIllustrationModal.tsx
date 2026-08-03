@@ -224,7 +224,7 @@ export default function SwapIllustrationModal({
               <button
                 onClick={handleGenerate}
                 disabled={generating}
-                className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
+                className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-[var(--on-ember)] font-medium py-2.5 px-4 rounded-lg transition-colors"
               >
                 {generating ? t('generatingButton') : t('generateButton')}
               </button>
@@ -271,7 +271,7 @@ export default function SwapIllustrationModal({
                   <button
                     onClick={handleApplyAsset}
                     disabled={!selectedAssetUrl || applying}
-                    className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
+                    className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-400 text-[var(--on-ember)] font-medium py-2.5 px-4 rounded-lg transition-colors"
                   >
                     {applying ? t('applyingButton') : t('applyButton')}
                   </button>

@@ -27,7 +27,7 @@ export default function StartPage() {
           {anonProductId ? (
             <Link
               href={`/dashboard/products/${anonProductId}/video/draft/new`}
-              className="inline-block px-8 py-4 rounded-xl font-semibold text-white bg-[var(--ember-deep)] hover:bg-[var(--ink)] transition-colors text-lg"
+              className="inline-block px-8 py-4 rounded-xl font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:bg-[var(--ink)] transition-colors text-lg"
             >
               🎬 Kom i gang
             </Link>
