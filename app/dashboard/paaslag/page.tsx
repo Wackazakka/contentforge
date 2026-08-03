@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 import { COSTS_NOK, fmtNok } from '@/lib/costs'
 
@@ -18,6 +19,7 @@ import { COSTS_NOK, fmtNok } from '@/lib/costs'
 const EKSEMPEL_LISTE = COSTS_NOK.animate5s * 4 + COSTS_NOK.voiceoverPreview * 4
 
 export default function PaaslagPage() {
+  const t = useTranslations('markup')
   const [navn, setNavn] = useState<string>('')
   const [verdi, setVerdi] = useState<string>('')
   const [lagret, setLagret] = useState<number | null>(null)
@@ -34,7 +36,7 @@ export default function PaaslagPage() {
       try {
         const res = await fetch('/api/my-markup', { headers: { Authorization: `Bearer ${await token()}` } })
         const d = await res.json()
-        if (!res.ok) throw new Error(d.error || 'Kunne ikke hente påslaget')
+        if (!res.ok) throw new Error(d.error || t('loadError'))
         setNavn(d.navn || '')
         if (Number.isFinite(Number(d.innprisFaktor))) setInnprisFaktor(Number(d.innprisFaktor))
         setVerdi(String(d.markupPercent))
@@ -56,12 +58,12 @@ export default function PaaslagPage() {
         body: JSON.stringify({ markupPercent: Number(verdi) }),
       })
       const d = await res.json()
-      if (!res.ok) throw new Error(d.error || 'Lagring feilet')
+      if (!res.ok) throw new Error(d.error || t('saveError'))
       setLagret(Number(d.markupPercent))
       setVerdi(String(d.markupPercent))
       setKvittering(true)
     } catch (err) {
-      setFeil(err instanceof Error ? err.message : 'Lagring feilet')
+      setFeil(err instanceof Error ? err.message : t('saveError'))
     } finally {
       setLagrer(false)
     }
@@ -78,13 +80,11 @@ export default function PaaslagPage() {
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-2xl mx-auto px-4 sm:px-8 py-10">
         <Link href="/dashboard" className="text-[13px] text-gray-500 hover:text-[var(--ink)]">
-          ← Tilbake til oversikten
+          {t('back')}
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">Påslaget deres</h1>
+        <h1 className="mt-4 text-3xl font-bold text-gray-900">{t('title')}</h1>
         <p className="mt-2 text-[15px] text-gray-500 max-w-[60ch]">
-          Hva kundene deres betaler over innprisen. Det påvirker bare én ting: sluttprisen.
-          Innprisen settes i avtalen med oss, og endres den, følger sluttprisene etter
-          uten at dere trenger å røre dette tallet.
+          {t('intro')}
         </p>
 
         {laster && (
@@ -101,7 +101,7 @@ export default function PaaslagPage() {
           <>
             <div className="mt-6 bg-white rounded-2xl border border-gray-200 px-5 py-5">
               {navn && <p className="text-[12px] uppercase tracking-widest text-gray-400 mb-3">{navn}</p>}
-              <label className="block text-sm font-medium text-gray-700 mb-1">Påslag i prosent</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('label')}</label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -116,7 +116,7 @@ export default function PaaslagPage() {
               </div>
               {!gyldig && verdi !== '' && (
                 <p className="mt-2 text-[12.5px] text-red-600">
-                  Må være mellom 0 og 500. Under 0 ville dere solgt med tap.
+                  {t('range')}
                 </p>
               )}
 
@@ -124,24 +124,23 @@ export default function PaaslagPage() {
                   et beløp ved siden av */}
               <div className="mt-4 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 text-[13.5px]">
                 <p className="text-gray-500 mb-2">
-                  En vanlig promovideo — 20 sekunder, fire animerte scener med tale:
+                  {t('example')}
                 </p>
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-gray-600">Innprisen deres</span>
+                  <span className="text-gray-600">{t('cost')}</span>
                   <span className="tabular-nums text-gray-900">{fmtNok(grunnlag)}</span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 mt-1">
-                  <span className="text-gray-600">Kunden betaler</span>
+                  <span className="text-gray-600">{t('customerPays')}</span>
                   <span className="tabular-nums font-semibold text-gray-900">{gyldig ? fmtNok(utpris) : '—'}</span>
                 </div>
                 <div className="flex items-baseline justify-between gap-3 mt-1 pt-2 border-t border-gray-200">
-                  <span className="text-[var(--ember-deep)]">Dere sitter igjen med</span>
+                  <span className="text-[var(--ember-deep)]">{t('youKeep')}</span>
                   <span className="tabular-nums font-semibold text-[var(--ember-deep)]">{gyldig ? fmtNok(margin) : '—'}</span>
                 </div>
                 {gyldig && tall === 0 && (
                   <p className="mt-2 text-[12.5px] text-gray-500">
-                    Med 0 % selger dere til innpris. Da tjener dere ingenting på produksjonene —
-                    det kan være et bevisst valg hvis dere tjener pengene et annet sted.
+                    {t('zero')}
                   </p>
                 )}
               </div>
@@ -152,20 +151,17 @@ export default function PaaslagPage() {
                 disabled={!endret || lagrer}
                 className="mt-4 w-full px-4 py-2.5 rounded-lg bg-[var(--ember-deep)] text-white font-medium disabled:opacity-40"
               >
-                {lagrer ? 'Lagrer…' : endret ? 'Lagre påslaget' : 'Lagret'}
+                {lagrer ? t('saving') : endret ? t('save') : t('saved')}
               </button>
               {kvittering && (
                 <p className="mt-2 text-[13px] text-green-700">
-                  ✅ Lagret. Nye priser gjelder fra neste produksjon — det som allerede er kjørt,
-                  beholder prisen det ble kjørt til.
+                  {t('receipt')}
                 </p>
               )}
             </div>
 
             <p className="mt-4 text-[12.5px] text-gray-400 leading-relaxed">
-              Vi oppgir påslaget i prosent, ikke kroner, fordi innprisen kan endre seg.
-              Da følger påslaget med av seg selv i stedet for å bli stående som et beløp som stille blir feil.
-              Hva dere faktisk har tjent, står på <Link href="/dashboard/avregning" className="underline">avregningssiden</Link>.
+              {t('why')} <Link href="/dashboard/avregning" className="underline">{t('settlementLink')}</Link>.
             </p>
           </>
         )}
