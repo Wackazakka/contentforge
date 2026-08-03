@@ -912,5 +912,23 @@
     "errNOT_SIGNED_IN": "Du må være innlogget.",
     "errNO_ORG": "Denne kontoen har ingen konto på denne tjenesten ennå.",
     "errNOT_WHITELABEL": "Kredittkjøp er ikke åpnet for denne kontoen."
+  },
+  "account": {
+    "back": "← Tilbake til oversikten",
+    "title": "Kontoen din",
+    "changePassword": "Bytt passord",
+    "current": "Nåværende passord",
+    "new": "Nytt passord",
+    "confirm": "Gjenta nytt passord",
+    "rule": "Minst 8 tegn.",
+    "save": "Lagre nytt passord",
+    "saving": "Lagrer …",
+    "saved": "✅ Passordet er byttet.",
+    "tooShort": "Passordet må ha minst 8 tegn.",
+    "noMatch": "De to passordene er ikke like.",
+    "wrongCurrent": "Nåværende passord stemmer ikke.",
+    "notSignedIn": "Du må være innlogget.",
+    "failed": "Noe gikk galt. Prøv igjen.",
+    "nav": "Konto"
   }
 }

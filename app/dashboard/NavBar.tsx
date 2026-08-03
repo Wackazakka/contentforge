@@ -19,6 +19,7 @@ export default function NavBar() {
   const [voiceBankAdmin, setVoiceBankAdmin] = useState(false)
   const t = useTranslations('nav')
   const tLogin = useTranslations('login')
+  const tKonto = useTranslations('account')
   const tenant = useTenant()
 
   // Invoice-tenants (white-label via partner) skal ikke se CenterForge-priser/billing
@@ -125,6 +126,17 @@ export default function NavBar() {
           {/* Sesjonen er PER DOMENE (localStorage) — er du innlogget på ett white-label,
               er du ikke det på et annet. «Logg ut» ble tidligere vist ubetinget, så navet
               påsto at du var innlogget mens siden under sa «Ikke innlogget». */}
+          {/* Kontoen — der man bytter passord (Lars 3/8). Vises kun innlogget. */}
+          {session && (
+            <Link
+              href="/dashboard/konto"
+              className="cf-nav-link"
+              style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none' }}
+            >
+              {tKonto('nav')}
+            </Link>
+          )}
+
           {session ? (
             <button
               onClick={handleLogout}

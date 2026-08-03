@@ -912,5 +912,23 @@
     "errNOT_SIGNED_IN": "You must be signed in.",
     "errNO_ORG": "This account doesn't have an account on this service yet.",
     "errNOT_WHITELABEL": "Credit purchases aren't open for this account."
+  },
+  "account": {
+    "back": "← Back to overview",
+    "title": "Your account",
+    "changePassword": "Change password",
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Repeat new password",
+    "rule": "At least 8 characters.",
+    "save": "Save new password",
+    "saving": "Saving …",
+    "saved": "✅ Password changed.",
+    "tooShort": "The password must be at least 8 characters.",
+    "noMatch": "The two passwords don't match.",
+    "wrongCurrent": "Current password is not correct.",
+    "notSignedIn": "You must be signed in.",
+    "failed": "Something went wrong. Please try again.",
+    "nav": "Account"
   }
 }
