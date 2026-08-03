@@ -283,7 +283,7 @@ export default function PartnersPage() {
         <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Tilbake</Link>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🤝 Partnere</h1>
         <p className="text-gray-600 mb-8">
-          {tenantName ? `${tenantName} sine direkte underledd` : 'Dine direkte underledd'} — sett påslaget dere tar av dem,
+          {tenantName ? `${tenantName} sine direkte underledd` : 'Dine direkte underledd'} — påslaget de tar av sine egne kunder,
           lisensavgiften fra partneravtalen, og merkevaren deres (navn, logo og farger på deres eget domene).
         </p>
 
@@ -388,13 +388,21 @@ export default function PartnersPage() {
 
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Vårt påslag mot partneren (%)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Partnerens påslag mot sine kunder (%)</label>
                     <input value={e.markup} onChange={(ev) => setEdit(p.id, 'markup', ev.target.value)} inputMode="decimal"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                     <p className="text-xs text-gray-400 mt-1">
                       0–500. Kundeprisen deres = innprisen × (1 + påslag/100).
                       0 = de selger til innpris og tjener ingenting; 100 = dobbel pris.
-                      Partneren kan justere sitt eget påslag selv.
+                    </p>
+                    {/* Feltet heter ETT tall og eies av partneren (Lars 3/8: «når
+                        jeg setter 150 % her, forandrer IndigoBooms seg også»).
+                        Det var ikke to tall som fulgte hverandre — det var samme
+                        tall med to motsatte etiketter. */}
+                    <p className="text-xs text-gray-400 mt-1">
+                      Dette er <em>partnerens</em> tall, ikke vårt. Det er samme felt som de selv ser
+                      under «Påslag», så endrer du det her, endrer du utsalgsprisen deres.
+                      Vår egen inntekt er engrosprisen, som ikke påvirkes.
                     </p>
                   </div>
                   <div>
