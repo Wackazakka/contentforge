@@ -447,6 +447,9 @@ export default function DraftV2Page() {
   // den er og lager ingen animasjon. Derfor koster det ingenting.
   const brukKlippFraBiblioteket = (index: number, k: { name: string; url: string }) => {
     updateSegment(index, { video_url: k.url, video_name: k.name, approved: false })
+    // Et gammelt «ingen animasjon laget ennå» ble staaende og pekte paa en
+    // knapp som var graa — beskjeden gjelder ikke lenger naar scenen har klipp
+    setMotionPreview((p) => { const n = { ...p }; delete n[index]; return n })
     setKlippVelgerFor(null)
   }
   // Bibliotek-klipp og egen opplasting deler felt, men skal ikke hete det
@@ -556,7 +559,10 @@ export default function DraftV2Page() {
     // Lagre nonce FØR forhåndsvisningen — serveren leser draften, så en
     // pause hadde vært et sjansespill (kunne gitt det gamle klippet igjen)
     const segments = [...draft.segments]
-    segments[index] = { ...segments[index], clip_nonce: String(Date.now()) }
+    // «Lag en ny» sier hva den vil: da skal et ferdig klipp vike (Lars 3/8 —
+    // knappen var sperret, og eneste vei ut var «Fjern», som ikke sto noe om).
+    // Klippet blir liggende i biblioteket, så ingenting går tapt.
+    segments[index] = { ...segments[index], clip_nonce: String(Date.now()), video_url: undefined, video_name: undefined }
     setDraft({ ...draft, segments })
     await persistSegments(segments)
     await previewMotion(index)
@@ -1310,7 +1316,7 @@ export default function DraftV2Page() {
                               dempet, saa scenen fortsatt kan stilles inn og
                               staar klar den dagen klippet fjernes. */}
                           {draft.ai_motion && (
-                            <div className={`flex flex-wrap items-center gap-2 ${seg.video_url ? 'opacity-60' : ''}`}>
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className="text-[12px] text-gray-400">Bevegelse:</span>
                               {([
                                 { v: 'none' as const, label: 'Stillbilde', cost: 'gratis' },
@@ -1335,10 +1341,13 @@ export default function DraftV2Page() {
                               })}
                               {(seg.motion || (seg.animate === true ? 'move' : 'none')) === 'move' && (() => {
                                 const st = motionPreview[index]?.status || ''
-                                // Har scenen et ferdig klipp, ville en ny
-                                // generering kostet penger for noe som ikke
-                                // brukes — derfor sperret, ikke skjult.
-                                const jobber = ['starting', 'generating'].includes(st) || !!seg.video_url
+                                const jobber = ['starting', 'generating'].includes(st)
+                                // «Se animasjonen» ville vist et klipp som
+                                // uansett ikke havner i filmen — den sperres
+                                // mens et ferdig klipp staar i scenen.
+                                // «Lag en ny» er derimot et TYDELIG oenske, og
+                                // rydder klippet av veien selv.
+                                const harKlipp = !!seg.video_url
                                 return (
                                   <>
                                     <select
@@ -1354,9 +1363,11 @@ export default function DraftV2Page() {
                                     <button
                                       type="button"
                                       onClick={() => previewMotion(index, true)}
-                                      disabled={jobber}
+                                      disabled={jobber || harKlipp}
                                       className="px-3 py-1.5 rounded-full border border-[var(--ember-tint-border)] bg-[var(--ember-tint-bg)] text-[12px] font-medium text-[var(--ember-deep)] hover:border-[var(--ember-deep)] disabled:opacity-60"
-                                      title="Viser klippet som blir brukt i filmen. Er det laget fra før, er det gratis å se."
+                                      title={harKlipp
+                                        ? 'Scenen bruker et ferdig klipp — det vises over'
+                                        : 'Viser klippet som blir brukt i filmen. Er det laget fra før, er det gratis å se.'}
                                     >
                                       {st === 'starting' ? '▶ Starter…' : st === 'generating' ? '▶ Lager klippet… (1–3 min)' : '▶ Se animasjonen'}
                                     </button>
@@ -1365,7 +1376,9 @@ export default function DraftV2Page() {
                                       onClick={() => nyAnimasjon(index)}
                                       disabled={jobber}
                                       className="px-3 py-1.5 rounded-full border border-gray-300 text-[12px] font-medium text-gray-600 hover:border-gray-400 disabled:opacity-60"
-                                      title="Forkaster dagens klipp og lager et helt nytt"
+                                      title={harKlipp
+                                        ? 'Setter klippet fra biblioteket til side og lager en ny animasjon. Klippet blir liggende i biblioteket.'
+                                        : 'Forkaster dagens klipp og lager et helt nytt'}
                                     >
                                       ↻ Lag en ny ({fmtCredits(COSTS_NOK.animate5s * pf)})
                                     </button>
@@ -1384,8 +1397,9 @@ export default function DraftV2Page() {
                               })()}
                               {seg.video_url && (
                                 <span className="w-full text-[11.5px] text-gray-400">
-                                  Scenen bruker et ferdig klipp, så disse valgene tar ikke effekt.
-                                  Fjern klippet over hvis du heller vil animere bildet.
+                                  Scenen bruker et ferdig klipp, så innstillingene her venter.
+                                  Trykk «↻ Lag en ny» hvis du heller vil animere bildet —
+                                  klippet settes til side, men blir liggende i biblioteket ditt.
                                 </span>
                               )}
                             </div>
