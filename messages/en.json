@@ -910,7 +910,7 @@
     "errBILLING_OFF": "Card payment isn't open yet. Please try again later.",
     "errUNKNOWN_PACKAGE": "Unknown package.",
     "errNOT_SIGNED_IN": "You must be signed in.",
-    "errNO_ORG": "No account found to top up.",
+    "errNO_ORG": "This account doesn't have an account on this service yet.",
     "errNOT_WHITELABEL": "Credit purchases aren't open for this account."
   }
 }

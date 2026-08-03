@@ -910,7 +910,7 @@
     "errBILLING_OFF": "Kortbetaling er ikke åpnet ennå. Prøv igjen senere.",
     "errUNKNOWN_PACKAGE": "Ukjent pakke.",
     "errNOT_SIGNED_IN": "Du må være innlogget.",
-    "errNO_ORG": "Fant ingen konto å fylle på.",
+    "errNO_ORG": "Denne kontoen har ingen konto på denne tjenesten ennå.",
     "errNOT_WHITELABEL": "Kredittkjøp er ikke åpnet for denne kontoen."
   }
 }

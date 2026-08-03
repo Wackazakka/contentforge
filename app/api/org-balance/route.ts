@@ -19,13 +19,17 @@ export async function GET(request: Request) {
     const { data } = await supabase.auth.getUser(auth.slice(7))
     const userId = data?.user?.id
     if (!userId) return NextResponse.json({ balance: null })
-    const { data: org } = await supabase
+    // Saldoen skal gjelde organisasjonen paa DETTE domenet, ikke brukerens
+    // eldste (3/8) - ellers viser Isabels side CenterForge-saldoen
+    const { getTenant } = await import('@/lib/tenantServer')
+    const vert = await getTenant()
+    const { data: orgs } = await supabase
       .from('organizations')
-      .select('id')
+      .select('id, tenant_id')
       .eq('owner_id', userId)
       .order('created_at', { ascending: true })
-      .limit(1)
-      .single()
+    const liste = orgs || []
+    const org = (vert.id && vert.id !== 'root' ? liste.find((o: any) => o.tenant_id === vert.id) : null) ?? liste[0] ?? null
     if (!org) return NextResponse.json({ balance: null })
     const balance = await getOrgBalance(org.id)
     return NextResponse.json({ balance })

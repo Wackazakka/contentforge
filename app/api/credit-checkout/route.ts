@@ -10,6 +10,29 @@ function admin() {
   )
 }
 
+// Brukerens organisasjon PAA DENNE TENANTEN. Ruta tok tidligere den ELDSTE
+// organisasjonen uansett hvilket domene forespoerselen kom fra - saa Lars,
+// som har organisasjoner paa flere tenanter, ble avvist paa Isabels side med
+// «gjelder kun white-label-kunder» (3/8). En artist med bare EN organisasjon
+// merket ingenting, saa feilen ville kommet foerst naar noen hadde to.
+async function orgForVert(supabase: any, userId: string) {
+  const { getTenant } = await import('@/lib/tenantServer')
+  const vert = await getTenant()
+  const { data: orgs } = await supabase
+    .from('organizations')
+    .select('id, tenant_id')
+    .eq('owner_id', userId)
+    .order('created_at', { ascending: true })
+  const liste = orgs || []
+  // Paa et tenant-domene MAA organisasjonen hoere til den tenanten. Aa falle
+  // tilbake til en annen ville betydd aa fylle paa feil konto - verre enn aa
+  // si nei. Kun paa rot-domenet gjelder «eldste» som foer.
+  if (vert.id && vert.id !== 'root') {
+    return liste.find((o: any) => o.tenant_id === vert.id) ?? null
+  }
+  return liste[0] ?? null
+}
+
 // Selvbetjent kredittkjøp for innloggede brukere i invoice-tenants (byråkunder).
 // Betalingen går via plattformens Stripe; påfyllet registreres i org_topups av
 // webhooken. Avregning mot partneren skjer månedlig som ellers.
@@ -31,13 +54,7 @@ export async function POST(request: Request) {
     const userId = u?.user?.id
     if (!userId) return NextResponse.json({ error: 'Ikke innlogget', code: 'NOT_SIGNED_IN' }, { status: 401 })
 
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('id, tenant_id')
-      .eq('owner_id', userId)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .single()
+    const org = await orgForVert(supabase, userId)
     if (!org) return NextResponse.json({ error: 'Fant ingen organisasjon', code: 'NO_ORG' }, { status: 404 })
     const { data: tenant } = org.tenant_id
       ? await supabase.from('tenants').select('billing_mode, slug, vertical, currency').eq('id', org.tenant_id).single()
