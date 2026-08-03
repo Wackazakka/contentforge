@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getStripe } from '@/lib/stripe'
-import { ALL_CREDIT_PACKAGES, CREDIT_VALUE_NOK } from '@/lib/creditPackages'
+import { ALL_CREDIT_PACKAGES, CREDIT_VALUE_NOK, packageFor } from '@/lib/creditPackages'
 
 function admin() {
   return createClient(
@@ -77,6 +77,10 @@ export async function POST(request: Request) {
     const backTo = RETURN_PATHS.includes(returnPath) ? returnPath : '/dashboard/credits'
 
     const erGbp = (tenant as any)?.currency === 'gbp'
+    // Beloepet MAA hentes for valutaen. Foer sto kronetallet her og ble krevd
+    // som pund: £15-knappen ga £200 i kassen (Lars 3/8).
+    const prisPkg = packageFor(packageId, erGbp ? 'gbp' : 'nok') ?? pkg
+    const beloep = prisPkg.amount
 
     const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
@@ -85,17 +89,17 @@ export async function POST(request: Request) {
           // Valutaen foelger tenanten. Var hardkodet 'nok', saa en britisk
           // artist ville faatt kroner i kassen (Lars 3/8).
           currency: erGbp ? 'gbp' : 'nok',
-          unit_amount: pkg.amount * 100,
+          unit_amount: beloep * 100,
           // Dette er teksten kunden ser i Stripe-kassen og paa kvitteringen.
           // Den sa «kreditter» og «kr/kreditt» ogsaa naar beloepet var i pund
           // (Lars 3/8). Foelger naa valutaen - og med den, spraaket.
           product_data: { name: erGbp
-            ? `${credits.toLocaleString('en-GB')} credits (${(pkg.amount / pkg.credits).toFixed(3)} GBP per credit)`
-            : `${credits.toLocaleString('nb-NO')} kreditter (kurs ${(pkg.amount / pkg.credits).toFixed(3).replace('.', ',')} kr/kreditt)` },
+            ? `${credits.toLocaleString('en-GB')} credits (${(beloep / credits).toFixed(4)} GBP per credit)`
+            : `${credits.toLocaleString('nb-NO')} kreditter (kurs ${(beloep / credits).toFixed(3).replace('.', ',')} kr/kreditt)` },
         },
         quantity: 1,
       }],
-      metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(ledgerNok), bonus_nok: '0', paid_nok: String(pkg.amount), paid_currency: erGbp ? 'gbp' : 'nok', credits: String(credits), rate: (pkg.amount / pkg.credits).toFixed(4) },
+      metadata: { kind: 'org_topup', organization_id: org.id, amount_nok: String(ledgerNok), bonus_nok: '0', paid_nok: String(beloep), paid_currency: erGbp ? 'gbp' : 'nok', credits: String(credits), rate: (beloep / credits).toFixed(4) },
       success_url: `${origin}${backTo}?paid=1`,
       cancel_url: `${origin}${backTo}`,
     })

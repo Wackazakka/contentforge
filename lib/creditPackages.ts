@@ -59,6 +59,17 @@ export function consumerPackages(valuta: Valuta = 'nok') {
   return CONSUMER_CREDIT_PACKAGES.map((p) => ({ ...p, amount: GBP_BELOEP[p.id] ?? p.amount }))
 }
 
+/**
+ * Pakken med RIKTIG beloep for valutaen. MAA brukes paa serveren ogsaa:
+ * gjoer man omregningen kun i visningen, viser siden £15 mens Stripe krever
+ * 200 - beloepet fra kronelista, tolket som pund (Lars 3/8, fanget i sandkasse).
+ */
+export function packageFor(id: string, valuta: Valuta = 'nok') {
+  const forbruker = consumerPackages(valuta).find((p) => p.id === id)
+  if (forbruker) return forbruker
+  return CREDIT_PACKAGES.find((p) => p.id === id) ?? null
+}
+
 /** «200 kr» / «£15» — symbolet staar der valutaen forventer det. */
 export function fmtBeloep(amount: number, valuta: Valuta = 'nok'): string {
   const tall = amount.toLocaleString(valuta === 'gbp' ? 'en-GB' : 'nb-NO')
