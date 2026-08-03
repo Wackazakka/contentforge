@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { CSSProperties, InputHTMLAttributes, ReactNode } from 'react'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { LangToggle } from '@/components/LangToggle'
+import { useTenant } from '@/lib/tenantContext'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
@@ -35,6 +36,7 @@ export function AuthShell({
   children: ReactNode
   maxWidth?: number
 }) {
+  const tenant = useTenant()
   return (
     <div
       style={{
@@ -59,7 +61,9 @@ export function AuthShell({
         <Link href="/" style={{ textDecoration: 'none' }}>
           <CenterForgeLogo size={28} wordmarkSize={19} />
         </Link>
-        <LangToggle />
+        {/* Innloggingen er den siste flaten som fortsatt viste bryteren etter
+            at tenanten hadde skrudd den av (Lars 3/8) */}
+        {tenant.show_language_toggle !== false && <LangToggle />}
       </header>
 
       <main
