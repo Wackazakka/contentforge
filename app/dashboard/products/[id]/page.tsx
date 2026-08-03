@@ -500,7 +500,12 @@ export default function ProductPage() {
               formatByJobId[d.job_id] = d.video_format || ''
               draftIds[d.job_id] = d.id
             }
-            if (d.campaign_id) draftByCampaign[d.campaign_id] = d.id
+            // Reserveveien MAA speile hva produksjonen faktisk sender:
+            // `campaignId: draft.campaign_id || draft.id`. Uten fallbacken traff
+            // den aldri utkast som mangler campaign_id — og siden utkastet bare
+            // husker SISTE jobb, forsvant «Rediger» fra alle eldre videoer i det
+            // en ny produksjon startet (Lars 3/8, etter en avbrutt jobb).
+            draftByCampaign[d.campaign_id || d.id] = d.id
           })
           // Vei 2: via jobbens campaignId for de som mangler direkte kobling
           const utenTreff = jobIds.filter((j: string) => !draftIds[j])
