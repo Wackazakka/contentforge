@@ -219,8 +219,17 @@ export default function DraftV2Page() {
   const mediaRec = useRef<MediaRecorder | null>(null)
   const recChunks = useRef<BlobPart[]>([])
   const [motionPreview, setMotionPreview] = useState<
-    Record<number, { status: 'starting' | 'generating' | 'ready' | 'failed'; url?: string; error?: string }>
+    Record<number, { status: 'starting' | 'generating' | 'ready' | 'failed'; url?: string; error?: string; startet?: number }>
   >({})
+  // Tikker mens en animasjon lages, så «det skjer noe»-linja teller sekunder
+  // (Lars 3/8: «jeg ser ikke at det blir laget noe»). Går bare når noe jobber.
+  const [naa, setNaa] = useState(0)
+  const jobberNoe = Object.values(motionPreview).some((m) => m.status === 'starting' || m.status === 'generating')
+  useEffect(() => {
+    if (!jobberNoe) return
+    const t = setInterval(() => setNaa(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [jobberNoe])
 
   // Utpris-faktor (white-label): kunden ser priser med partnerens margin
   const pf = tenant.price_multiplier || 1
@@ -605,7 +614,7 @@ export default function DraftV2Page() {
   }
 
   const previewMotion = async (index: number, viewOnly = false) => {
-    setMotionPreview((p) => ({ ...p, [index]: { status: 'starting' } }))
+    setMotionPreview((p) => ({ ...p, [index]: { status: 'starting', startet: Date.now() } }))
     try {
       const res = await fetch('/api/content/preview-motion', {
         method: 'POST',
@@ -633,7 +642,7 @@ export default function DraftV2Page() {
         }))
         return
       }
-      setMotionPreview((p) => ({ ...p, [index]: { status: 'generating' } }))
+      setMotionPreview((p) => ({ ...p, [index]: { status: 'generating', startet: p[index]?.startet || Date.now() } }))
       const deadline = Date.now() + 10 * 60 * 1000
       while (Date.now() < deadline) {
         await new Promise((r) => setTimeout(r, 5000))
@@ -1380,7 +1389,13 @@ export default function DraftV2Page() {
                                         ? 'Setter klippet fra biblioteket til side og lager en ny animasjon. Klippet blir liggende i biblioteket.'
                                         : 'Forkaster dagens klipp og lager et helt nytt'}
                                     >
-                                      ↻ Lag en ny ({fmtCredits(COSTS_NOK.animate5s * pf)})
+                                      {/* Fremdriften maa staa paa knappen som
+                                          ble trykket (Lars 3/8) — foer laa den
+                                          paa NABOKNAPPEN, saa «Lag en ny» bare
+                                          ble graa og stille. */}
+                                      {jobber
+                                        ? '↻ Lager animasjonen…'
+                                        : `↻ Lag en ny (${fmtCredits(COSTS_NOK.animate5s * pf)})`}
                                     </button>
                                     {klippBank.length > 0 && (
                                       <button
@@ -1393,6 +1408,21 @@ export default function DraftV2Page() {
                                       </button>
                                     )}
                                   </>
+                                )
+                              })()}
+                              {/* «Hvordan vet jeg når den er ferdig?» (Lars 3/8):
+                                  en linje som teller, og som sier hva som skjer
+                                  til slutt. Uten den var eneste tegn at en knapp
+                                  ble graa. */}
+                              {['starting', 'generating'].includes(motionPreview[index]?.status || '') && (() => {
+                                const s = Math.max(0, Math.round(((naa || Date.now()) - (motionPreview[index]?.startet || Date.now())) / 1000))
+                                const tid = s < 60 ? `${s} sek` : `${Math.floor(s / 60)} min ${s % 60} sek`
+                                return (
+                                  <span className="w-full flex items-center gap-2 text-[12px] text-[var(--ember-deep)]">
+                                    <span className="w-3.5 h-3.5 border-2 border-[var(--ember-deep)] border-t-transparent rounded-full animate-spin" />
+                                    Lager animasjonen — {tid}. Den pleier å ta 1–3 minutter, og dukker opp
+                                    som en avspiller her nede når den er ferdig. Du kan jobbe videre i andre scener imens.
+                                  </span>
                                 )
                               })()}
                               {seg.video_url && (
