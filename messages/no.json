@@ -903,6 +903,9 @@
     "footPro": "Betaling med kort. Kursen bedres med kjøpets størrelse — beste kurs er 1 kreditt = 0,10 kr. Taxameteret i editoren viser alltid hva en produksjon vil trekke fra saldoen.",
     "films23": "2–3 filmer",
     "films68": "6–8 filmer",
-    "films1318": "13–18 filmer"
+    "films1318": "13–18 filmer",
+    "mustSignIn": "Du må være innlogget.",
+    "thanks": "Takk! Betalingen er mottatt — saldoen oppdateres om få sekunder.",
+    "failed": "Kunne ikke starte betalingen"
   }
 }

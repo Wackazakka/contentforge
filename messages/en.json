@@ -903,6 +903,9 @@
     "footPro": "Card payment. The rate improves with the size of the purchase — the best rate is 1 credit = 0.10 kr. The cost meter in the editor always shows what a production will draw from your balance.",
     "films23": "2–3 films",
     "films68": "6–8 films",
-    "films1318": "13–18 films"
+    "films1318": "13–18 films",
+    "mustSignIn": "You must be signed in.",
+    "thanks": "Thank you! Payment received — your balance updates in a few seconds.",
+    "failed": "Could not start the payment"
   }
 }

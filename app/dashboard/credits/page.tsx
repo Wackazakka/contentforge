@@ -31,7 +31,7 @@ export default function CreditsPage() {
     try {
       const { data: sess } = await getSupabase().auth.getSession()
       const token = sess?.session?.access_token
-      if (!token) { setError('Du må være innlogget.'); return }
+      if (!token) { setError(t('mustSignIn')); return }
       const d = await fetch('/api/org-balance', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
       setSaldo(typeof d.balance === 'number' ? d.balance : null)
     } catch { /* saldo utilgjengelig */ } finally {
@@ -55,7 +55,7 @@ export default function CreditsPage() {
     try {
       const { data: sess } = await getSupabase().auth.getSession()
       const token = sess?.session?.access_token
-      if (!token) throw new Error('Du må være innlogget.')
+      if (!token) throw new Error(t('mustSignIn'))
       const res = await fetch('/api/credit-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -79,7 +79,7 @@ export default function CreditsPage() {
 
         {paid && (
           <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
-            Takk! Betalingen er mottatt — saldoen oppdateres om få sekunder.
+            {t('thanks')}
           </div>
         )}
 
