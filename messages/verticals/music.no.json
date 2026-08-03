@@ -130,5 +130,9 @@
     "demo_t": "Laget med dette, fra start til slutt",
     "demo_d": "En ekte slipp-promo — artistens egne bilder, egen låt under, og en stemme som binder det sammen. Ingenting filmet, ingenting klippet for hånd.",
     "mid_cta": "Lag din første promo"
+  },
+  "publish": {
+    "productLabel": "Artist",
+    "selectProduct": "Velg artist..."
   }
 }

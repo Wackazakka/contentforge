@@ -130,5 +130,9 @@
     "demo_t": "Made with this, start to finish",
     "demo_d": "A real release promo — the artist's own photos, their own track underneath, and a voice tying it together. Nothing filmed, nothing edited by hand.",
     "mid_cta": "Make your first promo"
+  },
+  "publish": {
+    "productLabel": "Artist",
+    "selectProduct": "Select artist..."
   }
 }

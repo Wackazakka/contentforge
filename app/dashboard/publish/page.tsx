@@ -33,6 +33,7 @@ function PublishPage() {
   const supabase = getSupabase()
   const tenant = useTenant()
   const t = useTranslations('publish')
+  const erArtist = tenant.vertical === 'music'
 
   const [connections, setConnections] = useState<SocialConnection[]>([])
   const [loading, setLoading] = useState(true)
@@ -196,11 +197,13 @@ function PublishPage() {
     const jobId = searchParams.get('job_id')
     const contentId = searchParams.get('content_id')
 
-    if (type) setContentType(type)
+    // ?type=article kan komme fra en gammel lenke. Uten knappen finnes det
+    // ingen vei tilbake til video, saa artist-tjenester blir staaende paa video.
+    if (type && !(erArtist && type === 'article')) setContentType(type)
     if (productId) setSelectedProduct(productId)
     if (jobId) setPrefillJobId(jobId)
     if (contentId) setPrefillContentId(contentId)
-  }, [searchParams])
+  }, [searchParams, erArtist])
 
   useEffect(() => {
     const fetchConnections = async () => {
@@ -554,14 +557,18 @@ function PublishPage() {
           >
             🧑‍💼 Avatar
           </button>
-          <button
-            onClick={() => { setContentType('article'); setSelectedContent(null) }}
-            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-              contentType === 'article' ? 'cf-ink-btn' : 'cf-soft-btn'
-            }`}
-          >
-            {t('articleButton')}
-          </button>
+          {/* Artist-tjenester lager ikke artikler (Lars 3/8) — knappen ville
+              bare ført til en tom liste */}
+          {!erArtist && (
+            <button
+              onClick={() => { setContentType('article'); setSelectedContent(null) }}
+              className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+                contentType === 'article' ? 'cf-ink-btn' : 'cf-soft-btn'
+              }`}
+            >
+              {t('articleButton')}
+            </button>
+          )}
         </div>
 
         <div className="space-y-4">
