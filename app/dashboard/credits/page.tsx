@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
 import { CREDIT_PACKAGES, CONSUMER_CREDIT_PACKAGES } from '@/lib/creditPackages'
@@ -13,6 +14,7 @@ import { useTenant } from '@/lib/tenantContext'
 const nok = (n: number) => `${n.toLocaleString('nb-NO')} kr`
 
 export default function CreditsPage() {
+  const t = useTranslations('creditsPage')
   const searchParams = useSearchParams()
   // Artister er enkeltpersoner, ikke byraaer: de skal se 200-1000-pakkene,
   // ikke bedriftskurven som starter paa 1 000 kr (Lars 2/8).
@@ -71,9 +73,9 @@ export default function CreditsPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Tilbake</Link>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">💳 Kreditter</h1>
-        <p className="text-gray-600 mb-6">Kjøp kreditt på forhånd — hver produksjon trekker fra saldoen, og taxameteret viser alltid om du har dekning.</p>
+        <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">{t('back')}</Link>
+        <h1 className="text-3xl font-bold text-[var(--ink)] mb-2">💳 {t('title')}</h1>
+        <p className="text-[var(--text-muted)] mb-6">{t('intro')}</p>
 
         {paid && (
           <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-sm text-green-700">
@@ -81,47 +83,47 @@ export default function CreditsPage() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg border border-gray-200 p-5 mb-8">
-          <div className="text-xs text-gray-500 mb-1">På konto nå</div>
-          <div className="text-3xl font-bold text-gray-900">
+        <div className="bg-[var(--paper-raised)] rounded-lg border border-[var(--ds-border)] p-5 mb-8">
+          <div className="text-xs text-[var(--text-muted)] mb-1">{t('balance')}</div>
+          <div className="text-3xl font-bold text-[var(--ink)]">
             {loading ? '…' : saldo === null ? '—' : `${Math.round(saldo * 10).toLocaleString('nb-NO')} kreditter`}
           </div>
           {saldo === null && !loading && (
-            <p className="text-xs text-gray-400 mt-1">Ingen forskuddskonto ennå — den opprettes automatisk ved første kjøp.</p>
+            <p className="text-xs text-[var(--text-faint)] mt-1">{t('noAccount')}</p>
           )}
         </div>
 
-        <h2 className="font-semibold text-gray-900 mb-3">Kjøp mer</h2>
+        <h2 className="font-semibold text-[var(--ink)] mb-3">{t('buyMore')}</h2>
         <div className="grid sm:grid-cols-3 gap-4 mb-4">
           {PAKKER.map((p) => (
             <button
               key={p.id}
               onClick={() => buy(p.id)}
               disabled={!!busy}
-              className="bg-white rounded-xl border border-gray-200 p-5 text-left hover:border-[var(--ember-deep)] disabled:opacity-50 transition-colors"
+              className="bg-[var(--paper-raised)] rounded-xl border border-[var(--ds-border)] p-5 text-left hover:border-[var(--ember-deep)] disabled:opacity-50 transition-colors"
             >
-              <div className="text-2xl font-bold text-gray-900">{nok(p.amount)}</div>
-              <div className="text-base font-semibold text-gray-700 mb-1">
+              <div className="text-2xl font-bold text-[var(--ink)]">{nok(p.amount)}</div>
+              <div className="text-base font-semibold text-[var(--ink)] mb-1">
                 {p.credits.toLocaleString('nb-NO')} kreditter
                 {p.bonusPct > 0 && <span className="ml-1.5 text-[var(--ember-deep)]">+{p.bonusPct} %</span>}
               </div>
               {p.rekker ? (
-                <div className="text-sm text-gray-500 mb-2">Rekker til {p.rekker}</div>
+                <div className="text-sm text-[var(--text-muted)] mb-2">{t('lasts', { films: t(p.rekker) })}</div>
               ) : (
-                <div className={`text-sm font-medium mb-2 ${p.amount >= 100000 ? 'text-green-700' : 'text-gray-500'}`}>
+                <div className={`text-sm font-medium mb-2 ${p.amount >= 100000 ? 'text-green-700' : 'text-[var(--text-muted)]'}`}>
                   kurs {(p.amount / p.credits).toFixed(3).replace('.', ',')} kr/kreditt{p.amount >= 100000 ? ' — beste kurs' : ''}
                 </div>
               )}
               <div className="text-sm text-[var(--ember-deep)] font-semibold">
-                {busy === p.id ? 'Åpner betaling …' : 'Kjøp →'}
+                {busy === p.id ? t('opening') : t('buy')}
               </div>
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-400 mb-4">
+        <p className="text-xs text-[var(--text-faint)] mb-4">
           {erArtist
-            ? 'Betaling med kort. Kredittene utløper aldri. Taxameteret i redigereren viser alltid hva en produksjon vil trekke fra saldoen — og det du lager selv (egne bilder, egen stemme, egen video) er gratis.'
-            : 'Betaling med kort. Kursen bedres med kjøpets størrelse — beste kurs er 1 kreditt = 0,10 kr. Taxameteret i editoren viser alltid hva en produksjon vil trekke fra saldoen.'}
+            ? t('footConsumer')
+            : t('footPro')}
         </p>
 
         {error && <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}

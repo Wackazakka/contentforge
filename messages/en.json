@@ -887,5 +887,22 @@
     "loadError": "Could not load the partners",
     "saveError": "Saving failed",
     "numberError": "Markup and licence fee must be numbers."
+  },
+  "creditsPage": {
+    "back": "← Back",
+    "title": "Credits",
+    "intro": "Buy credits up front — every production draws from your balance, and the cost meter always shows whether you are covered.",
+    "balance": "Balance now",
+    "noAccount": "No prepaid account yet — it is created automatically on your first purchase.",
+    "buyMore": "Buy more",
+    "credits": "{count} credits",
+    "lasts": "Lasts for {films}",
+    "buy": "Buy →",
+    "opening": "Opening payment …",
+    "footConsumer": "Card payment. Credits never expire. The cost meter in the editor always shows what a production will draw from your balance — and what you make yourself (your own images, your own voice, your own video) is free.",
+    "footPro": "Card payment. The rate improves with the size of the purchase — the best rate is 1 credit = 0.10 kr. The cost meter in the editor always shows what a production will draw from your balance.",
+    "films23": "2–3 films",
+    "films68": "6–8 films",
+    "films1318": "13–18 films"
   }
 }

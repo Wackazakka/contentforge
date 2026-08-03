@@ -32,9 +32,9 @@ export const CREDIT_PACKAGES = [
 // «rekker» er til kundevendt tekst: en typisk artistvideo (8 scener med
 // bevegelse) koster ~590 kreditter, ~800 med proeving paa animasjonene.
 export const CONSUMER_CREDIT_PACKAGES = [
-  { id: 'privat-liten', amount: 200, credits: 2000, bonusPct: 0, rekker: '2–3 filmer' },
-  { id: 'privat-mellom', amount: 500, credits: 5500, bonusPct: 10, rekker: '6–8 filmer' },
-  { id: 'privat-stor', amount: 1000, credits: 12000, bonusPct: 20, rekker: '13–18 filmer' },
+  { id: 'privat-liten', amount: 200, credits: 2000, bonusPct: 0, rekker: 'films23' },
+  { id: 'privat-mellom', amount: 500, credits: 5500, bonusPct: 10, rekker: 'films68' },
+  { id: 'privat-stor', amount: 1000, credits: 12000, bonusPct: 20, rekker: 'films1318' },
 ] as const
 
 // Kredittene utloeper ALDRI (Lars 1/8): en artist som slipper album annethvert

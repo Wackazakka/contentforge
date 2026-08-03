@@ -887,5 +887,22 @@
     "loadError": "Kunne ikke hente partnerne",
     "saveError": "Lagring feilet",
     "numberError": "Påslag og lisensavgift må være tall."
+  },
+  "creditsPage": {
+    "back": "← Tilbake",
+    "title": "Kreditter",
+    "intro": "Kjøp kreditt på forhånd — hver produksjon trekker fra saldoen, og taxameteret viser alltid om du har dekning.",
+    "balance": "På konto nå",
+    "noAccount": "Ingen forskuddskonto ennå — den opprettes automatisk ved første kjøp.",
+    "buyMore": "Kjøp mer",
+    "credits": "{count} kreditter",
+    "lasts": "Rekker til {films}",
+    "buy": "Kjøp →",
+    "opening": "Åpner betaling …",
+    "footConsumer": "Betaling med kort. Kredittene utløper aldri. Taxameteret i redigereren viser alltid hva en produksjon vil trekke fra saldoen — og det du lager selv (egne bilder, egen stemme, egen video) er gratis.",
+    "footPro": "Betaling med kort. Kursen bedres med kjøpets størrelse — beste kurs er 1 kreditt = 0,10 kr. Taxameteret i editoren viser alltid hva en produksjon vil trekke fra saldoen.",
+    "films23": "2–3 filmer",
+    "films68": "6–8 filmer",
+    "films1318": "13–18 filmer"
   }
 }
