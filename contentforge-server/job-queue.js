@@ -490,6 +490,44 @@ router.get('/preview-clip/:fp', (req, res) => {
   res.json({ fp: req.params.fp, ...st })
 })
 
+// POST /jobs/brand-card — tegn merkekortet som stillbilde (Lars 3/8: vis det
+// der artisten velger om han vil ha det mot rabatt, saa han ser hva han sier
+// ja til). Bruker SAMME funksjon som filmen, saa forhaandsvisningen kan ikke
+// love noe annet enn det som faktisk kommer. Ferdig kort caches i R2 paa en
+// noekkel utledet av innholdet — endres logo/tekst/farge, blir det et nytt.
+router.post('/brand-card', async (req, res) => {
+  const { cfg, width, height, key } = req.body || {}
+  if (!cfg || !key) return res.status(400).json({ error: 'cfg og key kreves' })
+  const W = Math.min(2160, Math.max(120, Number(width) || 540))
+  const H = Math.min(2160, Math.max(120, Number(height) || 960))
+  const tmpPng = `/tmp/brandcard_${Date.now()}_${Math.round(Math.random() * 1e6)}.png`
+  const tmpJson = `${tmpPng}.json`
+  try {
+    fs.writeFileSync(tmpJson, JSON.stringify({ cfg, width: W, height: H, out: tmpPng }))
+    const kode = [
+      'import json,sys,importlib.util',
+      `spec=importlib.util.spec_from_file_location("mk", ${JSON.stringify(SCRIPT_PATH)})`,
+      'mk=importlib.util.module_from_spec(spec); spec.loader.exec_module(mk)',
+      `a=json.load(open(${JSON.stringify(tmpJson)}))`,
+      'mk._draw_brand_card(a["cfg"], a["width"], a["height"]).save(a["out"])',
+    ].join('\n')
+    await new Promise((resolve, reject) => {
+      const p = spawn('python3', ['-c', kode])
+      let feil = ''
+      p.stderr.on('data', (d) => { feil += d.toString() })
+      p.on('close', (c) => (c === 0 ? resolve() : reject(new Error(feil.slice(-300) || `exit ${c}`))))
+    })
+    const url = await uploadBufferToR2(fs.readFileSync(tmpPng), `brand-cards/${key}.png`, 'image/png')
+    res.json({ url })
+  } catch (err) {
+    console.error('[brand-card] feilet:', err.message)
+    res.status(500).json({ error: err.message })
+  } finally {
+    fs.unlink(tmpPng, () => {})
+    fs.unlink(tmpJson, () => {})
+  }
+})
+
 // POST /jobs — enqueue a new video production job
 router.post('/', async (req, res) => {
   const {

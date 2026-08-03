@@ -135,6 +135,17 @@ export default function DraftV2Page() {
   }
   useEffect(() => { hentSaldo() }, [])
 
+  // Merkekortet som bilde — hentes bare for music-vertikalen, der valget står.
+  // Feiler det, vises ingenting: forhåndsvisningen skal aldri velte siden.
+  const [merkekort, setMerkekort] = useState<string | null>(null)
+  useEffect(() => {
+    if (tenant.vertical !== 'music' || !tenant.id || tenant.id === 'root') return
+    fetch(`/api/brand-card-preview?tenantId=${tenant.id}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.url) setMerkekort(d.url) })
+      .catch(() => { /* pynt */ })
+  }, [tenant.id, tenant.vertical])
+
   const [musicLibrary, setMusicLibrary] = useState<MusicFile[]>([])
   const [openRow, setOpenRow] = useState<string | null>(null)
   const [musicDur, setMusicDur] = useState<number | null>(null)
@@ -2093,23 +2104,40 @@ export default function DraftV2Page() {
                       {/* Merkekort mot rabatt (Lars 1/8) — kommer ETTER
                           artistens plakat, aldri i stedet for */}
                       {tenant.vertical === 'music' && (
-                        <label className="flex items-start gap-2 pt-2 border-t border-gray-100 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={draft.brand_card === true}
-                            onChange={(e) => updateDraftFields({ brand_card: e.currentTarget.checked } as any)}
-                            className="w-4 h-4 mt-0.5"
-                          />
-                          <span className="min-w-0">
-                            <span className="block text-[12.5px] text-gray-900">
-                              Avslutt med «{tenant.app_name || 'IndigoBoom'} VideoMaker» — få rabatt
+                        <div className="pt-2 border-t border-gray-100">
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={draft.brand_card === true}
+                              onChange={(e) => updateDraftFields({ brand_card: e.currentTarget.checked } as any)}
+                              className="w-4 h-4 mt-0.5"
+                            />
+                            <span className="min-w-0">
+                              <span className="block text-[12.5px] text-gray-900">
+                                Avslutt med «{tenant.app_name || 'IndigoBoom'} VideoMaker» — få rabatt
+                              </span>
+                              <span className="block text-[11.5px] text-gray-400 leading-relaxed mt-0.5">
+                                Et lite kort på 2 sekunder helt til slutt, etter din egen sluttplakat.
+                                Du betaler mindre for produksjonen. Fjerner du kortet senere, går prisen tilbake til full.
+                              </span>
                             </span>
-                            <span className="block text-[11.5px] text-gray-400 leading-relaxed mt-0.5">
-                              Et lite kort på 2 sekunder helt til slutt, etter din egen sluttplakat.
-                              Du betaler mindre for produksjonen. Fjerner du kortet senere, går prisen tilbake til full.
-                            </span>
-                          </span>
-                        </label>
+                          </label>
+                          {/* Vis kortet her (Lars 3/8) — man skal se hva man sier
+                              ja til. Bildet tegnes av samme kode som filmen. */}
+                          {merkekort && (
+                            <div className="mt-2 ml-6 flex items-start gap-3">
+                              <img
+                                src={merkekort}
+                                alt={`${tenant.app_name || ''} VideoMaker-kortet`}
+                                className="w-24 rounded-lg border border-gray-200"
+                              />
+                              <span className="text-[11.5px] text-gray-400 leading-relaxed">
+                                Slik ser kortet ut. Det kommer helt til slutt, etter din egen plakat —
+                                aldri i stedet for den.
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       )}
 
                       <div className="flex items-center gap-3 flex-wrap">
