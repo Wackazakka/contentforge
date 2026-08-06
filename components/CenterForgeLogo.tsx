@@ -53,14 +53,21 @@ export function CenterForgeLogo({
       <span style={{ display: 'inline-flex', alignItems: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {/* Naar wordmarket er borte, ER logoen hele merket — da taaler den aa
-            vaere stor (Lars 3/8). 2,4 -> 4,0 gir ~112 px hoeyde paa PC.
-            Full 3x (200 px) ville gjort den klebende toppen hoeyere enn
-            innholdet under paa mobil, saa hoeyden er den ekte grensen her.
-            Paa mobil ligger menyen paa egen linje, saa logoen faar 60vw. */}
+            vaere stor (Lars 3/8).
+            Hoeyden alene holdt ikke: regelen ble stilt inn etter Isabels logo
+            (2,45:1), og IndigoBooms er 3,5:1. Ved samme hoeyde ble den 60 %
+            bredere og dyttet «Logg inn» ut i tre linjer (Lars 5/8). Naa er
+            BEGGE retninger tak, og den som binder foerst vinner — da spiller
+            det ingen rolle hvilket sideforhold neste tenant kommer med. */}
         <img
           src={tenant.logo_url}
           alt={tenant.app_name}
-          style={{ height: size * 4.0, width: 'auto', maxWidth: '60vw', objectFit: 'contain' }}
+          style={{
+            height: 'auto',
+            maxHeight: size * 4.0,
+            maxWidth: 'min(60vw, 300px)',
+            objectFit: 'contain',
+          }}
         />
       </span>
     )
