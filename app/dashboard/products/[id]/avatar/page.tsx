@@ -385,7 +385,7 @@ export default function AvatarVideoPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-2xl mx-auto px-4 py-10">
-          <div className={`border rounded-xl p-8 text-center ${done ? 'bg-white border-gray-200' : 'bg-green-50 border-green-200'}`}>
+          <div className={`border rounded-xl p-8 text-center ${done ? 'bg-[var(--paper-raised)] border-gray-200' : 'bg-green-50 border-green-200'}`}>
             {done ? (
               <>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">✅ Videoen er klar!</h2>
@@ -452,7 +452,7 @@ export default function AvatarVideoPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Section 3: Avatar + Voice */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-4">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Avatar & stemme</h2>
 
             <div>
@@ -593,7 +593,7 @@ export default function AvatarVideoPage() {
                       className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${
                         isSelected
                           ? 'border-[#7C3AED] bg-[#F5F3FF]'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                          : 'border-gray-200 hover:border-gray-300 bg-[var(--paper-raised)]'
                       }`}
                     >
                       <button
@@ -642,7 +642,7 @@ export default function AvatarVideoPage() {
                         key={v.voiceId}
                         type="button"
                         onClick={() => setVoiceId(v.voiceId)}
-                        className={`text-left p-2.5 rounded-lg border-2 transition-all ${voiceId === v.voiceId ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
+                        className={`text-left p-2.5 rounded-lg border-2 transition-all ${voiceId === v.voiceId ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'border-gray-200 hover:border-gray-300 bg-[var(--paper-raised)]'}`}
                       >
                         <div className="text-sm font-medium text-gray-900">{v.name}</div>
                         <div className="text-xs text-gray-500">{v.pricePerUseNok.toFixed(2).replace('.', ',')} kreditter per produksjon</div>
@@ -674,7 +674,7 @@ export default function AvatarVideoPage() {
                     key={e.id}
                     type="button"
                     onClick={() => setEmotion(e.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${emotion === e.id ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED]' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${emotion === e.id ? 'border-[#7C3AED] bg-[#F5F3FF] text-[#7C3AED]' : 'border-gray-200 bg-[var(--paper-raised)] text-gray-600 hover:border-gray-300'}`}
                   >
                     <span>{e.emoji}</span> {e.label}
                   </button>
@@ -684,7 +684,7 @@ export default function AvatarVideoPage() {
           </div>
 
           {/* Section 1: Context */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-4">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Innhold</h2>
 
             <div>
@@ -757,7 +757,7 @@ export default function AvatarVideoPage() {
                       className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ${
                         tone === t
                           ? 'bg-green-600 text-white border-green-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                          : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}
                     >
                       {t}
@@ -777,7 +777,7 @@ export default function AvatarVideoPage() {
                       className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ${
                         perspective === p
                           ? 'bg-green-600 text-white border-green-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                          : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}
                     >
                       {p === 'du' ? '"Du"' : '"Jeg"'}
@@ -798,7 +798,7 @@ export default function AvatarVideoPage() {
                     className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                       duration === d.value
                         ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                        : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                     }`}
                   >
                     {d.label}
@@ -819,7 +819,7 @@ export default function AvatarVideoPage() {
           </div>
 
           {/* Section 2: Manus */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-2">
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-2">
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                 Manus <span className="text-red-500">*</span>
@@ -858,7 +858,7 @@ export default function AvatarVideoPage() {
 
           {/* Section: Lysjekk per segment */}
           {script.trim() && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+            <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Lysjekk per segment</h2>
@@ -872,7 +872,7 @@ export default function AvatarVideoPage() {
                   }}
                   className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${segmentMode ? 'bg-[var(--ember-deep)]' : 'bg-gray-200'}`}
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${segmentMode ? 'translate-x-4' : ''}`} />
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-[var(--paper-raised)] rounded-full shadow transition-transform ${segmentMode ? 'translate-x-4' : ''}`} />
                 </button>
               </div>
               {segmentMode && (
@@ -885,7 +885,7 @@ export default function AvatarVideoPage() {
                           value={seg.text}
                           onChange={e => setSegments(prev => prev.map((s, j) => j === i ? { ...s, text: e.target.value, audioUrl: null, audioBlob: null } : s))}
                           rows={2}
-                          className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none bg-white focus:outline-none focus:ring-1 focus:ring-[var(--ember-deep)]"
+                          className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none bg-[var(--paper-raised)] focus:outline-none focus:ring-1 focus:ring-[var(--ember-deep)]"
                         />
                       </div>
                       <div className="flex flex-wrap gap-1 pl-7">
@@ -929,7 +929,7 @@ export default function AvatarVideoPage() {
           )}
 
           {/* Section 4: Music */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-3">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Bakgrunnsmusikk (valgfritt)</h2>
             <p className="text-xs text-gray-500">Musikken mikses inn på 12% volum bak voiceover-lyden.</p>
 
@@ -1072,7 +1072,7 @@ export default function AvatarVideoPage() {
                   includeOutroCard && productProfile?.logo_url ? 'bg-[#7C3AED]' : 'bg-gray-200'
                 } disabled:opacity-40`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-[var(--paper-raised)] rounded-full shadow transition-transform ${
                   includeOutroCard && productProfile?.logo_url ? 'translate-x-4' : ''
                 }`} />
               </button>
@@ -1093,7 +1093,7 @@ export default function AvatarVideoPage() {
                           className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
                             outroDuration === s
                               ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
-                              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                              : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                           }`}
                         >
                           {s} sek
@@ -1202,7 +1202,7 @@ export default function AvatarVideoPage() {
                   includeUrlBanner && (productProfile as any)?.website_url ? 'bg-[var(--ember-deep)]' : 'bg-gray-200'
                 } disabled:opacity-40`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-[var(--paper-raised)] rounded-full shadow transition-transform ${
                   includeUrlBanner && (productProfile as any)?.website_url ? 'translate-x-4' : ''
                 }`} />
               </button>

@@ -89,7 +89,7 @@ export default function ApiKeysPage() {
         {freshKey && (
           <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200">
             <p className="text-sm font-semibold text-green-800 mb-1">Ny nøkkel for {freshKey.org} — kopier den nå:</p>
-            <code className="block bg-white border border-green-200 rounded px-3 py-2 text-sm font-mono break-all">{freshKey.key}</code>
+            <code className="block bg-[var(--paper-raised)] border border-green-200 rounded px-3 py-2 text-sm font-mono break-all">{freshKey.key}</code>
             <p className="text-xs text-green-700 mt-1">Denne vises aldri igjen. Send den til kunden via en sikker kanal.</p>
           </div>
         )}
@@ -102,7 +102,7 @@ export default function ApiKeysPage() {
           {orgs.map((org) => {
             const orgKeys = keysFor(org.id)
             return (
-              <div key={org.id} className="bg-white rounded-xl border border-gray-200 p-5">
+              <div key={org.id} className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-5">
                 <div className="flex items-center justify-between gap-4 mb-3">
                   <h2 className="font-semibold text-gray-900">{org.name}</h2>
                   <button onClick={() => createKey(org)} disabled={busy === org.id}

@@ -899,7 +899,7 @@ export default function DraftV2Page() {
           <div className="space-y-5">
           {/* Tidslinje — viser hvordan musikken deles på scenene (klikk åpner scenen) */}
           {musicDur !== null && musicDur > 1 && segments.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+            <div className="bg-[var(--paper-raised)] rounded-2xl border border-gray-200 px-5 py-4">
               <div className="flex items-baseline justify-between gap-3 mb-3">
                 <span className="text-[12px] uppercase tracking-widest text-gray-400">Tidslinje</span>
                 <span className="text-[12.5px] text-gray-500">
@@ -939,7 +939,7 @@ export default function DraftV2Page() {
           )}
 
           {/* Scene-kortet */}
-          <div className="bg-white rounded-2xl border border-gray-200">
+          <div className="bg-[var(--paper-raised)] rounded-2xl border border-gray-200">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
               <div className="flex items-baseline gap-3 min-w-0">
                 <h2 className="text-base font-semibold text-gray-900">Scener</h2>
@@ -1250,7 +1250,7 @@ export default function DraftV2Page() {
                                       type="button"
                                       onClick={() => slettBilde(img)}
                                       title="Slett fra biblioteket"
-                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white/90 border border-gray-300 text-gray-500 text-[11px] leading-none opacity-0 group-hover:opacity-100 hover:text-red-600 hover:border-red-300"
+                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FFFFFF]/90 border border-black/20 text-black/55 text-[11px] leading-none opacity-0 group-hover:opacity-100 hover:text-red-600 hover:border-red-300"
                                     >
                                       ✕
                                     </button>
@@ -1370,7 +1370,7 @@ export default function DraftV2Page() {
                                     className={`px-3 py-1.5 rounded-full border text-[12px] font-medium ${
                                       current === opt.v
                                         ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]'
-                                        : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                        : 'bg-[var(--paper-raised)] text-gray-600 border-gray-300 hover:border-gray-400'
                                     }`}
                                   >
                                     {opt.label} <span className="opacity-70">({opt.cost})</span>
@@ -1391,7 +1391,7 @@ export default function DraftV2Page() {
                                     <select
                                       value={seg.motion_style || 'push-in'}
                                       onChange={(e) => setMotionStyle(index, e.target.value)}
-                                      className="px-2.5 py-1.5 rounded-full border border-gray-300 text-[12px] bg-white text-gray-700"
+                                      className="px-2.5 py-1.5 rounded-full border border-gray-300 text-[12px] bg-[var(--paper-raised)] text-gray-700"
                                       title="Hvordan kameraet skal bevege seg i denne scenen"
                                     >
                                       {MOTION_STYLES.map((m) => (
@@ -1677,7 +1677,7 @@ export default function DraftV2Page() {
               overalt … nå har det en låst plass») — uten å dekke innholdet
               slik det gamle flytende taxameteret gjorde. */}
           <aside className="space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-200 px-5 py-4 lg:sticky lg:top-24 lg:z-10 shadow-sm">
+            <div className="bg-[var(--paper-raised)] rounded-2xl border border-gray-200 px-5 py-4 lg:sticky lg:top-24 lg:z-10 shadow-sm">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-[13.5px] text-gray-500">Påløpt på utkastet</span>
                 <span className="text-xl font-semibold text-gray-900 tabular-nums">{fmtCredits(paaloptNok)}</span>
@@ -1739,7 +1739,7 @@ export default function DraftV2Page() {
               </p>
             </div>
             {lagring && lagring.prosent >= 50 && (
-              <div className={`rounded-2xl border px-5 py-4 ${lagring.prosent >= 90 ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
+              <div className={`rounded-2xl border px-5 py-4 ${lagring.prosent >= 90 ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-[var(--paper-raised)]'}`}>
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-[13px] text-gray-500">Lagringsplass</span>
                   <span className="text-[13px] font-medium text-gray-900 tabular-nums">
@@ -1761,7 +1761,7 @@ export default function DraftV2Page() {
             )}
 
             {/* Lyd — stemme, musikk, jingle */}
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="bg-[var(--paper-raised)] rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-3.5 border-b border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-900">Lyd</h3>
                 <p className="text-[12px] text-gray-400 mt-0.5">Gjelder hele videoen</p>
@@ -1777,7 +1777,7 @@ export default function DraftV2Page() {
                 <select
                   value={draft.voice_id || ''}
                   onChange={(e) => { changeVoice(e.target.value); setOpenRow(null) }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-[var(--paper-raised)]"
                 >
                   <option value="own">Din egen stemme — du leser inn selv</option>
                   {(() => {
@@ -1825,7 +1825,7 @@ export default function DraftV2Page() {
                 <select
                   value={draft.music_file || ''}
                   onChange={(e) => { updateDraftFields({ music_file: e.target.value || null }); setOpenRow(null) }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-[var(--paper-raised)]"
                 >
                   <option value="">Ingen musikk</option>
                   {(() => {
@@ -1893,7 +1893,7 @@ export default function DraftV2Page() {
                               <select
                                 value={medleyClip}
                                 onChange={(e) => setMedleyClip(e.target.value as typeof medleyClip)}
-                                className="px-2 py-1 border border-gray-300 rounded text-[12px] bg-white"
+                                className="px-2 py-1 border border-gray-300 rounded text-[12px] bg-[var(--paper-raised)]"
                               >
                                 <option value="10">10 sek</option>
                                 <option value="15">15 sek</option>
@@ -1944,7 +1944,7 @@ export default function DraftV2Page() {
                 <select
                   value={draft.outro_jingle || ''}
                   onChange={(e) => { updateDraftFields({ outro_jingle: e.target.value || null }); setOpenRow(null) }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13px] bg-[var(--paper-raised)]"
                 >
                   <option value="">Ingen jingle — musikken fortsetter under plakaten</option>
                   {musicLibrary.filter((m) => (m.folder || '').startsWith('jingles')).map((m) => (
@@ -1955,7 +1955,7 @@ export default function DraftV2Page() {
             </div>
 
             {/* Bilde og bevegelse */}
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="bg-[var(--paper-raised)] rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-3.5 border-b border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-900">Bilde og bevegelse</h3>
               </div>
@@ -1993,7 +1993,7 @@ export default function DraftV2Page() {
                     <select
                       value={draft.ai_motion_engine || 'kling'}
                       onChange={(e) => updateDraftFields({ ai_motion_engine: e.target.value })}
-                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-[12.5px] bg-white"
+                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-[12.5px] bg-[var(--paper-raised)]"
                     >
                       <option value="kling">Kling (anbefalt)</option>
                       <option value="pixverse">PixVerse (rask/billig)</option>
@@ -2020,7 +2020,7 @@ export default function DraftV2Page() {
             })()}
 
             {/* Sluttplakat med forhåndsvisning */}
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="bg-[var(--paper-raised)] rounded-2xl border border-gray-200 overflow-hidden">
               <div className="px-5 py-3.5 border-b border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-900">Sluttplakaten</h3>
                 <p className="text-[12px] text-gray-400 mt-0.5">Siste bildet i videoen</p>
@@ -2082,7 +2082,7 @@ export default function DraftV2Page() {
                                   setOutroImage(o.v); setOutroPickerOpen(false); persistOutro({ image: o.v })
                                 }}
                                 className={`px-2.5 py-1 rounded-full border text-[11.5px] font-medium ${
-                                  aktiv ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                  aktiv ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-[var(--paper-raised)] text-gray-600 border-gray-300 hover:border-gray-400'
                                 }`}
                               >
                                 {o.label}
@@ -2166,7 +2166,7 @@ export default function DraftV2Page() {
 
       {/* Mobil: sidepanelet ligger under scenene, så taxameteret får en liten
           flytende visning der i stedet (Lars 31/7) */}
-      <div className="lg:hidden fixed bottom-4 right-4 z-40 bg-white/95 backdrop-blur border border-gray-200 shadow-lg rounded-xl px-3 py-2 text-[12.5px]">
+      <div className="lg:hidden fixed bottom-4 right-4 z-40 bg-[var(--paper-raised)]/95 backdrop-blur border border-gray-200 shadow-lg rounded-xl px-3 py-2 text-[12.5px]">
         <span className="text-gray-500">Påløpt </span>
         <span className="font-semibold text-gray-900 tabular-nums">{fmtCredits(paaloptNok)}</span>
         {saldo !== null && (

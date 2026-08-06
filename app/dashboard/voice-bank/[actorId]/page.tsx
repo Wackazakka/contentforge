@@ -295,7 +295,7 @@ export default function VoiceActorPage() {
             </p>
 
             {/* Eksklusivitet */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-8 flex items-center justify-between gap-4">
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4 mb-8 flex items-center justify-between gap-4">
               <div>
                 <div className="font-medium text-gray-900 text-sm">
                   {actor.is_exclusive !== false ? '🔒 Eksklusiv' : '🌐 Delt med hele plattformen'}
@@ -322,7 +322,7 @@ export default function VoiceActorPage() {
                 ...(fees?.licenseTo ? [{ label: `Lisensavgift til ${fees.licenseTo} (${fees.licensePct} %)`, value: nok(totalLicenseNok) }] : []),
                 { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.from - totals.to - totalInfraNok - totalLicenseNok) },
               ].map((c) => (
-                <div key={c.label} className="bg-white rounded-lg border border-gray-200 p-4">
+                <div key={c.label} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4">
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>
                   <div className="text-xl font-bold text-gray-900">{c.value}</div>
                 </div>
@@ -331,7 +331,7 @@ export default function VoiceActorPage() {
 
             {/* Presentasjonsside */}
             <h2 className="font-semibold text-gray-900 mb-3">Presentasjonsside</h2>
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div>
                   <div className="font-medium text-gray-900 text-sm">{actor.is_public ? '🟢 Publisert' : '⚪ Ikke publisert'}</div>
@@ -393,7 +393,7 @@ export default function VoiceActorPage() {
 
             {/* Takster */}
             <h2 className="font-semibold text-gray-900 mb-3">Takster</h2>
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
               <div className="grid grid-cols-2 gap-3 mb-4 max-w-md">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Standard — til skuespiller (kr)</label>
@@ -456,7 +456,7 @@ export default function VoiceActorPage() {
 
             {/* Godkjenningskrav per kunde */}
             <h2 className="font-semibold text-gray-900 mb-3">Godkjenning per kunde</h2>
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
               <p className="text-xs text-gray-400 mb-4">
                 «Fritt» = kunden kan bruke stemmen/ansiktet uten forhåndsgodkjenning. «Må godkjennes» = skuespilleren
                 varsles på e-post og må godkjenne hver bruk — svarer de ikke innen fristen, godkjennes bruken automatisk.
@@ -470,7 +470,7 @@ export default function VoiceActorPage() {
                       <span className="font-medium text-gray-900 flex-1 min-w-[140px]">{c.name}</span>
                       <select value={c.mode} disabled={apprBusy === c.id}
                         onChange={(e) => setApproval(c.id, e.target.value, c.timeoutHours)}
-                        className="px-3 py-1.5 border border-gray-300 rounded-lg bg-white">
+                        className="px-3 py-1.5 border border-gray-300 rounded-lg bg-[var(--paper-raised)]">
                         <option value="auto">Fritt (carte blanche)</option>
                         <option value="review">Må godkjennes</option>
                       </select>
@@ -495,7 +495,7 @@ export default function VoiceActorPage() {
 
             {/* ElevenLabs Voice Library */}
             <h2 className="font-semibold text-gray-900 mb-3">ElevenLabs Voice Library</h2>
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div>
                   <div className="font-medium text-gray-900 text-sm">
@@ -556,7 +556,7 @@ export default function VoiceActorPage() {
             {byKind.length === 0 ? (
               <p className="text-sm text-gray-500 mb-8">Ingen bruk registrert ennå.</p>
             ) : (
-              <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto mb-8">
+              <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 overflow-x-auto mb-8">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
@@ -585,7 +585,7 @@ export default function VoiceActorPage() {
             {byMonth.length === 0 ? (
               <p className="text-sm text-gray-500">Ingen bruk registrert ennå.</p>
             ) : (
-              <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+              <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs text-gray-500 border-b border-gray-200">

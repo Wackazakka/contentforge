@@ -109,7 +109,7 @@ export default async function CampaignDetailPage({
       </div>
 
       {/* Meta */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 mb-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-200 bg-[var(--paper-raised)] p-6 mb-6 shadow-sm">
         <div className="grid sm:grid-cols-2 gap-4 text-sm">
           <MetaRow label={t('metaProduct')} value={campaign.productName} />
           <MetaRow label={t('metaService')} value={campaign.service} />
@@ -136,7 +136,7 @@ export default async function CampaignDetailPage({
       <h2 className="font-semibold text-gray-900 mb-4">{t('assetsTitle')}</h2>
 
       {!isCompleted ? (
-        <div className="rounded-2xl border border-dashed border-gray-300 py-16 flex flex-col items-center text-center bg-white">
+        <div className="rounded-2xl border border-dashed border-gray-300 py-16 flex flex-col items-center text-center bg-[var(--paper-raised)]">
           <div className="text-4xl mb-4">
             {campaign.status === "processing" ? "⚙️" : "⏳"}
           </div>

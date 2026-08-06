@@ -670,7 +670,7 @@ export default function ProductPage() {
         </div>
 
         {/* Brand Profile — collapsible */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
           <SectionHeader
             title={t('brandProfile')}
             open={openSections.brandProfile}
@@ -922,7 +922,7 @@ export default function ProductPage() {
         </div>
 
         {/* Content Production */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('contentProduction')}</h2>
           <div className="grid sm:grid-cols-2 gap-3">
             <Link
@@ -971,7 +971,7 @@ export default function ProductPage() {
         </div>
 
         {/* Bildebiblioteket — pressebilder og artwork, gjenbrukes i produksjonene */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">
             📸 {tenant.vertical === 'music' ? 'Bildene dine' : 'Bildebibliotek'}
           </h2>
@@ -1059,7 +1059,7 @@ export default function ProductPage() {
         </div>
 
         {/* Låtbanken — egne låter til bakgrunnsmusikk og medley */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">
             🎵 {tenant.vertical === 'music' ? 'Låtene dine' : 'Musikkbank'}
           </h2>
@@ -1130,7 +1130,7 @@ export default function ProductPage() {
 
         {/* Active jobs */}
         {activeJobs.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+          <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
             <SectionHeader
               title={`${t('activeJobs', { count: activeJobs.length })}${jobsLoading ? ' …' : ''}`}
               open={openSections.jobs}
@@ -1195,7 +1195,7 @@ export default function ProductPage() {
 
         {/* Done jobs */}
         {doneJobs.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+          <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
             <SectionHeader
               title={t('doneJobs', { count: doneJobs.length })}
               open={openSections.doneJobs}
@@ -1261,7 +1261,7 @@ export default function ProductPage() {
 
         {/* Radio jobs */}
         {radioDoneJobs.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+          <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
             <SectionHeader
               title={`Ferdigstilte radioreklamer (${radioDoneJobs.length})`}
               open={openSections.doneJobs}
@@ -1311,7 +1311,7 @@ export default function ProductPage() {
 
         {/* Avatar jobs */}
         {avatarDoneJobs.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+          <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
             <SectionHeader
               title={`Avatar-videoer (${avatarDoneJobs.length})`}
               open={openSections.avatarJobs}
@@ -1373,7 +1373,7 @@ export default function ProductPage() {
         {/* Content Banks */}
         <div className="space-y-6">
           {/* Videos */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6">
             <SectionHeader
               title={t('videos', { count: videos.length })}
               open={openSections.videos}
@@ -1483,7 +1483,7 @@ export default function ProductPage() {
           </div>
 
           {/* Images */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6">
             <SectionHeader
               title={t('images', { count: assets.length })}
               open={openSections.images}
@@ -1513,7 +1513,7 @@ export default function ProductPage() {
                         <button
                           onClick={() => handleDeleteImage(asset.id)}
                           title={t('deleteImage')}
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-md bg-white/90 text-gray-500 hover:text-red-500 hover:bg-red-50 shadow-sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-md bg-[#FFFFFF]/90 text-black/55 hover:text-red-500 hover:bg-red-50 shadow-sm"
                         >
                           <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
                             <path d="M1 3h12M5 3V2h4v1M2 3l1 9h8l1-9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1539,7 +1539,7 @@ export default function ProductPage() {
               vurdering som knappen paa publiseringssiden. Gamle artikler blir
               staaende i basen; de er bare ikke lenger et tema paa artistsiden. */}
           {tenant.vertical !== 'music' && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6">
             <SectionHeader
               title={t('articles', { count: articles.length })}
               open={openSections.articles}

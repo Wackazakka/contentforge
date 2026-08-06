@@ -104,7 +104,7 @@ export default function AssetApprovalPanel({
   return (
     <div className="flex flex-col gap-8">
       {/* Approval progress bar */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-[var(--paper-raised)] p-4 shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-gray-700">{t('approvalStatus')}</span>
           <span className="text-sm text-gray-500">
@@ -205,7 +205,7 @@ export default function AssetApprovalPanel({
       {musicTracks.length > 0 && (
         <section>
           <h3 className="font-semibold text-gray-900 mb-4">{t('musicSection')}</h3>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-[var(--paper-raised)] p-4 shadow-sm">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center flex-shrink-0">
                 <svg
@@ -242,7 +242,7 @@ export default function AssetApprovalPanel({
                       className={`text-xs rounded-full px-3 py-1.5 font-medium border transition-colors ${
                         i === activeTrackIndex
                           ? "bg-green-600 border-green-600 text-white"
-                          : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
+                          : "border-gray-300 text-gray-600 hover:border-gray-400 bg-[var(--paper-raised)]"
                       }`}
                     >
                       {track.label}
@@ -251,7 +251,7 @@ export default function AssetApprovalPanel({
                 : null}
               <button
                 type="button"
-                className="text-xs rounded-full px-3 py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors"
+                className="text-xs rounded-full px-3 py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-[var(--paper-raised)] transition-colors"
               >
                 {t('changeMusic')}
               </button>
@@ -261,7 +261,7 @@ export default function AssetApprovalPanel({
       )}
 
       {/* Bottom actions */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-[var(--paper-raised)] p-5 shadow-sm">
         {produceError && (
           <p className="text-sm text-red-600 mb-3">{produceError}</p>
         )}
@@ -343,7 +343,7 @@ function ImageCard({
   const statusLabel = status === "approved" ? labels.statusApproved : labels.statusRejected;
   return (
     <div
-      className={`rounded-xl border-2 bg-white overflow-hidden shadow-sm transition-colors ${
+      className={`rounded-xl border-2 bg-[var(--paper-raised)] overflow-hidden shadow-sm transition-colors ${
         status === "approved"
           ? "border-green-400"
           : status === "rejected"
@@ -391,7 +391,7 @@ function ImageCard({
             className={`flex-1 text-xs rounded-full py-1.5 font-medium border transition-colors disabled:opacity-50 ${
               status === "approved"
                 ? "bg-green-100 border-green-300 text-green-700"
-                : "border-green-300 text-green-700 hover:bg-green-50 bg-white"
+                : "border-green-300 text-green-700 hover:bg-green-50 bg-[var(--paper-raised)]"
             }`}
           >
             {labels.approve}
@@ -403,7 +403,7 @@ function ImageCard({
             className={`flex-1 text-xs rounded-full py-1.5 font-medium border transition-colors disabled:opacity-50 ${
               status === "rejected"
                 ? "bg-red-100 border-red-300 text-red-600"
-                : "border-red-200 text-red-600 hover:bg-red-50 bg-white"
+                : "border-red-200 text-red-600 hover:bg-red-50 bg-[var(--paper-raised)]"
             }`}
           >
             {labels.reject}
@@ -412,7 +412,7 @@ function ImageCard({
             type="button"
             disabled={regenerating}
             onClick={onRegenerate}
-            className="flex-1 text-xs rounded-full py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors disabled:opacity-50"
+            className="flex-1 text-xs rounded-full py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-[var(--paper-raised)] transition-colors disabled:opacity-50"
           >
             {regenerating ? "..." : labels.regenerate}
           </button>
@@ -423,14 +423,14 @@ function ImageCard({
             href={asset.src}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 text-center text-xs rounded-full py-1.5 font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 bg-white transition-colors"
+            className="flex-1 text-center text-xs rounded-full py-1.5 font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 bg-[var(--paper-raised)] transition-colors"
           >
             {labels.preview}
           </a>
           <a
             href={asset.src}
             download
-            className="flex-1 text-center text-xs rounded-full py-1.5 font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 bg-white transition-colors"
+            className="flex-1 text-center text-xs rounded-full py-1.5 font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 bg-[var(--paper-raised)] transition-colors"
           >
             {labels.download}
           </a>
@@ -460,7 +460,7 @@ function VoiceoverCard({
   const statusLabel = status === "approved" ? labels.statusApproved : labels.statusRejected;
   return (
     <div
-      className={`rounded-xl border-2 bg-white p-4 shadow-sm transition-colors ${
+      className={`rounded-xl border-2 bg-[var(--paper-raised)] p-4 shadow-sm transition-colors ${
         status === "approved"
           ? "border-green-400"
           : status === "rejected"
@@ -513,7 +513,7 @@ function VoiceoverCard({
           className={`flex-1 text-xs rounded-full py-1.5 font-medium border transition-colors disabled:opacity-50 ${
             status === "approved"
               ? "bg-green-100 border-green-300 text-green-700"
-              : "border-green-300 text-green-700 hover:bg-green-50 bg-white"
+              : "border-green-300 text-green-700 hover:bg-green-50 bg-[var(--paper-raised)]"
           }`}
         >
           {labels.approve}
@@ -525,7 +525,7 @@ function VoiceoverCard({
           className={`flex-1 text-xs rounded-full py-1.5 font-medium border transition-colors disabled:opacity-50 ${
             status === "rejected"
               ? "bg-red-100 border-red-300 text-red-600"
-              : "border-red-200 text-red-600 hover:bg-red-50 bg-white"
+              : "border-red-200 text-red-600 hover:bg-red-50 bg-[var(--paper-raised)]"
           }`}
         >
           {labels.reject}
@@ -534,7 +534,7 @@ function VoiceoverCard({
           type="button"
           disabled={regenerating}
           onClick={onRegenerate}
-          className="flex-1 text-xs rounded-full py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-white transition-colors disabled:opacity-50"
+          className="flex-1 text-xs rounded-full py-1.5 font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 bg-[var(--paper-raised)] transition-colors disabled:opacity-50"
         >
           {regenerating ? "..." : labels.regenerate}
         </button>

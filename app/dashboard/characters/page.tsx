@@ -87,7 +87,7 @@ export default function CharactersPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🧑‍🎤 Karakterer</h1>
         <p className="text-gray-600 mb-8">Tren din egen AI-karakter fra bilder. Karakteren kan så være vert i videoene dine — samme person i alle segmentbildene.</p>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+        <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
           <h2 className="font-semibold text-gray-900 mb-4">Lag ny karakter</h2>
 
           <label className="block text-sm font-medium text-gray-700 mb-1">Navn</label>
@@ -130,7 +130,7 @@ export default function CharactersPage() {
         ) : (
           <div className="space-y-2">
             {chars.map((c) => (
-              <div key={c.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3">
+              <div key={c.id} className="flex items-center justify-between bg-[var(--paper-raised)] border border-gray-200 rounded-lg px-4 py-3">
                 <div>
                   <div className="font-medium text-gray-900">{c.name}</div>
                   <div className="text-xs text-gray-400">{new Date(c.created_at).toLocaleDateString('nb-NO')}</div>

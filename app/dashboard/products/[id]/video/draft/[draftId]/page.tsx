@@ -1231,7 +1231,7 @@ export default function DraftPage() {
 
         {/* Video-innstillinger: stemme, bakgrunnsmusikk, jingle — kan endres når som helst,
             også etter at en video er laget (via «Rediger»-knappen på ferdig video). */}
-        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-5">
+        <div className="mb-8 bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-5">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">🎬 Video-innstillinger</h2>
           <p className="text-sm text-gray-500 mb-4">Bytt stemme, bakgrunnsmusikk eller jingle. Kjør «{t('startProduction')}» på nytt for å bruke endringene.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -1241,7 +1241,7 @@ export default function DraftPage() {
               <select
                 value={draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX'}
                 onChange={(e) => updateVoice(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-[var(--paper-raised)]"
               >
                 <option value="own">🎙️ Egen stemme — jeg leser inn per segment</option>
                 {(() => {
@@ -1292,7 +1292,7 @@ export default function DraftPage() {
               <select
                 value={draft.music_file || ''}
                 onChange={(e) => updateMusic(e.target.value || null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-[var(--paper-raised)]"
               >
                 <option value="">Ingen musikk</option>
                 {ownTracks(musicLibrary, productId).length > 0 && (
@@ -1323,7 +1323,7 @@ export default function DraftPage() {
                   <select
                     value={musicFolder}
                     onChange={(e) => setMusicFolder(e.target.value)}
-                    className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-white"
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-[var(--paper-raised)]"
                     title="Mappe for opplastet musikk (rot)"
                   >
                     <option value="global">Felles</option>
@@ -1426,7 +1426,7 @@ export default function DraftPage() {
                               toggleMedleyTrack(m.filename)
                               setMedleyStarts((prev) => { const n = { ...prev }; delete n[m.filename]; return n })
                             }}
-                            className="flex-none text-[var(--ember-deep)] text-xs px-1.5 py-0.5 rounded border border-[var(--ember-tint-border)] hover:bg-white"
+                            className="flex-none text-[var(--ember-deep)] text-xs px-1.5 py-0.5 rounded border border-[var(--ember-tint-border)] hover:bg-[var(--paper-raised)]"
                           >
                             − fjern
                           </span>
@@ -1463,7 +1463,7 @@ export default function DraftPage() {
                       <select
                         value={medleyClip}
                         onChange={(e) => setMedleyClip(e.target.value as typeof medleyClip)}
-                        className="px-2 py-1 border border-gray-300 rounded text-xs bg-white"
+                        className="px-2 py-1 border border-gray-300 rounded text-xs bg-[var(--paper-raised)]"
                       >
                         <option value="10">10 sek</option>
                         <option value="15">15 sek</option>
@@ -1573,7 +1573,7 @@ export default function DraftPage() {
               <select
                 value={outroJingle || ''}
                 onChange={(e) => updateJingle(e.target.value || null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] bg-[var(--paper-raised)]"
               >
                 <option value="">Ingen jingle</option>
                 {/* Jingler er merkevare-eiendeler: kun produktets egne (jingles-<produktId>).
@@ -1665,7 +1665,7 @@ export default function DraftPage() {
               <select
                 value={character}
                 onChange={(e) => setCharacter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-[var(--paper-raised)]"
               >
                 <option value="">{tenantInfo.vertical === 'music' ? 'Ingen — jeg bruker egne bilder' : 'Ingen — vanlige AI-bilder'}</option>
                 {/* Adam er eksklusiv for rot-tenanten (lib/characters.ts håndhever server-side) */}
@@ -1730,7 +1730,7 @@ export default function DraftPage() {
                     getSupabase().from('production_drafts').update({ ai_motion_engine: eng }).eq('id', draftId)
                       .then(({ error }: { error: any }) => { if (error) console.warn('[motor lagring]', error.message) })
                   }}
-                  className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-white"
+                  className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-[var(--paper-raised)]"
                 >
                   <option value="kling">Kling (anbefalt — best kvalitet)</option>
                   <option value="pixverse">PixVerse (rask/billig)</option>
@@ -1756,7 +1756,7 @@ export default function DraftPage() {
         {/* Segments */}
         <div className="space-y-6 mb-8">
           {draft.segments.map((segment, index) => (
-            <div key={index} className="bg-white rounded-lg border border-gray-200 p-6">
+            <div key={index} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6">
               <div className="flex gap-6">
                 {/* Image — aspect ratio matches video format */}
                 <div className={`flex-shrink-0 ${videoFormat === '16:9' ? 'w-64' : 'w-36'}`}>
@@ -1985,7 +1985,7 @@ export default function DraftPage() {
                               className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
                                 current === opt.v
                                   ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]'
-                                  : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                  : 'bg-[var(--paper-raised)] text-gray-600 border-gray-300 hover:border-gray-400'
                               }`}
                             >
                               {opt.label} <span className="opacity-70">({opt.cost})</span>
@@ -2000,7 +2000,7 @@ export default function DraftPage() {
                             <select
                               value={segment.motion_style || 'push-in'}
                               onChange={(e) => setMotionStyle(index, e.target.value)}
-                              className="px-2.5 py-1.5 rounded-full border border-gray-300 text-xs bg-white text-gray-700"
+                              className="px-2.5 py-1.5 rounded-full border border-gray-300 text-xs bg-[var(--paper-raised)] text-gray-700"
                               title="Hvordan kameraet skal bevege seg i denne scenen"
                             >
                               {MOTION_STYLES.map((m) => (
@@ -2145,7 +2145,7 @@ export default function DraftPage() {
                     {/* Image Bank Modal */}
                     {showImageBank === index && (
                       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+                        <div className="bg-[var(--paper-raised)] rounded-lg p-6 max-w-2xl w-full mx-4">
                           <h4 className="text-lg font-semibold mb-4">{t('imageBankTitle')}</h4>
                           <div className="grid grid-cols-3 gap-4 mb-4 max-h-96 overflow-y-auto">
                             {assets.length > 0 ? (
@@ -2185,7 +2185,7 @@ export default function DraftPage() {
         {/* Betalings-oppsummering (billing på): server-beregnet pris → Stripe */}
         {checkout && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setCheckout(null)}>
-            <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[var(--paper-raised)] rounded-xl p-6 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Bekreft produksjon</h3>
               <div className="space-y-1 mb-3">
                 {checkout.breakdown.map((l) => (
@@ -2223,7 +2223,7 @@ export default function DraftPage() {
             (Lars 1/8: «ikke intuitivt at sluttplakaten staar oeverst»).
             Full kontroll (Lars 31/7): budskap, lenke, bilde og
             farger, med forhåndsvisning som ligner det ferdige resultatet */}
-        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-5">
+        <div className="mb-8 bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-5">
           <label className="block text-sm font-medium text-gray-700 mb-2">🪧 Sluttplakaten</label>
           {(() => {
             const effMsg = outroMessage !== null ? outroMessage : (draft.cta || '')
@@ -2275,21 +2275,21 @@ export default function DraftPage() {
                       <button
                         type="button"
                         onClick={() => { setOutroImage(''); setOutroPickerOpen(false); persistOutro({ image: '' }) }}
-                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === '' ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === '' ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-[var(--paper-raised)] text-gray-600 border-gray-300 hover:border-gray-400'}`}
                       >
                         Artistbilde/logo
                       </button>
                       <button
                         type="button"
                         onClick={() => setOutroPickerOpen((v) => !v)}
-                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage && outroImage !== 'none' ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage && outroImage !== 'none' ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-[var(--paper-raised)] text-gray-600 border-gray-300 hover:border-gray-400'}`}
                       >
                         📸 Velg fra biblioteket
                       </button>
                       <button
                         type="button"
                         onClick={() => { setOutroImage('none'); setOutroPickerOpen(false); persistOutro({ image: 'none' }) }}
-                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === 'none' ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                        className={`px-3 py-1.5 rounded-full border text-xs font-medium ${outroImage === 'none' ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-[var(--paper-raised)] text-gray-600 border-gray-300 hover:border-gray-400'}`}
                       >
                         Uten bilde
                       </button>
@@ -2348,7 +2348,7 @@ export default function DraftPage() {
           })()}
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex justify-between items-center">
+        <div className="sticky bottom-0 bg-[var(--paper-raised)] border-t border-gray-200 p-6 flex justify-between items-center">
           <div className="text-sm text-gray-600">
             {allApproved ? (
               <div className="flex items-center gap-3">

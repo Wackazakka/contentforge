@@ -219,7 +219,7 @@ export default function RadioAdPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Section 1: Content */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-4">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Innhold</h2>
 
             <div>
@@ -260,7 +260,7 @@ export default function RadioAdPage() {
                   {TONES.map((t) => (
                     <button key={t} type="button" onClick={() => setTone(t)}
                       className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ${
-                        tone === t ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                        tone === t ? 'bg-green-600 text-white border-green-600' : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}>{t}</button>
                   ))}
                 </div>
@@ -271,7 +271,7 @@ export default function RadioAdPage() {
                   {(['du', 'jeg'] as const).map((p) => (
                     <button key={p} type="button" onClick={() => setPerspective(p)}
                       className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ${
-                        perspective === p ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                        perspective === p ? 'bg-green-600 text-white border-green-600' : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}>{p === 'du' ? '"Du"' : '"Jeg"'}</button>
                   ))}
                 </div>
@@ -284,7 +284,7 @@ export default function RadioAdPage() {
                 {DURATIONS.map((d) => (
                   <button key={d.value} type="button" onClick={() => setDuration(d.value)}
                     className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                      duration === d.value ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                      duration === d.value ? 'bg-[var(--ember-deep)] text-[var(--on-ember)] border-[var(--ember-deep)]' : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                     }`}>
                     {d.label}
                     <span className="block text-xs font-normal opacity-70">{d.hint}</span>
@@ -300,7 +300,7 @@ export default function RadioAdPage() {
           </div>
 
           {/* Section 2: Script */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-2">
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-2">
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-gray-900 uppercase tracking-wide">Manus <span className="text-red-500">*</span></label>
               <span className="text-xs text-gray-400">{script.length} tegn</span>
@@ -312,7 +312,7 @@ export default function RadioAdPage() {
 
           {/* Section: Lysjekk per segment */}
           {script.trim() && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+            <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Lysjekk per segment</h2>
@@ -326,7 +326,7 @@ export default function RadioAdPage() {
                   }}
                   className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${segmentMode ? 'bg-[#D97706]' : 'bg-gray-200'}`}
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${segmentMode ? 'translate-x-4' : ''}`} />
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-[var(--paper-raised)] rounded-full shadow transition-transform ${segmentMode ? 'translate-x-4' : ''}`} />
                 </button>
               </div>
               {segmentMode && (
@@ -339,7 +339,7 @@ export default function RadioAdPage() {
                           value={seg.text}
                           onChange={e => setSegments(prev => prev.map((s, j) => j === i ? { ...s, text: e.target.value, audioUrl: null, audioBlob: null } : s))}
                           rows={2}
-                          className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none bg-white focus:outline-none focus:ring-1 focus:ring-[#D97706]"
+                          className="flex-1 text-sm border border-gray-200 rounded px-2 py-1 resize-none bg-[var(--paper-raised)] focus:outline-none focus:ring-1 focus:ring-[#D97706]"
                         />
                       </div>
                       <div className="flex flex-wrap gap-1 pl-7">
@@ -383,7 +383,7 @@ export default function RadioAdPage() {
           )}
 
           {/* Section 3: Voice */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-3">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Stemme</h2>
             <div className="grid grid-cols-2 gap-2 mb-3">
               {NORWEGIAN_VOICES.map((v) => {
@@ -394,7 +394,7 @@ export default function RadioAdPage() {
                     key={v.id}
                     type="button"
                     onClick={() => setVoiceId(v.id)}
-                    className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${isSelected ? 'border-[#D97706] bg-amber-50' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
+                    className={`flex items-center gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${isSelected ? 'border-[#D97706] bg-amber-50' : 'border-gray-200 hover:border-gray-300 bg-[var(--paper-raised)]'}`}
                   >
                     <button
                       type="button"
@@ -450,7 +450,7 @@ export default function RadioAdPage() {
                     key={e.id}
                     type="button"
                     onClick={() => setEmotion(e.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${emotion === e.id ? 'border-[#D97706] bg-amber-50 text-[#D97706]' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${emotion === e.id ? 'border-[#D97706] bg-amber-50 text-[#D97706]' : 'border-gray-200 bg-[var(--paper-raised)] text-gray-600 hover:border-gray-300'}`}
                   >
                     <span>{e.emoji}</span> {e.label}
                   </button>
@@ -460,7 +460,7 @@ export default function RadioAdPage() {
           </div>
 
           {/* Section 4: Music */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-3">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Bakgrunnsmusikk (valgfritt)</h2>
             <p className="text-xs text-gray-500">Musikken mikses inn på 15% volum bak voiceover-lyden.</p>
 
@@ -571,7 +571,7 @@ export default function RadioAdPage() {
           </div>
 
           {/* Section 5: Jingle */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+          <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-3">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Jingle (valgfritt)</h2>
             <p className="text-xs text-gray-500">En kort lydlogo som spilles av på slutten av spoten.</p>
 

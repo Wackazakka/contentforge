@@ -261,7 +261,7 @@ export default function VoiceBankAdminPage() {
                 ...(fees?.licenseTo ? [{ label: `Lisensavgift til ${fees.licenseTo} (${fees.licensePct} %)`, value: nok(monthLicenseNok) }] : []),
                 { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.cut - monthInfraNok - monthLicenseNok) },
               ].map((c) => (
-                <div key={c.label} className="bg-white rounded-lg border border-gray-200 p-4">
+                <div key={c.label} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4">
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>
                   <div className="text-xl font-bold text-gray-900">{c.value}</div>
                 </div>
@@ -280,7 +280,7 @@ export default function VoiceBankAdminPage() {
             </div>
 
             {showForm && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+              <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
                 <div className="flex gap-5 mb-4 text-sm text-gray-700">
                   <label className="flex items-center gap-2">
                     <input type="checkbox" checked={fHasVoice} onChange={(e) => setFHasVoice(e.target.checked)} />
@@ -309,7 +309,7 @@ export default function VoiceBankAdminPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Ansikt (karakter)</label>
                       <select value={fFaceCharId} onChange={(e) => setFFaceCharId(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-[var(--paper-raised)]">
                         <option value="">Velg trent karakter …</option>
                         {ownChars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
@@ -384,7 +384,7 @@ export default function VoiceBankAdminPage() {
                 </button>
                 {bulkBusy && <span className="text-xs text-gray-400">Oppdaterer …</span>}
               </div>
-              <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto mb-8">
+              <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 overflow-x-auto mb-8">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
@@ -441,7 +441,7 @@ export default function VoiceBankAdminPage() {
             {/* Drop-in-søknader («Bli en stemme i banken») */}
             {appsMigrated && (
               <div className="mb-8">
-                <div className="bg-white rounded-lg border border-gray-200 p-4 mb-3 flex flex-wrap items-center gap-3">
+                <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4 mb-3 flex flex-wrap items-center gap-3">
                   <div className="flex-1 min-w-[240px]">
                     <div className="font-semibold text-gray-900 text-sm">Ta imot åpne søknader</div>
                     <p className="text-xs text-gray-500 mt-0.5">
@@ -463,7 +463,7 @@ export default function VoiceBankAdminPage() {
                     </h2>
                     <div className="space-y-3">
                       {applications.filter((a) => a.status === 'new').map((app) => (
-                        <div key={app.id} className="bg-white rounded-lg border border-gray-200 p-4">
+                        <div key={app.id} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4">
                           <div className="flex flex-wrap items-start gap-3">
                             <div className="flex-1 min-w-[220px]">
                               <div className="font-semibold text-gray-900">{app.name}{app.wants_face && <span className="ml-2 text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-2 py-0.5">+ ansikt</span>}</div>
@@ -499,7 +499,7 @@ export default function VoiceBankAdminPage() {
             {events.length === 0 ? (
               <p className="text-sm text-gray-500">Ingen produksjoner har brukt en skuespillerstemme ennå.</p>
             ) : (
-              <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+              <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs text-gray-500 border-b border-gray-200">

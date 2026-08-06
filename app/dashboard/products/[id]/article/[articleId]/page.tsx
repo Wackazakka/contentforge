@@ -175,7 +175,7 @@ export default function ArticleDetailPage() {
           {t('backToProduct')}
         </Link>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-8">
+        <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-8">
           {/* Platform Badge */}
           <div className="mb-6">
             <span className="inline-block px-4 py-2 bg-[var(--ember-tint-bg)] text-[var(--ember-deep)] rounded-full text-sm font-medium capitalize">

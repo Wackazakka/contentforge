@@ -242,7 +242,7 @@ export default function ArticlePage() {
         <div className="grid md:grid-cols-3 gap-8">
           {/* Form */}
           <div className="md:col-span-1">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('settingsTitle')}</h2>
 
               {/* Topic */}
@@ -329,7 +329,7 @@ export default function ArticlePage() {
           {/* Results */}
           <div className="md:col-span-2">
             {loading && (
-              <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+              <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-8 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <p className="text-gray-600 mt-4">{t('generating2')}</p>
               </div>
@@ -339,7 +339,7 @@ export default function ArticlePage() {
               <div className="space-y-6">
                 <h2 className="text-lg font-semibold text-gray-900">{t('generatedTitle')}</h2>
                 {articles.map((article) => (
-                  <div key={article.id} className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div key={article.id} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6">
                     {/* Platform Badge */}
                     <div className="mb-4">
                       <span className="inline-block px-3 py-1 bg-[var(--ember-tint-bg)] text-[var(--ember-deep)] rounded-full text-sm font-medium capitalize">
@@ -438,7 +438,7 @@ export default function ArticlePage() {
             )}
 
             {!loading && articles.length === 0 && !error && (
-              <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+              <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-8 text-center">
                 <p className="text-gray-500">{t('emptyPrompt')}</p>
               </div>
             )}

@@ -211,7 +211,7 @@ export default function NewCampaignPage() {
         </div>
 
         {/* Basic info */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
+        <div className="rounded-2xl border border-gray-200 bg-[var(--paper-raised)] p-6 flex flex-col gap-4 shadow-sm">
           <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
             {campaignType === "reklame" ? t('sectionBasic') : t('sectionStory')}
           </h2>
@@ -256,7 +256,7 @@ export default function NewCampaignPage() {
         </div>
 
         {/* Copy */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
+        <div className="rounded-2xl border border-gray-200 bg-[var(--paper-raised)] p-6 flex flex-col gap-4 shadow-sm">
           <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
             {campaignType === "reklame" ? t('sectionContent') : t('sectionStoryElements')}
           </h2>
@@ -353,7 +353,7 @@ export default function NewCampaignPage() {
                     className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
                       form.tone === t.value
                         ? "bg-green-600 border-green-600 text-white"
-                        : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
+                        : "border-gray-300 text-gray-600 hover:border-gray-400 bg-[var(--paper-raised)]"
                     }`}
                   >
                     {t.label}
@@ -365,7 +365,7 @@ export default function NewCampaignPage() {
         </div>
 
         {/* Media options */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 flex flex-col gap-4 shadow-sm">
+        <div className="rounded-2xl border border-gray-200 bg-[var(--paper-raised)] p-6 flex flex-col gap-4 shadow-sm">
           <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-widest">
             {t('sectionMedia')}
           </h2>
@@ -396,7 +396,7 @@ export default function NewCampaignPage() {
                     className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
                       form.musicStyle === m.value
                         ? "bg-green-600 border-green-600 text-white"
-                        : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
+                        : "border-gray-300 text-gray-600 hover:border-gray-400 bg-[var(--paper-raised)]"
                     }`}
                   >
                     {m.label}
@@ -416,7 +416,7 @@ export default function NewCampaignPage() {
                   className={`rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
                     form.formats.includes(fmt)
                       ? "bg-green-600 border-green-600 text-white"
-                      : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
+                      : "border-gray-300 text-gray-600 hover:border-gray-400 bg-[var(--paper-raised)]"
                   }`}
                 >
                   {fmt}
@@ -630,7 +630,7 @@ export default function NewCampaignPage() {
 }
 
 const inputClass =
-  "w-full rounded-lg bg-white border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm";
+  "w-full rounded-lg bg-[var(--paper-raised)] border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm";
 
 function Field({
   label,
@@ -663,12 +663,12 @@ function Toggle({
       className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border transition-colors ${
         checked
           ? "bg-green-600 border-green-600 text-white"
-          : "border-gray-300 text-gray-600 hover:border-gray-400 bg-white"
+          : "border-gray-300 text-gray-600 hover:border-gray-400 bg-[var(--paper-raised)]"
       }`}
     >
       <span
         className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-          checked ? "border-white bg-white" : "border-gray-400"
+          checked ? "border-white bg-[var(--paper-raised)]" : "border-gray-400"
         }`}
       >
         {checked && (

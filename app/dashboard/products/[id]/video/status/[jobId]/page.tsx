@@ -93,7 +93,7 @@ export default function VideoStatusPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-50">
-      <div className="bg-white rounded-2xl shadow-lg p-10 max-w-lg w-full text-center">
+      <div className="bg-[var(--paper-raised)] rounded-2xl shadow-lg p-10 max-w-lg w-full text-center">
         <h1 className="text-2xl font-bold mb-2">{t('title')}</h1>
         <p className="text-gray-500 text-sm mb-8">{t('jobId', { jobId })}</p>
 

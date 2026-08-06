@@ -164,7 +164,7 @@ export default function NewDraftPage() {
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-lg border border-gray-200 p-8 space-y-8">
+        <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-8 space-y-8">
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Error */}
             {error && (
@@ -319,7 +319,7 @@ export default function NewDraftPage() {
                         className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
                           tone === key
                             ? 'bg-green-600 text-white border-green-600'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                            : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                         }`}
                       >
                         {label}
@@ -338,7 +338,7 @@ export default function NewDraftPage() {
                       className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
                         perspective === 'du'
                           ? 'bg-green-600 text-white border-green-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                          : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}
                     >
                       {t('perspectiveYou')} <span className="text-xs opacity-70 ml-1">{t('perspectiveYouExample')}</span>
@@ -349,7 +349,7 @@ export default function NewDraftPage() {
                       className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
                         perspective === 'jeg'
                           ? 'bg-green-600 text-white border-green-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                          : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}
                     >
                       {t('perspectiveI')} <span className="text-xs opacity-70 ml-1">{t('perspectiveIExample')}</span>
@@ -360,7 +360,7 @@ export default function NewDraftPage() {
                       className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
                         perspective === 'vi'
                           ? 'bg-green-600 text-white border-green-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                          : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}
                     >
                       {t('perspectiveWe')} <span className="text-xs opacity-70 ml-1">{t('perspectiveWeExample')}</span>
@@ -382,7 +382,7 @@ export default function NewDraftPage() {
                   <select
                     value={character}
                     onChange={(e) => setCharacter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-[var(--paper-raised)]"
                   >
                     <option value="">{tenant.vertical === 'music' ? 'Ingen — jeg bruker egne bilder' : 'Ingen — vanlige AI-bilder'}</option>
                     {/* Adam er eksklusiv for rot-tenanten (lib/characters.ts håndhever server-side) */}
@@ -426,7 +426,7 @@ export default function NewDraftPage() {
                         className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
                           videoFormat === fmt.value
                             ? 'bg-green-600 text-white border-green-600'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                            : 'bg-[var(--paper-raised)] text-gray-700 border-gray-300 hover:border-gray-400'
                         }`}
                       >
                         {fmt.label}
@@ -458,7 +458,7 @@ export default function NewDraftPage() {
                     className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
                       imageStyle === id
                         ? 'border-blue-600 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'
+                        : 'border-gray-200 bg-[var(--paper-raised)] text-gray-600 hover:border-gray-400'
                     }`}
                   >
                     <span>{label}</span>

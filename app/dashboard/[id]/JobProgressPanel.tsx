@@ -78,7 +78,7 @@ export default function JobProgressPanel({ jobId }: Props) {
   const isActive = ["pending", "processing", "queued", "generating", "rendering"].includes(status);
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm max-w-xl">
+    <div className="rounded-2xl border border-gray-200 bg-[var(--paper-raised)] p-8 shadow-sm max-w-xl">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <h2 className="text-lg font-semibold text-gray-900">{t('videoProduction')}</h2>
