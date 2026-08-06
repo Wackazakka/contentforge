@@ -1412,7 +1412,9 @@ export default function ProductPage() {
                             src={video.asset_url}
                             preload="metadata"
                             controls
-                            className="w-full rounded-lg bg-gray-900 mb-3"
+                            /* Letterboksen bak filmen skal vaere svart hos ALLE
+                               tenanter — den er ikke en flate i paletten */
+                            className="w-full rounded-lg bg-black mb-3"
                             style={{ maxHeight: '200px' }}
                           />
                           <div className="flex gap-2">

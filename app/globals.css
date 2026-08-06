@@ -81,6 +81,26 @@ body {
   --color-ember: var(--ember);
   --color-ember-deep: var(--ember-deep);
 
+  /* Tailwinds graaskala peker paa VAARE tokener (Lars 5/8).
+     Dashbordet ble bygget for én lys tenant, saa det ligger 1180 hardkodede
+     gray-klasser der. De sto uroerte hos moerke white-labels: hvite kort og
+     nesten-svart tekst paa en naer-svart side.
+     Ett sted i stedet for tolv filer — og det selvhelbreder: skriver noen
+     `text-gray-500` neste uke, foelger den tenanten av seg selv.
+     Kun de nivaaene som faktisk brukes er remappet. Invertert bruk (moerk
+     brikke paa lys side) er IKKE med her — de to tilfellene som fantes har
+     faatt fast svart, fordi de er merkevare og letterboks, ikke flater. */
+  --color-gray-900: var(--ink);
+  --color-gray-800: var(--ink);
+  --color-gray-700: var(--ink-soft);
+  --color-gray-600: var(--text-muted);
+  --color-gray-500: var(--text-muted);
+  --color-gray-400: var(--text-faint);
+  --color-gray-300: var(--ds-border-strong);
+  --color-gray-200: var(--ds-border);
+  --color-gray-100: var(--paper-sunken);
+  --color-gray-50: var(--paper-sunken);
+
   --font-serif: var(--font-instrument-serif);
   --font-hanken: var(--font-hanken);
   --font-archivo: var(--font-archivo);

@@ -977,7 +977,7 @@ function PublishPage() {
                 <a href={`/api/auth/linkedin?userId=${userId}&orgId=${orgId ?? ''}`} className="bg-[#0077B5] text-white px-4 py-2 rounded-lg text-sm">
                   {t('connectLinkedIn')}
                 </a>
-                <a href={`/api/auth/x?userId=${userId}&orgId=${orgId ?? ''}`} className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm">
+                <a href={`/api/auth/x?userId=${userId}&orgId=${orgId ?? ''}`} className="bg-black text-white px-4 py-2 rounded-lg text-sm">
                   {t('connectX')}
                 </a>
                 <a href={`/api/auth/reddit?userId=${userId}&orgId=${orgId ?? ''}`} className="bg-[#FF4500] text-white px-4 py-2 rounded-lg text-sm">
