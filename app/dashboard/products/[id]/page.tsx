@@ -577,6 +577,9 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!productId) return
+    // Seksjonen vises ikke for artist-tjenester — da er det ingen grunn til
+    // aa hente artiklene heller.
+    if (tenant.vertical === 'music') { setArticlesLoading(false); return }
 
     const fetchArticles = async () => {
       try {
@@ -599,7 +602,7 @@ export default function ProductPage() {
     }
 
     fetchArticles()
-  }, [productId])
+  }, [productId, tenant.vertical])
 
   if (loading) {
     return (
@@ -1530,7 +1533,10 @@ export default function ProductPage() {
             )}
           </div>
 
-          {/* Articles */}
+          {/* Articles — artist-tjenester lager ikke artikler (Lars 5/8), samme
+              vurdering som knappen paa publiseringssiden. Gamle artikler blir
+              staaende i basen; de er bare ikke lenger et tema paa artistsiden. */}
+          {tenant.vertical !== 'music' && (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <SectionHeader
               title={t('articles', { count: articles.length })}
@@ -1612,6 +1618,7 @@ export default function ProductPage() {
               </>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>
