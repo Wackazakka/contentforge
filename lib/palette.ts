@@ -154,7 +154,14 @@ export function paletteFromBrand(brand: string, opts?: { dark?: boolean }): Pale
   for (let d = 10; d <= 100 && contrast('#FFFFFF', deep) < 4.5; d += 2) {
     deep = hslToHex({ ...b, l: Math.max(0, b.l - d) })
   }
-  const onEmber = contrast('#FFFFFF', brand) >= contrast('#141414', brand) ? '#FFFFFF' : '#141414'
+  // Tekstfargen maales mot DEEP, ikke mot merkefargen. Knappene har
+  // --ember-deep som bakgrunn, og for en LYS merkefarge havner de to paa hver
+  // sin side av tekstgrensen: #EC3DFA vil ha moerk tekst, mens #C606D6 -- som
+  // knappen faktisk er -- krever hvit. Maalt paa IndigoBooms magenta ga den
+  // gamle regelen 3,86:1 paa hver eneste knapp (Lars 5/8: «alle knapper paa
+  // tjenesten som har samme kontrasten»). Deep er konstruert slik at hvit
+  // alltid naar 4,5, saa gulvet holder naa uansett merkefarge.
+  const onEmber = contrast('#FFFFFF', deep) >= contrast('#141414', deep) ? '#FFFFFF' : '#141414'
 
   // Sideflaten: samme kulør, kraftig dempet. Det er slektskapet som gjør at
   // paletten henger sammen, ikke styrken.
