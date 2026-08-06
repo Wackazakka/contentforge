@@ -853,19 +853,15 @@ export default function DraftV2Page() {
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-10 pb-20">
         {/* Sidehode */}
+        {/* Roemningsveien til den gamle siden er fjernet (Lars 5/8) — V2 er
+            ferdig, og lenken tilboed en darligere side som fortsatt fantes.
+            ?classic=1 virker fremdeles for den som har en gammel bokmerkelenke. */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href={`/dashboard/products/${productId}`}
             className="text-[13px] text-gray-500 hover:text-[var(--ink)]"
           >
             ← Tilbake til artisten
-          </Link>
-          {/* Veien tilbake til den gamle siden mens V2 bygges ferdig */}
-          <Link
-            href={`/dashboard/products/${productId}/video/draft/${draftId}?classic=1`}
-            className="text-[13px] text-gray-500 underline hover:text-[var(--ink)]"
-          >
-            Bruk den gamle sidevisningen
           </Link>
         </div>
         <div className="mt-4 flex flex-col sm:flex-row sm:items-end gap-5 sm:gap-8">
