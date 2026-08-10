@@ -66,6 +66,37 @@ function clipCachePut(fp, srcPath) {
 }
 
 const SCRIPT_PATH = '/root/.openclaw/workspace/reforhandle-content/make_tiktok_reforhandle.py'
+
+// ── Renderkoe (Lars 10/8) ────────────────────────────────────────────────
+// Foer dette startet HVER jobb en Python-prosess umiddelbart. Ti samtidige
+// trykk = ti prosesser paa fire kjerner, som maskinen DELER med trading-boten.
+// Med et tak blir travle perioder TREGE i stedet for at alt havarerer likt.
+const MAX_SAMTIDIGE_RENDER = Number(process.env.MAX_RENDER || 2)
+// Renderingen tar ~7 min naar maskinen er rolig. Taket er romslig med vilje:
+// det skal fange en DOED render, ikke avbryte en treg en.
+const RENDER_TAK_MS = Number(process.env.RENDER_TAK_MIN || 30) * 60 * 1000
+let aktiveRender = 0
+const renderKoe = []
+
+function taRenderPlass() {
+  return new Promise((resolve) => {
+    if (aktiveRender < MAX_SAMTIDIGE_RENDER) { aktiveRender += 1; return resolve() }
+    renderKoe.push(resolve)
+    console.log('[render-koe] full (' + aktiveRender + ' kjoerer) - ' + renderKoe.length + ' venter i koe')
+  })
+}
+
+// Plassen MAA slippes i alle utganger, ellers krymper koen til null over tid.
+function slippRenderPlass(jobId) {
+  const neste = renderKoe.shift()
+  if (neste) {
+    console.log('[render-koe] slipper frem neste jobb (' + renderKoe.length + ' igjen)')
+    return neste()
+  }
+  aktiveRender = Math.max(0, aktiveRender - 1)
+  console.log('[render-koe] ' + aktiveRender + ' kjoerer etter at ' + (jobId || 'en jobb') + ' ble ferdig')
+}
+
 const OUTPUT_DIR = '/root/.openclaw/workspace/contentforge-output'
 const ENV_PATH = '/opt/reforhandle/.env.local'
 
@@ -1013,19 +1044,44 @@ router.post('/', async (req, res) => {
 
       activeJobs.set(jobId, { startTime: activeJobs.get(jobId)?.startTime, status: 'rendering' })
 
-      // Spawn Python renderer as detached background process
+      // Vent paa ledig plass i koen foer vi starter noe tungt.
+      await taRenderPlass()
+
+      // stdio var 'ignore', saa en Python-traceback forsvant sporloest og
+      // jobben ble staaende som «behandler» for alltid (Thomas 10/8).
+      // Naa havner alt i render.log ved siden av utdataene.
+      let renderLogFd = 'ignore'
+      try { renderLogFd = fs.openSync(OUTPUT_DIR + '/' + jobId + '/render.log', 'a') } catch (e) { /* logg er nice-to-have */ }
       const child = spawn('python3', [SCRIPT_PATH, configPath], {
         detached: true,
-        stdio: 'ignore',
+        stdio: ['ignore', renderLogFd, renderLogFd],
       })
       child.unref()
+      // Doer prosessen ved oppstart, slipper vi plassen med en gang.
+      child.on('error', (e) => {
+        console.error('[job-queue] kunne ikke starte renderer for ' + jobId + ':', e.message)
+        slippRenderPlass(jobId)
+      })
       console.log(`[job-queue] Python renderer spawned for job ${jobId}`)
 
       // Poll for completion and notify Netlify when done
+      const renderStartet = Date.now()
       const pollInterval = setInterval(async () => {
         const outputFile = `${OUTPUT_DIR}/${jobId}/output.mp4`
+        // Polleren hadde KUN en clearInterval, i suksessgrenen: doede renderen,
+        // pollet den i evighet etter en fil som aldri kom, plassen ble aldri
+        // sluppet, og brukeren saa en spinner uten feilmelding (Thomas 10/8).
+        if (!fs.existsSync(outputFile) && Date.now() - renderStartet > RENDER_TAK_MS) {
+          clearInterval(pollInterval)
+          const min = Math.round((Date.now() - renderStartet) / 60000)
+          console.error('[job-queue] RENDER GA OPP etter ' + min + ' min for job ' + jobId + ' - se render.log i jobbmappa')
+          activeJobs.set(jobId, { startTime: activeJobs.get(jobId)?.startTime, status: 'failed', error: 'Renderingen svarte ikke innen ' + min + ' minutter' })
+          slippRenderPlass(jobId)
+          return
+        }
         if (fs.existsSync(outputFile)) {
           clearInterval(pollInterval)
+          slippRenderPlass(jobId)
           console.log(`[job-queue] Video completed for job ${jobId}`)
 
           let videoUrl = `http://139.59.212.218:3002/videos/${jobId}/output.mp4`

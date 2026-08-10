@@ -804,7 +804,13 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
                             duck_vol=float(_mix.get('duckVol') or 0.08),
                             full_vol=float(_mix.get('fullVol') or 0.38))
         final = concatenate_videoclips(clips, method="compose")
-        final_audio = CompositeAudioClip([final.audio, music])
+        # En film HELT uten tale har final.audio = None: alle Kling/PixVerse-
+        # klipp er stumme, og ingen segmenter har voiceover. Da krasjet
+        # CompositeAudioClip paa None, renderen doede, og jobben ble staaende
+        # som «behandler» for alltid (Thomas/IndigoBoom 10/8). For et
+        # musikkprodukt er nettopp den filmen normalen, ikke et sertilfelle.
+        # _duck_music holder allerede full musikkhoyde naar ingenting snakker.
+        final_audio = CompositeAudioClip([final.audio, music]) if final.audio is not None else music
         final = final.with_audio(final_audio)
     else:
         final = concatenate_videoclips(clips, method="compose")

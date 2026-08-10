@@ -47,3 +47,6 @@ next-env.d.ts
 supabase/.temp/
 __pycache__/
 *.pyc
+
+# Droplet-backuper fra hand-patching (skal aldri committes)
+*.bak-*
