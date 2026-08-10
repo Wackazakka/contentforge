@@ -18,6 +18,12 @@ interface Avregning {
   omsetningNok: number
   tilContentForgeNok: number
   tilWhiteLabelNok: number
+  // Innkrevingsmodellen — kan mangle på svar fra før 7/8
+  innkrevdNok?: number
+  rabattfaktor?: number
+  tilUtbetalingNok?: number
+  alleredeUtbetaltNok?: number
+  tilGodeNok?: number
   perType: Record<string, { antall: number; omsetning: number; engros: number }>
 }
 
@@ -137,6 +143,40 @@ export default function AvregningPage() {
                 <p className="mt-1 text-[12px] text-[var(--text-faint)]">{t('toYouHint')}</p>
               </div>
             </div>
+
+            {/* Innkrevingsmodellen: kundene betaler oss, vi betaler deg videre.
+                Opptjent andel og faktisk utbetaling er ikke samme tall — se
+                kursjusteringen. Vises bare når serveren sender feltene. */}
+            {typeof data.tilGodeNok === 'number' && (
+              <div className="mt-5 bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[var(--ds-border-faint)]">
+                  <h2 className="text-base font-semibold text-[var(--ink)]">{t('payoutTitle')}</h2>
+                </div>
+                <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[14px]">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--text-muted)]">{t('collected')}</span>
+                    <span className="tabular-nums text-[var(--ink)]">{fmtNok(data.innkrevdNok ?? 0)}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--text-muted)]">{t('discountFactor')}</span>
+                    <span className="tabular-nums text-[var(--ink)]">
+                      {((data.rabattfaktor ?? 1) * 100).toFixed(1).replace('.', ',')} %
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--text-muted)]">{t('alreadyPaid')}</span>
+                    <span className="tabular-nums text-[var(--ink)]">{fmtNok(data.alleredeUtbetaltNok ?? 0)}</span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t sm:border-t-0 border-[var(--ds-border-faint)] pt-3 sm:pt-0">
+                    <span className="font-medium text-[var(--ember-deep)]">{t('due')}</span>
+                    <span className="tabular-nums text-lg font-semibold text-[var(--ink)]">{fmtNok(data.tilGodeNok ?? 0)}</span>
+                  </div>
+                </div>
+                <p className="px-5 pb-4 text-[12px] leading-relaxed text-[var(--text-faint)]">
+                  {t('discountFactorHint')} {t('dueHint')}.
+                </p>
+              </div>
+            )}
 
             <div className="mt-5 bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] overflow-hidden">
               <div className="px-5 py-3.5 border-b border-[var(--ds-border-faint)] flex items-baseline justify-between gap-3">

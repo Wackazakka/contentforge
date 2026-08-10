@@ -47,6 +47,14 @@ export async function POST(request: Request) {
               organization_id: session.metadata.organization_id,
               amount_nok: Number(session.metadata.amount_nok),
               bonus_nok: Number(session.metadata.bonus_nok || 0),
+              // Hva kunden FAKTISK betalte. amount_nok er saldoverdien
+              // (kreditter × 0,10) og er et annet tall — «privat-mellom»
+              // koster 500 kr og gir 550 kr i kjøpekraft. Begge sto i
+              // metadataen, men bare saldoverdien ble lagret, så kontant-
+              // grunnlaget for utbetaling til white-labelen fantes ikke
+              // (Lars 7/8, innkrevingsmodellen).
+              paid_nok: session.metadata.paid_nok ? Number(session.metadata.paid_nok) : null,
+              paid_currency: session.metadata.paid_currency || null,
               note: 'Selvbetjent kortkjøp (Stripe)',
               stripe_session_id: session.id,
             },

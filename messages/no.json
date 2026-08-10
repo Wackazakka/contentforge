@@ -847,7 +847,15 @@
     "typeVoice": "Stemmer",
     "typeAvatar": "Avatar-videoer",
     "typeRadio": "Radiospoter",
-    "typeAnimation": "Animasjoner (forhåndsvisning)"
+    "typeAnimation": "Animasjoner (forhåndsvisning)",
+    "payoutTitle": "Utbetaling til deg",
+    "collected": "Innkrevd fra kundene dine",
+    "collectedHint": "Kortbetalinger vi har mottatt på dine kunders vegne",
+    "discountFactor": "Kursjustering",
+    "discountFactorHint": "Kredittpakkene har volumrabatt, så innbetalt er lavere enn kjøpekraften. Andelen din justeres med samme forhold.",
+    "alreadyPaid": "Allerede utbetalt",
+    "due": "Til gode",
+    "dueHint": "Dette betaler vi ut ved månedsoppgjøret"
   },
   "partners": {
     "back": "← Tilbake",

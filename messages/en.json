@@ -847,7 +847,15 @@
     "typeVoice": "Voiceovers",
     "typeAvatar": "Avatar videos",
     "typeRadio": "Radio spots",
-    "typeAnimation": "Animations (preview)"
+    "typeAnimation": "Animations (preview)",
+    "payoutTitle": "Your payout",
+    "collected": "Collected from your customers",
+    "collectedHint": "Card payments we have received on your customers' behalf",
+    "discountFactor": "Rate adjustment",
+    "discountFactorHint": "Credit packages include a volume discount, so cash received is lower than the spending power granted. Your share is adjusted by the same ratio.",
+    "alreadyPaid": "Already paid out",
+    "due": "Outstanding",
+    "dueHint": "This is what we pay out at the monthly settlement"
   },
   "partners": {
     "back": "← Back",
