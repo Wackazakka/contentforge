@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'kilevold@online.no').split(',').map((e) => e.trim().toLowerCase())
+import { krevPlattformAdmin } from '@/lib/adminAuth'
 
 function makeSupabase() {
   return createClient(
@@ -10,17 +9,11 @@ function makeSupabase() {
   )
 }
 
-async function verifyAdmin(userId: string): Promise<boolean> {
-  if (!userId) return false
-  const supabase = makeSupabase()
-  const { data } = await supabase.auth.admin.getUserById(userId)
-  return ADMIN_EMAILS.includes((data?.user?.email ?? '').toLowerCase())
-}
-
 export async function GET(request: NextRequest) {
-  const userId = request.nextUrl.searchParams.get('userId') ?? ''
-  if (!(await verifyAdmin(userId))) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // Identiteten kommer fra sesjonen, ikke fra ?userId= — se lib/adminAuth.
+  const sjekk = await krevPlattformAdmin(request)
+  if (!sjekk.ok) {
+    return NextResponse.json({ error: sjekk.status === 401 ? 'Ikke innlogget' : 'Forbidden' }, { status: sjekk.status })
   }
 
   const supabase = makeSupabase()

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? 'kilevold@online.no').split(',').map((e) => e.trim().toLowerCase())
+import { krevPlattformAdmin } from '@/lib/adminAuth'
 
 function makeSupabase() {
   return createClient(
@@ -10,23 +9,20 @@ function makeSupabase() {
   )
 }
 
-async function verifyAdmin(userId: string): Promise<boolean> {
-  if (!userId) return false
-  const supabase = makeSupabase()
-  const { data } = await supabase.auth.admin.getUserById(userId)
-  return ADMIN_EMAILS.includes((data?.user?.email ?? '').toLowerCase())
-}
-
 export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const { adminUserId, targetUserId, amount, description } = body
-
-  if (!adminUserId || !targetUserId || typeof amount !== 'number' || amount === 0) {
-    return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 })
+  // Identiteten kommer fra sesjonen, ikke fra body.adminUserId — se
+  // lib/adminAuth. Denne ruta DELER UT KREDITT; med den gamle sjekken kunne
+  // hvem som helst som kjente en admins UUID gitt seg selv ubegrenset saldo.
+  const sjekk = await krevPlattformAdmin(request)
+  if (!sjekk.ok) {
+    return NextResponse.json({ error: sjekk.status === 401 ? 'Ikke innlogget' : 'Forbidden' }, { status: sjekk.status })
   }
 
-  if (!(await verifyAdmin(adminUserId))) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const body = await request.json()
+  const { targetUserId, amount, description } = body
+
+  if (!targetUserId || typeof amount !== 'number' || amount === 0) {
+    return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 })
   }
 
   const supabase = makeSupabase()

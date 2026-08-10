@@ -56,9 +56,12 @@ export default function AdminPage() {
   useEffect(() => {
     if (!userId) return
     const load = async () => {
+      // Sesjonen beviser hvem vi er. Foer sendte vi bare bruker-id-en i
+      // adressen, og serveren stolte paa den — se lib/adminAuth.
+      const h = { Authorization: `Bearer ${session?.access_token ?? ''}` }
       const [statsRes, usersRes] = await Promise.all([
-        fetch(`/api/admin/stats?userId=${userId}`),
-        fetch(`/api/admin/users?userId=${userId}`),
+        fetch('/api/admin/stats', { headers: h }),
+        fetch('/api/admin/users', { headers: h }),
       ])
       const statsData = await statsRes.json()
       const usersData = await usersRes.json()
@@ -67,7 +70,7 @@ export default function AdminPage() {
       setLoading(false)
     }
     load()
-  }, [userId])
+  }, [userId, session])
 
   const handleAdjust = async (targetUserId: string) => {
     const amount = parseInt(adjustAmount)
@@ -75,8 +78,11 @@ export default function AdminPage() {
     setAdjusting(true)
     const res = await fetch('/api/admin/credits', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminUserId: userId, targetUserId, amount, description: adjustNote || undefined }),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token ?? ''}`,
+      },
+      body: JSON.stringify({ targetUserId, amount, description: adjustNote || undefined }),
     })
     const data = await res.json()
     if (res.ok) {
