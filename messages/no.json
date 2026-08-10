@@ -855,7 +855,21 @@
     "discountFactorHint": "Kredittpakkene har volumrabatt, så innbetalt er lavere enn kjøpekraften. Andelen din justeres med samme forhold.",
     "alreadyPaid": "Allerede utbetalt",
     "due": "Til gode",
-    "dueHint": "Dette betaler vi ut ved månedsoppgjøret"
+    "dueHint": "Dette betaler vi ut ved månedsoppgjøret",
+    "customers": "Kunder",
+    "colCustomer": "Kunde",
+    "colBought": "Kjøpt i perioden",
+    "colUsed": "Forbrukt",
+    "colBalance": "Saldo",
+    "noCustomers": "Ingen kunder med aktivitet i perioden.",
+    "noLimit": "uten tak",
+    "registerPayout": "Registrer utbetaling",
+    "payoutAmount": "Beløp",
+    "payoutNote": "Notat (valgfritt)",
+    "payoutSaved": "Utbetaling registrert",
+    "payoutFailed": "Kunne ikke registrere utbetalingen",
+    "cancel": "Avbryt",
+    "save": "Lagre"
   },
   "partners": {
     "back": "← Tilbake",

@@ -37,9 +37,14 @@ export async function GET(request: Request) {
     const { data: bruker } = await supabase.auth.getUser(token)
     if (!bruker?.user) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
 
+    // Er dette OSS? Bare plattform-admin kan registrere en utbetaling.
+    const { data: rot } = await supabase.from('tenants').select('id').eq('slug', 'centerforge').single()
+    const rotAdmin = !!rot && (await isTenantAdmin(bruker.user.email, rot.id))
+
     // Finn tenanten det spørres om
     let tenantId: string | null = null
     let tenantNavn = ''
+    let lostSlug: string | null = null
     if (tenantSlug) {
       const { data: t } = await supabase.from('tenants').select('id, name, slug, markup_percent').eq('slug', tenantSlug).single()
       if (!t) return NextResponse.json({ error: 'Ukjent tenant' }, { status: 404 })
@@ -53,6 +58,7 @@ export async function GET(request: Request) {
       }
       tenantId = t.id
       tenantNavn = t.name || t.slug
+      lostSlug = t.slug
     } else {
       // Uten slug: tenanten brukeren tilhører
       const { data: org } = await supabase
@@ -62,6 +68,7 @@ export async function GET(request: Request) {
         .single()
       tenantId = (org as any)?.tenant_id || null
       tenantNavn = (org as any)?.tenants?.name || ''
+      lostSlug = (org as any)?.tenants?.slug || null
       // Denne grenen manglet ogsaa tilgangssjekk (funnet 7/8). Å tilhøre en
       // tenant er IKKE det samme som å ha rett til å se den: avregningen viser
       // HELE tenantens omsetning og margin, så enhver artist under IndigoBoom
@@ -75,7 +82,7 @@ export async function GET(request: Request) {
 
     const { data: rader, error } = await supabase
       .from('usage_events')
-      .select('event_type, cost_nok, customer_cost_nok, created_at, product_id')
+      .select('event_type, cost_nok, customer_cost_nok, created_at, product_id, organization_id')
       .eq('tenant_id', tenantId)
       .gte('created_at', fra)
       .lte('created_at', til)
@@ -85,6 +92,10 @@ export async function GET(request: Request) {
     let tilContentForge = 0 // engrospris
     let antall = 0
     const perType: Record<string, { antall: number; omsetning: number; engros: number }> = {}
+    // Forbruk per kunde-organisasjon — partneren skal kunne se HVEM, ikke bare
+    // hvor mye (Lars 7/8). Aggregatene alene svarte «det er omsatt for 540 kr»
+    // uten å si at det var Celiin som produserte.
+    const forbrukPerOrg: Record<string, { forbrukt: number; antall: number }> = {}
     for (const r of rader || []) {
       const kunde = Number(r.customer_cost_nok ?? r.cost_nok ?? 0)
       const engros = Number(r.cost_nok ?? 0)
@@ -96,6 +107,12 @@ export async function GET(request: Request) {
       perType[t].antall += 1
       perType[t].omsetning += kunde
       perType[t].engros += engros
+      const oid = (r as any).organization_id
+      if (oid) {
+        if (!forbrukPerOrg[oid]) forbrukPerOrg[oid] = { forbrukt: 0, antall: 0 }
+        forbrukPerOrg[oid].forbrukt += kunde
+        forbrukPerOrg[oid].antall += 1
+      }
     }
     const tilWhiteLabel = Math.max(0, omsetning - tilContentForge)
 
@@ -117,18 +134,68 @@ export async function GET(request: Request) {
     let innkrevd = 0
     let tildelt = 0
     let rabattfaktor = 1
+    // Kundelinjene: hvem kjøpte, hvem produserte, hva står igjen.
+    type Kunde = { orgId: string; navn: string; epost: string | null; kjoept: number; forbrukt: number; saldo: number | null; antall: number }
+    const perKunde: Kunde[] = []
     try {
-      const { data: orgs } = await supabase.from('organizations').select('id').eq('tenant_id', tenantId)
+      const { data: orgs } = await supabase
+        .from('organizations')
+        .select('id, name, owner_id')
+        .eq('tenant_id', tenantId)
       const orgIds = (orgs || []).map((o) => o.id)
       if (orgIds.length > 0) {
         const { data: tops } = await supabase
           .from('org_topups')
-          .select('amount_nok, bonus_nok, paid_nok')
+          .select('organization_id, amount_nok, bonus_nok, paid_nok, created_at')
           .in('organization_id', orgIds)
+
+        const perOrg: Record<string, { kjoeptIPerioden: number; tildeltTotalt: number }> = {}
         for (const r of tops || []) {
           innkrevd += Number(r.paid_nok ?? 0)
           tildelt += Number(r.amount_nok ?? 0) + Number(r.bonus_nok ?? 0)
+          const oid = r.organization_id as string
+          if (!perOrg[oid]) perOrg[oid] = { kjoeptIPerioden: 0, tildeltTotalt: 0 }
+          perOrg[oid].tildeltTotalt += Number(r.amount_nok ?? 0) + Number(r.bonus_nok ?? 0)
+          // «Kjøpt» telles i perioden; saldo er alltid alt-i-alt.
+          const t = String(r.created_at || '')
+          if (t >= String(fra) && t <= String(til)) perOrg[oid].kjoeptIPerioden += Number(r.paid_nok ?? 0)
         }
+
+        // E-post er den eneste måten kunden faktisk kjennes igjen på.
+        const eposter: Record<string, string> = {}
+        for (const o of orgs || []) {
+          if (!o.owner_id) continue
+          try {
+            const { data: u } = await supabase.auth.admin.getUserById(o.owner_id as string)
+            if (u?.user?.email) eposter[o.id as string] = u.user.email
+          } catch { /* slettet bruker → vis org-navnet alene */ }
+        }
+
+        // Alt forbruk i perioden må vises, også fra en org uten påfyll.
+        const alleOrgIds = new Set<string>([...Object.keys(forbrukPerOrg), ...Object.keys(perOrg)])
+        const { getOrgBalance } = await import('@/lib/tenantBilling')
+        for (const oid of alleOrgIds) {
+          if (!orgIds.includes(oid)) continue
+          const org = (orgs || []).find((o) => o.id === oid)
+          const p = perOrg[oid]
+          const f = forbrukPerOrg[oid]
+          // Saldoen er ALLTID alt-i-alt, aldri periodens tall — påfyll og
+          // forbruk faller sjelden i samme måned. getOrgBalance er samme
+          // funksjon produksjonssperren bruker, så tallene kan ikke sprike.
+          // null = ingen forskuddskonto opprettet = ingen sperre, ikke tom konto.
+          const saldo = await getOrgBalance(oid)
+          perKunde.push({
+            orgId: oid,
+            navn: (org?.name as string) || 'Ukjent',
+            epost: eposter[oid] ?? null,
+            kjoept: Math.round((p?.kjoeptIPerioden ?? 0) * 100) / 100,
+            forbrukt: Math.round((f?.forbrukt ?? 0) * 100) / 100,
+            saldo: saldo === null ? null : Math.round(saldo * 100) / 100,
+            antall: f?.antall ?? 0,
+          })
+        }
+        perKunde.sort((a, b) => b.forbrukt - a.forbrukt || b.kjoept - a.kjoept)
+
         if (tildelt > 0 && innkrevd > 0) rabattfaktor = innkrevd / tildelt
       }
     } catch { /* kolonnen ikke migrert ennå → faktor 1, som er dagens tall */ }
@@ -148,6 +215,12 @@ export async function GET(request: Request) {
       alleredeUtbetalt = (utb || []).reduce((s, r) => s + Number(r.amount_nok || 0), 0)
     } catch { /* tabellen ikke migrert ennå */ }
 
+    let valgbare: { slug: string; navn: string }[] = []
+    if (rotAdmin) {
+      const { data: alle } = await supabase.from('tenants').select('slug, name, app_name').order('slug')
+      valgbare = (alle || []).map((t: any) => ({ slug: t.slug, navn: t.app_name || t.name || t.slug }))
+    }
+
     const kr = (n: number) => Math.round(n * 100) / 100
     return NextResponse.json({
       tenant: { id: tenantId, navn: tenantNavn },
@@ -163,6 +236,12 @@ export async function GET(request: Request) {
       alleredeUtbetaltNok: kr(alleredeUtbetalt),
       tilGodeNok: kr(Math.max(0, tilUtbetaling - alleredeUtbetalt)),
       perType,
+      perKunde,
+      // Styrer om «registrer utbetaling» vises — kun vi betaler ut.
+      erPlattformAdmin: rotAdmin,
+      // Velgeren finnes bare for oss: en partner skal ikke se at andre finnes.
+      valgbareTenants: rotAdmin ? valgbare : undefined,
+      tenantSlug: lostSlug,
     })
   } catch (err: any) {
     console.error('[settlement] feilet:', err?.message || err)

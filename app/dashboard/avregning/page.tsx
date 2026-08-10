@@ -24,6 +24,13 @@ interface Avregning {
   tilUtbetalingNok?: number
   alleredeUtbetaltNok?: number
   tilGodeNok?: number
+  perKunde?: {
+    orgId: string; navn: string; epost: string | null
+    kjoept: number; forbrukt: number; saldo: number | null; antall: number
+  }[]
+  erPlattformAdmin?: boolean
+  tenantSlug?: string | null
+  valgbareTenants?: { slug: string; navn: string }[]
   perType: Record<string, { antall: number; omsetning: number; engros: number }>
 }
 
@@ -51,6 +58,8 @@ export default function AvregningPage() {
   const [feil, setFeil] = useState<string | null>(null)
   // Månedsvelger: 0 = inneværende, 1 = forrige, …
   const [maanedTilbake, setMaanedTilbake] = useState(0)
+  // Plattform-admin maa kunne se en PARTNERS avregning for aa betale den ut.
+  const [valgtTenant, setValgtTenant] = useState<string>('')
 
   const hent = async (tilbake: number) => {
     setLaster(true)
@@ -64,7 +73,8 @@ export default function AvregningPage() {
       const til = tilbake === 0
         ? new Date()
         : new Date(Date.UTC(fra.getUTCFullYear(), fra.getUTCMonth() + 1, 1) - 1)
-      const res = await fetch(`/api/settlement?fra=${fra.toISOString()}&til=${til.toISOString()}`, {
+      const tenantDel = valgtTenant ? `&tenant=${encodeURIComponent(valgtTenant)}` : ''
+      const res = await fetch(`/api/settlement?fra=${fra.toISOString()}&til=${til.toISOString()}${tenantDel}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const d = await res.json()
@@ -77,7 +87,54 @@ export default function AvregningPage() {
     }
   }
 
-  useEffect(() => { hent(maanedTilbake) }, [maanedTilbake])
+  useEffect(() => { hent(maanedTilbake) }, [maanedTilbake, valgtTenant])
+
+  // Registrer en utbetaling. Kun plattform-admin ser skjemaet; serveren
+  // håndhever det samme uansett.
+  const [utbetalingApen, setUtbetalingApen] = useState(false)
+  const [utbetalingBelop, setUtbetalingBelop] = useState('')
+  const [utbetalingNotat, setUtbetalingNotat] = useState('')
+  const [utbetalingStatus, setUtbetalingStatus] = useState<string | null>(null)
+  const [lagrer, setLagrer] = useState(false)
+
+  const registrerUtbetaling = async () => {
+    const belop = Number(String(utbetalingBelop).replace(',', '.'))
+    if (!Number.isFinite(belop) || belop < 0) return
+    setLagrer(true)
+    setUtbetalingStatus(null)
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const naa = new Date()
+      const fra = maanedStart(new Date(Date.UTC(naa.getUTCFullYear(), naa.getUTCMonth() - maanedTilbake, 1)))
+      const til = maanedTilbake === 0
+        ? new Date()
+        : new Date(Date.UTC(fra.getUTCFullYear(), fra.getUTCMonth() + 1, 1) - 1)
+      const res = await fetch('/api/settlement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sess?.session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({
+          tenantSlug: data?.tenantSlug ?? undefined,
+          periodeFra: fra.toISOString().slice(0, 10),
+          periodeTil: til.toISOString().slice(0, 10),
+          amountNok: belop,
+          note: utbetalingNotat || undefined,
+        }),
+      })
+      if (!res.ok) throw new Error(t('payoutFailed'))
+      setUtbetalingStatus(t('payoutSaved'))
+      setUtbetalingApen(false)
+      setUtbetalingBelop('')
+      setUtbetalingNotat('')
+      await hent(maanedTilbake)
+    } catch (err) {
+      setUtbetalingStatus(err instanceof Error ? err.message : t('payoutFailed'))
+    } finally {
+      setLagrer(false)
+    }
+  }
 
   const maanedNavn = (tilbake: number) => {
     const naa = new Date()
@@ -112,6 +169,20 @@ export default function AvregningPage() {
               {tb === 0 ? t('thisMonth') : maanedNavn(tb)}
             </button>
           ))}
+
+          {/* Kun vi ser denne — en partner skal ikke vite at andre finnes. */}
+          {data?.valgbareTenants && data.valgbareTenants.length > 0 && (
+            <select
+              value={valgtTenant}
+              onChange={(e) => setValgtTenant(e.target.value)}
+              className="ml-auto px-3 py-2 rounded-lg border border-[var(--ds-border-strong)] bg-[var(--paper-raised)] text-[13px] text-[var(--ink)]"
+            >
+              <option value="">{data.tenant.navn}</option>
+              {data.valgbareTenants.map((v) => (
+                <option key={v.slug} value={v.slug}>{v.navn}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {laster && (
@@ -175,6 +246,99 @@ export default function AvregningPage() {
                 <p className="px-5 pb-4 text-[12px] leading-relaxed text-[var(--text-faint)]">
                   {t('discountFactorHint')} {t('dueHint')}.
                 </p>
+
+                {/* Kun vi betaler ut. Serveren håndhever det samme. */}
+                {data.erPlattformAdmin && (
+                  <div className="px-5 pb-5 border-t border-[var(--ds-border-faint)] pt-4">
+                    {utbetalingStatus && (
+                      <p className="mb-3 text-[13px] text-[var(--ember-deep)]">{utbetalingStatus}</p>
+                    )}
+                    {!utbetalingApen ? (
+                      <button
+                        onClick={() => setUtbetalingApen(true)}
+                        className="text-[13.5px] font-medium px-4 py-2 rounded-full border border-[var(--ds-border-strong)] text-[var(--ink)] hover:bg-[var(--paper-sunken)]"
+                      >
+                        {t('registerPayout')}
+                      </button>
+                    ) : (
+                      <div className="flex flex-wrap items-end gap-3">
+                        <label className="flex flex-col gap-1">
+                          <span className="text-[12px] text-[var(--text-faint)]">{t('payoutAmount')}</span>
+                          <input
+                            type="text" inputMode="decimal" value={utbetalingBelop}
+                            onChange={(e) => setUtbetalingBelop(e.target.value)}
+                            placeholder={String(data.tilGodeNok ?? 0)}
+                            className="w-32 px-3 py-2 rounded-lg border border-[var(--ds-border)] bg-[var(--paper)] text-[14px] text-[var(--ink)] tabular-nums"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1 flex-1 min-w-[180px]">
+                          <span className="text-[12px] text-[var(--text-faint)]">{t('payoutNote')}</span>
+                          <input
+                            type="text" value={utbetalingNotat}
+                            onChange={(e) => setUtbetalingNotat(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg border border-[var(--ds-border)] bg-[var(--paper)] text-[14px] text-[var(--ink)]"
+                          />
+                        </label>
+                        <button
+                          onClick={registrerUtbetaling} disabled={lagrer}
+                          className="text-[13.5px] font-medium px-4 py-2 rounded-full bg-[var(--ember-deep)] text-white disabled:opacity-60"
+                        >
+                          {t('save')}
+                        </button>
+                        <button
+                          onClick={() => { setUtbetalingApen(false); setUtbetalingStatus(null) }}
+                          className="text-[13.5px] px-3 py-2 text-[var(--text-muted)]"
+                        >
+                          {t('cancel')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Hvem kjøpte og hvem produserte — ikke bare hvor mye (Lars 7/8) */}
+            {data.perKunde && (
+              <div className="mt-5 bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[var(--ds-border-faint)]">
+                  <h2 className="text-base font-semibold text-[var(--ink)]">{t('customers')}</h2>
+                </div>
+                {data.perKunde.length === 0 ? (
+                  <p className="px-5 py-4 text-[14px] text-[var(--text-faint)]">{t('noCustomers')}</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[14px]">
+                      <thead>
+                        <tr className="text-[12px] uppercase tracking-wider text-[var(--text-faint)] border-b border-[var(--ds-border-faint)]">
+                          <th className="px-5 py-2.5 text-left font-medium">{t('colCustomer')}</th>
+                          <th className="px-4 py-2.5 text-right font-medium">{t('colBought')}</th>
+                          <th className="px-4 py-2.5 text-right font-medium">{t('colUsed')}</th>
+                          <th className="px-5 py-2.5 text-right font-medium">{t('colBalance')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.perKunde.map((k) => (
+                          <tr key={k.orgId} className="border-b border-[var(--ds-border-faint)] last:border-0">
+                            <td className="px-5 py-2.5">
+                              <span className="text-[var(--ink)]">{k.navn}</span>
+                              {k.epost && (
+                                <span className="block text-[12px] text-[var(--text-faint)]">{k.epost}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2.5 text-right tabular-nums text-[var(--text-muted)]">{fmtNok(k.kjoept)}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums text-[var(--text-muted)]">{fmtNok(k.forbrukt)}</td>
+                            <td className="px-5 py-2.5 text-right tabular-nums text-[var(--ink)]">
+                              {k.saldo === null
+                                ? <span className="text-[12.5px] text-[var(--text-faint)]">{t('noLimit')}</span>
+                                : fmtNok(k.saldo)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 

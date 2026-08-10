@@ -855,7 +855,21 @@
     "discountFactorHint": "Credit packages include a volume discount, so cash received is lower than the spending power granted. Your share is adjusted by the same ratio.",
     "alreadyPaid": "Already paid out",
     "due": "Outstanding",
-    "dueHint": "This is what we pay out at the monthly settlement"
+    "dueHint": "This is what we pay out at the monthly settlement",
+    "customers": "Customers",
+    "colCustomer": "Customer",
+    "colBought": "Bought this period",
+    "colUsed": "Used",
+    "colBalance": "Balance",
+    "noCustomers": "No customers with activity this period.",
+    "noLimit": "no cap",
+    "registerPayout": "Record payout",
+    "payoutAmount": "Amount",
+    "payoutNote": "Note (optional)",
+    "payoutSaved": "Payout recorded",
+    "payoutFailed": "Could not record the payout",
+    "cancel": "Cancel",
+    "save": "Save"
   },
   "partners": {
     "back": "← Back",
