@@ -1,0 +1,30 @@
+# Render-steget som container (skalering steg 3, bevist 2026-08-11).
+#
+# Den CPU-bundne, isolerbare, parallelliserbare enheten: tar en jobbmappe med
+# config.json + ferdig nedlastede klipp/bilder/musikk og produserer output.mp4.
+# Upstream (bilde/stemme/i2v) er API-kall som ikke trenger lokal CPU.
+#
+# Bygg (kontekst = denne mappa):   docker build -f Dockerfile.render -t cf-render .
+# Kjor:  docker run --rm -v <workspace>:<samme absolutte sti> cf-render <config.json>
+#   config.json bruker ABSOLUTTE stier, saa workspace maa monteres paa samme sti.
+#
+# VERIFISERT 2026-08-11: renderet Thomas' faktiske jobb bit-ekvivalent med den
+# native renderen paa dropleten — 40,844 s, 11 MB, video+lyd, identisk.
+#
+# ⚠️ AVHENGIGHETSFUNN: dropleten kjorer moviepy 2.1.2 MED pillow 11.3.0 — en
+# kombinasjon moviepy selv erklaerer ugyldig (krever pillow<11), og som pip
+# NEKTER aa gjenskape. Det er nettopp «virker paa denne ene maskinen»-skjorheten
+# containeren fjerner. Her pinnes en STOTTET kombinasjon (pillow 10.4.0); render-
+# resultatet er bevist likt. Skriptet bruker PIL kun til font/skalering.
+FROM python:3.10-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir \
+      moviepy==2.1.2 numpy==2.2.6 pillow==10.4.0
+
+COPY make_tiktok_reforhandle.py /app/make_tiktok_reforhandle.py
+
+ENTRYPOINT ["python3", "/app/make_tiktok_reforhandle.py"]
