@@ -132,9 +132,16 @@ export default function Home() {
                 <Link href="/register" className="cf-btn-ink" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: 'var(--paper)', background: 'var(--ink)', borderRadius: 999, padding: '15px 28px', textDecoration: 'none', boxShadow: '0 12px 30px -12px color-mix(in srgb, var(--ink) 50%, transparent)' }}>
                   {t('cta_primary')} →
                 </Link>
+                {/* «Prøv uten konto» hører bare hjemme på CenterForge selv (David
+                    3/8). /start legger anonyme produksjoner under CenterForges
+                    sentinel-produkt, så på en white-label sender knappen kunden ut
+                    av merkevaren de nettopp kom til. Teksten var dessuten hardkodet
+                    norsk og sto uoversatt på Isabels engelske side. */}
+                {isDirect && (
                 <Link href="/start" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: 'var(--ember-deep)', background: 'transparent', border: '1px solid var(--ember-tint-border)', borderRadius: 999, padding: '15px 28px', textDecoration: 'none' }}>
                   🎬 Prøv uten konto
                 </Link>
+                )}
                 <a href="#features" className="cf-btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', fontFamily: HANKEN, fontWeight: 600, fontSize: 16, color: 'var(--ink)', background: 'transparent', border: '1px solid #D2C7B2', borderRadius: 999, padding: '15px 26px', textDecoration: 'none' }}>
                   {t('cta_secondary')}
                 </a>
