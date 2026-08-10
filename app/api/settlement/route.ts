@@ -62,6 +62,14 @@ export async function GET(request: Request) {
         .single()
       tenantId = (org as any)?.tenant_id || null
       tenantNavn = (org as any)?.tenants?.name || ''
+      // Denne grenen manglet ogsaa tilgangssjekk (funnet 7/8). Å tilhøre en
+      // tenant er IKKE det samme som å ha rett til å se den: avregningen viser
+      // HELE tenantens omsetning og margin, så enhver artist under IndigoBoom
+      // kunne lese nøyaktig hva selskapet tjener på henne. Nav-lenken var
+      // skjult for vanlige brukere, men API-et svarte likevel.
+      if (tenantId && !(await isTenantAdmin(bruker.user.email, tenantId))) {
+        return NextResponse.json({ error: 'Avregning er forbeholdt administratorer' }, { status: 403 })
+      }
     }
     if (!tenantId) return NextResponse.json({ error: 'Fant ingen tenant' }, { status: 404 })
 
