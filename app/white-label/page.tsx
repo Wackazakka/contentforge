@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useTenant } from '@/lib/tenantContext'
+import { produktnavn } from '@/lib/tenantNames'
 
 // Åpen white-label-søknad: hele plattformen under eget navn og domene.
 // Skjemaet virker på alle tenant-domener — søknaden merkes med merkevaren
@@ -43,7 +44,7 @@ export default function WhiteLabelPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-xl mx-auto px-4 py-12">
-        <Link href="/" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-6 inline-block">← {tenant.app_name}</Link>
+        <Link href="/" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-6 inline-block">← {produktnavn(tenant)}</Link>
         <h1 className="text-3xl font-bold text-gray-900 mb-3">Bli white-label-partner</h1>
         <p className="text-gray-600 mb-8">
           Tilby hele plattformen under deres eget navn, med egne farger og eget domene — til deres kunder,

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { holdSecondsFor } from './sceneTiming'
 import { fetchVerticalForOrganization } from '@/lib/senderContext.mjs'
+import { merkekortTekst } from '@/lib/tenantNames'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
 
@@ -22,14 +23,6 @@ function lesbarTekst(bg: string): string {
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
   const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
   return lum > 0.55 ? '#14161B' : '#FFFFFF'
-}
-
-// Merkekortets tekst: «<Navn> VideoMaker» — men heter tenanten allerede
-// «Isabel's VideoMaker», skal ordet ikke dubleres (Lars 3/8).
-function merkekortTekst(navn: string): string {
-  const n = (navn || '').trim()
-  if (!n) return 'VideoMaker'
-  return /videomaker/i.test(n) ? n : `${n} VideoMaker`
 }
 
 export interface ProductionOptions {
@@ -149,14 +142,14 @@ export async function startProductionForDraft(
   const { data: tenantRad } = (product as any)?.organization_id
     ? await supabase
         .from('organizations')
-        .select('tenants(app_name, name, logo_url, brand_card_url, colors, markup_percent)')
+        .select('tenants(app_name, product_name, name, logo_url, brand_card_url, colors, markup_percent)')
         .eq('id', (product as any).organization_id)
         .single()
     : { data: null }
   const tn: any = (tenantRad as any)?.tenants || null
   const brandCard = (draft.brand_card === true && tn)
     ? {
-        text: merkekortTekst(tn.app_name || tn.name || ''),
+        text: merkekortTekst({ app_name: tn.app_name || tn.name || '', product_name: tn.product_name }),
         logoUrl: tn.logo_url || null,
         url: tn.brand_card_url || null,
         bgColor: (tn.colors && (tn.colors['--brand-card-bg'] || tn.colors['--paper'] || tn.colors['--ink'])) || '#14161B',

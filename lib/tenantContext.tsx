@@ -8,6 +8,7 @@ export interface TenantInfo {
   id: string
   slug: string
   app_name: string
+  product_name?: string | null // se lib/tenantNames — tomt betyr «samme som app_name»
   logo_url: string | null
   billing_mode: 'direct' | 'invoice'
   price_multiplier: number
@@ -21,6 +22,7 @@ const DEFAULT: TenantInfo = {
   id: 'root',
   slug: 'centerforge',
   app_name: 'CenterForge',
+  product_name: null,
   logo_url: null,
   billing_mode: 'direct',
   price_multiplier: 1,

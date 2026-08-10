@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
 import { S3Client, HeadObjectCommand } from '@aws-sdk/client-s3'
+import { merkekortTekst } from '@/lib/tenantNames'
 
 // Forhåndsvisning av merkekortet (Lars 3/8: «vis det der vi gir dem valget om
 // å bruke dette som sluttplakat mot rabatt, slik at de ser hva det er snakk
@@ -26,14 +27,6 @@ function lesbarTekst(bg: string): string {
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
   const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
   return lum > 0.55 ? '#14161B' : '#FFFFFF'
-}
-
-// Merkekortets tekst: «<Navn> VideoMaker» — men heter tenanten allerede
-// «Isabel's VideoMaker», skal ordet ikke dubleres (Lars 3/8).
-function merkekortTekst(navn: string): string {
-  const n = (navn || '').trim()
-  if (!n) return 'VideoMaker'
-  return /videomaker/i.test(n) ? n : `${n} VideoMaker`
 }
 
 function admin() {
@@ -71,7 +64,7 @@ export async function GET(request: Request) {
   try {
     const { data: tn } = await admin()
       .from('tenants')
-      .select('app_name, logo_url, brand_card_url, colors')
+      .select('app_name, product_name, logo_url, brand_card_url, colors')
       .eq('id', tenantId)
       .single()
     if (!tn) return NextResponse.json({ url: null })
@@ -79,7 +72,7 @@ export async function GET(request: Request) {
     // Nøyaktig samme oppskrift som lib/production.ts bygger for filmen
     const colors = (tn.colors || {}) as Record<string, string>
     const cfg = {
-      text: merkekortTekst(tn.app_name || ''),
+      text: merkekortTekst({ app_name: tn.app_name || '', product_name: tn.product_name }),
       url: tn.brand_card_url || null,
       logoUrl: tn.logo_url || null,
       bgColor: colors['--brand-card-bg'] || colors['--paper'] || colors['--ink'] || '#14161B',

@@ -12,6 +12,7 @@ import { AuthProvider } from "@/lib/authContext";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getLocale } from "next-intl/server";
 import { getTenant, ROOT_TENANT } from "@/lib/tenantServer";
+import { produktnavn } from "@/lib/tenantNames";
 import { TenantProvider } from "@/lib/tenantContext";
 import GlobalFooter from "@/components/GlobalFooter";
 import "./globals.css";
@@ -96,16 +97,19 @@ export async function generateMetadata(): Promise<Metadata> {
   // engelsk tjeneste som Isabel's VideoMaker fikk «AI-drevet
   // innholdsproduksjon» i fanen (Lars 3/8). Foelger naa tenantens spraak.
   const paaEngelsk = (tenant.default_locale || 'no') === 'en'
+  // Fanen navngir TJENESTEN, ikke selskapet (IndigoBoom driver PromoMaker).
+  // Er de samme navnet, gir produktnavn() selskapsnavnet tilbake.
+  const produkt = produktnavn(tenant)
   return {
     title: {
       default: paaEngelsk
-        ? `${tenant.app_name} — AI-powered content production`
-        : `${tenant.app_name} — AI-drevet innholdsproduksjon`,
-      template: `%s · ${tenant.app_name}`,
+        ? `${produkt} — AI-powered content production`
+        : `${produkt} — AI-drevet innholdsproduksjon`,
+      template: `%s · ${produkt}`,
     },
     description: paaEngelsk
-      ? `Create professional videos and articles in seconds with ${tenant.app_name}.`
-      : `Lag profesjonelle videoer og artikler på sekunder med ${tenant.app_name}.`,
+      ? `Create professional videos and articles in seconds with ${produkt}.`
+      : `Lag profesjonelle videoer og artikler på sekunder med ${produkt}.`,
     icons: { icon: tenant.icon_url || "/icon.svg" },
     robots: { index: false, follow: false },
   };
@@ -140,7 +144,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col" style={{ background: "var(--paper)", color: "var(--ink)" }}>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <TenantProvider tenant={{ id: tenant.id, slug: tenant.slug, app_name: tenant.app_name, logo_url: tenant.logo_url, billing_mode: tenant.billing_mode, price_multiplier: Number(tenant.price_multiplier) || 1, vertical: tenant.vertical ?? null, currency: tenant.currency ?? 'nok', show_language_toggle: tenant.show_language_toggle !== false, show_advanced_admin: tenant.show_advanced_admin !== false }}>
+          <TenantProvider tenant={{ id: tenant.id, slug: tenant.slug, app_name: tenant.app_name, product_name: tenant.product_name ?? null, logo_url: tenant.logo_url, billing_mode: tenant.billing_mode, price_multiplier: Number(tenant.price_multiplier) || 1, vertical: tenant.vertical ?? null, currency: tenant.currency ?? 'nok', show_language_toggle: tenant.show_language_toggle !== false, show_advanced_admin: tenant.show_advanced_admin !== false }}>
             <AuthProvider>{children}</AuthProvider>
             <GlobalFooter />
           </TenantProvider>

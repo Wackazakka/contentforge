@@ -14,6 +14,7 @@ export interface Tenant {
   custom_domain?: string | null // eget domene, uten www (f.eks. 'voicebank.ai')
   name: string
   app_name: string
+  product_name?: string | null // tjenestens navn når det avviker fra selskapets — se lib/tenantNames
   logo_url: string | null
   default_locale?: string | null
   icon_url: string | null
@@ -37,6 +38,7 @@ export const ROOT_TENANT: Tenant = {
   parent_tenant_id: null,
   name: 'CenterForge (root)',
   app_name: 'CenterForge',
+  product_name: null,
   logo_url: null,
   icon_url: null,
   colors: {},

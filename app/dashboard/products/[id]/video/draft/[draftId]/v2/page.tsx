@@ -12,6 +12,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
+import { merkekortTekst } from '@/lib/tenantNames'
 import { COSTS_NOK, fmtCredits } from '@/lib/costs'
 import { MOTION_STYLES } from '@/lib/motionStyles'
 import { uploadSegmentVideo, VIDEO_MAX_BYTES } from '@/lib/uploadSegmentVideo'
@@ -2119,7 +2120,7 @@ export default function DraftV2Page() {
                             />
                             <span className="min-w-0">
                               <span className="block text-[12.5px] text-gray-900">
-                                Avslutt med «{tenant.app_name || 'IndigoBoom'} VideoMaker» — få rabatt
+                                Avslutt med «{merkekortTekst(tenant)}» — få rabatt
                               </span>
                               <span className="block text-[11.5px] text-gray-400 leading-relaxed mt-0.5">
                                 Et lite kort på 2 sekunder helt til slutt, etter din egen sluttplakat.
@@ -2133,7 +2134,7 @@ export default function DraftV2Page() {
                             <div className="mt-2 ml-6 flex items-start gap-3">
                               <img
                                 src={merkekort}
-                                alt={`${tenant.app_name || ''} VideoMaker-kortet`}
+                                alt={`${merkekortTekst(tenant)}-kortet`}
                                 className="w-24 rounded-lg border border-gray-200"
                               />
                               <span className="text-[11.5px] text-gray-400 leading-relaxed">

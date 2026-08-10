@@ -7,6 +7,7 @@ import { signIn } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { AuthShell, AuthField, AuthSubmit, AuthBanner, AuthSwitch, emberLink } from '@/components/AuthUI'
 import { useTenant } from '@/lib/tenantContext'
+import { produktnavn } from '@/lib/tenantNames'
 
 export function LoginForm() {
   const router = useRouter()
@@ -60,8 +61,9 @@ export function LoginForm() {
     }
   }
 
+  // Man logger inn paa TJENESTEN, ikke paa selskapet bak den.
   return (
-    <AuthShell title={t('title')} subtitle={t('subtitle', { name: tenant.app_name })}>
+    <AuthShell title={t('title')} subtitle={t('subtitle', { name: produktnavn(tenant) })}>
       {message && <AuthBanner variant="success">{message}</AuthBanner>}
       {error && <AuthBanner variant="error">{error}</AuthBanner>}
 
