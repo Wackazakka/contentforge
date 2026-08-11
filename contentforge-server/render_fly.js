@@ -115,7 +115,10 @@ async function launchMachine(jobId) {
         image,
         auto_destroy: true,
         restart: { policy: 'no' },
-        guest: { cpus: 1, memory_mb: 2048 },
+        // performance (dedikert, IKKE strupet) — shared-cpu grindet encode-
+        // steget saa sakte at det saa hengt ut. performance gir ~dropletens
+        // fart (~7 min). Dyrere per sekund, men fortsatt faa oere/render.
+        guest: { cpu_kind: 'performance', cpus: 2, memory_mb: 4096 },
         init: { cmd: [jobId] },
         // R2-noklene sendes med fra job-queues eget miljo — sparer et eget
         // «fly secrets set»-steg. Maskinen er kortlivd og config er kun synlig
