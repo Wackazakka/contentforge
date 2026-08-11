@@ -67,6 +67,17 @@ function clipCachePut(fp, srcPath) {
 
 const SCRIPT_PATH = '/root/.openclaw/workspace/reforhandle-content/make_tiktok_reforhandle.py'
 
+// Render-dispatch (Lars 11/8, skalering steg 3). To modi:
+//   'native' — spawn python3 direkte (som foer, default → deploy endrer ingenting)
+//   'docker' — kjoer render i container. Isolerer det skjoere miljoet
+//              (moviepy+pillow-kombinasjonen pip nekter aa gjenskape) og gjoer
+//              flyttingen til EKSTERN compute senere til «hvor kjoerer docker»,
+//              ikke en omskriving. config.json bruker ABSOLUTTE stier, saa
+//              workspace maa monteres paa SAMME sti i containeren.
+const RENDER_MODE = process.env.RENDER_MODE || 'native'
+const RENDER_IMAGE = process.env.RENDER_IMAGE || 'cf-render:prod'
+const RENDER_WORKSPACE = process.env.RENDER_WORKSPACE || '/root/.openclaw/workspace'
+
 // ── Renderkoe (Lars 10/8) ────────────────────────────────────────────────
 // Foer dette startet HVER jobb en Python-prosess umiddelbart. Ti samtidige
 // trykk = ti prosesser paa fire kjerner, som maskinen DELER med trading-boten.
@@ -1052,17 +1063,23 @@ router.post('/', async (req, res) => {
       // Naa havner alt i render.log ved siden av utdataene.
       let renderLogFd = 'ignore'
       try { renderLogFd = fs.openSync(OUTPUT_DIR + '/' + jobId + '/render.log', 'a') } catch (e) { /* logg er nice-to-have */ }
-      const child = spawn('python3', [SCRIPT_PATH, configPath], {
+      // Foreground docker run (IKKE -d): node-barnet representerer containeren
+      // og avslutter naar den er ferdig — samme modell som python3-spawn, saa
+      // polleren under er uendret. Faller tilbake til native ved RENDER_MODE!=docker.
+      const [renderCmd, renderArgs] = RENDER_MODE === 'docker'
+        ? ['docker', ['run', '--rm', '-v', `${RENDER_WORKSPACE}:${RENDER_WORKSPACE}`, RENDER_IMAGE, configPath]]
+        : ['python3', [SCRIPT_PATH, configPath]]
+      const child = spawn(renderCmd, renderArgs, {
         detached: true,
         stdio: ['ignore', renderLogFd, renderLogFd],
       })
       child.unref()
       // Doer prosessen ved oppstart, slipper vi plassen med en gang.
       child.on('error', (e) => {
-        console.error('[job-queue] kunne ikke starte renderer for ' + jobId + ':', e.message)
+        console.error('[job-queue] kunne ikke starte renderer (' + RENDER_MODE + ') for ' + jobId + ':', e.message)
         slippRenderPlass(jobId)
       })
-      console.log(`[job-queue] Python renderer spawned for job ${jobId}`)
+      console.log(`[job-queue] renderer spawned (${RENDER_MODE}) for job ${jobId}`)
 
       // Poll for completion and notify Netlify when done
       const renderStartet = Date.now()
