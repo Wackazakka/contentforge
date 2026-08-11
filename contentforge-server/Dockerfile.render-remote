@@ -1,0 +1,30 @@
+# Fjern-render med asset-transport (skalering steg 3, Lars 11/8).
+#
+# Som Dockerfile.render, men SELVFORSYNENDE: containeren henter jobbens input
+# fra R2, rendrer, og laster output tilbake — ingen delt disk, ingen mount.
+# Det er dette imaget som kjores paa ekstern compute (Cloud Run / Fargate / …).
+#
+# Bygg (kontekst = denne mappa):
+#   docker build -f Dockerfile.render-remote -t cf-render-remote .
+# Kjor:
+#   docker run --rm -e R2_ENDPOINT=… -e R2_ACCESS_KEY_ID=… -e R2_SECRET_ACCESS_KEY=… \
+#     -e R2_BUCKET_NAME=contentforge-assets cf-render-remote <jobId>
+#
+# Renderen trenger KUN R2-nokler — ikke OpenAI/ElevenLabs/fal (de kjorer
+# upstream paa dropleten for render).
+FROM python:3.10-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+# boto3 for R2 (S3-kompatibel) i tillegg til render-avhengighetene.
+# pillow 10.4.0: dropletens 11.3.0 er en pip-ugyldig kombinasjon med moviepy 2.1.2.
+RUN pip install --no-cache-dir \
+      moviepy==2.1.2 numpy==2.2.6 pillow==10.4.0 boto3==1.35.0
+
+COPY make_tiktok_reforhandle.py /app/make_tiktok_reforhandle.py
+COPY render_remote.py /app/render_remote.py
+
+# Argument = jobId. Wrapperen henter fra R2, rendrer, laster opp.
+ENTRYPOINT ["python3", "/app/render_remote.py", "run"]
