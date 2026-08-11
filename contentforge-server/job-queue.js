@@ -1063,27 +1063,54 @@ router.post('/', async (req, res) => {
       // Naa havner alt i render.log ved siden av utdataene.
       let renderLogFd = 'ignore'
       try { renderLogFd = fs.openSync(OUTPUT_DIR + '/' + jobId + '/render.log', 'a') } catch (e) { /* logg er nice-to-have */ }
-      // Foreground docker run (IKKE -d): node-barnet representerer containeren
-      // og avslutter naar den er ferdig — samme modell som python3-spawn, saa
-      // polleren under er uendret. Faller tilbake til native ved RENDER_MODE!=docker.
-      const [renderCmd, renderArgs] = RENDER_MODE === 'docker'
-        ? ['docker', ['run', '--rm', '-v', `${RENDER_WORKSPACE}:${RENDER_WORKSPACE}`, RENDER_IMAGE, configPath]]
-        : ['python3', [SCRIPT_PATH, configPath]]
-      const child = spawn(renderCmd, renderArgs, {
-        detached: true,
-        stdio: ['ignore', renderLogFd, renderLogFd],
-      })
-      child.unref()
-      // Doer prosessen ved oppstart, slipper vi plassen med en gang.
-      child.on('error', (e) => {
-        console.error('[job-queue] kunne ikke starte renderer (' + RENDER_MODE + ') for ' + jobId + ':', e.message)
-        slippRenderPlass(jobId)
-      })
-      console.log(`[job-queue] renderer spawned (${RENDER_MODE}) for job ${jobId}`)
+      // pollInterval maa deklareres foer render-grenen: fly-stien trenger aa
+      // kunne rydde den ved feil (ellers venter den paa lokal fil i 30 min).
+      let pollInterval
+      const outputFile = `${OUTPUT_DIR}/${jobId}/output.mp4`
+
+      if (RENDER_MODE === 'fly') {
+        // Ekstern render paa Fly: pakk input til R2, start en kortlivd maskin
+        // som rendrer og laster output opp, vent paa R2, og last den ferdige
+        // videoen ned til den LOKALE output-stien. Da tar polleren under over
+        // (opplasting + webhook) NOEYAKTIG som native — vi rorer ikke den koden.
+        const fly = require('./render_fly')
+        ;(async () => {
+          try {
+            const { jobId: jid, cfg } = await fly.packageToR2(configPath)
+            await fly.launchMachine(jid)
+            await fly.waitForOutput(jid, cfg, Math.round(RENDER_TAK_MS / 60000))
+            await fly.downloadOutput(jid, cfg, outputFile)
+            console.log(`[render-fly] output klart lokalt for ${jid} — polleren tar over`)
+          } catch (e) {
+            console.error('[render-fly] feilet for ' + jobId + ':', e.message)
+            try { fs.appendFileSync(`${OUTPUT_DIR}/${jobId}/render.log`, '[render-fly] ' + e.message + '\n') } catch (_) {}
+            if (pollInterval) clearInterval(pollInterval)  // hindre at polleren ogsaa slipper
+            activeJobs.set(jobId, { startTime: activeJobs.get(jobId)?.startTime, status: 'failed', error: e.message })
+            slippRenderPlass(jobId)
+          }
+        })()
+      } else {
+        // Foreground docker run (IKKE -d): node-barnet representerer containeren
+        // og avslutter naar den er ferdig — samme modell som python3-spawn.
+        const [renderCmd, renderArgs] = RENDER_MODE === 'docker'
+          ? ['docker', ['run', '--rm', '-v', `${RENDER_WORKSPACE}:${RENDER_WORKSPACE}`, RENDER_IMAGE, configPath]]
+          : ['python3', [SCRIPT_PATH, configPath]]
+        const child = spawn(renderCmd, renderArgs, {
+          detached: true,
+          stdio: ['ignore', renderLogFd, renderLogFd],
+        })
+        child.unref()
+        // Doer prosessen ved oppstart, slipper vi plassen med en gang.
+        child.on('error', (e) => {
+          console.error('[job-queue] kunne ikke starte renderer (' + RENDER_MODE + ') for ' + jobId + ':', e.message)
+          slippRenderPlass(jobId)
+        })
+        console.log(`[job-queue] renderer spawned (${RENDER_MODE}) for job ${jobId}`)
+      }
 
       // Poll for completion and notify Netlify when done
       const renderStartet = Date.now()
-      const pollInterval = setInterval(async () => {
+      pollInterval = setInterval(async () => {
         const outputFile = `${OUTPUT_DIR}/${jobId}/output.mp4`
         // Polleren hadde KUN en clearInterval, i suksessgrenen: doede renderen,
         // pollet den i evighet etter en fil som aldri kom, plassen ble aldri

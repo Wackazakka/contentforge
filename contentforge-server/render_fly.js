@@ -11,7 +11,7 @@
 // Fly-token), launchMachine (krever FLY_API_TOKEN), waitForOutput, finalize.
 
 const fs = require('fs')
-const { S3Client, PutObjectCommand, HeadObjectCommand, CopyObjectCommand } = require('@aws-sdk/client-s3')
+const { S3Client, PutObjectCommand, HeadObjectCommand, CopyObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3')
 
 const BUCKET = process.env.R2_BUCKET_NAME || 'contentforge-assets'
 const PREFIX = 'render-jobs'
@@ -170,4 +170,17 @@ async function finalize(jobId, cfg) {
   return `${process.env.R2_PUBLIC_URL}/${dst}`
 }
 
-module.exports = { packageToR2, launchMachine, waitForOutput, finalize, absPaths, keyFor, jobIdFrom }
+// Last den ferdige videoen ned fra R2 til den lokale output-stien. Da tar den
+// EKSISTERENDE polleren i job-queue over (opplasting til videos/ + webhook),
+// akkurat som for native — vi rorer ikke den kritiske fullforingskoden.
+// De ~11 MB er trivielt; optimalisering (finalize direkte, hopp over
+// re-opplasting) kan komme senere.
+async function downloadOutput(jobId, cfg, localPath) {
+  const s3 = r2()
+  const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: keyFor(jobId, cfg.output) }))
+  const chunks = []
+  for await (const c of res.Body) chunks.push(c)
+  fs.writeFileSync(localPath, Buffer.concat(chunks))
+}
+
+module.exports = { packageToR2, launchMachine, waitForOutput, finalize, downloadOutput, absPaths, keyFor, jobIdFrom }
