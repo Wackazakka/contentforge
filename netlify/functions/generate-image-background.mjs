@@ -46,7 +46,7 @@ async function addLogoBand(imageBuffer, logoUrl) {
 // (FLUX 1.1 Pro / Recraft V3) med gpt-image-1 som reserve; resten er eldre stiler
 // på OpenAI. Standard er 'magasin'.
 const STYLE_PROMPTS = {
-  magasin: 'Sophisticated contemporary editorial illustration, elegant flat shapes with subtle texture, refined palette with generous negative space, conceptual and stylish composition in the spirit of a modern magazine cover artwork. Subject: [TOPIC]. This is standalone artwork only: absolutely no words, no title, no masthead, no letters, no numbers, no typography of any kind anywhere in the image. Any framed wall art or paper shows only abstract wordless shapes.',
+  magasin: 'Sophisticated contemporary editorial illustration, elegant flat shapes with subtle texture, refined palette with generous negative space, conceptual and stylish scene composition. Depict the subject as a SCENE with people, objects or environments — never as a poster, framed print, book cover, packaging or any other printed matter. Subject: [TOPIC]. Absolutely no words, no letters, no numbers, no typography of any kind anywhere in the image.',
   illustrasjon: 'Minimalist editorial illustration in deep navy blue ink on a cream background, delicate line detail, with a single warm accent color. Calm, hopeful, quietly conceptual mood with lots of open space. Subject: [TOPIC]. No text, letters, numbers or typography anywhere in the image.',
   foto: 'Warm, natural lifestyle photograph, candid editorial style, soft golden light, muted warm tones, shallow depth of field, authentic and human. Subject: [TOPIC]. No text, letters or numbers visible anywhere in the image.',
   tech: 'Cutting-edge technology product scene, ultra-sharp macro details, dramatic directional lighting with deep contrasting shadows, floating holographic elements, premium industrial materials — brushed metal, matte glass, anodized surfaces — shot as if for a flagship product launch. Sophisticated and visually arresting. Subject: [TOPIC]. No text, letters, or typography.',
@@ -69,7 +69,9 @@ export default async function handler(req) {
   const prompt = STYLE_PROMPTS[style].replace('[TOPIC]', topic)
   // fal-modell per stil: Recraft er sterkest på magasin-illustrasjon, FLUX på resten
   const FAL_MODELS = {
-    magasin: ['fal-ai/recraft-v3', { image_size: 'square_hd', style: 'digital_illustration' }],
+    // FLUX som standard: Recraft er penest, men sniker gjentatte ganger inn tekst/plakater
+    // og krever menneskelig QA per bilde — uegnet som ubevoktet default.
+    magasin: ['fal-ai/flux-pro/v1.1', { image_size: 'square_hd', enable_safety_checker: true }],
     illustrasjon: ['fal-ai/flux-pro/v1.1', { image_size: 'square_hd', enable_safety_checker: true }],
     foto: ['fal-ai/flux-pro/v1.1', { image_size: 'square_hd', enable_safety_checker: true }],
   }
