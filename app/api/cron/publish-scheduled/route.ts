@@ -48,13 +48,36 @@ async function runCron(request?: NextRequest) {
       continue
     }
     // Instagram: two-phase flow to handle slow video processing
-    if (platform === 'instagram' && content_type === 'video') {
-      const videoUrl = job_id ? `${process.env.NEXT_PUBLIC_R2_URL}/videos/${job_id}/output.mp4` : null
-      if (!videoUrl) {
+    if (platform === 'instagram' && (content_type === 'video' || content_type === 'article')) {
+      const videoUrl = content_type === 'video' && job_id ? `${process.env.NEXT_PUBLIC_R2_URL}/videos/${job_id}/output.mp4` : null
+      let imageUrl: string | null = null
+      let igCaption = caption
+
+      if (content_type === 'video' && !videoUrl) {
         console.error(`[cron] Post ${id}: instagram video has no job_id`)
         await supabase.from('scheduled_publications').delete().eq('id', id)
         results.push({ id, success: false, error: 'missing job_id' })
         continue
+      }
+
+      if (content_type === 'article') {
+        const { data: article } = await supabase
+          .from('articles')
+          .select('title, content, image_urls')
+          .eq('id', draft_id)
+          .single()
+        if (!article || !article.image_urls?.length) {
+          console.error(`[cron] Post ${id}: instagram article missing or has no image`)
+          await supabase.from('scheduled_publications').delete().eq('id', id)
+          results.push({ id, success: false, error: 'article missing or has no image' })
+          continue
+        }
+        imageUrl = article.image_urls[0] as string
+        // IG-caption: tittel + tekst; CTA-markøren fjernes og lenker kortes til
+        // domenet — URL-er er ikke klikkbare i Instagram-captions uansett.
+        igCaption = `${article.title}\n\n${(article.content as string)
+          .replace('\n\n---CTA---\n', '\n\n')
+          .replace(/https?:\/\/([^/\s?]+)[^\s]*/g, '$1')}`
       }
 
       try {
@@ -67,7 +90,7 @@ async function runCron(request?: NextRequest) {
           const startRes = await fetch(`${baseUrl}/api/publish/instagram`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pageIds: [page_id], videoUrl, caption, draftId: draft_id, productId: production_id, userId: user_id }),
+            body: JSON.stringify({ pageIds: [page_id], videoUrl, imageUrl, caption: igCaption, draftId: draft_id, productId: production_id, userId: user_id }),
           })
           const startData = await startRes.json()
           const jobInfo = startData.results?.[0]
@@ -92,7 +115,7 @@ async function runCron(request?: NextRequest) {
         const statusRes = await fetch(`${baseUrl}/api/publish/instagram/status`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ containerId: activeContainerId, igAccountId: activeIgAccountId, pageId: page_id, caption, draftId: draft_id, productId: production_id, userId: user_id, videoUrl }),
+          body: JSON.stringify({ containerId: activeContainerId, igAccountId: activeIgAccountId, pageId: page_id, caption: igCaption, draftId: draft_id, productId: production_id, userId: user_id, videoUrl: videoUrl || imageUrl }),
         })
         const statusData = await statusRes.json()
         console.log(`[cron] Instagram post ${id}: status =`, statusData.status)

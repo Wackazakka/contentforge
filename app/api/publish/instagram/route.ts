@@ -3,7 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: Request) {
   try {
-    const { pageIds, videoUrl, caption, draftId, productId, userId } = await request.json()
+    const { pageIds, videoUrl, imageUrl, caption, draftId, productId, userId } = await request.json()
+
+    if (!videoUrl && !imageUrl) {
+      return NextResponse.json({ error: 'videoUrl or imageUrl is required' }, { status: 400 })
+    }
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,12 +52,13 @@ export async function POST(request: Request) {
         const containerRes = await fetch(`https://graph.facebook.com/v21.0/${igAccountId}/media`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            media_type: 'REELS',
-            video_url: videoUrl,
-            caption,
-            access_token: tokenForIg,
-          }),
+          // Bilde (feed-innlegg) eller video (Reels) — samme to-fase-flyt;
+          // bildecontainere blir som regel FINISHED umiddelbart.
+          body: JSON.stringify(
+            imageUrl
+              ? { image_url: imageUrl, caption, access_token: tokenForIg }
+              : { media_type: 'REELS', video_url: videoUrl, caption, access_token: tokenForIg }
+          ),
         })
 
         const containerData = await containerRes.json()
