@@ -683,36 +683,47 @@ function PublishPage() {
                       key={a.id}
                       ref={selectedContent?.id === a.id ? selectedArticleRef : undefined}
                       onClick={() => setSelectedContent(a)}
-                      className={`flex gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                         selectedContent?.id === a.id ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'hover:border-[var(--ember-tint-border)]'
                       }`}
                     >
-                      <div className="shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
-                        {imageUrl ? (
-                          <img src={imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-gray-300 text-xl">🖼️</span>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{a.title}</p>
-                        {snippet && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{snippet}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                            {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                          </span>
-                          {!imageUrl && (
-                            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
-                              ⚠ mangler eget bilde
-                            </span>
+                      <div className="flex gap-3">
+                        <div className="shrink-0 w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                          {imageUrl ? (
+                            <img src={imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-gray-300 text-xl">🖼️</span>
                           )}
                         </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{a.title}</p>
+                          {snippet && selectedContent?.id !== a.id && (
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{snippet}</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                              {a.platform === 'linkedin' ? '💼' : a.platform === 'facebook' ? '📘' : '𝕏'} {a.platform}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                            </span>
+                            {!imageUrl && (
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                                ⚠ mangler eget bilde
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
+                      {/* Valgt artikkel foldes ut: hele teksten slik den posteres + bildet i full bredde */}
+                      {selectedContent?.id === a.id && (
+                        <div className="mt-3 pt-3 border-t border-[var(--ds-border-faint)]">
+                          <p className="text-sm whitespace-pre-wrap">{(a.content || '').replace('\n\n---CTA---\n', '\n\n― ― ―\n\n')}</p>
+                          {imageUrl && (
+                            <img src={imageUrl} alt="" loading="lazy" className="mt-3 w-full max-w-sm rounded-lg border border-[var(--ds-border-faint)]" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
