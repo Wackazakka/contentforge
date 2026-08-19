@@ -298,7 +298,8 @@
     "deleteButton": "Delete",
     "more": "+{count} more",
     "productFilter": "Product",
-    "allProducts": "All products"
+    "allProducts": "All products",
+    "contentHeader": "Content"
   },
   "publish": {
     "title": "Publish content",

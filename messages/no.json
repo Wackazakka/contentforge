@@ -298,7 +298,8 @@
     "deleteButton": "Slett",
     "more": "+{count} flere",
     "productFilter": "Produkt",
-    "allProducts": "Alle produkter"
+    "allProducts": "Alle produkter",
+    "contentHeader": "Innhold"
   },
   "publish": {
     "title": "Publiser innhold",

@@ -13,6 +13,7 @@ type Publication = {
   created_at: string
   publish_at?: string
   product_id?: string
+  draft_id?: string
 }
 
 type ScheduledPublication = {
@@ -21,6 +22,7 @@ type ScheduledPublication = {
   content_type: string
   scheduled_at: string
   production_id?: string
+  draft_id?: string
 }
 
 type CalendarEntry = {
@@ -31,6 +33,10 @@ type CalendarEntry = {
   date: string
   isScheduled: boolean
   product_id?: string
+  draft_id?: string
+  title?: string
+  image?: string
+  link?: string
 }
 
 type Product = {
@@ -106,8 +112,8 @@ export default function CalendarPage() {
   async function load() {
     setLoading(true)
     const [pubRes, schedRes, prodRes] = await Promise.all([
-      supabase.from('publications').select('id,platform,status,content_type,created_at,product_id').order('created_at', { ascending: false }).limit(200),
-      supabase.from('scheduled_publications').select('id,platform,content_type,scheduled_at,production_id').order('scheduled_at', { ascending: true }).limit(200),
+      supabase.from('publications').select('id,platform,status,content_type,created_at,product_id,draft_id').order('created_at', { ascending: false }).limit(200),
+      supabase.from('scheduled_publications').select('id,platform,content_type,scheduled_at,production_id,draft_id').order('scheduled_at', { ascending: true }).limit(200),
       (tenant.slug === 'centerforge'
         ? supabase.from('products').select('id,name,organization_id, organizations!inner(tenant_id)').order('name')
         : supabase.from('products').select('id,name,organization_id, organizations!inner(tenant_id)').eq('organizations.tenant_id', tenant.id).order('name')),
@@ -124,6 +130,7 @@ export default function CalendarPage() {
       date: p.created_at,
       isScheduled: false,
       product_id: p.product_id,
+      draft_id: p.draft_id,
     }))
 
     const scheduled: CalendarEntry[] = (schedRes.data || []).map((s: ScheduledPublication) => ({
@@ -134,10 +141,29 @@ export default function CalendarPage() {
       date: s.scheduled_at,
       isScheduled: true,
       product_id: s.production_id,
+      draft_id: s.draft_id,
     }))
 
+    const alle = [...scheduled, ...published]
+
+    // Slå opp tittel + bilde for artikkel-innslag, så kalenderen viser HVILKEN
+    // annonse som går den enkelte dag (ikke bare plattform/type).
+    const artikkelIder = [...new Set(alle.filter(e => e.content_type === 'article' && e.draft_id).map(e => e.draft_id as string))]
+    if (artikkelIder.length > 0) {
+      const { data: artikler } = await supabase.from('articles').select('id,title,image_urls').in('id', artikkelIder)
+      type ArtikkelRad = { id: string; title: string; image_urls?: string[] }
+      const perId = new Map<string, ArtikkelRad>(((artikler || []) as ArtikkelRad[]).map(a => [a.id, a]))
+      for (const e of alle) {
+        const art = e.draft_id ? perId.get(e.draft_id) : undefined
+        if (!art) continue
+        e.title = art.title
+        e.image = Array.isArray(art.image_urls) && art.image_urls.length > 0 ? art.image_urls[0] : undefined
+        e.link = `/dashboard/publish?type=article&product_id=${e.product_id || ''}&content_id=${e.draft_id}`
+      }
+    }
+
     setProducts(prodRes.data || [])
-    setEntries([...scheduled, ...published])
+    setEntries(alle)
     setLoading(false)
   }
 
@@ -226,7 +252,7 @@ export default function CalendarPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--ds-border)' }}>
-                {[t('dateHeader'), t('platformHeader'), t('typeHeader'), t('statusHeader')].map((h, i) => (
+                {[t('dateHeader'), t('contentHeader'), t('platformHeader'), t('typeHeader'), t('statusHeader')].map((h, i) => (
                   <th key={i} style={{ textAlign: 'left', padding: '16px 8px 13px 0', fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>{h}</th>
                 ))}
                 <th style={{ padding: '16px 0 13px' }} />
@@ -237,6 +263,25 @@ export default function CalendarPage() {
                 <tr key={entry.id} style={{ borderTop: '1px solid var(--ds-border-faint)' }}>
                   <td style={{ padding: '15px 8px 15px 0', fontFamily: HANKEN, fontSize: 14.5, color: 'var(--ink)' }}>
                     {new Date(entry.date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                  <td style={{ padding: '15px 8px', maxWidth: 320 }}>
+                    {entry.title ? (
+                      <a
+                        href={entry.link || '#'}
+                        title={entry.title}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}
+                      >
+                        {entry.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={entry.image} alt="" style={{ width: 34, height: 34, objectFit: 'cover', borderRadius: 7, border: '1px solid var(--ds-border-faint)', flexShrink: 0 }} />
+                        )}
+                        <span style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'underline', textDecorationColor: 'var(--ds-border-strong)', textUnderlineOffset: 3 }}>
+                          {entry.title}
+                        </span>
+                      </a>
+                    ) : (
+                      <span style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-faint)' }}>—</span>
+                    )}
                   </td>
                   <td style={{ padding: '15px 8px', fontFamily: HANKEN, fontSize: 14.5, color: 'var(--ink-soft)', textTransform: 'capitalize' }}>
                     {platformLabel[entry.platform] || entry.platform}
@@ -285,11 +330,15 @@ export default function CalendarPage() {
                   <div style={{ fontFamily: HANKEN, fontSize: 13, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', ...(isToday ? { background: 'var(--ember)', color: '#fff', fontWeight: 600 } : { color: 'var(--text-muted)' }) }}>
                     {day}
                   </div>
-                  {dayEntries.slice(0, 3).map(e => (
-                    <div key={e.id} style={{ fontFamily: HANKEN, fontSize: 11, padding: '1px 5px', borderRadius: 5, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: statusBg[e.status], color: statusColor[e.status] }}>
-                      {platformLabel[e.platform] || e.platform}
-                    </div>
-                  ))}
+                  {dayEntries.slice(0, 3).map(e => {
+                    const tekst = e.title || platformLabel[e.platform] || e.platform
+                    const chipStyle: React.CSSProperties = { display: 'block', fontFamily: HANKEN, fontSize: 11, padding: '1px 5px', borderRadius: 5, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: statusBg[e.status], color: statusColor[e.status], textDecoration: 'none' }
+                    return e.link ? (
+                      <a key={e.id} href={e.link} title={`${platformLabel[e.platform] || e.platform}: ${tekst}`} style={chipStyle}>{tekst}</a>
+                    ) : (
+                      <div key={e.id} title={`${platformLabel[e.platform] || e.platform}: ${tekst}`} style={chipStyle}>{tekst}</div>
+                    )
+                  })}
                   {dayEntries.length > 3 && (
                     <div style={{ fontFamily: HANKEN, fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>{t('more', { count: dayEntries.length - 3 })}</div>
                   )}
