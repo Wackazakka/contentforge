@@ -14,7 +14,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.n
 async function generateArticleContent(topic, platform, includeLink, websiteUrl, ctaText, senderContext = '') {
   const platformGuides = {
     facebook:
-      'Write for Facebook: SHORT and punchy — aim for 50-90 words total, never more. A strong hook, 2-3 tight lines, then the point. No walls of text (long posts get cut with "See more" and lose reach). Conversational, a few emojis. End with maximum 3 relevant hashtags.',
+      'Write for Facebook: SHORT and punchy — aim for 50-90 words total, never more. A strong hook, 2-3 tight lines, then the point. No walls of text (long posts get cut with "See more" and lose reach). Conversational, a few emojis. Do NOT use hashtags — they read as dated on Facebook.',
     linkedin:
       'Write for LinkedIn: concise thought-leadership — aim for 120-180 words, never more. Short, scannable paragraphs. START WITH A STRONG, COMPLETE OPENING SENTENCE that grabs attention. Get to the point fast. No excessive emojis.',
     x: 'Write for X/Twitter: concise (under 280 chars per tweet), punchy, with relevant hashtags.',
