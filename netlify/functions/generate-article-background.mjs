@@ -78,7 +78,24 @@ Return JSON with:
   if (includeLink && ctaText?.trim()) {
     let ctaSuffix = ctaText.trim()
     if (websiteUrl?.trim()) {
-      const url = websiteUrl.trim().startsWith('http') ? websiteUrl.trim() : `https://${websiteUrl.trim()}`
+      const base = websiteUrl.trim().startsWith('http') ? websiteUrl.trim() : `https://${websiteUrl.trim()}`
+      // UTM-tagg lenken så hvert innlegg kan attribueres i Plausible/analytics.
+      // Kampanjenavn = tittel-slug (ASCII, maks 60 tegn).
+      let url = base
+      try {
+        const u = new URL(base)
+        const slug = String(topic || '')
+          .toLowerCase()
+          .replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a')
+          .normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 60) || 'artikkel'
+        u.searchParams.set('utm_source', platform || 'facebook')
+        u.searchParams.set('utm_medium', 'article')
+        u.searchParams.set('utm_campaign', slug)
+        url = u.toString()
+      } catch { /* ugyldig URL — bruk den rå */ }
       ctaSuffix += '\n' + url
     }
     parsed.content = String(parsed.content).trimEnd() + '\n\n---CTA---\n' + ctaSuffix
@@ -129,7 +146,7 @@ export default async function handler(req) {
       await fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleId, topic: title, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'tech' }),
+        body: JSON.stringify({ articleId, topic: title, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'magasin' }),
       });
     } catch (imgErr) {
       console.error('[bg-article] Failed to trigger image for', articleId, imgErr?.message || imgErr);

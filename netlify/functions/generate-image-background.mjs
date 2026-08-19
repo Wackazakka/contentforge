@@ -2,28 +2,53 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 
-async function addLogoOverlay(imageBuffer, logoUrl) {
+// Logo-stripe i full bredde under bildet (Reforhandle-metoden, standard fra 19/8-2026):
+// motivet beholdes urørt i 1024×1024, en ren hvit stripe på 256 px legges under, og
+// logoen (innholds-beskåret, maks 940×204) sentreres i stripen. Resultat 1024×1280 = 4:5,
+// som er idealformatet for både Facebook- og Instagram-feeden.
+// Returnerer { buffer, ext, contentType } — faller tilbake til bildet uten stripe ved feil.
+async function addLogoBand(imageBuffer, logoUrl) {
+  const fallback = { buffer: imageBuffer, ext: 'png', contentType: 'image/png' }
   try {
     // Dynamic import so a missing/broken sharp doesn't crash the whole function
     const sharp = (await import('sharp')).default
     const logoRes = await fetch(logoUrl)
-    if (!logoRes.ok) return imageBuffer
+    if (!logoRes.ok) return fallback
+
     const logoRaw = Buffer.from(await logoRes.arrayBuffer())
-    const LOGO_MAX_WIDTH = 280, LOGO_MAX_HEIGHT = 120, PADDING = 16, MARGIN = 24, RADIUS = 14
-    const logoResized = await sharp(logoRaw).resize(LOGO_MAX_WIDTH, LOGO_MAX_HEIGHT, { fit: 'inside', withoutEnlargement: true }).toBuffer()
-    const { width: lw = LOGO_MAX_WIDTH, height: lh = LOGO_MAX_HEIGHT } = await sharp(logoResized).metadata()
-    const bgW = lw + PADDING * 2, bgH = lh + PADDING * 2
-    const bgSvg = Buffer.from(`<svg width="${bgW}" height="${bgH}" xmlns="http://www.w3.org/2000/svg"><rect width="${bgW}" height="${bgH}" rx="${RADIUS}" ry="${RADIUS}" fill="white" fill-opacity="0.88"/></svg>`)
-    const badge = await sharp(bgSvg).composite([{ input: logoResized, left: PADDING, top: PADDING }]).png().toBuffer()
-    const { width: imgW = 1024, height: imgH = 1024 } = await sharp(imageBuffer).metadata()
-    return await sharp(imageBuffer).composite([{ input: badge, left: imgW - bgW - MARGIN, top: imgH - bgH - MARGIN }]).png().toBuffer()
+    // trim() fjerner logofilas egen luft — uten dette kan en logo med innebygd
+    // bakgrunn stikke opp av stripen (feilen fra første manuelle runde)
+    const logoTrimmed = await sharp(logoRaw).trim().toBuffer()
+    const meta = await sharp(logoTrimmed).metadata()
+    const MAXW = 940, MAXH = 204, BAND = 256
+    const scale = Math.min(MAXW / (meta.width || MAXW), MAXH / (meta.height || MAXH))
+    const lw = Math.round((meta.width || MAXW) * scale)
+    const lh = Math.round((meta.height || MAXH) * scale)
+    const logoFlat = await sharp(logoTrimmed)
+      .resize(lw, lh)
+      .flatten({ background: '#ffffff' })
+      .toBuffer()
+
+    const base = await sharp(imageBuffer).resize(1024, 1024, { fit: 'cover' }).toBuffer()
+    const buffer = await sharp(base)
+      .extend({ bottom: BAND, background: '#ffffff' })
+      .composite([{ input: logoFlat, left: Math.round((1024 - lw) / 2), top: 1024 + Math.round((BAND - lh) / 2) }])
+      .jpeg({ quality: 90 })
+      .toBuffer()
+    return { buffer, ext: 'jpg', contentType: 'image/jpeg' }
   } catch (err) {
-    console.error('[bg-image] Logo overlay failed (skipping):', err)
-    return imageBuffer
+    console.error('[bg-image] Logo band failed (skipping):', err)
+    return fallback
   }
 }
 
+// De tre øverste er «Reforhandle-metoden» (bevist 19/8-2026) og genereres via fal
+// (FLUX 1.1 Pro / Recraft V3) med gpt-image-1 som reserve; resten er eldre stiler
+// på OpenAI. Standard er 'magasin'.
 const STYLE_PROMPTS = {
+  magasin: 'Sophisticated contemporary editorial illustration, elegant flat shapes with subtle texture, refined palette with generous negative space, conceptual and stylish composition in the spirit of a modern magazine cover artwork. Subject: [TOPIC]. This is standalone artwork only: absolutely no words, no title, no masthead, no letters, no numbers, no typography of any kind anywhere in the image. Any framed wall art or paper shows only abstract wordless shapes.',
+  illustrasjon: 'Minimalist editorial illustration in deep navy blue ink on a cream background, delicate line detail, with a single warm accent color. Calm, hopeful, quietly conceptual mood with lots of open space. Subject: [TOPIC]. No text, letters, numbers or typography anywhere in the image.',
+  foto: 'Warm, natural lifestyle photograph, candid editorial style, soft golden light, muted warm tones, shallow depth of field, authentic and human. Subject: [TOPIC]. No text, letters or numbers visible anywhere in the image.',
   tech: 'Cutting-edge technology product scene, ultra-sharp macro details, dramatic directional lighting with deep contrasting shadows, floating holographic elements, premium industrial materials — brushed metal, matte glass, anodized surfaces — shot as if for a flagship product launch. Sophisticated and visually arresting. Subject: [TOPIC]. No text, letters, or typography.',
   cinematic: 'Cinematic wide-angle scene, dramatic natural or artificial lighting, rich color grading, strong visual narrative, high production value, feels like a movie still or premium documentary. Emotionally resonant. Subject: [TOPIC]. No text, letters, or typography.',
   warm: 'Warm lifestyle photograph style, soft natural light, organic textures, earthy tones with golden accents, shallow depth of field, inviting and human-centered composition, Instagram editorial aesthetic. Subject: [TOPIC]. No text, letters, or typography.',
@@ -40,8 +65,14 @@ export default async function handler(req) {
     return new Response('Bad request', { status: 400 })
   }
   const { articleId, topic, productId, logoUrl, imageStyle } = body
-  const style = imageStyle && STYLE_PROMPTS[imageStyle] ? imageStyle : 'tech'
+  const style = imageStyle && STYLE_PROMPTS[imageStyle] ? imageStyle : 'magasin'
   const prompt = STYLE_PROMPTS[style].replace('[TOPIC]', topic)
+  // fal-modell per stil: Recraft er sterkest på magasin-illustrasjon, FLUX på resten
+  const FAL_MODELS = {
+    magasin: ['fal-ai/recraft-v3', { image_size: 'square_hd', style: 'digital_illustration' }],
+    illustrasjon: ['fal-ai/flux-pro/v1.1', { image_size: 'square_hd', enable_safety_checker: true }],
+    foto: ['fal-ai/flux-pro/v1.1', { image_size: 'square_hd', enable_safety_checker: true }],
+  }
 
   console.log(`[bg-image] Starting for article ${articleId} (style=${style}): "${topic}"`)
 
@@ -54,17 +85,49 @@ export default async function handler(req) {
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!OPENAI_API_KEY) {
-    console.error('[bg-image] Missing OPENAI_API_KEY')
-    return new Response('Missing OPENAI_API_KEY', { status: 500 })
+  const FAL_API_KEY = process.env.FAL_API_KEY
+
+  if (!OPENAI_API_KEY && !FAL_API_KEY) {
+    console.error('[bg-image] Missing both FAL_API_KEY and OPENAI_API_KEY')
+    return new Response('Missing image API keys', { status: 500 })
   }
 
   try {
-    // Retry OpenAI image generation up to 3× — a single transient hiccup should NOT leave
-    // the article permanently without an image (root cause of "some have images, some don't").
+    let imageBuffer = null
+
+    // Primær: fal (FLUX/Recraft) for de nye stilene — billigere og bedre stil-treff
+    if (FAL_API_KEY && FAL_MODELS[style]) {
+      const [model, params] = FAL_MODELS[style]
+      for (let attempt = 1; attempt <= 2 && !imageBuffer; attempt++) {
+        try {
+          const falRes = await fetch(`https://fal.run/${model}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Key ${FAL_API_KEY}` },
+            body: JSON.stringify({ ...params, prompt }),
+          })
+          const falData = await falRes.json()
+          const url = falData.images?.[0]?.url
+          if (url) {
+            const imgRes = await fetch(url)
+            if (imgRes.ok) {
+              imageBuffer = Buffer.from(await imgRes.arrayBuffer())
+              console.log(`[bg-image] fal (${model}) generated image, ${imageBuffer.byteLength} bytes`)
+            }
+          } else {
+            console.error(`[bg-image] fal attempt ${attempt} failed:`, JSON.stringify(falData).slice(0, 200))
+          }
+        } catch (e) {
+          console.error(`[bg-image] fal attempt ${attempt} threw:`, e?.message || e)
+        }
+      }
+      if (!imageBuffer) console.error('[bg-image] fal failed — falling back to OpenAI')
+    }
+
+    // Reserve (og eldre stiler): OpenAI gpt-image-1. Retry opp til 3× — en enkelt
+    // transient feil skal IKKE etterlate artikkelen permanent uten bilde.
     let b64 = null
     let lastErr = ''
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 3 && !imageBuffer && OPENAI_API_KEY; attempt++) {
       try {
         const openaiRes = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
@@ -87,17 +150,23 @@ export default async function handler(req) {
       }
       if (attempt < 3) await new Promise((r) => setTimeout(r, 2000 * attempt))
     }
-    if (!b64) {
+    if (!imageBuffer && b64) {
+      imageBuffer = Buffer.from(b64, 'base64')
+      console.log(`[bg-image] OpenAI image received, size: ${imageBuffer.byteLength} bytes`)
+    }
+    if (!imageBuffer) {
       console.error('[bg-image] All attempts failed:', lastErr)
-      return new Response('OpenAI error after retries', { status: 500 })
+      return new Response('Image generation failed after retries', { status: 500 })
     }
 
-    let imageBuffer = Buffer.from(b64, 'base64')
-    console.log(`[bg-image] Image received, size: ${imageBuffer.byteLength} bytes`)
-
+    let ext = 'png'
+    let contentType = 'image/png'
     if (logoUrl) {
-      console.log(`[bg-image] Compositing logo: ${logoUrl}`)
-      imageBuffer = await addLogoOverlay(imageBuffer, logoUrl)
+      console.log(`[bg-image] Adding full-width logo band: ${logoUrl}`)
+      const banded = await addLogoBand(imageBuffer, logoUrl)
+      imageBuffer = banded.buffer
+      ext = banded.ext
+      contentType = banded.contentType
     }
 
     const s3 = new S3Client({
@@ -109,12 +178,12 @@ export default async function handler(req) {
       },
     })
 
-    const key = `images/articles/${randomUUID()}.png`
+    const key = `images/articles/${randomUUID()}.${ext}`
     await s3.send(new PutObjectCommand({
       Bucket: R2_BUCKET_NAME,
       Key: key,
       Body: imageBuffer,
-      ContentType: 'image/png',
+      ContentType: contentType,
     }))
 
     const imageUrl = `${R2_PUBLIC_URL}/${key}`

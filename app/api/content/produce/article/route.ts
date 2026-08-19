@@ -282,7 +282,7 @@ export async function POST(request: NextRequest) {
     fetch(SITE_URL + '/.netlify/functions/generate-article-background', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ articleId, topic, platform, includeLink, websiteUrl, ctaText, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'tech' }),
+      body: JSON.stringify({ articleId, topic, platform, includeLink, websiteUrl, ctaText, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'magasin' }),
     }).catch(() => {})
 
     console.log(`[article-produce] Queued ${platform} article ${articleId}: "${topic}"`)
