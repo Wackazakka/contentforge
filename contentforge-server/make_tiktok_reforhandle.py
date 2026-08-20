@@ -814,6 +814,12 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         # musikkprodukt er nettopp den filmen normalen, ikke et sertilfelle.
         # _duck_music holder allerede full musikkhoyde naar ingenting snakker.
         final_audio = CompositeAudioClip([final.audio, music]) if final.audio is not None else music
+        # Moviepy-versjoner er uenige om composite-varigheten naar SISTE klipp er
+        # stumt (sluttplakaten): containerens moviepy skrev bare lyd frem til
+        # siste lydklipps slutt, saa musikken forsvant naar plakaten kom
+        # (Lars 19/8, verifisert: fly-render ga 17s lyd paa 22.7s video mens
+        # native ga full lengde). Tving lyden til aa dekke hele filmen.
+        final_audio = final_audio.with_duration(final.duration)
         final = final.with_audio(final_audio)
     else:
         final = concatenate_videoclips(clips, method="compose")
