@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
-
-const BASE_URL = 'https://contentforge-610.netlify.app'
+import { getMetaApp } from '@/lib/metaApp'
 
 export async function GET(request: Request) {
+  // Tenant-bevisst app-valg (PromoMaker for IndigoBoom osv.) — se lib/metaApp
+  const app = await getMetaApp()
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
@@ -12,14 +13,14 @@ export async function GET(request: Request) {
 
     if (!userId) {
       console.error('[facebook] No userId provided')
-      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_user`)
+      return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=no_user`)
     }
 
-    console.log('[facebook] Starting OAuth flow for user:', userId)
+    console.log('[facebook] Starting OAuth flow for user:', userId, 'app:', app.appId)
 
     const params = new URLSearchParams({
-      client_id: process.env.META_APP_ID!,
-      redirect_uri: process.env.META_REDIRECT_URI!,
+      client_id: app.appId,
+      redirect_uri: app.oauthRedirectUri,
       scope: 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_content_publish',
       response_type: 'code',
       state: orgId ? `${userId}.${orgId}` : userId,
@@ -28,6 +29,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`https://www.facebook.com/dialog/oauth?${params.toString()}`)
   } catch (err) {
     console.error('[facebook] Error:', err)
-    return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=server_error`)
+    return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=server_error`)
   }
 }

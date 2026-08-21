@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getMetaApp } from '@/lib/metaApp'
 
 // state baerer «bruker.organisasjon» (Lars 3/8). Gammelt format — bare
 // bruker-ID — virker fortsatt, og gir da organisasjon null.
@@ -11,9 +12,10 @@ function tydState(state: string | null): { userId: string | null; orgId: string 
     : { userId: state.slice(0, i), orgId: state.slice(i + 1) || null }
 }
 
-const BASE_URL = 'https://contentforge-610.netlify.app'
-
 export async function GET(request: Request) {
+  // Callbacken treffer samme vert som startet flyten, saa tenant-oppslaget
+  // her gir samme app (og dermed samme redirect_uri) som i dialogen.
+  const app = await getMetaApp()
   try {
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
@@ -22,17 +24,17 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('[facebook/callback] Error from Meta:', error)
-      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=${error}`)
+      return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=${error}`)
     }
 
     if (!code) {
       console.error('[facebook/callback] No code received')
-      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_code`)
+      return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=no_code`)
     }
 
     if (!state) {
       console.error('[facebook/callback] No state parameter (user ID) received')
-      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_state`)
+      return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=no_state`)
     }
 
     const { userId, orgId } = tydState(state)
@@ -43,19 +45,19 @@ export async function GET(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        client_id: process.env.META_APP_ID!,
-        client_secret: process.env.META_APP_SECRET!,
-        redirect_uri: process.env.META_REDIRECT_URI!,
+        client_id: app.appId,
+        client_secret: app.appSecret,
+        redirect_uri: app.oauthRedirectUri,
         code,
       }).toString(),
     })
 
     console.log('[facebook/callback] Token response status:', tokenRes.status)
-    
+
     // Log raw response for debugging
     const rawText = await tokenRes.text()
     console.log('[facebook/callback] Raw token response:', rawText)
-    
+
     const tokenData = JSON.parse(rawText)
     console.log('[facebook/callback] User token starts with:', tokenData.access_token?.substring(0, 20))
     console.log('[facebook/callback] User token length:', tokenData.access_token?.length)
@@ -63,12 +65,12 @@ export async function GET(request: Request) {
 
     if (!tokenData.access_token) {
       console.error('[facebook/callback] No access token in response:', tokenData)
-      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=token_failed`)
+      return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=token_failed`)
     }
 
     // Exchange short-lived user token for long-lived token (60 days)
     const llRes = await fetch(
-      `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${process.env.META_APP_ID}&client_secret=${process.env.META_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`
+      `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${app.appId}&client_secret=${app.appSecret}&fb_exchange_token=${tokenData.access_token}`
     )
     const llData = await llRes.json()
     const longLivedToken = llData.access_token || tokenData.access_token
@@ -84,7 +86,7 @@ export async function GET(request: Request) {
 
     if (!pagesData.data || pagesData.data.length === 0) {
       console.error('[facebook/callback] No pages found:', pagesData)
-      return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=no_pages`)
+      return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=no_pages`)
     }
 
     console.log('[facebook/callback] Found', pagesData.data.length, 'pages from /me/accounts')
@@ -148,9 +150,9 @@ export async function GET(request: Request) {
     }
 
     console.log('[facebook/callback] ✅ All connections saved')
-    return NextResponse.redirect(`${BASE_URL}/dashboard/publish?connected=facebook`)
+    return NextResponse.redirect(`${app.returnBase}/dashboard/publish?connected=facebook`)
   } catch (err) {
     console.error('[facebook/callback] Error:', err)
-    return NextResponse.redirect(`${BASE_URL}/dashboard/publish?error=server_error`)
+    return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=server_error`)
   }
 }
