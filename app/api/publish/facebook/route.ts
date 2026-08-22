@@ -79,12 +79,21 @@ export async function POST(request: Request) {
 
     for (const pageId of pageIds) {
       try {
-        // Hent page access token
-        const { data: conn, error } = await supabase
+        // Hent page access token. Flere brukere kan ha koblet SAMME side
+        // (én rad per bruker) — .single() på page_id alene ga PGRST116
+        // («3 rows») og dermed «Token not found» så fort side nummer to
+        // ble koblet av noen andre. Scope til brukeren når vi har den,
+        // og ta nyeste rad ellers.
+        let connQuery = supabase
           .from('social_connections')
           .select('*')
           .eq('page_id', pageId)
-          .single()
+          .eq('platform', 'facebook')
+        if (userId) connQuery = connQuery.eq('user_id', userId)
+        const { data: conn, error } = await connQuery
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
         if (error || !conn) {
           console.error('[publish/facebook] Failed to fetch token for page:', pageId, error)
