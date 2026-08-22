@@ -131,11 +131,16 @@ export async function GET(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Save each page connection
+    // Save each page connection. Tabellens unike nøkkel er
+    // (user_id, platform, page_id) — IKKE organization_id-varianten koden
+    // upsertet mot før 22/8: den kolliderte (23505) så fort samme bruker
+    // hadde koblet samme side fra en annen organisasjon, og feilen ble
+    // svelget stille mens brukeren fikk «connected». Reconnect flytter nå
+    // raden til organisasjonen brukeren står i.
+    let saved = 0
     for (const page of pagesData.data) {
       console.log('[facebook/callback] Saving page:', page.name)
-      console.log('[facebook/callback] Saving user_access_token starting with:', tokenData.access_token?.substring(0, 20))
-      await supabase.from('social_connections').upsert(
+      const { error: upsertError } = await supabase.from('social_connections').upsert(
         {
           user_id: userId,
           organization_id: orgId,
@@ -145,11 +150,21 @@ export async function GET(request: Request) {
           access_token: page.access_token,
           user_access_token: longLivedToken, // Long-lived token (60 days) for Instagram publishing
         },
-        { onConflict: 'organization_id,platform,page_id' }
+        { onConflict: 'user_id,platform,page_id' }
       )
+      if (upsertError) {
+        console.error('[facebook/callback] Upsert FAILED for page', page.id, page.name, upsertError)
+      } else {
+        saved++
+      }
     }
 
-    console.log('[facebook/callback] ✅ All connections saved')
+    if (saved === 0) {
+      console.error('[facebook/callback] ❌ No connections could be saved')
+      return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=save_failed`)
+    }
+
+    console.log(`[facebook/callback] ✅ ${saved}/${pagesData.data.length} connections saved`)
     return NextResponse.redirect(`${app.returnBase}/dashboard/publish?connected=facebook`)
   } catch (err) {
     console.error('[facebook/callback] Error:', err)
