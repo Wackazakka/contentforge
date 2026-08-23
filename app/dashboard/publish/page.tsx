@@ -872,7 +872,11 @@ function PublishPage() {
                 const igLinked = publishPlatform === 'instagram' ? igPageStatus[c.page_id] : undefined
                 const igChecked = publishPlatform === 'instagram' && igPageStatus[c.page_id] !== undefined
                 return (
-                  <label key={c.id} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${igChecked && !igLinked ? 'bg-red-50 opacity-60' : 'bg-gray-50 hover:bg-gray-100'}`}>
+                  // Sperret rad brukte bg-red-50. Bare graaskalaen er remappet
+                  // til tenant-tokener (se globals.css) — red-50 blir staaende
+                  // lys, og hos moerke tenanter forsvant sidenavnet i hvitt paa
+                  // nesten hvitt. Merket ved siden av sier allerede fra.
+                  <label key={c.id} className={`flex items-center gap-3 p-3 rounded-lg bg-gray-50 ${igChecked && !igLinked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'}`}>
                     <input
                       type="checkbox"
                       checked={selectedPages.includes(c.page_id)}
