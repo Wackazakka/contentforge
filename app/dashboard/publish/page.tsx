@@ -256,9 +256,9 @@ function PublishPage() {
     fetch('/api/publish/instagram/check-pages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pageIds: fbPageIds }),
+      body: JSON.stringify({ pageIds: fbPageIds, userId }),
     }).then((r) => r.json()).then((d) => { if (d.results) setIgPageStatus(d.results) })
-  }, [publishPlatform, connections])
+  }, [publishPlatform, connections, userId])
 
   const handleDisconnect = async (id: string) => {
     if (!confirm(t('disconnectConfirm'))) return

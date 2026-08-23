@@ -10,12 +10,19 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Re-fetch token from social_connections (never expose token to client)
-    const { data: conn } = await supabase
+    // Re-fetch token from social_connections (never expose token to client).
+    // Scope til brukeren: flere brukere kan ha koblet samme side, og
+    // .single() på page_id alene ga da PGRST116 → «Connection not found».
+    let connQuery = supabase
       .from('social_connections')
       .select('access_token, user_access_token, page_name')
       .eq('page_id', pageId)
-      .single()
+      .eq('platform', 'facebook')
+    if (userId) connQuery = connQuery.eq('user_id', userId)
+    const { data: conn } = await connQuery
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
     if (!conn) {
       return NextResponse.json({ status: 'failed', error: 'Connection not found' })

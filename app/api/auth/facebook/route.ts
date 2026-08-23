@@ -21,7 +21,10 @@ export async function GET(request: Request) {
     const params = new URLSearchParams({
       client_id: app.appId,
       redirect_uri: app.oauthRedirectUri,
-      scope: 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_content_publish',
+      // instagram_basic er PÅKREVD sammen med instagram_content_publish — både
+      // for å slå opp sidens IG-konto og som avhengighet i Metas App Review.
+      scope:
+        'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish',
       response_type: 'code',
       state: orgId ? `${userId}.${orgId}` : userId,
     })

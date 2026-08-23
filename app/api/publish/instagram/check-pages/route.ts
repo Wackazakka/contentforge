@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 // Returns which Facebook page_ids have an Instagram Business Account linked
 export async function POST(request: Request) {
   try {
-    const { pageIds } = await request.json()
+    const { pageIds, userId } = await request.json()
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,11 +14,19 @@ export async function POST(request: Request) {
     const results: Record<string, string | null> = {}
 
     for (const pageId of pageIds) {
-      const { data: conn } = await supabase
+      // Scope til brukeren: flere brukere kan ha koblet samme side, og
+      // .single() på page_id alene ga da PGRST116 → siden falt stille ut
+      // av IG-lista i UI-et.
+      let connQuery = supabase
         .from('social_connections')
         .select('access_token, user_access_token')
         .eq('page_id', pageId)
-        .single()
+        .eq('platform', 'facebook')
+      if (userId) connQuery = connQuery.eq('user_id', userId)
+      const { data: conn } = await connQuery
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
       if (!conn) { results[pageId] = null; continue }
 

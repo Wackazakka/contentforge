@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { hentbarMediaUrl } from '@/lib/r2Presign'
 
 export async function POST(request: Request) {
   try {
@@ -8,6 +9,12 @@ export async function POST(request: Request) {
     if (!videoUrl && !imageUrl) {
       return NextResponse.json({ error: 'videoUrl or imageUrl is required' }, { status: 400 })
     }
+
+    // URL-en Instagram henter mediet fra. Ligger fila på det ratebegrensede
+    // R2-dev-domenet, byttes den mot en presignert URL — ellers uendret.
+    // Lagrede URL-er røres ikke; IG laster ned fila én gang.
+    const hentbarVideo = videoUrl ? await hentbarMediaUrl(videoUrl) : videoUrl
+    const hentbarBilde = imageUrl ? await hentbarMediaUrl(imageUrl) : imageUrl
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,11 +27,20 @@ export async function POST(request: Request) {
       try {
         console.log('[publish/instagram] Processing page:', pageId)
 
-        const { data: conn } = await supabase
+        // Flere brukere kan ha koblet SAMME side (én rad per bruker), og da
+        // ga .single() på page_id alene PGRST116 → «Connection not found».
+        // Samme feil som lå i FB-ruta før 22/8. Scope til brukeren når vi
+        // har den, ellers nyeste rad.
+        let connQuery = supabase
           .from('social_connections')
           .select('access_token, user_access_token, page_name')
           .eq('page_id', pageId)
-          .single()
+          .eq('platform', 'facebook')
+        if (userId) connQuery = connQuery.eq('user_id', userId)
+        const { data: conn } = await connQuery
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
         if (!conn) {
           results.push({ pageId, success: false, error: 'Connection not found' })
@@ -56,8 +72,8 @@ export async function POST(request: Request) {
           // bildecontainere blir som regel FINISHED umiddelbart.
           body: JSON.stringify(
             imageUrl
-              ? { image_url: imageUrl, caption, access_token: tokenForIg }
-              : { media_type: 'REELS', video_url: videoUrl, caption, access_token: tokenForIg }
+              ? { image_url: hentbarBilde, caption, access_token: tokenForIg }
+              : { media_type: 'REELS', video_url: hentbarVideo, caption, access_token: tokenForIg }
           ),
         })
 
