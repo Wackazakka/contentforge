@@ -93,22 +93,50 @@ export default function PrivacyPage() {
         <p>To exercise these rights, contact us using the details below.</p>
       </section>
 
+      {/* Metas app-oppsett krever en EGEN datasletting-URL, og den nektes hvis
+          den er identisk med personvern-URL-en. Derfor peker appene hit med
+          #data-deletion. Ankeret maa finnes her — uten det ruller lenken
+          ingen steder, og en reviewer ser bare toppen av personvernsiden. */}
+      <section id="data-deletion">
+        <h2>8. Deleting Your Data</h2>
+        <p>
+          You can delete your account and all data associated with it at any
+          time. Deletion removes your profile, your uploaded material, the
+          content generated from it, and any connections you have made to
+          third-party services such as Facebook, Instagram, LinkedIn or TikTok.
+          Access tokens for those services are revoked and erased.
+        </p>
+        <p>
+          To request deletion, email us at{' '}
+          <a href="mailto:kilevold@gmail.com">kilevold@gmail.com</a> from the
+          address your account is registered with, with the subject
+          &laquo;Delete my account&raquo;. We complete deletion within 30 days
+          and confirm by email when it is done.
+        </p>
+        <p>
+          You may also remove our access from Facebook itself, under Settings
+          &amp; Privacy → Settings → Business Integrations. That revokes the
+          connection immediately; email us as well if you want the data we
+          already stored removed.
+        </p>
+      </section>
+
       <section>
-        <h2>8. Cookies</h2>
+        <h2>9. Cookies</h2>
         <p>
           CenterForge uses cookies only for login and session management. We do not use third-party tracking or advertising cookies.
         </p>
       </section>
 
       <section>
-        <h2>9. Changes to This Policy</h2>
+        <h2>10. Changes to This Policy</h2>
         <p>
           We reserve the right to update this privacy policy. Significant changes will be communicated by email.
         </p>
       </section>
 
       <section>
-        <h2>10. Contact</h2>
+        <h2>11. Contact</h2>
         <p>For privacy-related questions, contact:</p>
         <div className="cf-legal-contact">
           <p><strong>Abrakadabra Communication AS / CenterForge</strong></p>
