@@ -6,8 +6,8 @@ export default function PrivacyPage() {
       <div className="cf-legal-callout">
         <p>
           This privacy policy applies to <strong>CenterForge</strong> (also known as ContentForge),
-          a content publishing and scheduling platform developed and operated by <strong>Abrakadabra Communication AS</strong>
-          {' '}(org.nr. 976 842 790), based in Norway.
+          a content publishing and scheduling platform operated by <strong>Norditech AS</strong>
+          {' '}(org.nr. 937 759 487), based in Norway.
         </p>
         <p>
           CenterForge enables users to create, schedule, and publish content to social media platforms
@@ -139,7 +139,7 @@ export default function PrivacyPage() {
         <h2>11. Contact</h2>
         <p>For privacy-related questions, contact:</p>
         <div className="cf-legal-contact">
-          <p><strong>Abrakadabra Communication AS / CenterForge</strong></p>
+          <p><strong>Norditech AS / CenterForge</strong></p>
           <p>Email: <a href="mailto:kilevold@gmail.com">kilevold@gmail.com</a></p>
         </div>
       </section>

@@ -6,7 +6,7 @@ export default function TermsPage() {
       <div className="cf-legal-callout">
         <p>
           These Terms of Service apply to <strong>CenterForge</strong> (also known as ContentForge),
-          operated by <strong>Abrakadabra Communication AS</strong> (org.nr. 976 842 790), based in Norway.
+          operated by <strong>Norditech AS</strong> (org.nr. 937 759 487), based in Norway.
         </p>
       </div>
 
@@ -81,7 +81,7 @@ export default function TermsPage() {
       <section>
         <h2>9. Limitation of Liability</h2>
         <p>
-          CenterForge is provided &quot;as is&quot; without warranties of any kind. Abrakadabra Communication AS is not liable for losses arising from use of the service, including publishing errors, downtime, AI-generated content quality, or changes to third-party platform APIs.
+          CenterForge is provided &quot;as is&quot; without warranties of any kind. Norditech AS is not liable for losses arising from use of the service, including publishing errors, downtime, AI-generated content quality, or changes to third-party platform APIs.
         </p>
       </section>
 
@@ -102,7 +102,7 @@ export default function TermsPage() {
       <section>
         <h2>12. Contact</h2>
         <div className="cf-legal-contact">
-          <p><strong>Abrakadabra Communication AS / CenterForge</strong></p>
+          <p><strong>Norditech AS / CenterForge</strong></p>
           <p>Email: <a href="mailto:kilevold@gmail.com">kilevold@gmail.com</a></p>
         </div>
       </section>
