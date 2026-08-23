@@ -34,10 +34,24 @@ export async function getMetaApp(): Promise<MetaApp> {
     /* utenfor request-kontekst → standardapp */
   }
 
+  // ID og hemmelighet MÅ komme fra samme app — derfor alt-eller-intet på paret.
   const key = slug.toUpperCase().replace(/-/g, '_')
-  const appId = process.env[`META_APP_ID_${key}`]
-  const appSecret = process.env[`META_APP_SECRET_${key}`]
-  if (appId && appSecret && origin) {
+  const tenantAppId = process.env[`META_APP_ID_${key}`]
+  const tenantAppSecret = process.env[`META_APP_SECRET_${key}`]
+  const harEgenApp = Boolean(tenantAppId && tenantAppSecret)
+
+  const appId = harEgenApp ? tenantAppId! : process.env.META_APP_ID!
+  const appSecret = harEgenApp ? tenantAppSecret! : process.env.META_APP_SECRET!
+
+  // Standardappen er nå CenterForge (1948980362443505), og den har ALLE
+  // tenant-domenene i sin «Valid OAuth Redirect URIs». Derfor kan også
+  // standardgrenen kjøre flyten på tenantens eget domene.
+  // Før dette returnerte den hardkodet til contentforge-610: hver white-label
+  // uten egen app-nøkkel fullførte samtykket og landet på et fremmed domene
+  // uten sesjon — samme feil som stoppet IndigoBoom i august.
+  // ⚠️ Nytt tenant-domene må inn i appens allowlist hos Meta, ellers avviser
+  // Facebook dialogen med «URL blocked».
+  if (origin) {
     return {
       appId,
       appSecret,
@@ -46,9 +60,10 @@ export async function getMetaApp(): Promise<MetaApp> {
     }
   }
 
+  // Utenfor request-kontekst finnes ingen tenant å utlede domenet fra.
   return {
-    appId: process.env.META_APP_ID!,
-    appSecret: process.env.META_APP_SECRET!,
+    appId,
+    appSecret,
     oauthRedirectUri: process.env.META_REDIRECT_URI!,
     returnBase: LEGACY_RETURN_BASE,
   }
