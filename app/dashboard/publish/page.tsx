@@ -450,7 +450,7 @@ function PublishPage() {
             if (statusData.status === 'published') {
               setMessage(t('published'))
               setPublishResult(statusData)
-              setPublishSuccess('✅ Publisert nå på Instagram! Se publiseringshistorikken nederst.')
+              setPublishSuccess(t('publishedToInstagram'))
               break
             }
             if (statusData.status === 'failed') {
@@ -471,7 +471,7 @@ function PublishPage() {
         setPublishResult(data)
         setMessage(data.success ? t('published') : `❌ ${data.error}`)
         if (data.success) {
-          setPublishSuccess(`✅ Publisert nå til ${selectedPages.length} ${selectedPages.length === 1 ? 'kanal' : 'kanaler'}! Se publiseringshistorikken nederst.`)
+          setPublishSuccess(t('publishedToChannels', { count: selectedPages.length }))
         }
       }
 
@@ -641,7 +641,7 @@ function PublishPage() {
 
           {contentType === 'avatar' && avatarJobs.length > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-2">Velg avatar-video</label>
+              <label className="block text-sm font-medium mb-2">{t('selectAvatarVideo')}</label>
               <div className="grid grid-cols-2 gap-3">
                 {avatarJobs.map((j) => {
                   const videoUrl = `${process.env.NEXT_PUBLIC_R2_URL}/avatars/${j.id}/output.mp4`
@@ -889,7 +889,7 @@ function PublishPage() {
                     <span className="flex-1">{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : c.platform === 'x' ? '𝕏' : c.platform === 'reddit' ? '🤖' : c.platform === 'youtube' ? '▶' : '📷'} {c.page_name}</span>
                     {igChecked && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={igLinked ? { backgroundColor: '#EAF3DE', color: '#3F7A4E' } : { backgroundColor: '#fef2f2', color: '#ef4444' }}>
-                        {igLinked ? '✓ Instagram koblet' : '✗ Ingen Instagram'}
+                        {igLinked ? t('instagramLinked') : t('instagramMissing')}
                       </span>
                     )}
                   </label>
@@ -919,16 +919,16 @@ function PublishPage() {
                       className="mt-1 h-4 w-4"
                     />
                     <div>
-                      <div className="text-sm font-medium text-gray-900">🎬 Publiser som Reel</div>
+                      <div className="text-sm font-medium text-gray-900">{t('publishAsReel')}</div>
                       <div className="text-xs text-gray-500 mt-0.5">
-                        Anbefalt for høydeformat (9:16) — Reels får mer organisk rekkevidde enn vanlige videoinnlegg. Skru av for å poste som vanlig video.
+                        {t('publishAsReelHint')}
                       </div>
                     </div>
                   </label>
                 )}
                 {publishMode === 'schedule' && (
                   <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Velg dato og klokkeslett</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('selectDateTime')}</label>
                     <input
                       ref={scheduleInputRef}
                       type="datetime-local"
@@ -958,7 +958,7 @@ function PublishPage() {
                 )}
                 {scheduleSuccess ? (
                   <p className="text-sm mt-2 text-center font-medium" style={{ color: '#3F7A4E' }}>
-                    {scheduleSuccess}. Velg et nytt tidspunkt for å planlegge en til.
+                    {scheduleSuccess}. {t('scheduleAnother')}
                   </p>
                 ) : publishSuccess ? (
                   <p className="text-sm mt-2 text-center font-medium" style={{ color: '#3F7A4E' }}>

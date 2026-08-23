@@ -338,7 +338,16 @@
     "errorSelectPublish": "❌ Velg innhold, sider og skriv en bildetekst",
     "selected": "✔ Valgt",
     "unnamed": "Uten navn",
-    "connectYouTube": "Koble til YouTube"
+    "connectYouTube": "Koble til YouTube",
+    "publishAsReel": "🎬 Publiser som Reel",
+    "publishAsReelHint": "Anbefalt for høydeformat (9:16) — Reels får mer organisk rekkevidde enn vanlige videoinnlegg. Skru av for å poste som vanlig video.",
+    "publishedToInstagram": "✅ Publisert nå på Instagram! Se publiseringshistorikken nederst.",
+    "publishedToChannels": "✅ Publisert nå til {count, plural, one {# kanal} other {# kanaler}}! Se publiseringshistorikken nederst.",
+    "instagramLinked": "✓ Instagram koblet",
+    "instagramMissing": "✗ Ingen Instagram",
+    "selectAvatarVideo": "Velg avatar-video",
+    "selectDateTime": "Velg dato og klokkeslett",
+    "scheduleAnother": "Velg et nytt tidspunkt for å planlegge en til."
   },
   "product": {
     "loading": "Laster produkt...",

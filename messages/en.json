@@ -338,7 +338,16 @@
     "errorSelectPublish": "❌ Select content, pages and write a caption",
     "selected": "✔ Selected",
     "unnamed": "Unnamed",
-    "connectYouTube": "Connect YouTube"
+    "connectYouTube": "Connect YouTube",
+    "publishAsReel": "🎬 Publish as Reel",
+    "publishAsReelHint": "Recommended for vertical video (9:16) — Reels get more organic reach than ordinary video posts. Turn it off to post as a regular video.",
+    "publishedToInstagram": "✅ Published to Instagram. See the publishing history below.",
+    "publishedToChannels": "✅ Published to {count, plural, one {# channel} other {# channels}}. See the publishing history below.",
+    "instagramLinked": "✓ Instagram linked",
+    "instagramMissing": "✗ No Instagram",
+    "selectAvatarVideo": "Select avatar video",
+    "selectDateTime": "Select date and time",
+    "scheduleAnother": "Select a new time to schedule another one."
   },
   "product": {
     "loading": "Loading product...",
