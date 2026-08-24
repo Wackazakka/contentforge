@@ -347,7 +347,12 @@
     "instagramMissing": "✗ Ingen Instagram",
     "selectAvatarVideo": "Velg avatar-video",
     "selectDateTime": "Velg dato og klokkeslett",
-    "scheduleAnother": "Velg et nytt tidspunkt for å planlegge en til."
+    "scheduleAnother": "Velg et nytt tidspunkt for å planlegge en til.",
+    "optional": "valgfritt",
+    "needPage": "velg minst én side å publisere til",
+    "needTime": "velg tidspunkt",
+    "toSchedule": "For å planlegge",
+    "toPublish": "For å publisere"
   },
   "product": {
     "loading": "Laster produkt...",

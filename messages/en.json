@@ -347,7 +347,12 @@
     "instagramMissing": "✗ No Instagram",
     "selectAvatarVideo": "Select avatar video",
     "selectDateTime": "Select date and time",
-    "scheduleAnother": "Select a new time to schedule another one."
+    "scheduleAnother": "Select a new time to schedule another one.",
+    "optional": "optional",
+    "needPage": "select at least one Page to publish to",
+    "needTime": "choose a time",
+    "toSchedule": "To schedule",
+    "toPublish": "To publish"
   },
   "product": {
     "loading": "Loading product...",

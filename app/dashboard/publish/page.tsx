@@ -743,7 +743,7 @@ function PublishPage() {
               så vi hverken viser feltet eller krever det. */}
           {contentType !== 'article' && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('captionLabel')} <span className="text-gray-400 font-normal">(valgfritt)</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('captionLabel')} <span className="text-gray-400 font-normal">({t('optional')})</span></label>
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
@@ -905,8 +905,8 @@ function PublishPage() {
         <div className="mb-6">
           {(() => {
             const missing: string[] = []
-            if (selectedPages.length === 0) missing.push('velg minst én side å publisere til')
-            if (publishMode === 'schedule' && !scheduledAt) missing.push('velg tidspunkt')
+            if (selectedPages.length === 0) missing.push(t('needPage'))
+            if (publishMode === 'schedule' && !scheduledAt) missing.push(t('needTime'))
             const ready = missing.length === 0
             return (
               <>
@@ -966,7 +966,7 @@ function PublishPage() {
                   </p>
                 ) : !ready ? (
                   <p className="text-sm text-gray-500 mt-2 text-center">
-                    {publishMode === 'schedule' ? 'For å planlegge' : 'For å publisere'}: {missing.join(', ')}.
+                    {publishMode === 'schedule' ? t('toSchedule') : t('toPublish')}: {missing.join(', ')}.
                   </p>
                 ) : null}
               </>
