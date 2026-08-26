@@ -331,6 +331,7 @@
     "connectReddit": "Connect Reddit",
     "publishingHistory": "Publishing history",
     "published": "✅ Published",
+    "disconnect": "Disconnect",
     "disconnectConfirm": "Are you sure you want to disconnect this account?",
     "subredditLabel": "Subreddit",
     "errorSelectContent": "❌ Select content, pages, write a caption and choose a time",

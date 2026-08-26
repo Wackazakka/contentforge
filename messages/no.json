@@ -331,6 +331,7 @@
     "connectReddit": "Koble til Reddit",
     "publishingHistory": "Publiseringshistorikk",
     "published": "✅ Publisert",
+    "disconnect": "Koble fra",
     "disconnectConfirm": "Er du sikker på at du vil koble fra denne kontoen?",
     "subredditLabel": "Subreddit",
     "errorSelectContent": "❌ Velg innhold, sider, skriv en bildetekst og velg et tidspunkt",
