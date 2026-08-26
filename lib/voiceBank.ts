@@ -120,6 +120,18 @@ export const PREVIEW_ROYALTY_PER_1000 = { actor: 0.35, customer: 0.7 }
 // ERSTATTER to-sats-marginmodellen (fee_direct/indirect ligger sovende).
 export const PLATFORM_RIGHTS_FEE_PCT = 3
 
+// ABONNEMENTSDEKNING (Lars 2026-08-06): en proff-klone ligger på skuespillerens
+// EGEN ElevenLabs-konto, og kontoen må etter alt å dømme bli værende på Creator
+// for at delingen til oss skal fortsette å virke. VoiceBank dekker det sentralt
+// for ALLE skuespillere — også partnernes — fordi konsekvensen av en glemt
+// fornyelse ikke er en ubetalt faktura, men produksjonsstans hos en kunde.
+// Fast i KRONER, ikke dollar: $22 ≈ 220 kr, justeres årlig i stedet for at noen
+// skal følge valutakursen hver måned. Partnere faktureres en forvaltningsavgift
+// per aktiv skuespiller (avtaleforhold, ikke gjennomstrømming).
+// ⚠️ Dette er en kostnad UTEN inntekt bak — en skuespiller som aldri blir valgt
+// koster 2 640 kr i året. Derfor er summen synlig i stemmebank-adminen.
+export const ACTOR_SUBSCRIPTION_NOK = 220
+
 // Aktivum-modellen (2026-07-29): én bankrad = én forvaltningsavtale — stemme,
 // ansikt eller begge. Avledes, ingen egen kolonne.
 export function actorHasVoice(a: { elevenlabs_voice_id?: string | null }): boolean {

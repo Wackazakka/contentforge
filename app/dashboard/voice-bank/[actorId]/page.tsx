@@ -24,6 +24,7 @@ interface ActorDetail {
   sample_urls: string[]
   actor_email: string | null
   library_enabled: boolean
+  subscription_covered: boolean
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
   created_at: string
@@ -57,6 +58,7 @@ export default function VoiceActorPage() {
   const [editBio, setEditBio] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editVoiceId, setEditVoiceId] = useState('')
+  const [editSubsCovered, setEditSubsCovered] = useState(false)
   const [customers, setCustomers] = useState<Array<{ id: string; name: string; mode: string; timeoutHours: number }>>([])
   const [apprBusy, setApprBusy] = useState<string | null>(null)
   const [earnings, setEarnings] = useState<Array<{ id: number; source: string; period: string; gross_nok: number; note: string | null }>>([])
@@ -102,6 +104,7 @@ export default function VoiceActorPage() {
       setEditBio(data.actor.bio || '')
       setEditEmail(data.actor.actor_email || '')
       setEditVoiceId(data.actor.elevenlabs_voice_id || '')
+      setEditSubsCovered(!!data.actor.subscription_covered)
       try {
         const { data: sess2 } = await getSupabase().auth.getSession()
         const t2 = sess2?.session?.access_token
@@ -148,7 +151,7 @@ export default function VoiceActorPage() {
     try {
       const res = await authedFetch({
         method: 'PATCH',
-        body: JSON.stringify({ actorId, actorRateNok: Number(editRate), customerPriceNok: Number(editPrice), rates, faceCharacterId: editFaceId.trim(), actorEmail: editEmail.trim(), elevenlabsVoiceId: editVoiceId.trim() }),
+        body: JSON.stringify({ actorId, actorRateNok: Number(editRate), customerPriceNok: Number(editPrice), rates, faceCharacterId: editFaceId.trim(), actorEmail: editEmail.trim(), elevenlabsVoiceId: editVoiceId.trim(), subscriptionCovered: editSubsCovered }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Lagring feilet')
@@ -441,6 +444,19 @@ export default function VoiceActorPage() {
               <p className="text-xs text-gray-400 mb-2">Lim inn karakter-id-en fra karaktertreningen hvis skuespilleren også har lisensiert ansiktet sitt (Flux LoRA). Produksjoner som bruker karakteren logges da med «Ansikt»-taksten over — eller standardsatsene hvis den står tom.</p>
               <input value={editFaceId} onChange={(e) => setEditFaceId(e.target.value)} placeholder="Karakter-id (tom = ingen ansiktslisens)"
                 className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono mb-4" />
+
+              <label className="flex items-start gap-2 mb-4 max-w-md text-sm text-gray-700">
+                <input type="checkbox" checked={editSubsCovered} onChange={(e) => setEditSubsCovered(e.target.checked)} className="mt-0.5" />
+                <span>
+                  Vi dekker ElevenLabs-abonnementet
+                  <span className="block text-xs text-gray-400 mt-0.5">
+                    Klonen ligger på skuespillerens egen konto, som må stå på Creator for at
+                    delingen til oss skal virke. Kryss av her, så tas 220 kr/mnd med i de faste
+                    kostnadene i stemmebankoversikten. Påløper uansett bruk — utbetales manuelt
+                    ved månedsavregningen.
+                  </span>
+                </span>
+              </label>
 
               {saveMsg && (
                 <div className={`mb-3 p-3 rounded-lg text-sm ${saveMsg === 'Takstene er lagret.' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
