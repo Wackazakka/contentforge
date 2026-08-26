@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
-import { isTenantAdmin, PLATFORM_RIGHTS_FEE_PCT } from '@/lib/voiceBank'
+import { isTenantAdmin, PLATFORM_RIGHTS_FEE_PCT, ACTOR_SUBSCRIPTION_NOK } from '@/lib/voiceBank'
 
 function admin() {
   return createClient(
@@ -161,12 +161,20 @@ export async function GET(request: Request) {
     const fees = await getFees(tenant.id)
     const monthEvents = events.filter((e) => new Date(e.created_at) >= monthStart)
 
+    // Faste kostnader: skuespillere vi dekker ElevenLabs-abonnementet for.
+    // Påløper uansett bruk — derfor synlig ved siden av månedstallene og ikke
+    // gjemt i en kolonne. Konstanten bor server-side (lib/voiceBank importerer
+    // service-nøkkelen og skal aldri i klientbundelen).
+    const subscriptionCount = (actors || []).filter((a) => a.subscription_covered).length
+
     return NextResponse.json({
       tenant: { id: tenant.id, name: tenant.app_name },
       actors: actors || [],
       events,
       monthly,
       fees,
+      subscriptionCount,
+      subscriptionNok: subscriptionCount * ACTOR_SUBSCRIPTION_NOK,
       ...(() => { const f = feeForEvents(monthEvents as any, tenant.id, fees); return { monthInfraNok: f.infraNok, monthLicenseNok: f.licenseNok, monthFeeNok: Math.round((f.infraNok + f.licenseNok) * 100) / 100 } })(),
     })
   } catch (err: any) {
@@ -299,6 +307,7 @@ export async function PATCH(request: Request) {
       if (!(v >= 0)) return NextResponse.json({ error: 'Ugyldig kundepris' }, { status: 400 })
       patch.customer_price_nok = v
     }
+    if (typeof body.subscriptionCovered === 'boolean') patch.subscription_covered = body.subscriptionCovered
     if (typeof body.libraryEnabled === 'boolean') patch.library_enabled = body.libraryEnabled
     if (body.librarySharePct !== undefined) {
       const v = Number(body.librarySharePct)

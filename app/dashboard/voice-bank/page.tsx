@@ -62,6 +62,9 @@ export default function VoiceBankAdminPage() {
   const [fees, setFees] = useState<{ infraPct: number; licensePct: number; licenseTo: string | null } | null>(null)
   const [monthInfraNok, setMonthInfraNok] = useState(0)
   const [monthLicenseNok, setMonthLicenseNok] = useState(0)
+  // Faste kostnader: abonnementene vi dekker. Regnes server-side.
+  const [subsCount, setSubsCount] = useState(0)
+  const [subsNok, setSubsNok] = useState(0)
   const [applications, setApplications] = useState<VoiceApplication[]>([])
   const [acceptApps, setAcceptApps] = useState(false)
   const [appsMigrated, setAppsMigrated] = useState(true)
@@ -108,6 +111,8 @@ export default function VoiceBankAdminPage() {
       setFees(data.fees || null)
       setMonthInfraNok(Number(data.monthInfraNok) || 0)
       setMonthLicenseNok(Number(data.monthLicenseNok) || 0)
+      setSubsCount(Number(data.subscriptionCount) || 0)
+      setSubsNok(Number(data.subscriptionNok) || 0)
       try {
         const { data: sess } = await getSupabase().auth.getSession()
         const token = sess?.session?.access_token
@@ -260,6 +265,8 @@ export default function VoiceBankAdminPage() {
                 ...(fees ? [{ label: `Infrastrukturavgift (${fees.infraPct} %)`, value: nok(monthInfraNok) }] : []),
                 ...(fees?.licenseTo ? [{ label: `Lisensavgift til ${fees.licenseTo} (${fees.licensePct} %)`, value: nok(monthLicenseNok) }] : []),
                 { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.cut - monthInfraNok - monthLicenseNok) },
+                // Påløper uansett bruk — derfor egen rute, ikke trukket fra «vår andel».
+                ...(subsCount > 0 ? [{ label: `Faste kostnader (${subsCount} abonnement)`, value: `− ${nok(subsNok)}` }] : []),
               ].map((c) => (
                 <div key={c.label} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4">
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>
