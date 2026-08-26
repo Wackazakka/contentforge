@@ -283,6 +283,34 @@ export async function POST(request: NextRequest) {
       console.error('[generateImage] asset_banks insert failed:', dbErr)
     }
 
+    // Stemmebank: ansikts-royalty når bildet er laget med en registrert
+    // rettighetshavers LoRA-ansikt. Uten dette kunne en kunde lage
+    // artikkelbilder og annonsemateriell med en skuespillers ansikt uten at det
+    // ble registrert noe sted — video-veien (start-production) og gateway-veien
+    // (gateway/v1/image) logget allerede, denne ikke. viaBank-sjekken i
+    // resolveCharacter avgjorde bare TILGANG, ikke oppgjør.
+    // logFaceUsage returnerer stille hvis karakteren ikke tilhører en
+    // skuespillerrad, så Norditechs egne figurer gir ingen rader.
+    // NB: awaites bevisst — et uavventet løfte kan bli avlivet når svaret
+    // returneres, og da forsvinner royalty-raden stille.
+    if (character) {
+      try {
+        const { getProductTenant } = await import('@/lib/tenantBilling')
+        const { logFaceUsage } = await import('@/lib/voiceBank')
+        const pt = await getProductTenant(productId)
+        if (pt.tenantId) {
+          await logFaceUsage({
+            characterId: character,
+            usedByTenantId: pt.tenantId,
+            productId,
+            draftId: draftId || null,
+          })
+        }
+      } catch (royErr) {
+        console.warn('[generateImage] ansikts-royalty feilet (ignoreres):', royErr)
+      }
+    }
+
     // Update any provided articleIds
     if (articleIds && articleIds.length > 0) {
       const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
