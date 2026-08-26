@@ -181,13 +181,16 @@ export async function POST(request: Request) {
         const { logVoiceUsage, logFaceUsage } = await import('@/lib/voiceBank')
         const pt2 = await gpt2(draftProductId)
         const { data: d3 } = await supabase.from('production_drafts').select('voice_id, character_id').eq('id', draftId).single()
+        // awaites: et uavventet lofte kan bli avlivet naar svaret returneres,
+        // og royalty-raden forsvinner da uten feilmelding. Begge funksjonene
+        // feiler stille internt, saa ventingen koster oss ingenting.
         if (pt2.tenantId && d3?.voice_id) {
-          logVoiceUsage({ elevenlabsVoiceId: d3.voice_id, usedByTenantId: pt2.tenantId, productId: draftProductId, draftId, jobId, meta: { kind: 'video' } })
+          await logVoiceUsage({ elevenlabsVoiceId: d3.voice_id, usedByTenantId: pt2.tenantId, productId: draftProductId, draftId, jobId, meta: { kind: 'video' } })
         }
         // Karakteren kommer fra body i gratis-stien og fra draft-kolonnen i betalings-stien
         const charId = character || d3?.character_id
         if (pt2.tenantId && charId) {
-          logFaceUsage({ characterId: charId, usedByTenantId: pt2.tenantId, productId: draftProductId, draftId, jobId })
+          await logFaceUsage({ characterId: charId, usedByTenantId: pt2.tenantId, productId: draftProductId, draftId, jobId })
         }
       }
     } catch { /* måling velter aldri produksjon */ }
