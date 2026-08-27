@@ -56,6 +56,28 @@ export async function POST(request: Request) {
       .single()
     if (error) return NextResponse.json({ error: 'DB-feil: ' + error.message }, { status: 500 })
 
+    // Maaling: treningen kjoerer paa VAAR fal-noekkel (~20 kr raakost) og var
+    // UMAALT — gratis GPU per klikk, usynlig i alle regnskap. Foeres naa som
+    // usage_event paa brukerens organisasjon (karakterer har ikke produkt).
+    // awaites; feiler stille inne i logUsageEvent og velter aldri treningen.
+    try {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('owner_id', u.user.id)
+        .eq('tenant_id', tenant.id)
+        .maybeSingle()
+      const { logUsageEvent } = await import('@/lib/tenantBilling')
+      const { COSTS_NOK } = await import('@/lib/costs')
+      await logUsageEvent({
+        organizationId: org?.id ?? null,
+        userId: u.user.id,
+        eventType: 'character_training',
+        costNok: COSTS_NOK.characterTraining,
+        meta: { characterId: data.id, name: name.trim() },
+      })
+    } catch { /* maaling velter aldri trening */ }
+
     return NextResponse.json({ ok: true, character: data })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

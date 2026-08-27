@@ -10,6 +10,9 @@ export const COSTS_NOK = {
   // VEED Fabric 1.0 (lip-sync): $0,15/sek 720p → ~3 kr/sek inkl. påslag.
   lipsyncPerSec: 3,
   lipsyncTypical: 18, // typisk snakke-segment ~6 sek
+  // fal flux-lora-portrait-trainer: ~$2 per kjøring → ~20 kr råkost.
+  // Var UMÅLT frem til 27/8 — hver trening brant ekte GPU-penger usynlig.
+  characterTraining: 40,
 }
 
 export function fmtNok(n: number): string {
