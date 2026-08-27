@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 
-// Standard Ropert — Standard Festfabrikks white-label av Studio.
+// Standard Ropert — Standard Festmagasins white-label av Studio.
 // Kundene er folk og bedrifter med noe aa feire: invitasjoner, gratulasjoner
 // og kunngjoeringer. En ropert er en megafon — navnet baerer hele ideen, og
 // heroen spiller paa det. KUN produksjon (twinledger_enabled=false paa raden);
@@ -49,7 +49,7 @@ export default function StandardRopertLanding() {
           Standard <span style={{ color: ROD }}>Ropert</span>
         </span>
         <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: DEMPET }}>
-          fra Standard Festfabrikk
+          fra Standard Festmagasin
         </span>
         <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 18 }}>
           <a href="#slik" style={{ color: DEMPET, fontSize: 15, textDecoration: 'none' }}>Slik virker det</a>
@@ -123,7 +123,7 @@ export default function StandardRopertLanding() {
       <hr className="sr-rule" />
 
       <footer className="sr-band" style={{ paddingTop: 28, paddingBottom: 52, display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 13.5, color: DEMPET }}>Standard Ropert — fra Standard Festfabrikk</span>
+        <span style={{ fontSize: 13.5, color: DEMPET }}>Standard Ropert — fra Standard Festmagasin</span>
         <Link href="/login" style={{ color: DEMPET, fontSize: 14, textDecoration: 'none' }}>Logg inn</Link>
       </footer>
     </div>
