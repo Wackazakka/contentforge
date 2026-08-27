@@ -9,5 +9,8 @@
     "step2Title": "Få det laget",
     "step2Desc": "Video, bilder og tekst — du ser og godkjenner alt før det sendes ut.",
     "step3Desc": "Del rett til Facebook og Instagram fra {name}, eller last ned og send selv."
+  },
+  "register": {
+    "subtitle": "Lag invitasjoner, gratulasjoner og kunngjøringer på minutter."
   }
 }
