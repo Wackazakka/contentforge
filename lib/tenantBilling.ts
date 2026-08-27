@@ -143,6 +143,10 @@ export async function logUsageEvent(e: {
   productId?: string | null
   draftId?: string | null
   userId?: string | null
+  // Direkte org-kobling for hendelser UTEN produkt (f.eks. karaktertrening —
+  // karakterer eies av brukeren/tenanten, ikke av et produkt). Brukes bare
+  // når productId/draftId mangler.
+  organizationId?: string | null
   eventType: string
   costNok: number
   meta?: Record<string, unknown>
@@ -153,9 +157,20 @@ export async function logUsageEvent(e: {
       const { data: draft } = await admin().from('production_drafts').select('product_id').eq('id', e.draftId).single()
       productId = draft?.product_id ?? null
     }
-    if (!productId) return
-    e = { ...e, productId }
-    const pt = await getProductTenant(productId)
+    let pt: ProductTenant
+    if (productId) {
+      e = { ...e, productId }
+      pt = await getProductTenant(productId)
+    } else if (e.organizationId) {
+      // Samme oppslag som getProductTenant, minus produkt-leddet
+      const { data: org } = await admin().from('organizations').select('id, owner_id, tenant_id').eq('id', e.organizationId).single()
+      const { data: t } = org?.tenant_id
+        ? await admin().from('tenants').select('id, billing_mode').eq('id', org.tenant_id).single()
+        : { data: null }
+      pt = { tenantId: t?.id ?? null, billingMode: (t?.billing_mode as 'direct' | 'invoice') || 'direct', organizationId: org?.id ?? null, ownerId: org?.owner_id ?? null }
+    } else {
+      return
+    }
     if (!pt.tenantId) return // ingen tenant-kobling (eldre data) → hopp over
     const supabase = admin()
     // ContentForges engrospris = COSTS_NOK: råkost + vårt eget påslag (Lars 1/8:
@@ -179,7 +194,7 @@ export async function logUsageEvent(e: {
       tenant_id: pt.tenantId,
       organization_id: pt.organizationId,
       user_id: e.userId ?? pt.ownerId,
-      product_id: e.productId,
+      product_id: e.productId ?? null,
       draft_id: e.draftId ?? null,
       event_type: e.eventType,
       cost_nok: costNok,
