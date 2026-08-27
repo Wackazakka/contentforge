@@ -202,16 +202,20 @@ export default function VoiceBankLanding() {
 
       {/* For rettighetshavere — rekrutteringssiden */}
       <section className="vb-band" style={{ paddingTop: 72, paddingBottom: 72 }}>
-        <p className="vb-eyebrow" style={{ margin: '0 0 12px' }}>For skuespillere og stemmeeiere</p>
-        <h2 className="vb-h2">Du eier stemmen din. Også den digitale.</h2>
+        <p className="vb-eyebrow" style={{ margin: '0 0 12px' }}>For skuespillere og rettighetshavere</p>
+        <h2 className="vb-h2">Du eier stemmen din. Og ansiktet ditt.</h2>
+        <p className="vb-p">
+          Det samme gjelder begge: stemmen som klones, og ansiktet som blir en digital
+          karakter. Én avtale, én kontoutskrift, samme kontroll.
+        </p>
         <div className="vb-grid3" style={{ marginTop: 26 }}>
           <div className="vb-kort">
             <h3>Klonen er din</h3>
-            <p>Den ligger på din egen konto, ikke vår. Vi har bruksrett — du har eierskapet.</p>
+            <p>Stemmeklonen ligger på din egen konto, ikke vår. Vi har bruksrett — du har eierskapet.</p>
           </div>
           <div className="vb-kort">
             <h3>Du ser hver bruk</h3>
-            <p>Kontoutskrift med hva stemmen er brukt til, når, og hva du har til gode.</p>
+            <p>Kontoutskrift med hva stemmen eller ansiktet er brukt til, når, og hva du har til gode.</p>
           </div>
           <div className="vb-kort">
             <h3>Du kan trekke deg</h3>
