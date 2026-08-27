@@ -243,7 +243,7 @@ export default function VoiceBankAdminPage() {
         <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Tilbake</Link>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🎙️ Stemmebank</h1>
         <p className="text-gray-600 mb-8">
-          {tenantName ? `Skuespillerstemmene til ${tenantName}` : 'Skuespillerstemmer'} — satser, bruk og hva som skal betales ut.
+          {tenantName ? `Skuespillernes stemmer og ansikter hos ${tenantName}` : 'Skuespillernes stemmer og ansikter'} — satser, bruk og hva som skal betales ut.
           Kvantumsrabatter og eventuelle andeler regnes ved månedsavregningen, ikke her.
         </p>
 
