@@ -7,6 +7,7 @@ import { CenterForgeMark, CenterForgeLogo } from '@/components/CenterForgeLogo'
 import BombazaLanding from '@/components/BombazaLanding'
 import BadeOgLanding from '@/components/BadeOgLanding'
 import VoiceBankLanding from '@/components/VoiceBankLanding'
+import StandardRopertLanding from '@/components/StandardRopertLanding'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
 
@@ -61,6 +62,10 @@ export default function Home() {
   // VoiceBank: rettighetsforvaltning i front. Malgruppen er BYRAER som skal
   // lisensiere plattformen, ikke sluttkunder — de ser byraets merke, ikke dette.
   if (tenant.slug === 'voicebank') return <VoiceBankLanding />
+  // Standard Ropert: Standard Festfabrikks white-label av Studio — invitasjoner,
+  // gratulasjoner og kunngjoeringer. Kun produksjon; stemmebanken er skjult
+  // via twinledger_enabled=false paa tenant-raden.
+  if (tenant.slug === 'standardropert') return <StandardRopertLanding />
 
   return (
     <div
