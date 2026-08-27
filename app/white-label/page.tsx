@@ -5,9 +5,20 @@ import Link from 'next/link'
 import { useTenant } from '@/lib/tenantContext'
 import { produktnavn } from '@/lib/tenantNames'
 
-// Åpen white-label-søknad: hele plattformen under eget navn og domene.
-// Skjemaet virker på alle tenant-domener — søknaden merkes med merkevaren
-// den kom via (en søknad hos en partner er partnerens lead).
+// Åpen white-label-søknad. To produkter kan lisensieres — innholdsproduksjon
+// og stemme-/rettighetsforvaltning — og interessefeltet skiller dem, saa
+// oppfoelgingen kan starte i riktig samtale. Interne produktnavn
+// (CenterForge/TwinLedger) nevnes bevisst IKKE: dette er partnerens fremtidige
+// white-label, ikke vaar katalog. Skjemaet virker paa alle tenant-domener —
+// soeknaden merkes med merkevaren den kom via (en soeknad hos en partner er
+// partnerens lead). Interessevalget prependes i message-feltet, saa API og DB
+// er uendret.
+
+const INTERESSER = [
+  { id: 'produksjon' as const, label: 'Innholdsproduksjon', hint: 'Video, artikler og publisering under eget merke' },
+  { id: 'rettigheter' as const, label: 'Stemme- og rettighetsforvaltning', hint: 'Forvalte stemmer og ansikter med hovedbok og oppgjør' },
+  { id: 'begge' as const, label: 'Begge deler', hint: 'Hele plattformen' },
+]
 
 export default function WhiteLabelPage() {
   const tenant = useTenant()
@@ -16,6 +27,7 @@ export default function WhiteLabelPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
+  const [interest, setInterest] = useState<'produksjon' | 'rettigheter' | 'begge'>('begge')
   const [website, setWebsite] = useState('') // honeypot
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
@@ -29,7 +41,7 @@ export default function WhiteLabelPage() {
       const res = await fetch('/api/whitelabel-apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company, contactName, email, phone, message, website }),
+        body: JSON.stringify({ company, contactName, email, phone, message: `[Interesse: ${INTERESSER.find((i) => i.id === interest)?.label}] ${message}`, website }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Noe gikk galt')
@@ -47,8 +59,12 @@ export default function WhiteLabelPage() {
         <Link href="/" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-6 inline-block">← {produktnavn(tenant)}</Link>
         <h1 className="text-3xl font-bold text-gray-900 mb-3">Bli white-label-partner</h1>
         <p className="text-gray-600 mb-8">
-          Tilby hele plattformen under deres eget navn, med egne farger og eget domene — til deres kunder,
-          med deres priser. Fortell oss kort hvem dere er, så tar vi kontakt.
+          Plattformen har to deler som kan tilbys under deres eget navn, med egne farger og eget
+          domene: <strong className="text-gray-800">innholdsproduksjon</strong> — video, artikler og
+          publisering for deres kunder — og <strong className="text-gray-800">stemme- og
+          rettighetsforvaltning</strong>, der hver bruk av en stemme eller et ansikt føres og gjøres
+          opp mot rettighetshaveren. Dere velger den ene eller begge, og setter deres egne priser.
+          Fortell oss kort hvem dere er, så tar vi kontakt.
         </p>
 
         {sent ? (
@@ -79,9 +95,19 @@ export default function WhiteLabelPage() {
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
 
+            <label className="block text-sm font-medium text-gray-700 mb-2">Hva er dere interessert i?</label>
+            <div className="flex flex-col gap-2 mb-4">
+              {INTERESSER.map((o) => (
+                <label key={o.id} className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input type="radio" name="interesse" checked={interest === o.id} onChange={() => setInterest(o.id)} className="mt-0.5" />
+                  <span><span className="font-medium">{o.label}</span><span className="block text-xs text-gray-400">{o.hint}</span></span>
+                </label>
+              ))}
+            </div>
+
             <label className="block text-sm font-medium text-gray-700 mb-1">Hva slags kunder skal dere tilby dette til?</label>
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4}
-              placeholder="F.eks. bransje, antall kunder, hva slags innhold de lager …"
+              placeholder="F.eks. bransje, antall kunder, hva dere vil tilby dem …"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
 
             {/* honeypot — skjult for mennesker */}

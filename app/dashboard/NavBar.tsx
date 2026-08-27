@@ -54,6 +54,20 @@ export default function NavBar() {
       : []),
   ]
 
+  // Rights-vertikalen (VoiceBank): rettighetsforvaltningen ER hovedforretningen,
+  // saa Stemmebank og Avregning loeftes fremst for admins. Ren omstokking av
+  // allerede-bygde elementer — definisjonene over eies fortsatt ett sted, og
+  // aktiv-markeringen er href-basert og upaavirket. Ikke-admins (byraaets
+  // kunder) og alle andre tenanter beholder produksjonsrekkefoelgen.
+  if (tenant.vertical === 'rights' && voiceBankAdmin) {
+    const foerst = ['/dashboard/voice-bank', '/dashboard/avregning']
+    navLinks.sort((a, b) => {
+      const ia = foerst.indexOf(a.href); const ib = foerst.indexOf(b.href)
+      if (ia !== -1 || ib !== -1) return (ia === -1 ? foerst.length : ia) - (ib === -1 ? foerst.length : ib)
+      return 0 // stabil sort bevarer resten av rekkefoelgen
+    })
+  }
+
   // Stemmebank-lenken vises kun for tenant-admins (avgjøres server-side)
   useEffect(() => {
     const token = session?.access_token

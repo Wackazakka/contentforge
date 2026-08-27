@@ -152,6 +152,11 @@ export default function DashboardPage() {
             under — to like knapper med et par centimeter mellom seg (Lars 3/8).
             Kortets knapp er den tydeligste, saa denne viker til det finnes noe
             aa se paa. */}
+        {products.length > 0 && tenant.vertical === 'rights' && (
+          <Link href="/dashboard/voice-bank" style={{ fontFamily: HANKEN, fontWeight: 600, fontSize: 14.5, color: 'var(--ember-deep)', textDecoration: 'none', marginLeft: 'auto' }}>
+            {t('goToVoiceBank')} →
+          </Link>
+        )}
         {products.length > 0 && (
           <button
             onClick={() => setShowProductModal(true)}
@@ -173,13 +178,27 @@ export default function DashboardPage() {
             <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
             <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 20, color: 'var(--ink)', margin: '0 0 8px' }}>{t('welcomeTitle', { name: tenant.app_name })}</h3>
             <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 26px' }}>{t('welcomeSubtitle')}</p>
-            <button
-              onClick={() => setShowProductModal(true)}
-              className="cf-btn-ink"
-              style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--paper)', background: 'var(--ink)', border: 'none', borderRadius: 999, padding: '12px 24px', cursor: 'pointer', marginBottom: 28 }}
-            >
-              {t('createFirstProduct')}
-            </button>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
+              <button
+                onClick={() => setShowProductModal(true)}
+                className="cf-btn-ink"
+                style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--paper)', background: 'var(--ink)', border: 'none', borderRadius: 999, padding: '12px 24px', cursor: 'pointer' }}
+              >
+                {t('createFirstProduct')}
+              </button>
+              {/* Rights-vertikalen: velkomstteksten sier «gaa rett til stemmebanken»
+                  — da maa lenken finnes. Ingen admin-sjekk her (NavBar-ens fetch
+                  dupliseres ikke); API-guarden paa maalsiden svarer uautoriserte
+                  med klar melding. */}
+              {tenant.vertical === 'rights' && (
+                <Link
+                  href="/dashboard/voice-bank"
+                  style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--ink)', background: 'transparent', border: '1.5px solid var(--ds-border)', borderRadius: 999, padding: '11px 22px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                >
+                  {t('goToVoiceBank')}
+                </Link>
+              )}
+            </div>
             <div style={{ textAlign: 'left', borderTop: '1px solid var(--ds-border-faint)', paddingTop: 24 }}>
               <p style={{ fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-faint)', margin: '0 0 16px' }}>{t('howItWorksTitle')}</p>
               {[
