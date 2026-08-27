@@ -25,6 +25,11 @@ export interface Tenant {
   currency?: string | null // 'nok' | 'gbp' — hva kundene deres betaler i
   show_language_toggle?: boolean | null // NO/EN-bryteren i toppen
   show_advanced_admin?: boolean | null // Partnere + API-nøkler i menyen
+  // Fanetekst og delingsbeskrivelse. Malen under antar innholdsproduksjon, og
+  // det stemmer ikke for alle — VoiceBank selger rettighetsforvaltning. Tomme
+  // felter faller tilbake til malen i app/layout.tsx.
+  meta_title?: string | null
+  meta_description?: string | null
   vertical?: string | null // f.eks. 'craftsman' (Bombaza) — styrer copy/felt-overstyringer
   accept_actor_applications?: boolean | null // «Bli en stemme i banken» åpen for drop-in-skuespillere
   is_active: boolean

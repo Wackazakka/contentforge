@@ -100,16 +100,19 @@ export async function generateMetadata(): Promise<Metadata> {
   // Fanen navngir TJENESTEN, ikke selskapet (IndigoBoom driver PromoMaker).
   // Er de samme navnet, gir produktnavn() selskapsnavnet tilbake.
   const produkt = produktnavn(tenant)
+  // Malen under antar at hver white-label driver INNHOLDSPRODUKSJON. Det gjoer
+  // de ikke alle — VoiceBank selger rettighetsforvaltning, og fikk «AI-drevet
+  // innholdsproduksjon» i fanen og i hver delt lenke. Tenanter kan derfor
+  // overstyre begge feltene; staar de tomme, gjelder malen som foer.
+  const tittel = tenant.meta_title?.trim() || (paaEngelsk
+    ? `${produkt} — AI-powered content production`
+    : `${produkt} — AI-drevet innholdsproduksjon`)
+  const beskrivelse = tenant.meta_description?.trim() || (paaEngelsk
+    ? `Create professional videos and articles in seconds with ${produkt}.`
+    : `Lag profesjonelle videoer og artikler på sekunder med ${produkt}.`)
   return {
-    title: {
-      default: paaEngelsk
-        ? `${produkt} — AI-powered content production`
-        : `${produkt} — AI-drevet innholdsproduksjon`,
-      template: `%s · ${produkt}`,
-    },
-    description: paaEngelsk
-      ? `Create professional videos and articles in seconds with ${produkt}.`
-      : `Lag profesjonelle videoer og artikler på sekunder med ${produkt}.`,
+    title: { default: tittel, template: `%s · ${produkt}` },
+    description: beskrivelse,
     icons: { icon: tenant.icon_url || "/icon.svg" },
     robots: { index: false, follow: false },
   };
