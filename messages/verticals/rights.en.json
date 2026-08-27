@@ -1,8 +1,8 @@
 {
   "dashboard": {
-    "welcomeSubtitle": "VoiceBank has two parts: the voice bank, where rights holders and rates are managed, and the production tool VoiceBank Studio, where content is made. Create a product to start producing — or go straight to the voice bank.",
+    "welcomeSubtitle": "VoiceBank has two parts: the voice & face bank, where rights holders and rates are managed, and the production tool VoiceBank Studio, where content is made. Create a product to start producing — or go straight to the voice & face bank.",
     "step1Title": "Manage the rights holders",
-    "step1Desc": "Actors and voice owners live in the voice bank with rates, consent and statements.",
+    "step1Desc": "Actors and voice owners live in the voice & face bank with rates, consent and statements.",
     "step2Title": "Create content in Studio",
     "step2Desc": "Video, articles and ads — with standard voices or a rights holder's voice.",
     "step3Desc": "Every use of a managed voice is written to the ledger the moment it happens — ready for settlement."
