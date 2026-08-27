@@ -9,5 +9,8 @@
     "step2Title": "Get it made",
     "step2Desc": "Video, images and text — you see and approve everything before it goes out.",
     "step3Desc": "Share straight to Facebook and Instagram from {name}, or download and send it yourself."
+  },
+  "register": {
+    "subtitle": "Create invitations, greetings and announcements in minutes."
   }
 }
