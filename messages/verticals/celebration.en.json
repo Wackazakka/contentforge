@@ -1,0 +1,13 @@
+{
+  "dashboard": {
+    "yourProducts": "Your occasions",
+    "newProduct": "+ New occasion",
+    "welcomeSubtitle": "Tell us about the occasion — a birthday, wedding, anniversary or anything else — and we will create invitations, greetings and announcements for you.",
+    "createFirstProduct": "+ Add your occasion",
+    "step1Title": "Tell us about the occasion",
+    "step1Desc": "What is being celebrated, who it is for and when — two sentences will do.",
+    "step2Title": "Get it made",
+    "step2Desc": "Video, images and text — you see and approve everything before it goes out.",
+    "step3Desc": "Share straight to Facebook and Instagram from {name}, or download and send it yourself."
+  }
+}

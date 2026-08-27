@@ -1,0 +1,13 @@
+{
+  "dashboard": {
+    "yourProducts": "Dine anledninger",
+    "newProduct": "+ Ny anledning",
+    "welcomeSubtitle": "Legg inn anledningen — bursdag, bryllup, jubileum eller noe helt annet — så lager vi invitasjoner, gratulasjoner og kunngjøringer for deg.",
+    "createFirstProduct": "+ Legg til anledningen din",
+    "step1Title": "Fortell om anledningen",
+    "step1Desc": "Hva som feires, hvem det gjelder og når — to setninger holder.",
+    "step2Title": "Få det laget",
+    "step2Desc": "Video, bilder og tekst — du ser og godkjenner alt før det sendes ut.",
+    "step3Desc": "Del rett til Facebook og Instagram fra {name}, eller last ned og send selv."
+  }
+}
