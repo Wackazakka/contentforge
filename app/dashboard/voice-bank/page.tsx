@@ -282,7 +282,7 @@ export default function VoiceBankAdminPage() {
                 onClick={() => { setShowForm(!showForm); setFError(null) }}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 transition-opacity"
               >
-                {showForm ? 'Avbryt' : '+ Legg til skuespiller'}
+                {showForm ? 'Avbryt' : '+ Legg til stemme/ansikt'}
               </button>
             </div>
 
