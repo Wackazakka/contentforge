@@ -886,7 +886,18 @@
     "payoutSaved": "Utbetaling registrert",
     "payoutFailed": "Kunne ikke registrere utbetalingen",
     "cancel": "Avbryt",
-    "save": "Lagre"
+    "save": "Lagre",
+    "colDate": "Dato",
+    "colWhat": "Hva",
+    "colAmount": "Beløp",
+    "noOrders": "Ingen bestillinger i perioden.",
+    "event_video_production": "Videoproduksjon",
+    "event_image": "Bilde",
+    "event_article": "Artikkel",
+    "event_preview": "Forhåndsvisning",
+    "event_avatar": "Avatar",
+    "event_radio": "Radiospot",
+    "event_speech": "Talegenerering"
   },
   "partners": {
     "back": "← Tilbake",

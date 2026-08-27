@@ -886,7 +886,18 @@
     "payoutSaved": "Payout recorded",
     "payoutFailed": "Could not record the payout",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "colDate": "Date",
+    "colWhat": "What",
+    "colAmount": "Amount",
+    "noOrders": "No orders in this period.",
+    "event_video_production": "Video production",
+    "event_image": "Image",
+    "event_article": "Article",
+    "event_preview": "Preview",
+    "event_avatar": "Avatar",
+    "event_radio": "Radio spot",
+    "event_speech": "Speech"
   },
   "partners": {
     "back": "← Back",

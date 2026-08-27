@@ -135,7 +135,8 @@ export async function GET(request: Request) {
     let tildelt = 0
     let rabattfaktor = 1
     // Kundelinjene: hvem kjøpte, hvem produserte, hva står igjen.
-    type Kunde = { orgId: string; navn: string; epost: string | null; kjoept: number; forbrukt: number; saldo: number | null; antall: number }
+    type Hendelse = { dato: string; type: string; produkt: string | null; beloep: number }
+    type Kunde = { orgId: string; navn: string; epost: string | null; kjoept: number; forbrukt: number; saldo: number | null; antall: number; hendelser: Hendelse[] }
     const perKunde: Kunde[] = []
     try {
       const { data: orgs } = await supabase
@@ -171,6 +172,35 @@ export async function GET(request: Request) {
           } catch { /* slettet bruker → vis org-navnet alene */ }
         }
 
+        // Bestillingshistorikken per kunde — «hvem har bestilt hva», ikke bare
+        // hvor mye (Lars 27/8, til Standard Festmagasin-demoen). Hendelsene
+        // ligger allerede i `rader`; produktnavnene slås opp i ETT kall.
+        // Nyeste først, tak per kunde så svaret ikke vokser uten grense.
+        const produktNavn: Record<string, string> = {}
+        {
+          const pids = [...new Set((rader || []).map((r) => r.product_id as string | null).filter(Boolean))] as string[]
+          if (pids.length > 0) {
+            const { data: prods } = await supabase.from('products').select('id, name').in('id', pids)
+            for (const pr of prods || []) produktNavn[pr.id as string] = pr.name as string
+          }
+        }
+        const hendelserPerOrg: Record<string, Hendelse[]> = {}
+        for (const r of rader || []) {
+          const oid = (r as { organization_id?: string | null }).organization_id
+          if (!oid) continue
+          if (!hendelserPerOrg[oid]) hendelserPerOrg[oid] = []
+          hendelserPerOrg[oid].push({
+            dato: String(r.created_at || ''),
+            type: String(r.event_type || 'ukjent'),
+            produkt: r.product_id ? (produktNavn[r.product_id] ?? null) : null,
+            beloep: Math.round(Number(r.customer_cost_nok ?? r.cost_nok ?? 0) * 100) / 100,
+          })
+        }
+        for (const oid of Object.keys(hendelserPerOrg)) {
+          hendelserPerOrg[oid].sort((a, b) => b.dato.localeCompare(a.dato))
+          hendelserPerOrg[oid] = hendelserPerOrg[oid].slice(0, 60)
+        }
+
         // Alt forbruk i perioden må vises, også fra en org uten påfyll.
         const alleOrgIds = new Set<string>([...Object.keys(forbrukPerOrg), ...Object.keys(perOrg)])
         const { getOrgBalance } = await import('@/lib/tenantBilling')
@@ -192,6 +222,7 @@ export async function GET(request: Request) {
             forbrukt: Math.round((f?.forbrukt ?? 0) * 100) / 100,
             saldo: saldo === null ? null : Math.round(saldo * 100) / 100,
             antall: f?.antall ?? 0,
+            hendelser: hendelserPerOrg[oid] ?? [],
           })
         }
         perKunde.sort((a, b) => b.forbrukt - a.forbrukt || b.kjoept - a.kjoept)

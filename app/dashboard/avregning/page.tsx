@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
@@ -27,6 +27,7 @@ interface Avregning {
   perKunde?: {
     orgId: string; navn: string; epost: string | null
     kjoept: number; forbrukt: number; saldo: number | null; antall: number
+    hendelser?: { dato: string; type: string; produkt: string | null; beloep: number }[]
   }[]
   erPlattformAdmin?: boolean
   tenantSlug?: string | null
@@ -92,6 +93,8 @@ export default function AvregningPage() {
   // Registrer en utbetaling. Kun plattform-admin ser skjemaet; serveren
   // håndhever det samme uansett.
   const [utbetalingApen, setUtbetalingApen] = useState(false)
+  // Utfoldet kunderad — bestillingshistorikken (Lars 27/8)
+  const [apenKunde, setApenKunde] = useState<string | null>(null)
   const [utbetalingBelop, setUtbetalingBelop] = useState('')
   const [utbetalingNotat, setUtbetalingNotat] = useState('')
   const [utbetalingStatus, setUtbetalingStatus] = useState<string | null>(null)
@@ -319,11 +322,18 @@ export default function AvregningPage() {
                       </thead>
                       <tbody>
                         {data.perKunde.map((k) => (
-                          <tr key={k.orgId} className="border-b border-[var(--ds-border-faint)] last:border-0">
+                          <React.Fragment key={k.orgId}>
+                          <tr
+                            className="border-b border-[var(--ds-border-faint)] last:border-0 cursor-pointer hover:bg-[var(--paper-sunken)]"
+                            onClick={() => setApenKunde(apenKunde === k.orgId ? null : k.orgId)}
+                          >
                             <td className="px-5 py-2.5">
-                              <span className="text-[var(--ink)]">{k.navn}</span>
+                              <span className="inline-flex items-center gap-1.5 text-[var(--ink)]">
+                                <span aria-hidden="true" className="text-[11px] text-[var(--text-faint)]" style={{ display: 'inline-block', transition: 'transform 120ms', transform: apenKunde === k.orgId ? 'rotate(90deg)' : 'none' }}>▶</span>
+                                {k.navn}
+                              </span>
                               {k.epost && (
-                                <span className="block text-[12px] text-[var(--text-faint)]">{k.epost}</span>
+                                <span className="block pl-[19px] text-[12px] text-[var(--text-faint)]">{k.epost}</span>
                               )}
                             </td>
                             <td className="px-4 py-2.5 text-right tabular-nums text-[var(--text-muted)]">{fmtNok(k.kjoept)}</td>
@@ -334,6 +344,38 @@ export default function AvregningPage() {
                                 : fmtNok(k.saldo)}
                             </td>
                           </tr>
+                          {apenKunde === k.orgId && (
+                            <tr className="border-b border-[var(--ds-border-faint)] last:border-0">
+                              <td colSpan={4} className="px-5 pb-3 pt-0 bg-[var(--paper-sunken)]">
+                                {(k.hendelser?.length ?? 0) === 0 ? (
+                                  <p className="py-3 text-[13px] text-[var(--text-faint)]">{t('noOrders')}</p>
+                                ) : (
+                                  <table className="w-full text-[13px] mt-2">
+                                    <thead>
+                                      <tr className="text-[11px] uppercase tracking-wider text-[var(--text-faint)]">
+                                        <th className="py-1.5 text-left font-medium">{t('colDate')}</th>
+                                        <th className="py-1.5 text-left font-medium">{t('colWhat')}</th>
+                                        <th className="py-1.5 text-right font-medium">{t('colAmount')}</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {k.hendelser!.map((h, i) => (
+                                        <tr key={i} className="border-t border-[var(--ds-border-faint)]">
+                                          <td className="py-1.5 pr-3 tabular-nums text-[var(--text-muted)] whitespace-nowrap">{new Date(h.dato).toLocaleDateString(locale === 'en' ? 'en-GB' : 'nb-NO', { day: 'numeric', month: 'short' })}</td>
+                                          <td className="py-1.5 pr-3 text-[var(--ink)]">
+                                            {t.has(`event_${h.type}`) ? t(`event_${h.type}`) : h.type}
+                                            {h.produkt && <span className="text-[var(--text-faint)]"> · {h.produkt}</span>}
+                                          </td>
+                                          <td className="py-1.5 text-right tabular-nums text-[var(--text-muted)]">{fmtNok(h.beloep)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>
