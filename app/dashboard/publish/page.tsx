@@ -1013,6 +1013,13 @@ function PublishPage() {
                 <span>{c.platform === 'facebook' ? '📘' : c.platform === 'tiktok' ? '🎵' : c.platform === 'linkedin' ? '💼' : '📷'}</span>
                 <span className="font-medium text-sm">{c.page_name}</span>
                 <span className="text-xs text-gray-400">{c.platform}</span>
+                <button
+                  type="button"
+                  onClick={() => handleDisconnect(c.id)}
+                  className="ml-auto px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors"
+                >
+                  {t('disconnect')}
+                </button>
               </div>
             ))}
             {userId && (
