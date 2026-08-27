@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { CenterForgeMark, CenterForgeLogo } from '@/components/CenterForgeLogo'
 import BombazaLanding from '@/components/BombazaLanding'
 import BadeOgLanding from '@/components/BadeOgLanding'
+import VoiceBankLanding from '@/components/VoiceBankLanding'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
 
@@ -57,6 +58,9 @@ export default function Home() {
   if (tenant.slug === 'bombaza') return <BombazaLanding />
   // Både Og: stemmeforvaltning i front (badeog.no-uttrykket), ikke innholdsproduksjon
   if (tenant.slug === 'badeog') return <BadeOgLanding />
+  // VoiceBank: rettighetsforvaltning i front. Malgruppen er BYRAER som skal
+  // lisensiere plattformen, ikke sluttkunder — de ser byraets merke, ikke dette.
+  if (tenant.slug === 'voicebank') return <VoiceBankLanding />
 
   return (
     <div
