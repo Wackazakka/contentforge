@@ -62,7 +62,7 @@ export default function Home() {
   // VoiceBank: rettighetsforvaltning i front. Malgruppen er BYRAER som skal
   // lisensiere plattformen, ikke sluttkunder — de ser byraets merke, ikke dette.
   if (tenant.slug === 'voicebank') return <VoiceBankLanding />
-  // Standard Ropert: Standard Festfabrikks white-label av Studio — invitasjoner,
+  // Standard Ropert: Standard Festmagasins white-label av Studio — invitasjoner,
   // gratulasjoner og kunngjoeringer. Kun produksjon; stemmebanken er skjult
   // via twinledger_enabled=false paa tenant-raden.
   if (tenant.slug === 'standardropert') return <StandardRopertLanding />
