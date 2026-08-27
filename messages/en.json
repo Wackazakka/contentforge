@@ -6,7 +6,7 @@
     "billing": "Billing",
     "logout": "Log out",
     "credits": "{count} credits",
-    "voicebank": "Voice bank",
+    "voicebank": "Voice & face bank",
     "buy_credits": "Credits",
     "partners": "Partners",
     "apikeys": "API keys",
@@ -247,7 +247,7 @@
     "created": "Created {date}",
     "errorNoOrgOnDomain": "Your account does not belong to this domain. Sign up on this domain to get started.",
     "errorCreateFailed": "Could not save. Try again — and let us know if it keeps happening.",
-    "goToVoiceBank": "Go to the voice bank"
+    "goToVoiceBank": "Go to the voice & face bank"
   },
   "productModal": {
     "title": "New product",

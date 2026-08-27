@@ -241,7 +241,7 @@ export default function VoiceBankAdminPage() {
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Tilbake</Link>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">🎙️ Stemmebank</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">🎙️🧑 Stemme- og ansiktsbank</h1>
         <p className="text-gray-600 mb-8">
           {tenantName ? `Skuespillernes stemmer og ansikter hos ${tenantName}` : 'Skuespillernes stemmer og ansikter'} — satser, bruk og hva som skal betales ut.
           Kvantumsrabatter og eventuelle andeler regnes ved månedsavregningen, ikke her.
