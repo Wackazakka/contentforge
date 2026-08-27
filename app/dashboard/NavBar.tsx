@@ -35,7 +35,9 @@ export default function NavBar() {
     // skuespiller-royalty er ikke tema for IndigoBoom ennå.
     ...(voiceBankAdmin
       ? [
-          ...(tenant.vertical === 'music' ? [] : [{ href: '/dashboard/voice-bank', label: t('voicebank') }]),
+          // Eksplisitt produktflagg — foer utledet av vertical==='music', som var
+          // en tilfeldighet som ventet paa aa bite naar en ny vertikal kom til.
+          ...(tenant.twinledger_enabled === false ? [] : [{ href: '/dashboard/voice-bank', label: t('voicebank') }]),
           // Partnere og API-nøkler er «avansert admin» og skjules for tjenester
           // som ikke trenger dem ennå (Lars 3/8: «ikke så overveldende i
           // starten»). Påslag og Avregning blir stående — de handler om

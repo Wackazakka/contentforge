@@ -31,6 +31,10 @@ export interface Tenant {
   meta_title?: string | null
   meta_description?: string | null
   vertical?: string | null // f.eks. 'craftsman' (Bombaza) — styrer copy/felt-overstyringer
+  // Om TwinLedger-flatene (stemmebanken) vises. Var foer utledet av
+  // vertical === 'music' — en tilfeldighet: musikk-tenanter var de eneste som
+  // ikke skulle ha den. Naa eksplisitt; NULL/undefined betyr synlig.
+  twinledger_enabled?: boolean | null
   accept_actor_applications?: boolean | null // «Bli en stemme i banken» åpen for drop-in-skuespillere
   is_active: boolean
 }

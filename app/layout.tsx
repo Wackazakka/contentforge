@@ -147,7 +147,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col" style={{ background: "var(--paper)", color: "var(--ink)" }}>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <TenantProvider tenant={{ id: tenant.id, slug: tenant.slug, app_name: tenant.app_name, product_name: tenant.product_name ?? null, logo_url: tenant.logo_url, billing_mode: tenant.billing_mode, price_multiplier: Number(tenant.price_multiplier) || 1, vertical: tenant.vertical ?? null, currency: tenant.currency ?? 'nok', show_language_toggle: tenant.show_language_toggle !== false, show_advanced_admin: tenant.show_advanced_admin !== false }}>
+          <TenantProvider tenant={{ id: tenant.id, slug: tenant.slug, app_name: tenant.app_name, product_name: tenant.product_name ?? null, logo_url: tenant.logo_url, billing_mode: tenant.billing_mode, price_multiplier: Number(tenant.price_multiplier) || 1, vertical: tenant.vertical ?? null, currency: tenant.currency ?? 'nok', show_language_toggle: tenant.show_language_toggle !== false, show_advanced_admin: tenant.show_advanced_admin !== false, twinledger_enabled: tenant.twinledger_enabled ?? null }}>
             <AuthProvider>{children}</AuthProvider>
             <GlobalFooter />
           </TenantProvider>

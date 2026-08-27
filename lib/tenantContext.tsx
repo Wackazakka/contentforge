@@ -16,6 +16,8 @@ export interface TenantInfo {
   currency?: string | null
   show_language_toggle?: boolean | null
   show_advanced_admin?: boolean | null
+  // Om TwinLedger-flatene (stemmebanken) vises. NULL/undefined = synlig.
+  twinledger_enabled?: boolean | null
 }
 
 const DEFAULT: TenantInfo = {

@@ -1,0 +1,10 @@
+{
+  "dashboard": {
+    "welcomeSubtitle": "VoiceBank har to deler: stemmebanken, der rettighetshavere og satser forvaltes, og produksjonsverktøyet VoiceBank Studio, der innholdet lages. Opprett et produkt for å komme i gang med produksjon — eller gå rett til stemmebanken.",
+    "step1Title": "Forvalt rettighetshaverne",
+    "step1Desc": "Skuespillere og stemmeeiere ligger i stemmebanken med satser, samtykke og kontoutskrift.",
+    "step2Title": "Lag innholdet i Studio",
+    "step2Desc": "Video, artikler og annonser — med standardstemmer eller en rettighetshavers stemme.",
+    "step3Desc": "Hver bruk av en forvaltet stemme føres i hovedboken i samme sekund — klart til avregning."
+  }
+}
