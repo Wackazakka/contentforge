@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 
 // VoiceBank-forsiden: RETTIGHETSFORVALTNING, ikke innholdsproduksjon.
 // Målgruppen er BYRÅER som skal lisensiere plattformen (Både Og, Pullman) —
@@ -21,7 +22,6 @@ const BLEKK = '#14161C'
 const DEMPET = '#5A6272'
 const LINJE = '#D9DEE7'
 const INDIGO = '#4338CA'
-const VIOLETT = '#7C3AED'
 const BOK = '#1F6F5C'
 
 export default function VoiceBankLanding() {
@@ -60,13 +60,10 @@ export default function VoiceBankLanding() {
 
       {/* Header */}
       <header className="vb-band" style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 24, paddingBottom: 24, flexWrap: 'wrap' }}>
-        <span style={{
-          fontFamily: DISPLAY, fontWeight: 800, fontSize: 23, letterSpacing: '-0.02em',
-          background: `linear-gradient(100deg, ${INDIGO}, ${VIOLETT})`,
-          WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
-        }}>
-          VoiceBank
-        </span>
+        {/* Tenant-logoen naar den finnes; komponenten faller selv tilbake til
+            ordmerke. Egen tegnet tekst her ville ignorert merkevaren tenanten
+            faktisk har lastet opp. */}
+        <CenterForgeLogo size={30} wordmarkSize={20} />
         <span style={{ background: 'rgba(67,56,202,0.09)', color: INDIGO, fontFamily: MONO, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.16em', borderRadius: 3, padding: '5px 9px', textTransform: 'uppercase' }}>
           Rettighetsforvaltning
         </span>
@@ -89,6 +86,10 @@ export default function VoiceBankLanding() {
           VoiceBank er hovedboken for syntetiske stemmer og ansikter. Hver eneste bruk føres i
           det øyeblikket den skjer — hvem kjennetegnet tilhører, hva kunden betalte, og hva
           rettighetshaveren skal ha.
+        </p>
+        <p style={{ fontSize: 16, lineHeight: 1.6, color: DEMPET, margin: '18px 0 0', maxWidth: '36em' }}>
+          Produksjonsverktøyet <strong style={{ color: BLEKK, fontWeight: 700 }}>VoiceBank&nbsp;Studio</strong> følger
+          med — video, artikler og publisering, med eller uten en rettighetshavers stemme.
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 28 }}>
           <Link href="/white-label" className="vb-cta">Bli partner</Link>
