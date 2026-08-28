@@ -49,6 +49,23 @@ export const VERTICALS: Record<string, VerticalConfig> = {
     contactFields: true,
     logoUpload: true,
   },
+  // Standard Ropert: folk (og bedrifter) med noe aa feire. «Produktet» er
+  // anledningen; kategorien er anledningstypen. Ingen kontaktfelter/logo —
+  // privatpersoner skal ikke moete bedriftsskjema.
+  celebration: {
+    categoryOptions: [
+      { value: 'bursdag', labelKey: 'categoryBursdag' },
+      { value: 'bryllup', labelKey: 'categoryBryllup' },
+      { value: 'jubileum', labelKey: 'categoryJubileum' },
+      { value: 'daap', labelKey: 'categoryDaap' },
+      { value: 'konfirmasjon', labelKey: 'categoryKonfirmasjon' },
+      { value: 'bedrift', labelKey: 'categoryBedrift' },
+      { value: 'annet', labelKey: 'categoryAnnet' },
+    ],
+    serviceAreaField: false,
+    contactFields: false,
+    logoUpload: false,
+  },
 }
 
 export function verticalConfig(vertical: string | null | undefined): VerticalConfig | null {

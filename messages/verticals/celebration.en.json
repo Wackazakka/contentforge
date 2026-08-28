@@ -12,5 +12,23 @@
   },
   "register": {
     "subtitle": "Create invitations, greetings and announcements in minutes."
+  },
+  "productModal": {
+    "title": "New occasion",
+    "productNameLabel": "What are you celebrating?",
+    "productNamePlaceholder": "e.g. “Grandma’s 80th birthday”",
+    "descriptionLabel": "Tell us about the occasion",
+    "descriptionPlaceholder": "Who it is for, when and where it happens, and the mood you want …",
+    "descriptionHint": "Used when the invitations and greetings are created — two sentences will do.",
+    "categoryLabel": "Type of occasion",
+    "categoryBursdag": "Birthday",
+    "categoryBryllup": "Wedding",
+    "categoryJubileum": "Anniversary",
+    "categoryDaap": "Christening",
+    "categoryKonfirmasjon": "Confirmation",
+    "categoryBedrift": "Business / opening",
+    "categoryAnnet": "Other",
+    "createProduct": "Add the occasion",
+    "errorNameRequired": "Tell us what is being celebrated."
   }
 }
