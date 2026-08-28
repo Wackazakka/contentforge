@@ -354,7 +354,8 @@
     "needPage": "select at least one Page to publish to",
     "needTime": "choose a time",
     "toSchedule": "To schedule",
-    "toPublish": "To publish"
+    "toPublish": "To publish",
+    "missingImageAdd": "⚠ No image — add one"
   },
   "product": {
     "loading": "Loading product...",

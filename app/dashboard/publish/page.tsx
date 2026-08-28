@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { useTranslations } from 'next-intl'
+import SwapIllustrationModal from '@/components/SwapIllustrationModal'
 
 interface SocialConnection {
   id: string
@@ -68,6 +69,8 @@ function PublishPage() {
   const [publishAsReel, setPublishAsReel] = useState(true)
   const [scheduling, setScheduling] = useState(false)
   const [igPageStatus, setIgPageStatus] = useState<Record<string, string | null>>({})
+  // Artikkelen man holder paa aa gi et bilde, satt fra «mangler bilde»-varselet
+  const [bildeArtikkel, setBildeArtikkel] = useState<any>(null)
   const selectedArticleRef = useRef<HTMLDivElement>(null)
   const scheduleInputRef = useRef<HTMLInputElement>(null)
 
@@ -707,10 +710,18 @@ function PublishPage() {
                             <span className="text-xs text-gray-400">
                               {new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                             </span>
+                            {/* Varselet er selve knappen: sto man foer her og saa at
+                                bildet manglet, maatte man forlate publiseringen og
+                                finne artikkelen for aa gjoere noe med det. */}
                             {!imageUrl && (
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
-                                ⚠ mangler eget bilde
-                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setBildeArtikkel(a) }}
+                                className="text-xs px-2 py-0.5 rounded-full font-medium hover:opacity-80 transition-opacity"
+                                style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
+                              >
+                                {t('missingImageAdd')}
+                              </button>
                             )}
                           </div>
                         </div>
@@ -1076,6 +1087,34 @@ function PublishPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Bilde til en artikkel, aapnet fra «mangler bilde»-varselet i steg 1.
+          Samme modal som artikkelsiden bruker, saa bank og generering er like
+          begge steder. Ingenting publiseres — bildet lagres paa artikkelen. */}
+      {bildeArtikkel && (
+        <SwapIllustrationModal
+          articleId={bildeArtikkel.id}
+          productId={bildeArtikkel.product_id}
+          topic={bildeArtikkel.title}
+          logoUrl={
+            (products.find((p) => p.id === bildeArtikkel.product_id) as any)?.article_logo_url ||
+            (products.find((p) => p.id === bildeArtikkel.product_id) as any)?.logo_url ||
+            undefined
+          }
+          onClose={() => setBildeArtikkel(null)}
+          onImageUpdated={(newUrl) => {
+            setArticles((prev) =>
+              prev.map((a) => (a.id === bildeArtikkel.id ? { ...a, image_urls: [newUrl] } : a))
+            )
+            // Er artikkelen allerede valgt, maa forhaandsvisningen under ogsaa
+            // oppdateres — ellers staar det gamle tomrommet igjen.
+            setSelectedContent((prev: any) =>
+              prev?.id === bildeArtikkel.id ? { ...prev, image_urls: [newUrl] } : prev
+            )
+            setBildeArtikkel(null)
+          }}
+        />
       )}
     </div>
   )

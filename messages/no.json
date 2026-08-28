@@ -354,7 +354,8 @@
     "needPage": "velg minst én side å publisere til",
     "needTime": "velg tidspunkt",
     "toSchedule": "For å planlegge",
-    "toPublish": "For å publisere"
+    "toPublish": "For å publisere",
+    "missingImageAdd": "⚠ Mangler bilde — legg til"
   },
   "product": {
     "loading": "Laster produkt...",
