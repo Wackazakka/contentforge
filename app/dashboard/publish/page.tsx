@@ -71,6 +71,10 @@ function PublishPage() {
   const [igPageStatus, setIgPageStatus] = useState<Record<string, string | null>>({})
   // Artikkelen man holder paa aa gi et bilde, satt fra «mangler bilde»-varselet
   const [bildeArtikkel, setBildeArtikkel] = useState<any>(null)
+  // Logoen som brennes inn i bildet. Ligger paa product_profiles — IKKE paa
+  // products, slik denne koden foerst antok. Da fikk modalen ingen logo og
+  // genereringen falt tilbake paa en gammel (Lars 28/8).
+  const [bildeLogoUrl, setBildeLogoUrl] = useState<string | null>(null)
   const selectedArticleRef = useRef<HTMLDivElement>(null)
   const scheduleInputRef = useRef<HTMLInputElement>(null)
 
@@ -262,6 +266,23 @@ function PublishPage() {
       body: JSON.stringify({ pageIds: fbPageIds, userId }),
     }).then((r) => r.json()).then((d) => { if (d.results) setIgPageStatus(d.results) })
   }, [publishPlatform, connections, userId])
+
+  // Aapner bildevelgeren for en artikkel. Logoen hentes fra product_profiles
+  // foer modalen vises, saa den genererte illustrasjonen faar RIKTIG merke.
+  const aapneBildevelger = async (a: any) => {
+    setBildeLogoUrl(null)
+    setBildeArtikkel(a)
+    try {
+      const { data } = await supabase
+        .from('product_profiles')
+        .select('logo_url, article_logo_url')
+        .eq('product_id', a.product_id)
+        .maybeSingle()
+      if (data) setBildeLogoUrl((data as any).article_logo_url || (data as any).logo_url || null)
+    } catch (err) {
+      console.error('[publish] Kunne ikke hente produktlogo:', err)
+    }
+  }
 
   const handleDisconnect = async (id: string) => {
     if (!confirm(t('disconnectConfirm'))) return
@@ -716,7 +737,7 @@ function PublishPage() {
                             {!imageUrl && (
                               <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); setBildeArtikkel(a) }}
+                                onClick={(e) => { e.stopPropagation(); aapneBildevelger(a) }}
                                 className="text-xs px-2 py-0.5 rounded-full font-medium hover:opacity-80 transition-opacity"
                                 style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
                               >
@@ -1097,12 +1118,8 @@ function PublishPage() {
           articleId={bildeArtikkel.id}
           productId={bildeArtikkel.product_id}
           topic={bildeArtikkel.title}
-          logoUrl={
-            (products.find((p) => p.id === bildeArtikkel.product_id) as any)?.article_logo_url ||
-            (products.find((p) => p.id === bildeArtikkel.product_id) as any)?.logo_url ||
-            undefined
-          }
-          onClose={() => setBildeArtikkel(null)}
+          logoUrl={bildeLogoUrl || undefined}
+          onClose={() => { setBildeArtikkel(null); setBildeLogoUrl(null) }}
           onImageUpdated={(newUrl) => {
             setArticles((prev) =>
               prev.map((a) => (a.id === bildeArtikkel.id ? { ...a, image_urls: [newUrl] } : a))
