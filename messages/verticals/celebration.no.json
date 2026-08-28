@@ -12,5 +12,23 @@
   },
   "register": {
     "subtitle": "Lag invitasjoner, gratulasjoner og kunngjøringer på minutter."
+  },
+  "productModal": {
+    "title": "Ny anledning",
+    "productNameLabel": "Hva feires?",
+    "productNamePlaceholder": "f.eks. «Farmors 80-årsdag»",
+    "descriptionLabel": "Fortell litt om anledningen",
+    "descriptionPlaceholder": "Hvem det gjelder, når og hvor det skjer, og stemningen dere vil ha …",
+    "descriptionHint": "Brukes når invitasjonene og hilsenene lages — to setninger holder.",
+    "categoryLabel": "Type anledning",
+    "categoryBursdag": "Bursdag",
+    "categoryBryllup": "Bryllup",
+    "categoryJubileum": "Jubileum",
+    "categoryDaap": "Dåp",
+    "categoryKonfirmasjon": "Konfirmasjon",
+    "categoryBedrift": "Bedrift / åpning",
+    "categoryAnnet": "Annet",
+    "createProduct": "Legg til anledningen",
+    "errorNameRequired": "Fortell hva som feires."
   }
 }
