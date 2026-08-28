@@ -137,7 +137,7 @@ export async function POST(request: Request) {
           const { error: publishError } = await supabase.from('publications').insert({
             user_id: userId,
             product_id: productId,
-            draft_id: null, // Articles don't have a draft_id (unlike videos)
+            draft_id: articleId || draftId || null, // artikkel-id — uten den kan publiseringen aldri kobles tilbake til artikkelen
             platform: 'facebook',
             page_id: pageId,
             page_name: pageName,

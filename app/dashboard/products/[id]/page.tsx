@@ -147,6 +147,10 @@ export default function ProductPage() {
   const [videosLoading, setVideosLoading] = useState(false)
   const [articles, setArticles] = useState<any[]>([])
   const [articlesLoading, setArticlesLoading] = useState(false)
+  // Publiseringsstatus: hva er alt publisert / ligger i kalenderen for dette
+  // produktet — brukes til «Publisert»/«Planlagt»-merker på kort-oversiktene.
+  const [pubRows, setPubRows] = useState<any[]>([])
+  const [schedRows, setSchedRows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -603,6 +607,74 @@ export default function ProductPage() {
 
     fetchArticles()
   }, [productId, tenant.vertical])
+
+  useEffect(() => {
+    if (!productId) return
+    // Publisert + planlagt for produktet — RLS (migrasjon 068) gir hele
+    // organisasjonens rader, ikke bare innlogget brukers egne.
+    const fetchPubStatus = async () => {
+      try {
+        const supabase = getSupabase()
+        const [{ data: pubs }, { data: sched }] = await Promise.all([
+          supabase
+            .from('publications')
+            .select('draft_id, caption, platform, content_type, video_url, created_at')
+            .eq('product_id', productId),
+          supabase
+            .from('scheduled_publications')
+            .select('draft_id, platform, content_type, job_id, scheduled_at')
+            .eq('production_id', productId),
+        ])
+        setPubRows(pubs || [])
+        setSchedRows(sched || [])
+      } catch (err) {
+        console.error('[ProductPage] Pub status fetch error:', err)
+      }
+    }
+    fetchPubStatus()
+  }, [productId])
+
+  // Hjelpere for merkene: hvilke plattformer er en artikkel/video publisert
+  // eller planlagt på? Historiske artikkel-publiseringer manglet draft_id —
+  // de matches på tittel (caption = articleTitle ved publisering).
+  const artikkelPublisert = (a: { id: string; title: string }) => [
+    ...new Set(
+      pubRows
+        .filter((p) => p.content_type === 'article' && (p.draft_id === a.id || (!p.draft_id && p.caption === a.title)))
+        .map((p) => p.platform as string)
+    ),
+  ]
+  const artikkelPlanlagt = (a: { id: string }) => [
+    ...new Set(
+      schedRows
+        .filter((s) => s.content_type === 'article' && s.draft_id === a.id)
+        .map((s) => s.platform as string)
+    ),
+  ]
+  const videoPublisert = (assetUrl: string) => [
+    ...new Set(
+      pubRows
+        .filter((p) => p.content_type !== 'article' && p.video_url && p.video_url === assetUrl)
+        .map((p) => p.platform as string)
+    ),
+  ]
+  const videoPlanlagt = (assetUrl: string) => [
+    ...new Set(
+      schedRows
+        .filter((s) => s.content_type === 'video' && s.job_id && assetUrl.includes(`/videos/${s.job_id}/`))
+        .map((s) => s.platform as string)
+    ),
+  ]
+  const PubBadge = ({ publisert, planlagt }: { publisert: string[]; planlagt: string[] }) =>
+    publisert.length > 0 ? (
+      <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full shrink-0" style={{ backgroundColor: '#E4EFE0', color: '#3F7A4E' }}>
+        ✓ Publisert · {publisert.join(', ')}
+      </span>
+    ) : planlagt.length > 0 ? (
+      <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full shrink-0" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+        🕐 Planlagt · {planlagt.join(', ')}
+      </span>
+    ) : null
 
   if (loading) {
     return (
@@ -1396,8 +1468,9 @@ export default function ProductPage() {
                         : `Video – ${formatDate(video.created_at)} kl. ${tid}`
                       return (
                         <div key={video.id} className="border border-gray-200 rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <p className="text-sm font-medium text-gray-800 flex-1">{title}</p>
+                            <PubBadge publisert={videoPublisert(video.asset_url)} planlagt={videoPlanlagt(video.asset_url)} />
                             {video.video_format && (
                               <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
                                 style={{
@@ -1572,9 +1645,12 @@ export default function ProductPage() {
                               >
                                 {article.title}
                               </a>
-                              <span className="inline-block px-2 py-0.5 text-xs font-medium rounded capitalize" style={{ backgroundColor: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>
-                                {article.platform}
-                              </span>
+                              <div className="flex flex-wrap gap-1.5 items-center">
+                                <span className="inline-block px-2 py-0.5 text-xs font-medium rounded capitalize" style={{ backgroundColor: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>
+                                  {article.platform}
+                                </span>
+                                <PubBadge publisert={artikkelPublisert(article)} planlagt={artikkelPlanlagt(article)} />
+                              </div>
                             </div>
                           </div>
                           <p className="text-sm text-gray-500 mb-2 line-clamp-2">
