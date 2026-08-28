@@ -72,10 +72,10 @@ export default function DashboardPage() {
           }
         } catch { /* medlemskapstabellen utilgjengelig → oppfør deg som før */ }
 
-        const sett = new Set((orgs || []).map((o) => o.id))
+        const sett = new Set((orgs || []).map((o: { id: string }) => o.id))
         let orgList: Array<{ id: string; name: string }> = [
           ...(orgs || []),
-          ...memberOrgs.filter((o) => !sett.has(o.id)),
+          ...memberOrgs.filter((o: { id: string }) => !sett.has(o.id)),
         ]
 
         // Selvreparasjon, to tilfeller med samme løsning:
