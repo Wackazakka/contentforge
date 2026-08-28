@@ -201,7 +201,10 @@
     "errorValidEmailRequired": "Valid email is required",
     "errorPasswordTooShort": "Password must be at least 8 characters",
     "errorPasswordsDoNotMatch": "Passwords do not match",
-    "errorUnexpected": "An unexpected error occurred"
+    "errorUnexpected": "An unexpected error occurred",
+    "alreadyRegisteredTitle": "You already have an account",
+    "alreadyRegisteredText": "{email} is already registered with us. Sign in with your password — or reset it if you do not remember it. We have not sent a new email.",
+    "forgotPassword": "Reset your password"
   },
   "forgotPassword": {
     "title": "Reset password",

@@ -19,6 +19,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [registered, setRegistered] = useState(false)
   const [registeredEmail, setRegisteredEmail] = useState('')
+  // Adressen finnes fra foer — da er «sjekk e-posten» feil beskjed
+  const [alleredeKonto, setAlleredeKonto] = useState(false)
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -70,6 +72,17 @@ export default function RegisterPage() {
         return
       }
 
+      // Finnes adressen fra foer, svarer Supabase «vellykket» og sender INGEN
+      // e-post — det er beskyttelsen mot aa kartlegge hvem som har konto.
+      // Eneste kjennetegn er at brukeren kommer tilbake uten identiteter.
+      // Uten denne sjekken lovet vi en bekreftelseslenke som aldri kom, og
+      // opprettet en organisasjon paa en oppdiktet bruker-id (Adam 28/8).
+      if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        setRegisteredEmail(form.email)
+        setAlleredeKonto(true)
+        return
+      }
+
       if (data?.user?.id) {
         try {
           const supabase = getSupabase()
@@ -106,6 +119,21 @@ export default function RegisterPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (alleredeKonto) {
+    return (
+      <AuthShell title={t('alreadyRegisteredTitle')}>
+        <div style={{ fontFamily: 'var(--font-hanken), sans-serif' }}>
+          <div style={{ fontSize: 40, marginBottom: 6 }}>👋</div>
+          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6B6358', margin: '0 0 22px' }}>
+            {t('alreadyRegisteredText', { email: registeredEmail })}
+          </p>
+          <AuthSwitch linkLabel={t('signIn')} href={loginHref} />
+          <AuthSwitch linkLabel={t('forgotPassword')} href="/forgot-password" />
+        </div>
+      </AuthShell>
+    )
   }
 
   if (registered) {
