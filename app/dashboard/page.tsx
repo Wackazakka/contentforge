@@ -53,7 +53,30 @@ export default function DashboardPage() {
         const { data: orgs, error } = await q.order('created_at', { ascending: true })
 
         if (error) throw error
-        let orgList: Array<{ id: string; name: string }> = orgs || []
+
+        // Medlemskap (migrasjon 067): en bruker kan også være MEDLEM av andres
+        // organisasjoner (f.eks. Adam i Reforhandle-orgen) — hent dem i tillegg.
+        // RLS på organizations slipper gjennom rader man er medlem av.
+        let memberOrgs: Array<{ id: string; name: string }> = []
+        try {
+          const { data: medlemskap } = await supabase
+            .from('organization_members')
+            .select('organization_id')
+            .eq('user_id', session.user.id)
+          const memberIds = (medlemskap || []).map((m: { organization_id: string }) => m.organization_id)
+          if (memberIds.length > 0) {
+            let mq = supabase.from('organizations').select('id, name').in('id', memberIds)
+            mq = tenant.slug === 'centerforge' ? mq.or(`tenant_id.eq.${tenant.id},tenant_id.is.null`) : mq.eq('tenant_id', tenant.id)
+            const { data: mOrgs } = await mq
+            memberOrgs = mOrgs || []
+          }
+        } catch { /* medlemskapstabellen utilgjengelig → oppfør deg som før */ }
+
+        const sett = new Set((orgs || []).map((o) => o.id))
+        let orgList: Array<{ id: string; name: string }> = [
+          ...(orgs || []),
+          ...memberOrgs.filter((o) => !sett.has(o.id)),
+        ]
 
         // Selvreparasjon, to tilfeller med samme løsning:
         // (1) Helt fersk konto: registreringens org-insert ble RLS-blokkert

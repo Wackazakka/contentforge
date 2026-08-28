@@ -65,7 +65,9 @@ export async function POST(request: Request) {
           .from('social_connections')
           .select('access_token, page_name')
           .eq('page_id', pageId)
-          .single()
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
 
         if (error || !conn) {
           console.error('[publish/facebook-article] Failed to fetch token for page:', pageId, error)
