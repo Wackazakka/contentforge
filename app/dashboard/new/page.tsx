@@ -221,7 +221,7 @@ export default function NewCampaignPage() {
               required
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Reforhandle Spring 2026"
+              placeholder={t('campaignNamePlaceholder')}
               className={inputClass}
             />
           </Field>
@@ -249,7 +249,7 @@ export default function NewCampaignPage() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, productName: e.target.value }))
               }
-              placeholder="Reforhandle"
+              placeholder={t('productNamePlaceholder')}
               className={inputClass}
             />
           </Field>
@@ -270,7 +270,7 @@ export default function NewCampaignPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, headline: e.target.value }))
                 }
-                placeholder="Save thousands on electricity and internet"
+                placeholder={t('headlinePlaceholder')}
                 className={inputClass}
               />
             </Field>
@@ -325,7 +325,7 @@ export default function NewCampaignPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, bodyCopy: e.target.value }))
                 }
-                placeholder="We negotiate your subscriptions — you only pay for results."
+                placeholder={t('bodyCopyPlaceholder')}
                 rows={3}
                 className={inputClass + " resize-none"}
               />

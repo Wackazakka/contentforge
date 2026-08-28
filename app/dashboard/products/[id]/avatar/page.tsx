@@ -705,7 +705,7 @@ export default function AvatarVideoPage() {
               <textarea
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="F.eks. «Slik sparer du 10 000 kr på bilkjøpet» eller «5 grunner til å velge oss»"
+                placeholder="F.eks. «Slik kommer du i gang» eller «5 grunner til å velge oss»"
                 rows={3}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] resize-none"
               />
@@ -718,7 +718,7 @@ export default function AvatarVideoPage() {
                   type="text"
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value)}
-                  placeholder="F.eks. «Førstegangskjøpere 25–40 år»"
+                  placeholder="F.eks. «Nye kunder 25–40 år»"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                 />
               </div>
@@ -728,7 +728,7 @@ export default function AvatarVideoPage() {
                   type="text"
                   value={problem}
                   onChange={(e) => setProblem(e.target.value)}
-                  placeholder="F.eks. «Usikker på hva bilen er verdt»"
+                  placeholder="F.eks. «Vet ikke hvor de skal begynne»"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
                 />
               </div>

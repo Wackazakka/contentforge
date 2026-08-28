@@ -234,7 +234,7 @@ export default function RadioAdPage() {
                 Emne / budskap <span className="text-red-500">*</span>
               </label>
               <textarea value={topic} onChange={(e) => setTopic(e.target.value)} rows={3}
-                placeholder="F.eks. «Sommerens beste biltilbud — 0% rente og gratis service i ett år»"
+                placeholder="F.eks. «Sommerens beste tilbud — kort, tydelig og lett å huske»"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)] resize-none" />
             </div>
 
@@ -242,7 +242,7 @@ export default function RadioAdPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Målgruppe</label>
                 <input type="text" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)}
-                  placeholder="F.eks. «Bilkjøpere 30–55 år»"
+                  placeholder="F.eks. «Kunder 30–55 år»"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]" />
               </div>
               <div>
