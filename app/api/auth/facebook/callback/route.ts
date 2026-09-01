@@ -84,9 +84,16 @@ export async function GET(request: Request) {
     )
     const pagesData = await pagesRes.json()
 
-    if (!pagesData.data || pagesData.data.length === 0) {
-      console.error('[facebook/callback] No pages found:', pagesData)
-      return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=no_pages`)
+    // ⚠️ IKKE gi opp her. /me/accounts kommer TOM når brukeren velger «Opt in
+    // to current Pages only» i Facebook Login for Business — da ligger sidene
+    // bare bak /me?fields=accounts og direkte oppslag per side. Begge
+    // fallbackene under ble skrevet for nettopp det tilfellet, men lå etter en
+    // tidlig return og kjørte derfor aldri. Resultatet var at enhver bruker som
+    // valgte det snevre samtykket fikk «Error: no_pages» og ikke kunne koble
+    // til i det hele tatt. Tomhetssjekken ligger nå etter fallbackene.
+    if (!Array.isArray(pagesData.data)) {
+      console.warn('[facebook/callback] /me/accounts ga ingen liste:', pagesData)
+      pagesData.data = []
     }
 
     console.log('[facebook/callback] Found', pagesData.data.length, 'pages from /me/accounts')
@@ -124,6 +131,14 @@ export async function GET(request: Request) {
         console.log(`[facebook/callback] Fallback fetch failed for ${fallbackId}:`, data.error || 'No id')
       }
     }
+
+    // Først her vet vi at ingen av de tre kildene fant noe.
+    if (pagesData.data.length === 0) {
+      console.error('[facebook/callback] Ingen sider funnet etter alle fallbacks')
+      return NextResponse.redirect(`${app.returnBase}/dashboard/publish?error=no_pages`)
+    }
+
+    console.log('[facebook/callback] Totalt', pagesData.data.length, 'sider etter fallbacks')
 
     // Use service role client to save connections (bypasses RLS)
     const supabase = createClient(
