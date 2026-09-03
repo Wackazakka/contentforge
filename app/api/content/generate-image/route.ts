@@ -302,6 +302,7 @@ export async function POST(request: NextRequest) {
           await logFaceUsage({
             characterId: character,
             usedByTenantId: pt.tenantId,
+            organizationId: pt.organizationId,
             productId,
             draftId: draftId || null,
           })
