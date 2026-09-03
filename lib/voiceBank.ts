@@ -190,6 +190,7 @@ export async function logPreviewRoyalty(e: {
 export async function logFaceUsage(e: {
   characterId?: string | null
   usedByTenantId?: string | null
+  organizationId?: string | null
   productId?: string | null
   draftId?: string | null
   jobId?: string | null
@@ -205,6 +206,9 @@ export async function logFaceUsage(e: {
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
+      // Kunden fryses PÅ raden. product_id alene duger ikke: slettes produktet,
+      // ryker sporet til hvem som betalte, mens beløpene blir stående.
+      organization_id: e.organizationId ?? null,
       product_id: e.productId ?? null,
       draft_id: e.draftId ?? null,
       job_id: e.jobId ?? null,
@@ -227,6 +231,7 @@ export async function logFaceUsage(e: {
 export async function logVoiceUsage(e: {
   elevenlabsVoiceId?: string | null
   usedByTenantId?: string | null
+  organizationId?: string | null
   productId?: string | null
   draftId?: string | null
   jobId?: string | null
@@ -242,6 +247,9 @@ export async function logVoiceUsage(e: {
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
+      // Kunden fryses PÅ raden. product_id alene duger ikke: slettes produktet,
+      // ryker sporet til hvem som betalte, mens beløpene blir stående.
+      organization_id: e.organizationId ?? null,
       product_id: e.productId ?? null,
       draft_id: e.draftId ?? null,
       job_id: e.jobId ?? null,

@@ -185,12 +185,12 @@ export async function POST(request: Request) {
         // og royalty-raden forsvinner da uten feilmelding. Begge funksjonene
         // feiler stille internt, saa ventingen koster oss ingenting.
         if (pt2.tenantId && d3?.voice_id) {
-          await logVoiceUsage({ elevenlabsVoiceId: d3.voice_id, usedByTenantId: pt2.tenantId, productId: draftProductId, draftId, jobId, meta: { kind: 'video' } })
+          await logVoiceUsage({ elevenlabsVoiceId: d3.voice_id, usedByTenantId: pt2.tenantId, organizationId: pt2.organizationId, productId: draftProductId, draftId, jobId, meta: { kind: 'video' } })
         }
         // Karakteren kommer fra body i gratis-stien og fra draft-kolonnen i betalings-stien
         const charId = character || d3?.character_id
         if (pt2.tenantId && charId) {
-          await logFaceUsage({ characterId: charId, usedByTenantId: pt2.tenantId, productId: draftProductId, draftId, jobId })
+          await logFaceUsage({ characterId: charId, usedByTenantId: pt2.tenantId, organizationId: pt2.organizationId, productId: draftProductId, draftId, jobId })
         }
       }
     } catch { /* måling velter aldri produksjon */ }

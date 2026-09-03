@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       const { logVoiceUsage } = await import('@/lib/voiceBank')
       const pt = await getProductTenant(productId)
       if (pt.tenantId && voiceId) {
-        logVoiceUsage({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, productId, meta: { kind: 'avatar' } })
+        await logVoiceUsage({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, organizationId: pt.organizationId, productId, meta: { kind: 'avatar' } })
       }
     } catch { /* royalty-logging velter aldri produksjon */ }
 
