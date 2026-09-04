@@ -251,7 +251,9 @@
     "created": "Created {date}",
     "errorNoOrgOnDomain": "Your account does not belong to this domain. Sign up on this domain to get started.",
     "errorCreateFailed": "Could not save. Try again — and let us know if it keeps happening.",
-    "goToVoiceBank": "Go to the voice & face bank"
+    "goToVoiceBank": "Go to the voice & face bank",
+    "simpleListHint": "Tap an occasion to make a film for it.",
+    "simpleCardCta": "🎬 Make a film →"
   },
   "productModal": {
     "title": "New product",

@@ -251,7 +251,9 @@
     "created": "Opprettet {date}",
     "errorNoOrgOnDomain": "Kontoen din hører ikke til dette domenet. Registrer deg på dette domenet for å komme i gang.",
     "errorCreateFailed": "Kunne ikke lagre. Prøv igjen — og si fra hvis det fortsetter.",
-    "goToVoiceBank": "Til stemme- og ansiktsbanken"
+    "goToVoiceBank": "Til stemme- og ansiktsbanken",
+    "simpleListHint": "Trykk på en anledning for å lage film til den.",
+    "simpleCardCta": "🎬 Lag film →"
   },
   "productModal": {
     "title": "Nytt produkt",
