@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (session.payment_status !== 'paid') {
       return NextResponse.json({ status: session.payment_status || 'unpaid' })
     }
-    if (session.metadata?.kind !== 'production') {
+    if (session.metadata?.kind !== 'production' && session.metadata?.kind !== 'film') {
       return NextResponse.json({ error: 'Ikke en produksjons-session' }, { status: 400 })
     }
 

@@ -109,6 +109,8 @@ export async function POST(request: NextRequest) {
     const auth = request.headers.get('authorization')
     if (!auth?.startsWith('Bearer ')) return NextResponse.json({ error: 'Du må være innlogget.' }, { status: 401 })
     const asUser = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: auth } } })
+    const { data: who } = await asUser.auth.getUser()
+    const userId = who?.user?.id || null
     const { data: product } = await asUser
       .from('products')
       .select('id, name, description, category')
@@ -161,6 +163,12 @@ export async function POST(request: NextRequest) {
         video_format: '9:16',
         music_style: 'Warm',
         music_file: musicFile,
+        // Produksjonsvalgene ligger paa raden: Stripe-webhooken starter
+        // produksjonen uten klient, og maa finne dem her.
+        image_style: 'warm',
+        include_outro_card: false,
+        ai_motion: false,
+        user_id: userId,
       })
       .select('id')
       .single()

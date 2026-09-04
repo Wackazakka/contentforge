@@ -991,6 +991,13 @@
     "nav": "Account"
   },
   "film": {
+    "priceLine": "Price: NOK {price} per film. You pay by card before the film is made.",
+    "phasePaying": "Taking you to payment …",
+    "paymentCancelled": "The payment was cancelled. Everything you entered is still here — press “Make the film” when you are ready.",
+    "paidTitle": "Thank you! Starting your film …",
+    "paidText": "Payment received. You will be taken onward as soon as the film is in production — this takes a few seconds.",
+    "paidSlowTitle": "This took longer than usual",
+    "paidSlowText": "The payment is registered, but we could not start the film automatically. Go to the occasion — the film will appear there, or tell us and we will sort it out.",
     "back": "← Back to the occasion",
     "title": "Make a film",
     "subtitle": "Four steps and you have a film you can send to everyone. {name} puts it together for you.",

@@ -24,6 +24,10 @@ export interface VerticalConfig {
   productionTypes?: ProductionType[]
   // Merkevareprofilen (logo/farger/tone) paa produktsiden. Utelatt = vist.
   brandProfile?: boolean
+  // Fast pris per film i den enkle flyten (Lars 4/9): kunden betaler
+  // customerPriceNok (inkl. mva) i Stripe; Norditechs engrospris til partneren
+  // er wholesaleNok og logges som forbruk i stedet for maalt API-kost.
+  film?: { customerPriceNok: number; wholesaleNok: number }
 }
 
 export const VERTICALS: Record<string, VerticalConfig> = {
@@ -79,7 +83,12 @@ export const VERTICALS: Record<string, VerticalConfig> = {
     simpleMode: true,
     productionTypes: ['video'],
     brandProfile: false,
+    film: { customerPriceNok: 149, wholesaleNok: 25 },
   },
+}
+
+export function filmPricing(vertical: string | null | undefined) {
+  return verticalConfig(vertical)?.film ?? null
 }
 
 export function verticalConfig(vertical: string | null | undefined): VerticalConfig | null {

@@ -150,6 +150,11 @@ export async function logUsageEvent(e: {
   eventType: string
   costNok: number
   meta?: Record<string, unknown>
+  // Faste produkter (Ropert-film, 4/9): costNok ER engrosprisen — ingen
+  // plattformfaktor oppaa. customerNok fryser kundeprisen (eks. mva) i
+  // stedet for kjedens prosentpaaslag.
+  fixedWholesale?: boolean
+  customerNok?: number
 }): Promise<void> {
   try {
     let productId = e.productId
@@ -184,12 +189,14 @@ export async function logUsageEvent(e: {
     // Innprisen partneren faktureres = raakost x (1 + VAART paaslag/100).
     // COSTS_NOK er raakost x 2, saa faktoren er 1,0 ved standard 100 % — ingen
     // tall flytter seg foer noen bevisst skrur paa plattformpaaslaget (3/8).
-    const costNok = e.costNok * (await wholesaleFactorForTenant(pt.tenantId))
+    const costNok = e.fixedWholesale ? e.costNok : e.costNok * (await wholesaleFactorForTenant(pt.tenantId))
     // Kundepris (hele kjedens påslag) fryses på raden — sluttkundens saldo
     // trekkes til DERES pris, partnersaldoen til partnerpris (cost_nok)
     // Kundeprisen bygger paa INNPRISEN, ikke listeprisen — saa partnerens
     // prosent staar urort naar vaart paaslag endres (Lars 3/8)
-    const customerCostNok = costNok * (await chainFactorByTenantId(pt.tenantId))
+    const customerCostNok = typeof e.customerNok === 'number'
+      ? e.customerNok
+      : costNok * (await chainFactorByTenantId(pt.tenantId))
     const row = {
       tenant_id: pt.tenantId,
       organization_id: pt.organizationId,

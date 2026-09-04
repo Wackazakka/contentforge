@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { fetchMusicLibrary, ownTracks, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
 import { uploadTrack, TRACK_UPLOAD_MAX_BYTES } from '@/lib/uploadTrack'
+import { filmPricing } from '@/lib/verticals'
 
 // Den enkle filmflyten (Standard Ropert, Lars 4/9): sang → bilder → tekst →
 // film. Ingen segmentredigering, ingen stemmevalg, ingen taxameter. Sangen
@@ -17,7 +18,7 @@ import { uploadTrack, TRACK_UPLOAD_MAX_BYTES } from '@/lib/uploadTrack'
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
 
-type Phase = 'idle' | 'writing' | 'images' | 'starting'
+type Phase = 'idle' | 'writing' | 'images' | 'paying' | 'starting'
 
 function fmtDuration(sec: number | null): string {
   if (!sec || !isFinite(sec)) return ''
@@ -48,6 +49,7 @@ export default function FilmPage() {
   const t = useTranslations('film')
   const locale = useLocale() === 'en' ? 'en' : 'no'
   const tenant = useTenant()
+  const filmPrice = filmPricing(tenant.vertical)?.customerPriceNok ?? null
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -71,6 +73,7 @@ export default function FilmPage() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [imageProgress, setImageProgress] = useState<{ done: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const avbrutt = useSearchParams()?.get('avbrutt') === '1'
 
   const token = async () => (await getSupabase().auth.getSession()).data?.session?.access_token || null
 
@@ -210,6 +213,18 @@ export default function FilmPage() {
         if (upErr) throw new Error(upErr.message)
       }
 
+      // Fastpris (149 kr): Stripe foer produksjonen. Serveren svarer
+      // {free:true} naar billing er av — da startes produksjonen direkte.
+      setPhase('paying')
+      const payRes = await fetch('/api/film-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` },
+        body: JSON.stringify({ draftId }),
+      })
+      const pay = await payRes.json().catch(() => null)
+      if (!payRes.ok) throw new Error(pay?.error || t('failed'))
+      if (pay?.url) { window.location.href = pay.url; return }
+
       setPhase('starting')
       const startRes = await fetch('/api/start-production', {
         method: 'POST',
@@ -246,6 +261,9 @@ export default function FilmPage() {
         <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,42px)', lineHeight: 1.05, color: 'var(--ink)', margin: '14px 0 8px' }}>{t('title')}</h1>
         <p style={{ ...hint, margin: '0 0 26px', fontSize: 16 }}>{t('subtitle', { name: tenant.app_name })}</p>
 
+        {avbrutt && !error && (
+          <div style={{ background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', color: 'var(--ink)', borderRadius: 12, padding: '12px 16px', fontFamily: HANKEN, fontSize: 14.5, marginBottom: 18 }}>{t('paymentCancelled')}</div>
+        )}
         {error && (
           <div style={{ background: '#FDECEC', border: '1px solid #F5C2C2', color: '#8A1C1C', borderRadius: 12, padding: '12px 16px', fontFamily: HANKEN, fontSize: 14.5, marginBottom: 18 }}>{error}</div>
         )}
@@ -321,11 +339,13 @@ export default function FilmPage() {
         <section style={{ ...card, textAlign: 'center' }}>
           <h2 style={{ ...h2, justifyContent: 'center' }}><span style={stepNo}>4</span>{t('step4Title')}</h2>
           <p style={hint}>{t('step4Hint')}</p>
+          <p style={{ ...hint, fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{t('priceLine', { price: filmPrice ?? 149 })}</p>
           {busy ? (
             <div style={{ fontFamily: HANKEN, fontSize: 15.5, color: 'var(--ink)' }}>
               <div className="cf-spinner" style={{ margin: '0 auto 12px' }} />
               {phase === 'writing' && t('phaseWriting')}
               {phase === 'images' && t('phaseImages', { done: imageProgress?.done ?? 0, total: imageProgress?.total ?? 0 })}
+              {phase === 'paying' && t('phasePaying')}
               {phase === 'starting' && t('phaseStarting')}
               <p style={{ ...hint, margin: '10px 0 0', fontSize: 13.5 }}>{t('stayOnPage')}</p>
             </div>

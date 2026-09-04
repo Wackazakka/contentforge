@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { holdSecondsFor } from './sceneTiming'
 import { fetchVerticalForOrganization } from '@/lib/senderContext.mjs'
 import { merkekortTekst } from '@/lib/tenantNames'
+import { filmPricing } from '@/lib/verticals'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
 
@@ -270,6 +271,31 @@ export async function startProductionForDraft(
     .update({ status: 'processing', job_id: job.jobId })
     .eq('id', draftId)
   if (updateError) console.error('[production] draft-oppdatering feilet (jobben er i kø):', updateError)
+
+  // Fast produkt (Ropert-film, Lars 4/9): den enkle flyten lager utkast med
+  // egen stemme og alle scener uten tale — den signaturen finnes bare der.
+  // Maalt API-kost er ~0 for slike filmer, saa forbruket logges som
+  // vertikalens faste engrospris (25 kr) med kundeprisen (149 inkl. mva)
+  // frosset paa raden. Loggingen velter aldri produksjonen.
+  try {
+    const pris = filmPricing(vertical)
+    const erFilm = pris && draft.voice_id === 'own' && segments.length > 0 && segments.every((s: { no_voice?: boolean }) => s.no_voice === true)
+    if (erFilm) {
+      const { logUsageEvent } = await import('@/lib/tenantBilling')
+      await logUsageEvent({
+        productId: draft.product_id,
+        draftId,
+        userId: draft.user_id || null,
+        eventType: 'film_production',
+        costNok: pris.wholesaleNok,
+        fixedWholesale: true,
+        customerNok: Math.round((pris.customerPriceNok / 1.25) * 100) / 100,
+        meta: { jobId: job.jobId, customerPriceNok: pris.customerPriceNok, paid: draft.payment_status === 'paid' },
+      })
+    }
+  } catch (uErr) {
+    console.warn('[production] film-forbruk ikke logget:', uErr)
+  }
 
   console.log('[production] Startet jobb', job.jobId, 'for draft', draftId)
   return { jobId: job.jobId }

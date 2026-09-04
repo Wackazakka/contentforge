@@ -991,6 +991,13 @@
     "nav": "Konto"
   },
   "film": {
+    "priceLine": "Pris: {price} kr per film. Du betaler med kort før filmen lages.",
+    "phasePaying": "Sender deg til betaling …",
+    "paymentCancelled": "Betalingen ble avbrutt. Alt du la inn er her fortsatt — trykk «Lag filmen» når du er klar.",
+    "paidTitle": "Takk! Filmen settes i gang …",
+    "paidText": "Betalingen er mottatt. Du sendes videre så snart filmen er i produksjon — det tar noen sekunder.",
+    "paidSlowTitle": "Dette tok lengre tid enn vanlig",
+    "paidSlowText": "Betalingen er registrert, men vi fikk ikke startet filmen automatisk. Gå til anledningen — filmen dukker opp der, eller si fra til oss så ordner vi det.",
     "back": "← Tilbake til anledningen",
     "title": "Lag film",
     "subtitle": "Fire steg, så har du en film du kan sende til alle. {name} setter den sammen for deg.",
