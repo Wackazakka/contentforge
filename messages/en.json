@@ -1058,7 +1058,14 @@
     "noLibrary": "The music library is empty right now — the film is made without music.",
     "step4HintVoice": "We write short lines for each scene, read them with the voice you chose, and put it all together. It takes a few minutes.",
     "step4HintMusic": "We write short lines for each scene and put them together with the music. It takes a few minutes.",
-    "step4HintSilent": "We write short lines for each scene and put them together with your pictures. It takes a few minutes."
+    "step4HintSilent": "We write short lines for each scene and put them together with your pictures. It takes a few minutes.",
+    "lengthLabel": "How long should the film be?",
+    "length30": "Short (30 s)",
+    "length60": "Standard (60 s)",
+    "lengthFull": "The whole song",
+    "lengthHint": "Under a minute is easiest to watch through on a phone. If you choose shorter than the song, we use the beginning and fade out.",
+    "filmLengthClipped": "The film will be {length} (the song is {song})",
+    "phaseClipping": "Trimming the song to the right length …"
   },
   "occasion": {
     "back": "← All occasions",

@@ -593,6 +593,10 @@ router.post('/', async (req, res) => {
     outroCard,
     aiMotion,
     aiMotionEngine,
+    // Standard Ropert (4/9): langsom zoom/panorering paa stillbilder, og
+    // scenetekst som overskrift i stedet for liten undertekst.
+    stillMotion,
+    textStyle,
   } = req.body || {}
 
   if (!campaignId || !service) {
@@ -980,8 +984,10 @@ router.post('/', async (req, res) => {
               // _utenLyd daekker baade «uten tale» og scener der teksten er
               // toemt men et gammelt opptak laa igjen (Lars 3/8)
               vo_path: (seg._utenLyd || seg.noVoice === true) ? undefined : `${jobDir}/vo_${i + 1}.mp3`,
-              lines: [],
-              sub: subText.length > 80 ? subText.substring(0, 77) + '...' : subText,
+              // textStyle 'headline' (Ropert-film 4/9): teksten ER budskapet —
+              // stor, ordbrutt linje i tekstfeltet i stedet for undertekst.
+              lines: textStyle === 'headline' && subText ? [{ text: subText, size: 58, bold: true, color: '#ffffff' }] : [],
+              sub: textStyle === 'headline' ? '' : (subText.length > 80 ? subText.substring(0, 77) + '...' : subText),
               // Musikkdrevet tempo (2026-07-30): hviletid etter stemmen —
               // rendereren lar bildet staa og musikken loeftes av duckingen.
               // segHolds er regnet FOER animasjonen (film=musikk vinner over
@@ -996,6 +1002,8 @@ router.post('/', async (req, res) => {
           format: video_format || '9:16', // Pass format to Python script
           // 'contain' = hele bildet med sort rundt (artistenes egne bilder, 31/7)
           imageFit: imageFit === 'contain' ? 'contain' : 'cover',
+          // Langsom zoom/panorering paa stillbilder (4/9) — kun naar jobben ber om det
+          stillMotion: !!stillMotion,
           jobId,
           campaignId,
           service,
