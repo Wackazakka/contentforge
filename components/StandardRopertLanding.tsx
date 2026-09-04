@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 
-// Standard Ropert — Standard Festmagasins white-label av Studio.
-// Kundene er folk og bedrifter med noe aa feire: invitasjoner, gratulasjoner
-// og kunngjoeringer. En ropert er en megafon — navnet baerer hele ideen, og
-// heroen spiller paa det. KUN produksjon (twinledger_enabled=false paa raden);
-// ingen stemmebank-spraak her. Fargene speiler tenant-raden (#D4283F).
-// Egen sr-navnerom-styling; tenant-tokens styrer innloggede flater.
+// Standard Ropert — Standard Festmagasins white-label av Studio, og
+// foelgesvennen til Sangskaper.no (avtale 4/9): kunden har laget en sang der,
+// og faar den som film/invitasjon her. En ropert er en megafon — navnet
+// baerer ideen. Maalgruppen sender saa vidt e-post, saa siden lover bare det
+// flyten faktisk gjoer: sang + bilder → film → last ned og del.
+// KUN produksjon (twinledger_enabled=false); ingen stemmebank-spraak.
+// Fargene speiler tenant-raden (#D4283F). Egen sr-navnerom-styling.
 
 const SANS = 'var(--font-hanken), "Avenir Next", system-ui, sans-serif'
 const DISPLAY = 'var(--font-archivo), "Avenir Next", system-ui, sans-serif'
@@ -40,6 +41,10 @@ export default function StandardRopertLanding() {
         .sr-steg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
         .sr-nr { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: ${DISPLAY}; font-weight: 800; font-size: 14px; color: #fff; background: ${GULL}; }
         .sr-rule { height: 1px; background: ${LINJE}; border: 0; margin: 0; }
+        .sr-sang { background: ${KORT}; border: 1px solid ${LINJE}; border-radius: 14px; padding: 26px 30px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+        .sr-sang p { margin: 0; }
+        .sr-foot a { color: ${DEMPET}; font-size: 14px; text-decoration: none; }
+        .sr-foot a:hover { color: ${ROD}; }
         @media (max-width: 820px) { .sr-g3, .sr-steg { grid-template-columns: 1fr; } }
       `}</style>
 
@@ -59,15 +64,15 @@ export default function StandardRopertLanding() {
 
       <hr className="sr-rule" />
 
-      {/* Hero — roperten sier det hoeyt */}
-      <section className="sr-band" style={{ paddingTop: 72, paddingBottom: 64, textAlign: 'center' }}>
+      {/* Hero — sangen blir film */}
+      <section className="sr-band" style={{ paddingTop: 72, paddingBottom: 56, textAlign: 'center' }}>
         <div style={{ fontSize: 52, marginBottom: 14 }} aria-hidden="true">📣</div>
         <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(36px, 5.6vw, 58px)', lineHeight: 1.04, letterSpacing: '-0.03em', margin: '0 auto 20px', maxWidth: 760, textWrap: 'balance' }}>
-          Noe å feire?<br />Si det med stil.
+          Har du laget en sang?<br />Gjør den til en film.
         </h1>
         <p className="sr-p" style={{ fontSize: 19, margin: '0 auto 30px', maxWidth: '32em' }}>
-          Invitasjoner, gratulasjoner og kunngjøringer — som video, bilder og tekst, klare til å
-          deles. Du forteller hva som skjer; Roperten lager resten.
+          Last opp sangen fra Sangskaper, legg til noen bilder, og få en film du kan sende til
+          alle du vil invitere eller gratulere. Du forteller hva som skjer; Roperten setter det sammen.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/register" className="sr-cta">Kom i gang</Link>
@@ -76,20 +81,35 @@ export default function StandardRopertLanding() {
       </section>
 
       {/* Tre anledninger */}
-      <section className="sr-band" style={{ paddingBottom: 72 }}>
+      <section className="sr-band" style={{ paddingBottom: 56 }}>
         <div className="sr-g3">
           <div className="sr-kort">
             <h3>💌 Invitasjoner</h3>
-            <p>Bursdag, bryllup, jubileum eller dåp — en invitasjon folk faktisk legger merke til, med video eller bilde.</p>
+            <p>Bursdag, bryllup, konfirmasjon eller krepselag i gata — en invitasjon med sangen deres under, som folk faktisk ser på.</p>
           </div>
           <div className="sr-kort">
             <h3>🎉 Gratulasjoner</h3>
-            <p>En hilsen som er mer enn en melding. Personlig video til dagen, eksamenen eller de nygifte.</p>
+            <p>En hilsen som er mer enn en melding. Sangen du lagde, bildene deres, og et par ord til dagen.</p>
           </div>
           <div className="sr-kort">
             <h3>📣 Kunngjøringer</h3>
-            <p>Babyen som kom, flyttingen, åpningen av butikken — fortell det til alle på én gang, pent.</p>
+            <p>Babyen som kom, flyttingen, de nygifte — fortell det til alle på én gang, med musikk.</p>
           </div>
+        </div>
+      </section>
+
+      {/* Ingen sang ennaa? → Sangskaper */}
+      <section className="sr-band" style={{ paddingBottom: 72 }}>
+        <div className="sr-sang">
+          <span style={{ fontSize: 38 }} aria-hidden="true">🎵</span>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <p style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 18, marginBottom: 4 }}>Ingen sang ennå?</p>
+            <p className="sr-p" style={{ margin: 0, fontSize: 15.5 }}>
+              Lag én på Sangskaper.no på noen minutter — til bursdagen, utdrikningslaget eller konfirmasjonen.
+              Last den ned derfra, og ta den med hit.
+            </p>
+          </div>
+          <a href="https://sangskaper.no" target="_blank" rel="noopener noreferrer" className="sr-ghost">Til Sangskaper.no →</a>
         </div>
       </section>
 
@@ -101,30 +121,32 @@ export default function StandardRopertLanding() {
         <div className="sr-steg" style={{ marginTop: 26 }}>
           <div className="sr-kort">
             <div className="sr-nr">1</div>
-            <h3>Fortell om anledningen</h3>
-            <p>Hva som feires, hvem det gjelder og når. To setninger holder.</p>
+            <h3>Last opp sangen</h3>
+            <p>MP3-fila fra Sangskaper, eller en annen sang du har lov til å bruke. Filmen blir like lang som sangen.</p>
           </div>
           <div className="sr-kort">
             <div className="sr-nr">2</div>
-            <h3>Se det bli laget</h3>
-            <p>Video, bilder og tekst lages for deg — du ser alt og godkjenner før noe sendes.</p>
+            <h3>Legg til bilder og et par ord</h3>
+            <p>Bilder fra telefonen, og to setninger om hva som skjer, når og hvor. Har du ingen bilder, lager vi noen som passer.</p>
           </div>
           <div className="sr-kort">
             <div className="sr-nr">3</div>
-            <h3>Del det</h3>
-            <p>Rett til Facebook og Instagram, eller last ned og send akkurat dit du vil.</p>
+            <h3>Se filmen og del den</h3>
+            <p>Last den ned og send den på Messenger, WhatsApp eller e-post — eller legg den ut på Facebook.</p>
           </div>
         </div>
         <div style={{ marginTop: 34, textAlign: 'center' }}>
-          <Link href="/register" className="sr-cta">Lag din første</Link>
+          <Link href="/register" className="sr-cta">Lag din første film</Link>
         </div>
       </section>
 
       <hr className="sr-rule" />
 
-      <footer className="sr-band" style={{ paddingTop: 28, paddingBottom: 52, display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 13.5, color: DEMPET }}>Standard Ropert — fra Standard Festmagasin</span>
-        <Link href="/login" style={{ color: DEMPET, fontSize: 14, textDecoration: 'none' }}>Logg inn</Link>
+      <footer className="sr-band sr-foot" style={{ paddingTop: 28, paddingBottom: 52, display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: 13.5, color: DEMPET }}>Standard Ropert — fra Standard Festmagasin, i samarbeid med Voice Bank AS</span>
+        <Link href="/terms">Vilkår</Link>
+        <Link href="/privacy">Personvern</Link>
+        <Link href="/login">Logg inn</Link>
       </footer>
     </div>
   )

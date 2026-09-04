@@ -8,10 +8,22 @@
     "step1Desc": "What is being celebrated, who it is for and when — two sentences will do.",
     "step2Title": "Get it made",
     "step2Desc": "Video, images and text — you see and approve everything before it goes out.",
-    "step3Desc": "Share straight to Facebook and Instagram from {name}, or download and send it yourself."
+    "step3Desc": "Share straight to Facebook and Instagram from {name}, or download and send it yourself.",
+    "products": "occasions",
+    "product": "occasion",
+    "step3Title": "Share it",
+    "deleteConfirm": "Delete this occasion? The films made for it disappear too.",
+    "created": "Added {date}",
+    "deleteTitle": "Delete occasion"
   },
   "register": {
-    "subtitle": "Create invitations, greetings and announcements in minutes."
+    "subtitle": "Create invitations, greetings and announcements in minutes.",
+    "title": "Create an account",
+    "fullNameLabel": "Your name",
+    "fullNamePlaceholder": "Jane Smith",
+    "createAccount": "Create account",
+    "creatingAccount": "Creating account …",
+    "errorFullNameRequired": "Please enter your name."
   },
   "productModal": {
     "title": "New occasion",
@@ -47,5 +59,18 @@
     "problemPlaceholder": "e.g. Time, place, and that people bring their own drinks",
     "ctaLabel": "Closing call to action",
     "ctaPlaceholder": "e.g. Let us know by Thursday if you are coming!"
+  },
+  "videoStatus": {
+    "title": "Your film is being made",
+    "jobId": " ",
+    "takesTime": "This usually takes a few minutes. You can close the page and come back — the film will be waiting under the occasion.",
+    "videoReady": "✅ Your film is ready!",
+    "openVideo": "▶️ Watch the film",
+    "backToProduct": "Back to the occasion",
+    "productionFailed": "❌ This did not work",
+    "statusQueued": "⏳ Waiting in line",
+    "statusGenerating": "✍️ Preparing the scenes",
+    "statusRendering": "🎬 Putting the film together",
+    "statusUploading": "☁️ Almost done"
   }
 }

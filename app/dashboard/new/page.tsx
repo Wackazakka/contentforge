@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { fetchMusicLibrary } from '@/lib/musicLibrary'
 
 const norwegianVoices = [
   { id: 'nhvaqgRyAq6BmFs3WcdX', name: 'Norsk stemme 1' },
@@ -76,8 +77,7 @@ export default function NewCampaignPage() {
 
   // Load music library via API proxy
   useEffect(() => {
-    fetch('/api/music')
-      .then((res) => res.json())
+    fetchMusicLibrary()
       .then((data) => {
         if (data.files && Array.isArray(data.files)) {
           setMusicLibrary(data.files)
@@ -480,7 +480,7 @@ export default function NewCampaignPage() {
                           })
                           if (res.ok) {
                             // Reload music library
-                            const data = await fetch('/api/music').then(r => r.json())
+                            const data = await fetchMusicLibrary()
                             if (data.files) setMusicLibrary(data.files)
                             alert(t('alertMusicUploaded'))
                             e.currentTarget.value = ''

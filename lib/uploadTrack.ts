@@ -1,5 +1,5 @@
 import { getSupabase } from '@/lib/supabaseClient'
-import type { MusicFile } from '@/lib/musicLibrary'
+import { fetchMusicLibrary, type MusicFile } from '@/lib/musicLibrary'
 
 // Opplasting av egne låter UTENOM Netlify-proxyen (som kaster 413 over
 // ~4,5 MB — målt): nettleser → Supabase Storage-innboksen → droplet henter.
@@ -35,7 +35,7 @@ export async function uploadTrack(file: File, folder: string): Promise<MusicFile
   // samme stoerrelse, kom den frem.
   await new Promise((r) => setTimeout(r, 2500))
   try {
-    const lib = await fetch('/api/music').then((r) => r.json())
+    const lib = await fetchMusicLibrary()
     const hit = (lib.files || []).find(
       (f: MusicFile & { size?: number }) => f.folder === folder && f.size === file.size
     )

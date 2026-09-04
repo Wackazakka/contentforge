@@ -19,7 +19,8 @@ export default function CreditsPage() {
   // Artister er enkeltpersoner, ikke byraaer: de skal se 200-1000-pakkene,
   // ikke bedriftskurven som starter paa 1 000 kr (Lars 2/8).
   const tenant = useTenant()
-  const erArtist = tenant.vertical === 'music'
+  // Anledninger (celebration) er ogsaa enkeltpersoner (4/9).
+  const erArtist = tenant.vertical === 'music' || tenant.vertical === 'celebration'
   // Valutaen foelger tenanten (Lars 3/8). Kredittene er de samme overalt;
   // det er prisen paa pakken som skifter.
   const valuta = ((tenant.currency as Valuta) || 'nok')

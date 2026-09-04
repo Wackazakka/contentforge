@@ -8,17 +8,18 @@ import { getSupabase } from "@/lib/supabaseClient"
 import { useTenant } from '@/lib/tenantContext'
 import { useProducts } from "@/lib/useProducts"
 import { ProductModal, type CreateProductFormInput } from "@/components/ProductModal"
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+import { verticalConfig } from '@/lib/verticals'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
 const MONO = 'var(--font-cfmono), monospace'
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+function formatDate(iso: string, locale: string) {
+  return new Date(iso).toLocaleDateString(locale === 'en' ? 'en-GB' : 'nb-NO', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   })
 }
 
@@ -33,6 +34,15 @@ export default function DashboardPage() {
   const [creatingProduct, setCreatingProduct] = useState(false)
 
   const tenant = useTenant()
+  const locale = useLocale()
+  const vcfg = verticalConfig(tenant.vertical)
+  const tModal = useTranslations('productModal')
+  // Kategorien lagres som noekkel (bursdag/daap) — vis etiketten (Bursdag/Daap).
+  // Fritekst fra «Annet» har ingen etikett og vises som den er.
+  const categoryLabel = (value: string | null) => {
+    const opt = vcfg?.categoryOptions.find((o) => o.value === value)
+    return opt ? tModal(opt.labelKey) : value
+  }
   const { products, loading: productsLoading, createProduct, deleteProduct } = useProducts(organizationId)
 
   useEffect(() => {
@@ -93,7 +103,7 @@ export default function DashboardPage() {
           const { data: newOrg, error: createErr } = await supabase
             .from('organizations')
             .insert({
-              name: fullName + "'s Organization",
+              name: vcfg?.simpleMode ? fullName : fullName + "'s Organization",
               owner_id: session.user.id,
               slug: (session.user.email?.split('@')[0] || 'org').toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + session.user.id.substring(0, 8) + (tenant.slug !== 'centerforge' ? '-' + tenant.slug : ''),
               description: 'Default organization for ' + fullName,
@@ -160,7 +170,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {organizationName && (
+      {organizationName && !vcfg?.simpleMode && (
         <div style={{ fontFamily: HANKEN, fontSize: 14.5, color: 'var(--text-muted)', marginBottom: 26 }}>
           <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{organizationName}</span>
           {' · '}
@@ -254,18 +264,18 @@ export default function DashboardPage() {
                 </h3>
                 {product.category && (
                   <span style={{ display: 'inline-block', fontFamily: HANKEN, fontSize: 12, fontWeight: 600, letterSpacing: '0.02em', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', borderRadius: 999, padding: '3px 11px', marginBottom: 14, textTransform: 'capitalize' }}>
-                    {product.category}
+                    {categoryLabel(product.category)}
                   </span>
                 )}
                 {product.description && (
                   <p style={{ fontFamily: HANKEN, fontSize: 15, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 18px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.description}</p>
                 )}
-                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', color: 'var(--text-faint)' }}>{t('created', { date: formatDate(product.created_at) })}</div>
+                <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', color: 'var(--text-faint)' }}>{t('created', { date: formatDate(product.created_at, locale) })}</div>
               </Link>
               {/* Delete — top-right, only visible on hover */}
               <button
                 onClick={() => handleDeleteProduct(product.id)}
-                title="Slett produkt"
+                title={t('deleteTitle')}
                 className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-md"
                 style={{ color: 'var(--text-faint)' }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ember-deep)'; e.currentTarget.style.background = '#FBEAE6' }}

@@ -7,8 +7,10 @@ import { useAuth } from '@/lib/authContext'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { useTenant } from '@/lib/tenantContext'
-import { verticalConfig } from '@/lib/verticals'
+import { verticalConfig, offersProduction } from '@/lib/verticals'
+import OccasionSimplePage from '@/components/OccasionSimplePage'
 import { uploadTrack } from '@/lib/uploadTrack'
+import { fetchMusicLibrary } from '@/lib/musicLibrary'
 
 function renderMarkdown(text: string) {
   const clean = text.replace(/\n/g, ' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -94,7 +96,18 @@ function SectionHeader({
   )
 }
 
+// Enkel modus (Standard Ropert, 4/9): en egen, liten side i stedet for denne.
+// Avgjoeres i en wrapper saa hook-rekkefoelgen i den fulle siden er uroert.
 export default function ProductPage() {
+  const tenant = useTenant()
+  const params = useParams()
+  if (verticalConfig(tenant.vertical)?.simpleMode) {
+    return <OccasionSimplePage productId={params.id as string} />
+  }
+  return <FullProductPage />
+}
+
+function FullProductPage() {
   const router = useRouter()
   const params = useParams()
   const { session } = useAuth()
@@ -135,7 +148,7 @@ export default function ProductPage() {
   const [trackError, setTrackError] = useState<string | null>(null)
   const refreshTrackBank = async () => {
     try {
-      const d = await fetch('/api/music').then((r) => r.json())
+      const d = await fetchMusicLibrary()
       if (d.files) setTrackBank(d.files.filter((f: { folder?: string }) => f.folder === `tracks-${productId}`))
     } catch { /* valgfritt */ }
   }
@@ -741,7 +754,9 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* Brand Profile — collapsible */}
+        {/* Brand Profile — collapsible. Vertikaler uten merkevare (celebration)
+            faar den ikke i det hele tatt (4/9). */}
+        {vcfg?.brandProfile !== false && (
         <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
           <SectionHeader
             title={t('brandProfile')}
@@ -992,6 +1007,7 @@ export default function ProductPage() {
           </div>
           )}
         </div>
+        )}
 
         {/* Content Production */}
         <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
@@ -1009,7 +1025,7 @@ export default function ProductPage() {
             {/* Radioreklame og artikkel er ikke for artister (Lars 1/8:
                 «IndigoBooms artister er mest interessert i video») — men
                 bestaar for de andre vertikalene */}
-            {tenant.vertical !== 'music' && (
+            {offersProduction(tenant.vertical, 'radio') && tenant.vertical !== 'music' && (
             <Link
               href={`/dashboard/products/${productId}/radio`}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#D97706] hover:bg-[#FFFBEB] transition-all text-left block"
@@ -1020,6 +1036,7 @@ export default function ProductPage() {
             </Link>
             )}
 
+            {offersProduction(tenant.vertical, 'avatar') && (
             <Link
               href={`/dashboard/products/${productId}/avatar`}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#7C3AED] hover:bg-[#F5F3FF] transition-all text-left block"
@@ -1028,8 +1045,9 @@ export default function ProductPage() {
               <h3 className="font-semibold text-gray-900">Avatar Video</h3>
               <p className="text-sm text-gray-600 mt-1">En AI-vert fremfører manuset ditt med lyd og leppebevegelser</p>
             </Link>
+            )}
 
-            {tenant.vertical !== 'music' && (
+            {offersProduction(tenant.vertical, 'article') && tenant.vertical !== 'music' && (
             <button
               onClick={() => router.push(`/dashboard/products/${productId}/article`)}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#3F7A4E] hover:bg-[#f0fdf8] transition-all text-left"
@@ -1611,7 +1629,7 @@ export default function ProductPage() {
           {/* Articles — artist-tjenester lager ikke artikler (Lars 5/8), samme
               vurdering som knappen paa publiseringssiden. Gamle artikler blir
               staaende i basen; de er bare ikke lenger et tema paa artistsiden. */}
-          {tenant.vertical !== 'music' && (
+          {offersProduction(tenant.vertical, 'article') && tenant.vertical !== 'music' && (
           <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6">
             <SectionHeader
               title={t('articles', { count: articles.length })}
