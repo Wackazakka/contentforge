@@ -61,6 +61,26 @@ export default function FilmPage() {
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  // Skjemaet (Lars 4/9): ett svar per felt = én plakat i filmen. Lagres i
+  // products.description som lesbare linjer («Når: …»), og parses tilbake.
+  const DETAIL_KEYS = ['who', 'when', 'where', 'bring', 'dress', 'extra', 'rsvp', 'greeting'] as const
+  type DetailKey = typeof DETAIL_KEYS[number]
+  const DETAIL_PREFIX: Record<DetailKey, string> = { who: 'Hvem', when: 'Når', where: 'Hvor', bring: 'Ta med', dress: 'Antrekk', extra: 'Ekstra', rsvp: 'Svar', greeting: 'Hilsen' }
+  const [details, setDetails] = useState<Record<DetailKey, string>>({ who: '', when: '', where: '', bring: '', dress: '', extra: '', rsvp: '', greeting: '' })
+  const parseDetails = (text: string) => {
+    const out: Record<DetailKey, string> = { who: '', when: '', where: '', bring: '', dress: '', extra: '', rsvp: '', greeting: '' }
+    const rest: string[] = []
+    for (const line of text.split('\n')) {
+      const m = /^([^:]{2,12}):\s*(.+)$/.exec(line.trim())
+      const key = m ? (Object.keys(DETAIL_PREFIX) as DetailKey[]).find((k) => DETAIL_PREFIX[k].toLowerCase() === m[1].trim().toLowerCase()) : undefined
+      if (m && key) out[key] = m[2].trim()
+      else if (line.trim()) rest.push(line.trim())
+    }
+    if (!out.greeting && rest.length) out.greeting = rest.join(' ')
+    return out
+  }
+  const compileDescription = (d: Record<DetailKey, string>) =>
+    DETAIL_KEYS.filter((k) => d[k].trim()).map((k) => `${DETAIL_PREFIX[k]}: ${d[k].trim()}`).join('\n')
   const [loaded, setLoaded] = useState(false)
 
   // Sang
@@ -106,6 +126,7 @@ export default function FilmPage() {
         const { data } = await getSupabase().from('products').select('name, description').eq('id', productId).single()
         setTitle((data?.name || '').trim())
         setDescription((data?.description || '').trim())
+        setDetails(parseDetails((data?.description || '').trim()))
       } catch { /* skjemaet fungerer tomt */ } finally { setLoaded(true) }
       try {
         const lib = await fetchMusicLibrary()
@@ -185,9 +206,10 @@ export default function FilmPage() {
     setError(null)
     if (!title.trim()) { setError(t('needTitle')); return }
     try {
-      // Lagre eventuelle endringer i tittel/beskrivelse paa anledningen
+      // Lagre skjemaet paa anledningen (som lesbare linjer)
+      const compiled = compileDescription(details) || description.trim()
       try {
-        await getSupabase().from('products').update({ name: title.trim(), description: description.trim() }).eq('id', productId)
+        await getSupabase().from('products').update({ name: title.trim(), description: compiled }).eq('id', productId)
       } catch { /* ikke kritisk */ }
 
       const tk = await token()
@@ -218,7 +240,8 @@ export default function FilmPage() {
         body: JSON.stringify({
           productId,
           title: title.trim(),
-          description: description.trim(),
+          description: compiled,
+          details,
           musicFile: useMusic,
           musicDurationSec: dur,
           photos: photos.map((p) => p.url),
@@ -465,8 +488,17 @@ export default function FilmPage() {
           <p style={hint}>{t('step3Hint')}</p>
           <label style={{ display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 }}>{t('titleLabel')}</label>
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy || !loaded} className="cf-input" placeholder={t('titlePlaceholder')} style={{ marginBottom: 16 }} />
-          <label style={{ display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 }}>{t('descriptionLabel')}</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} disabled={busy || !loaded} className="cf-input" rows={4} placeholder={t('descriptionPlaceholder')} style={{ resize: 'vertical' }} />
+          <p style={{ ...hint, margin: '0 0 12px' }}>{t('formHint')}</p>
+          {DETAIL_KEYS.map((k) => (
+            <div key={k} style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 6 }}>{t(`field_${k}`)}</label>
+              {k === 'greeting' || k === 'extra' ? (
+                <textarea value={details[k]} onChange={(e) => setDetails((d) => ({ ...d, [k]: e.target.value }))} disabled={busy || !loaded} className="cf-input" rows={2} placeholder={t(`field_${k}_ph`)} style={{ resize: 'vertical' }} />
+              ) : (
+                <input type="text" value={details[k]} onChange={(e) => setDetails((d) => ({ ...d, [k]: e.target.value }))} disabled={busy || !loaded} className="cf-input" placeholder={t(`field_${k}_ph`)} />
+              )}
+            </div>
+          ))}
         </section>
 
         {/* 4 · Lag filmen */}

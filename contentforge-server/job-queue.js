@@ -66,6 +66,8 @@ function clipCachePut(fp, srcPath) {
 }
 
 const SCRIPT_PATH = '/root/.openclaw/workspace/reforhandle-content/make_tiktok_reforhandle.py'
+// «Festlig»-renderer (Standard Ropert, 4/9): ffmpeg/PIL/librosa, ligger ved siden av denne fila
+const FESTLIG_SCRIPT = path.join(__dirname, 'festlig.py')
 
 // Render-dispatch (Lars 11/8, skalering steg 3). To modi:
 //   'native' — spawn python3 direkte (som foer, default → deploy endrer ingenting)
@@ -597,6 +599,9 @@ router.post('/', async (req, res) => {
     // scenetekst som overskrift i stedet for liten undertekst.
     stillMotion,
     textStyle,
+    // «Festlig» (4/9): taktklipp, plakater, konfetti, palett per anledning
+    festlig,
+    occasionTheme,
   } = req.body || {}
 
   if (!campaignId || !service) {
@@ -1011,9 +1016,34 @@ router.post('/', async (req, res) => {
           // Merkekort mot rabatt (Lars 1/8) — 2 s ETTER artistens plakat
           brandCard: brandCard || null,
         }
+        if (festlig) {
+          // Festlig-modus: egen renderer. Plakater = scenetekstene, bilder =
+          // de nedlastede segmentbildene (unike), klipp = ev. i2v-klipp.
+          const seenUrl = new Set()
+          const photos = []
+          orderedSegments.forEach((seg, i) => {
+            const p = `${jobDir}/image_${i + 1}.png`
+            const key = segImageUrls[i] || p
+            if (!seenUrl.has(key) && fs.existsSync(p)) { seenUrl.add(key); photos.push(p) }
+          })
+          config = {
+            festlig: true,
+            output: `${jobDir}/output.mp4`,
+            backgroundMusic: musicFile ? path.join(MUSIC_DIR, musicFile) : null,
+            musicOffset: 0,
+            theme: String(occasionTheme || 'default'),
+            cards: orderedSegments.map((s) => String(s.text || '').trim()).filter(Boolean),
+            photos,
+            clips: (segClips || []).filter(Boolean),
+            confettiOpacity: 0.8,
+            maxSeconds: 90,
+            jobId,
+            campaignId,
+          }
+        }
         configPath = `${jobDir}/config.json`
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
-        console.log(`[job-queue] Storytelling config written → ${configPath}`)
+        console.log(`[job-queue] ${festlig ? 'Festlig' : 'Storytelling'} config written → ${configPath}`)
       } else {
         // REKLAME MODE: Use headline/bodyCopy (original flow)
         console.log(`[job-queue] Reklame mode: Generating 3 variations for job ${jobId}...`)
@@ -1102,7 +1132,7 @@ router.post('/', async (req, res) => {
         // og avslutter naar den er ferdig — samme modell som python3-spawn.
         const [renderCmd, renderArgs] = RENDER_MODE === 'docker'
           ? ['docker', ['run', '--rm', '-v', `${RENDER_WORKSPACE}:${RENDER_WORKSPACE}`, RENDER_IMAGE, configPath]]
-          : ['python3', [SCRIPT_PATH, configPath]]
+          : ['python3', [(config && config.festlig) ? FESTLIG_SCRIPT : SCRIPT_PATH, configPath]]
         const child = spawn(renderCmd, renderArgs, {
           detached: true,
           stdio: ['ignore', renderLogFd, renderLogFd],
