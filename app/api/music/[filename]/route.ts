@@ -1,6 +1,26 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
+
+// Sletting (4/9): endepunktet var aapent — hvem som helst kunne slette hvilken
+// som helst fil paa dropleten. Naa: kun filer i tracks-/jingles-mapper for
+// produkter brukeren eier (RLS med brukerens eget token).
+async function maySlette(request: Request, filename: string): Promise<boolean> {
+  const m = /^(?:tracks|jingles)-([^/]+)\//.exec(filename)
+  if (!m) return false
+  const auth = request.headers.get('authorization')
+  if (!auth?.startsWith('Bearer ')) return false
+  try {
+    const asUser = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      { global: { headers: { Authorization: auth } } }
+    )
+    const { data } = await asUser.from('products').select('id').eq('id', m[1]).maybeSingle()
+    return !!data
+  } catch { return false }
+}
 
 export async function GET(
   request: Request,
@@ -47,6 +67,9 @@ export async function DELETE(
   try {
     const resolvedParams = await params
     const filename = decodeURIComponent(resolvedParams.filename)
+    if (!(await maySlette(request, filename))) {
+      return NextResponse.json({ error: 'Du kan bare slette dine egne låter.' }, { status: 403 })
+    }
     const res = await fetch(`${DROPLET_URL}/music/${encodeURIComponent(filename)}`, { method: 'DELETE' })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))

@@ -148,6 +148,9 @@ export default function DashboardPage() {
       if (!organizationId) throw new Error(t('errorNoOrgOnDomain'))
       const created = await createProduct(input)
       if (!created) throw new Error(t('errorCreateFailed'))
+      // Enkel modus (Lars 4/9): ingen skal maatte gjette at kortet er neste
+      // steg — rett til filmflyten naar anledningen er lagret.
+      if (vcfg?.simpleMode && created.id) router.push(`/dashboard/products/${created.id}/film`)
       return created
     } finally {
       setCreatingProduct(false)
@@ -201,6 +204,9 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {vcfg?.simpleMode && products.length > 0 && (
+        <p style={{ fontFamily: HANKEN, fontSize: 15, lineHeight: 1.5, color: 'var(--text-muted)', margin: '-10px 0 20px' }}>{t('simpleListHint')}</p>
+      )}
       {productsLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="cf-spinner" />
@@ -271,6 +277,11 @@ export default function DashboardPage() {
                   <p style={{ fontFamily: HANKEN, fontSize: 15, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 18px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.description}</p>
                 )}
                 <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.06em', color: 'var(--text-faint)' }}>{t('created', { date: formatDate(product.created_at, locale) })}</div>
+                {vcfg?.simpleMode && (
+                  <div style={{ marginTop: 16 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: HANKEN, fontWeight: 700, fontSize: 14.5, color: 'var(--on-ember)', background: 'var(--ember-deep)', borderRadius: 999, padding: '10px 18px' }}>{t('simpleCardCta')}</span>
+                  </div>
+                )}
               </Link>
               {/* Delete — top-right, only visible on hover */}
               <button

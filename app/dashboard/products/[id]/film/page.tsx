@@ -28,6 +28,11 @@ function fmtDuration(sec: number | null): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+// Dropleten serverer musikk over http; siden er https, saa nettleseren
+// blokkerer direkte avspilling stille (Lars 4/9: «det kommer ingenting»).
+// /api/music/[filename] proxyer med Range-stoette.
+const musicSrc = (filename: string) => `/api/music/${encodeURIComponent(filename)}`
+
 // Lengden maales i nettleseren foer opplasting — filmen skal bli like lang.
 function measureDuration(file: File): Promise<number | null> {
   return new Promise((resolve) => {
@@ -310,7 +315,7 @@ export default function FilmPage() {
                   {chosenDuration ? t('filmLength', { length: fmtDuration(chosenDuration) }) : t('filmLengthUnknown')}
                 </div>
               </div>
-              <audio controls preload="none" src={chosenTrack.url} style={{ height: 34, maxWidth: 220 }} />
+              <audio controls preload="none" src={musicSrc(chosenTrack.filename)} style={{ height: 34, maxWidth: 220 }} />
             </div>
           ) : null}
           {tracks.length > 1 && (
@@ -385,7 +390,7 @@ export default function FilmPage() {
                       <select value={libraryMusic || ''} onChange={(e) => setLibraryMusic(e.target.value || null)} disabled={busy} className="cf-input" style={{ flex: 1, minWidth: 180, marginBottom: 0 }}>
                         {library.map((m) => <option key={m.filename} value={m.filename}>{m.name}</option>)}
                       </select>
-                      {libraryMusic && <audio controls preload="none" src={library.find((m) => m.filename === libraryMusic)?.url} style={{ height: 34, maxWidth: 220 }} />}
+                      {libraryMusic && <audio key={libraryMusic} controls preload="none" src={musicSrc(libraryMusic)} style={{ height: 34, maxWidth: 220 }} />}
                     </div>
                   )}
                 </div>

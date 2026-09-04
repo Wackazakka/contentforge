@@ -1170,7 +1170,8 @@ function FullProductPage() {
                   onClick={async () => {
                     if (!confirm(`Slette «${t.name}» permanent fra låtbanken? Produksjoner som alt bruker den, beholder lyden.`)) return
                     try {
-                      const res = await fetch(`/api/music/${encodeURIComponent(t.filename)}`, { method: 'DELETE' })
+                      const { data: sess } = await getSupabase().auth.getSession()
+                      const res = await fetch(`/api/music/${encodeURIComponent(t.filename)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${sess?.session?.access_token || ''}` } })
                       if (!res.ok) { setTrackError('Slettingen feilet — prøv igjen.'); return }
                       setTrackError(null)
                       await refreshTrackBank()
