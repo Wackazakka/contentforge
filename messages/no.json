@@ -991,7 +991,7 @@
     "nav": "Konto"
   },
   "film": {
-    "priceLine": "Pris: {price} kr per film. Du betaler med kort før filmen lages.",
+    "priceLine": "Pris: {price} kr for filmen. {remakes} gratis omgjøringer er inkludert, så du kan prøve igjen med andre bilder eller ny tekst.",
     "phasePaying": "Sender deg til betaling …",
     "paymentCancelled": "Betalingen ble avbrutt. Alt du la inn er her fortsatt — trykk «Lag filmen» når du er klar.",
     "paidTitle": "Takk! Filmen settes i gang …",
@@ -1037,7 +1037,9 @@
     "needTitle": "Fortell hva som feires.",
     "mustSignIn": "Du må være innlogget.",
     "failed": "Noe gikk galt. Prøv igjen — og si fra hvis det fortsetter.",
-    "imagesFailed": "Vi fikk ikke laget bilder nå. Prøv igjen, eller legg til egne bilder."
+    "imagesFailed": "Vi fikk ikke laget bilder nå. Prøv igjen, eller legg til egne bilder.",
+    "priceRemake": "Denne omgjøringen er gratis. Du har {left} gratis omgjøringer igjen etter denne.",
+    "priceFreePeriod": "Gratis i åpningsperioden."
   },
   "occasion": {
     "back": "← Alle anledninger",

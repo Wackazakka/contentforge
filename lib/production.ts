@@ -3,6 +3,7 @@ import { holdSecondsFor } from './sceneTiming'
 import { fetchVerticalForOrganization } from '@/lib/senderContext.mjs'
 import { merkekortTekst } from '@/lib/tenantNames'
 import { filmPricing } from '@/lib/verticals'
+import { filmCountForProduct, isFreeRemake } from '@/lib/filmAllowance'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
 
@@ -281,16 +282,19 @@ export async function startProductionForDraft(
     const pris = filmPricing(vertical)
     const erFilm = pris && draft.voice_id === 'own' && segments.length > 0 && segments.every((s: { no_voice?: boolean }) => s.no_voice === true)
     if (erFilm) {
+      // Omgjøring (film 2–4 i blokka, lib/filmAllowance): 0 kr i alle ledd —
+      // engrosprisen paa den betalte filmen dekker dem.
+      const remake = isFreeRemake(await filmCountForProduct(draft.product_id))
       const { logUsageEvent } = await import('@/lib/tenantBilling')
       await logUsageEvent({
         productId: draft.product_id,
         draftId,
         userId: draft.user_id || null,
         eventType: 'film_production',
-        costNok: pris.wholesaleNok,
+        costNok: remake ? 0 : pris.wholesaleNok,
         fixedWholesale: true,
-        customerNok: Math.round((pris.customerPriceNok / 1.25) * 100) / 100,
-        meta: { jobId: job.jobId, customerPriceNok: pris.customerPriceNok, paid: draft.payment_status === 'paid' },
+        customerNok: remake ? 0 : Math.round((pris.customerPriceNok / 1.25) * 100) / 100,
+        meta: { jobId: job.jobId, customerPriceNok: remake ? 0 : pris.customerPriceNok, paid: draft.payment_status === 'paid', remake },
       })
     }
   } catch (uErr) {

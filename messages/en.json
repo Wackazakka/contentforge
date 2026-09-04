@@ -991,7 +991,7 @@
     "nav": "Account"
   },
   "film": {
-    "priceLine": "Price: NOK {price} per film. You pay by card before the film is made.",
+    "priceLine": "Price: NOK {price} for the film. {remakes} free remakes are included, so you can try again with other pictures or new text.",
     "phasePaying": "Taking you to payment …",
     "paymentCancelled": "The payment was cancelled. Everything you entered is still here — press “Make the film” when you are ready.",
     "paidTitle": "Thank you! Starting your film …",
@@ -1037,7 +1037,9 @@
     "needTitle": "Tell us what is being celebrated.",
     "mustSignIn": "You must be signed in.",
     "failed": "Something went wrong. Please try again — and tell us if it keeps happening.",
-    "imagesFailed": "We could not create pictures right now. Try again, or add your own pictures."
+    "imagesFailed": "We could not create pictures right now. Try again, or add your own pictures.",
+    "priceRemake": "This remake is free. You have {left} free remakes left after this one.",
+    "priceFreePeriod": "Free during the opening period."
   },
   "occasion": {
     "back": "← All occasions",

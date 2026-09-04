@@ -50,6 +50,8 @@ export default function FilmPage() {
   const locale = useLocale() === 'en' ? 'en' : 'no'
   const tenant = useTenant()
   const filmPrice = filmPricing(tenant.vertical)?.customerPriceNok ?? null
+  // Hva koster NESTE film? Betalt film → 3 gratis omgjøringer (4/9).
+  const [allowance, setAllowance] = useState<{ billing: boolean; nextIsFree: boolean; freeLeft: number; freeRemakes: number } | null>(null)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -92,6 +94,11 @@ export default function FilmPage() {
         // Nyeste sang forhaandsvelges — den de nettopp lastet opp er den de vil ha
         if (mine.length > 0) setMusicFile(mine[mine.length - 1].filename)
       } catch { /* biblioteket er valgfritt */ }
+      try {
+        const tk = await token()
+        const a = await fetch(`/api/film-checkout?productId=${productId}`, tk ? { headers: { Authorization: `Bearer ${tk}` } } : undefined).then((r) => r.json())
+        if (a && typeof a.nextIsFree === 'boolean') setAllowance(a)
+      } catch { /* prislinja faller tilbake til standard */ }
       try {
         const tk = await token()
         const d = await fetch(`/api/products/images?productId=${productId}`, tk ? { headers: { Authorization: `Bearer ${tk}` } } : undefined).then((r) => r.json())
@@ -339,7 +346,13 @@ export default function FilmPage() {
         <section style={{ ...card, textAlign: 'center' }}>
           <h2 style={{ ...h2, justifyContent: 'center' }}><span style={stepNo}>4</span>{t('step4Title')}</h2>
           <p style={hint}>{t('step4Hint')}</p>
-          <p style={{ ...hint, fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{t('priceLine', { price: filmPrice ?? 149 })}</p>
+          <p style={{ ...hint, fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
+            {allowance && !allowance.billing
+              ? t('priceFreePeriod')
+              : allowance?.nextIsFree
+                ? t('priceRemake', { left: allowance.freeLeft })
+                : t('priceLine', { price: filmPrice ?? 149, remakes: allowance?.freeRemakes ?? 3 })}
+          </p>
           {busy ? (
             <div style={{ fontFamily: HANKEN, fontSize: 15.5, color: 'var(--ink)' }}>
               <div className="cf-spinner" style={{ margin: '0 auto 12px' }} />
