@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
-import { fetchMusicLibrary, ownTracks, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
+import { fetchMusicLibrary, ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
+import { FILM_VOICES, FILM_LIBRARY_FOLDER } from '@/lib/filmVoices'
 import { uploadTrack, TRACK_UPLOAD_MAX_BYTES } from '@/lib/uploadTrack'
 import { filmPricing } from '@/lib/verticals'
 
@@ -65,6 +66,17 @@ export default function FilmPage() {
   const [trackError, setTrackError] = useState<string | null>(null)
   // Maalt lengde per opplastet fil (state, ikke ref — leses under render)
   const [durationByFile, setDurationByFile] = useState<Record<string, number>>({})
+  // Opphavsrett (4/9): kunden bekrefter at sangen er egen (Sangskaper) eller
+  // noe de har rett til aa bruke — vi rendrer og deler filmen fra vaar server.
+  const [rightsOk, setRightsOk] = useState(false)
+  // Uten sang (4/9): en stemme leser teksten, eller bare musikk, eller stille.
+  const [mode, setMode] = useState<'voice' | 'music' | 'silent'>('voice')
+  const [voiceId, setVoiceId] = useState<string>(FILM_VOICES[0]?.id || '')
+  const [library, setLibrary] = useState<MusicFile[]>([])
+  const [libraryMusic, setLibraryMusic] = useState<string | null>(null)
+  const [previewing, setPreviewing] = useState<string | null>(null)
+  const previewRef = useRef<HTMLAudioElement | null>(null)
+  const errorRef = useRef<HTMLDivElement | null>(null)
 
   // Bilder
   const [photos, setPhotos] = useState<Array<{ url: string; name: string }>>([])
@@ -93,6 +105,12 @@ export default function FilmPage() {
         setTracks(mine)
         // Nyeste sang forhaandsvelges — den de nettopp lastet opp er den de vil ha
         if (mine.length > 0) setMusicFile(mine[mine.length - 1].filename)
+        // Delt bibliotek for anledningsfilmer (ReelHome-sporene inntil videre)
+        const shared = sharedMusic(lib.files)
+        const felles = shared.filter((f) => f.folder === FILM_LIBRARY_FOLDER)
+        const bib = felles.length > 0 ? felles : shared
+        setLibrary(bib)
+        if (bib.length > 0) setLibraryMusic(bib[0].filename)
       } catch { /* biblioteket er valgfritt */ }
       try {
         const tk = await token()
@@ -179,10 +197,17 @@ export default function FilmPage() {
           musicDurationSec: dur,
           photos: photos.map((p) => p.url),
           locale,
+          voiceId: !musicFile && mode === 'voice' ? voiceId : null,
+          libraryMusic: !musicFile && mode !== 'silent' ? libraryMusic : null,
         }),
       })
       const data = await res.json().catch(() => null)
-      if (!res.ok || !data?.draftId) throw new Error(data?.error || t('failed'))
+      if (!res.ok || !data?.draftId) {
+        // Ta med statuskoden: et HTML-svar (502 fra Netlify) gir ingen JSON,
+        // og da er koden det eneste sporet vi har (Lars 4/9: «ingenting skjer»).
+        console.error('[film] produce/simple feilet', res.status, data)
+        throw new Error(`${data?.error || t('failed')} (${res.status})`)
+      }
       const draftId: string = data.draftId
       let segments: Array<{ index: number; text: string; image_url: string; image_prompt?: string }> = data.segments || []
 
@@ -245,6 +270,7 @@ export default function FilmPage() {
       setError(err instanceof Error && err.message ? err.message : t('failed'))
       setPhase('idle')
       setImageProgress(null)
+      setTimeout(() => errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
     }
   }
 
@@ -271,10 +297,6 @@ export default function FilmPage() {
         {avbrutt && !error && (
           <div style={{ background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', color: 'var(--ink)', borderRadius: 12, padding: '12px 16px', fontFamily: HANKEN, fontSize: 14.5, marginBottom: 18 }}>{t('paymentCancelled')}</div>
         )}
-        {error && (
-          <div style={{ background: '#FDECEC', border: '1px solid #F5C2C2', color: '#8A1C1C', borderRadius: 12, padding: '12px 16px', fontFamily: HANKEN, fontSize: 14.5, marginBottom: 18 }}>{error}</div>
-        )}
-
         {/* 1 · Sangen */}
         <section style={card}>
           <h2 style={h2}><span style={stepNo}>1</span>{t('step1Title')}</h2>
@@ -296,17 +318,80 @@ export default function FilmPage() {
               {tracks.map((tr) => <option key={tr.filename} value={tr.filename}>{tr.name}</option>)}
             </select>
           )}
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.5, color: 'var(--ink)', marginBottom: 14, cursor: 'pointer' }}>
+            <input type="checkbox" checked={rightsOk} onChange={(e) => setRightsOk(e.target.checked)} disabled={busy} style={{ marginTop: 4, width: 18, height: 18 }} />
+            <span>{t('rightsLabel')}</span>
+          </label>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label style={{ ...(chosenTrack ? ghostBtn : bigBtn), opacity: uploadingTrack || busy ? 0.6 : 1 }}>
+            <label style={{ ...(chosenTrack ? ghostBtn : bigBtn), opacity: uploadingTrack || busy || !rightsOk ? 0.5 : 1, cursor: rightsOk ? 'pointer' : 'not-allowed' }} title={rightsOk ? undefined : t('rightsFirst')}>
               {uploadingTrack ? t('uploading') : chosenTrack ? t('changeSong') : t('uploadSong')}
-              <input type="file" accept=".mp3,audio/mpeg" className="hidden" disabled={uploadingTrack || busy} onChange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ''; if (f) onTrackChosen(f) }} />
+              <input type="file" accept=".mp3,audio/mpeg" className="hidden" disabled={uploadingTrack || busy || !rightsOk} onChange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ''; if (f) onTrackChosen(f) }} />
             </label>
             {chosenTrack && (
               <button type="button" onClick={() => { setMusicFile(null); setMusicDuration(null) }} disabled={busy} style={{ ...ghostBtn, border: 'none', color: 'var(--text-muted)' }}>{t('noSong')}</button>
             )}
           </div>
-          {!chosenTrack && <p style={{ ...hint, margin: '12px 0 0', fontSize: 13.5 }}>{t('noSongHint')}</p>}
           {trackError && <p style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--ember-deep)', margin: '10px 0 0' }}>{trackError}</p>}
+
+          {!chosenTrack && (
+            <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--ds-border-faint)' }}>
+              <p style={{ fontFamily: HANKEN, fontWeight: 600, fontSize: 15, color: 'var(--ink)', margin: '0 0 10px' }}>{t('noSongTitle')}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 14 }}>
+                {([
+                  { key: 'voice', label: t('modeVoice'), hintText: t('modeVoiceHint') },
+                  { key: 'music', label: t('modeMusic'), hintText: t('modeMusicHint') },
+                  { key: 'silent', label: t('modeSilent'), hintText: t('modeSilentHint') },
+                ] as const).map((m) => (
+                  <button key={m.key} type="button" disabled={busy} onClick={() => setMode(m.key)}
+                    style={{ textAlign: 'left', fontFamily: HANKEN, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', background: mode === m.key ? 'var(--ember-tint-bg)' : 'var(--paper)', border: mode === m.key ? '2px solid var(--ember-deep)' : '1.5px solid var(--ds-border)' }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{m.label}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{m.hintText}</div>
+                  </button>
+                ))}
+              </div>
+              {mode === 'voice' && (
+                <div style={{ marginBottom: 14 }}>
+                  <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('voiceLabel')}</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+                    {FILM_VOICES.map((v) => (
+                      <div key={v.id} style={{ borderRadius: 12, padding: '10px 12px', background: voiceId === v.id ? 'var(--ember-tint-bg)' : 'var(--paper)', border: voiceId === v.id ? '2px solid var(--ember-deep)' : '1.5px solid var(--ds-border)' }}>
+                        <button type="button" disabled={busy} onClick={() => setVoiceId(v.id)} style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: HANKEN }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{v.name}</div>
+                          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{v.desc}</div>
+                        </button>
+                        {v.preview && (
+                          <button type="button" onClick={() => {
+                            const a = previewRef.current
+                            if (!a) return
+                            if (previewing === v.id) { a.pause(); setPreviewing(null); return }
+                            a.src = v.preview as string; a.play().catch(() => {}); setPreviewing(v.id)
+                          }} style={{ marginTop: 6, fontFamily: HANKEN, fontSize: 13, fontWeight: 600, color: 'var(--ember-deep)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+                            {previewing === v.id ? t('stopListen') : t('listen')}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <audio ref={previewRef} onEnded={() => setPreviewing(null)} className="hidden" />
+                </div>
+              )}
+              {mode !== 'silent' && (
+                <div>
+                  <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('musicLabel')}</p>
+                  {library.length === 0 ? (
+                    <p style={{ ...hint, margin: 0, fontSize: 13.5 }}>{t('noLibrary')}</p>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <select value={libraryMusic || ''} onChange={(e) => setLibraryMusic(e.target.value || null)} disabled={busy} className="cf-input" style={{ flex: 1, minWidth: 180, marginBottom: 0 }}>
+                        {library.map((m) => <option key={m.filename} value={m.filename}>{m.name}</option>)}
+                      </select>
+                      {libraryMusic && <audio controls preload="none" src={library.find((m) => m.filename === libraryMusic)?.url} style={{ height: 34, maxWidth: 220 }} />}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* 2 · Bildene */}
@@ -345,7 +430,7 @@ export default function FilmPage() {
         {/* 4 · Lag filmen */}
         <section style={{ ...card, textAlign: 'center' }}>
           <h2 style={{ ...h2, justifyContent: 'center' }}><span style={stepNo}>4</span>{t('step4Title')}</h2>
-          <p style={hint}>{t('step4Hint')}</p>
+          <p style={hint}>{chosenTrack ? t('step4Hint') : mode === 'voice' ? t('step4HintVoice') : mode === 'music' ? t('step4HintMusic') : t('step4HintSilent')}</p>
           <p style={{ ...hint, fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
             {allowance && !allowance.billing
               ? t('priceFreePeriod')
@@ -353,6 +438,9 @@ export default function FilmPage() {
                 ? t('priceRemake', { left: allowance.freeLeft })
                 : t('priceLine', { price: filmPrice ?? 149, remakes: allowance?.freeRemakes ?? 3 })}
           </p>
+          {error && (
+            <div ref={errorRef} style={{ background: '#FDECEC', border: '1px solid #F5C2C2', color: '#8A1C1C', borderRadius: 12, padding: '12px 16px', fontFamily: HANKEN, fontSize: 14.5, margin: '0 0 16px', textAlign: 'left' }}>{error}</div>
+          )}
           {busy ? (
             <div style={{ fontFamily: HANKEN, fontSize: 15.5, color: 'var(--ink)' }}>
               <div className="cf-spinner" style={{ margin: '0 auto 12px' }} />
