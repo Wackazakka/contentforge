@@ -1106,7 +1106,11 @@ router.post('/', async (req, res) => {
       let pollInterval
       const outputFile = `${OUTPUT_DIR}/${jobId}/output.mp4`
 
-      if (RENDER_MODE === 'fly') {
+      // Festlig-jobber (4/9) kjoeres ALLTID lokalt: Fly-imaget har verken
+      // festlig.py eller librosa, saa en fly-render ventet forgjeves i 30 min
+      // paa Lars' foerste festlig-film. Flyttes til Fly naar imaget er bygget.
+      const nativeFestlig = !!(config && config.festlig)
+      if (RENDER_MODE === 'fly' && !nativeFestlig) {
         // Ekstern render paa Fly: pakk input til R2, start en kortlivd maskin
         // som rendrer og laster output opp, vent paa R2, og last den ferdige
         // videoen ned til den LOKALE output-stien. Da tar polleren under over
@@ -1130,9 +1134,9 @@ router.post('/', async (req, res) => {
       } else {
         // Foreground docker run (IKKE -d): node-barnet representerer containeren
         // og avslutter naar den er ferdig — samme modell som python3-spawn.
-        const [renderCmd, renderArgs] = RENDER_MODE === 'docker'
+        const [renderCmd, renderArgs] = (RENDER_MODE === 'docker' && !nativeFestlig)
           ? ['docker', ['run', '--rm', '-v', `${RENDER_WORKSPACE}:${RENDER_WORKSPACE}`, RENDER_IMAGE, configPath]]
-          : ['python3', [(config && config.festlig) ? FESTLIG_SCRIPT : SCRIPT_PATH, configPath]]
+          : ['python3', [nativeFestlig ? FESTLIG_SCRIPT : SCRIPT_PATH, configPath]]
         const child = spawn(renderCmd, renderArgs, {
           detached: true,
           stdio: ['ignore', renderLogFd, renderLogFd],
@@ -1143,7 +1147,7 @@ router.post('/', async (req, res) => {
           console.error('[job-queue] kunne ikke starte renderer (' + RENDER_MODE + ') for ' + jobId + ':', e.message)
           slippRenderPlass(jobId)
         })
-        console.log(`[job-queue] renderer spawned (${RENDER_MODE}) for job ${jobId}`)
+        console.log(`[job-queue] renderer spawned (${nativeFestlig ? 'festlig-native' : RENDER_MODE}) for job ${jobId}`)
       }
 
       // Poll for completion and notify Netlify when done
