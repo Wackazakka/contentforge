@@ -242,34 +242,41 @@ def build(cfg):
     diffs = np.diff(beats[:32]) if len(beats) > 2 else np.array([0.5])
     beat_len = float(np.median(diffs)) if len(diffs) else 0.5
     def card_beats(text, minimum=2):
-        need = max(2.0, 1.6 + 0.06 * len(text))
-        nb = int(math.ceil(need / max(beat_len, 0.2)))
-        nb += nb % 2
-        return max(minimum, nb)
-    # Sekvens: aapningsplakat, saa [bilde 2, plakat, bilde 4, bilde 2] til
-    # plakatene er brukt opp; deretter bilder; siste plakat avslutter.
-    seq = [('card', 0, card_beats(texts[0], 4))]
-    kidx = 1
+        need = max(2.0, 1.4 + 0.05 * len(text))
+        return max(minimum, int(math.ceil(need / max(beat_len, 0.2))))
+    # PLAKATENE FOERST (4/9): alle svarene fra skjemaet skal med. Regn ut hvor
+    # mange slag plakatene trenger, og fordel resten av filmen som bilder i
+    # mellomrommene (2- og 4-slags biter). Er det for lite plass, krympes
+    # plakatene jevnt mot minimum foer noe droppes.
     n_cards = len(texts)
-    guard = 0
-    while guard < 200:
-        guard += 1
-        seq.append(('visual', nxt_visual(), 2))
-        if kidx < n_cards - 1:
-            seq.append(('card', kidx, card_beats(texts[kidx]))); kidx += 1
-        seq.append(('visual', nxt_visual(), 4))
-        seq.append(('visual', nxt_visual(), 2))
-        # nok til aa fylle filmen?
-        if sum(nb for _, _, nb in seq) > len(beats) + 4:
-            break
-    # Klipp planen til lengden, og legg siste plakat sist
+    avail = len(beats) - 1
+    cb = [card_beats(t, 4 if i in (0, n_cards - 1) else 2) for i, t in enumerate(texts)]
+    while sum(cb) > avail and any(b > 2 for b in cb):
+        cb = [max(2, b - 1) for b in cb]
+    gaps = max(0, n_cards - 1)
+    rest = max(0, avail - sum(cb))
+    per_gap = (rest // gaps) if gaps else rest
+    per_gap -= per_gap % 2          # hele 2-slags biter
+    slack = rest - per_gap * gaps   # ekstra bilder paa slutten
+    seq = []
+    for i in range(n_cards):
+        seq.append(('card', i, cb[i]))
+        if i < n_cards - 1:
+            g = per_gap
+            # 4-2-... veksling i mellomrommet
+            k = 0
+            while g >= 2:
+                take = 4 if (g >= 4 and k % 2 == 1) else 2
+                seq.append(('visual', nxt_visual(), take)); g -= take; k += 1
+    # ledige slag etter siste plakat: bilder til musikken er slutt
+    g = slack - slack % 2
+    while g >= 2:
+        seq.append(('visual', nxt_visual(), 2)); g -= 2
     plan, t_idx = [], 0
     for typ, ref, nb in seq:
-        if t_idx + nb >= len(beats) - 4 or beats[t_idx] >= total - 3.0:
-            break
+        if t_idx >= len(beats) - 1: break
         plan.append((typ, ref, nb)); t_idx += nb
-    if n_cards > 1:
-        plan.append(('card', n_cards - 1, card_beats(texts[-1], 4)))
+    print(f'[festlig] plakater {cb} slag, {per_gap} slag bilder per mellomrom', flush=True)
 
     seg_files, t_idx, pattern = [], 0, 0
     for k, (typ, ref, nb) in enumerate(plan):

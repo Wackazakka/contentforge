@@ -97,6 +97,7 @@ export default function FilmPage() {
   // Filmlengde (4/9): sangen kan vaere 3 minutter, filmen boer vaere 60 s.
   // 'full' = hele sangen; ellers klippes sangen paa dropleten med uttoning.
   const [filmLength, setFilmLength] = useState<'30' | '60' | 'full'>('60')
+  const [lengthNote, setLengthNote] = useState<string | null>(null)
   // Uten sang (4/9): en stemme leser teksten, eller bare musikk, eller stille.
   const [mode, setMode] = useState<'voice' | 'music' | 'silent'>('voice')
   const [voiceId, setVoiceId] = useState<string>(FILM_VOICES[0]?.id || '')
@@ -221,7 +222,13 @@ export default function FilmPage() {
       // Kortere film enn sangen: klipp sangen foerst (dropleten lager en fil
       // med uttoning; «film = musikkens lengde» gir da riktig lengde)
       if (musicFile && filmLength !== 'full') {
-        const wanted = Number(filmLength)
+        // Hver plakat trenger ~3 s + et bilde imellom: mange svar i skjemaet
+        // krever lengre film enn valgt. Forleng til naermeste 30 s, innenfor sangen.
+        const filled = DETAIL_KEYS.filter((k) => details[k].trim()).length + 2
+        const needed = Math.ceil((filled * 5) / 30) * 30
+        let wanted = Math.max(Number(filmLength), needed)
+        if (dur !== null) wanted = Math.min(wanted, Math.floor(dur))
+        if (wanted > Number(filmLength)) setLengthNote(t('lengthExtended', { seconds: wanted }))
         if (dur === null || dur > wanted + 5) {
           setPhase('clipping')
           const cr = await fetch('/api/music/clip', {
@@ -521,6 +528,7 @@ export default function FilmPage() {
             <div style={{ fontFamily: HANKEN, fontSize: 15.5, color: 'var(--ink)' }}>
               <div className="cf-spinner" style={{ margin: '0 auto 12px' }} />
               {phase === 'clipping' && t('phaseClipping')}
+              {lengthNote && <p style={{ ...hint, margin: '8px 0 0', fontSize: 13.5 }}>{lengthNote}</p>}
               {phase === 'writing' && t('phaseWriting')}
               {phase === 'images' && t('phaseImages', { done: imageProgress?.done ?? 0, total: imageProgress?.total ?? 0 })}
               {phase === 'paying' && t('phasePaying')}
