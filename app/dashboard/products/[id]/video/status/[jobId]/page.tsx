@@ -194,7 +194,9 @@ export default function VideoStatusPage() {
             <p className="text-red-600 font-semibold text-lg mb-2">{t('productionFailed')}</p>
             <p className="text-sm text-gray-500 mb-6">{job.error}</p>
             <button
-              onClick={() => router.back()}
+              // Enkel modus (4/9): «Prøv igjen» skal starte en NY film, ikke gå
+              // tilbake til samme feilede statusside (Lars så samme feil to ganger)
+              onClick={() => (simpleParam ? router.push(`/dashboard/products/${productId}/film`) : router.back())}
               className="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-200"
             >
               {t('tryAgain')}
