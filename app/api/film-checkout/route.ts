@@ -130,8 +130,11 @@ export async function POST(request: Request) {
       status: 'pending',
     })
     if (payErr) {
+      // Feilteksten fra basen er det eneste sporet vi har i prod (4/9:
+      // tabellen production_payments fantes ikke — se supabase/migrations/
+      // create_production_payments.sql)
       console.error('[film-checkout] payments-insert feilet:', payErr.message)
-      return NextResponse.json({ error: 'Kunne ikke registrere betalingen.' }, { status: 500 })
+      return NextResponse.json({ error: `Kunne ikke registrere betalingen: ${payErr.message}` }, { status: 500 })
     }
 
     return NextResponse.json({ url: session.url, priceNok: pris.customerPriceNok })
