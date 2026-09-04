@@ -69,11 +69,24 @@ export const VERTICALS: Record<string, VerticalConfig> = {
   // privatpersoner skal ikke moete bedriftsskjema.
   celebration: {
     categoryOptions: [
+      // Livets anledninger foerst, saa sesongene Festmagasinet selger paa
+      // (Lars 4/9) og Sangskapers egne (utdrikningslag, firmafest).
       { value: 'bursdag', labelKey: 'categoryBursdag' },
       { value: 'bryllup', labelKey: 'categoryBryllup' },
+      { value: 'utdrikningslag', labelKey: 'categoryUtdrikningslag' },
       { value: 'jubileum', labelKey: 'categoryJubileum' },
       { value: 'daap', labelKey: 'categoryDaap' },
       { value: 'konfirmasjon', labelKey: 'categoryKonfirmasjon' },
+      { value: 'krepselag', labelKey: 'categoryKrepselag' },
+      { value: 'oktoberfest', labelKey: 'categoryOktoberfest' },
+      { value: 'halloween', labelKey: 'categoryHalloween' },
+      { value: 'julebord', labelKey: 'categoryJulebord' },
+      { value: 'jul', labelKey: 'categoryJul' },
+      { value: 'nyttaar', labelKey: 'categoryNyttaar' },
+      { value: 'valentine', labelKey: 'categoryValentine' },
+      { value: 'paaske', labelKey: 'categoryPaaske' },
+      { value: 'syttendemai', labelKey: 'categorySyttendemai' },
+      { value: 'firmafest', labelKey: 'categoryFirmafest' },
       { value: 'bedrift', labelKey: 'categoryBedrift' },
       { value: 'annet', labelKey: 'categoryAnnet' },
     ],

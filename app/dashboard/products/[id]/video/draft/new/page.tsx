@@ -109,6 +109,17 @@ export default function NewDraftPage() {
           daap: { no: 'Velkommen til dåpen!', en: 'Welcome to the christening!' },
           konfirmasjon: { no: 'Velkommen til feiringen!', en: 'Welcome to the celebration!' },
           bedrift: { no: 'Velkommen innom!', en: 'Come by and see us!' },
+          utdrikningslag: { no: 'Hold av datoen — dette blir gøy!', en: 'Save the date — this will be fun!' },
+          krepselag: { no: 'Ta med egen drikke — vi holder krepsen!', en: 'Bring your own drinks — we have the crayfish!' },
+          oktoberfest: { no: 'Prost! Vi ses i teltet!', en: 'Prost! See you in the tent!' },
+          halloween: { no: 'Kom utkledd — om du tør!', en: 'Come in costume — if you dare!' },
+          julebord: { no: 'Velkommen til julebord!', en: 'Welcome to the Christmas party!' },
+          jul: { no: 'God jul fra oss!', en: 'Merry Christmas from us!' },
+          nyttaar: { no: 'Godt nytt år — vi ses!', en: 'Happy New Year — see you there!' },
+          valentine: { no: 'Til deg, med kjærlighet.', en: 'For you, with love.' },
+          paaske: { no: 'God påske!', en: 'Happy Easter!' },
+          syttendemai: { no: 'Hurra for 17. mai!', en: 'Hurrah for the 17th of May!' },
+          firmafest: { no: 'Velkommen til fest!', en: 'Welcome to the party!' },
         }
         const fallback: Record<Locale, string> = { no: 'Si fra om du kommer!', en: 'Let us know if you are coming!' }
         setCta((prev) => prev || (defaultCta[cat] || fallback)[locale])
