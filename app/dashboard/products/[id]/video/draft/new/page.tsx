@@ -81,8 +81,44 @@ export default function NewDraftPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant.vertical])
   const [cta, setCta] = useState('')
-  // Kampanjemaler (vertikal-gatet): forhåndsfyller brief-feltene som stillas.
   const locale = (useLocale() === 'en' ? 'en' : 'no') as Locale
+  // Anledninger (celebration): «produktet» ER det videoen skal handle om, så
+  // det brukeren skrev i «Ny anledning» gjenbrukes som utgangspunkt (Lars 4/9:
+  // «bruk infoen som allerede er oppgitt»). Bare tomme felt fylles — alt
+  // brukeren rakk å skrive før hentingen landet, beholdes.
+  useEffect(() => {
+    if (tenant.vertical !== 'celebration') return
+    ;(async () => {
+      try {
+        const { data } = await getSupabase()
+          .from('products')
+          .select('name, description, category')
+          .eq('id', productId)
+          .single()
+        if (!data) return
+        const name = (data.name || '').trim()
+        const description = (data.description || '').trim()
+        if (name) setTitle((prev) => prev || name)
+        if (description) setTopic((prev) => prev || description)
+        // Standardoppfordring per anledningstype — invitasjon vs. hilsen.
+        const cat = (data.category || '').toLowerCase()
+        const defaultCta: Record<string, Record<Locale, string>> = {
+          bursdag: { no: 'Kom og feir med oss!', en: 'Come celebrate with us!' },
+          bryllup: { no: 'Svar på invitasjonen innen …', en: 'RSVP by …' },
+          jubileum: { no: 'Bli med på feiringen!', en: 'Join the celebration!' },
+          daap: { no: 'Velkommen til dåpen!', en: 'Welcome to the christening!' },
+          konfirmasjon: { no: 'Velkommen til feiringen!', en: 'Welcome to the celebration!' },
+          bedrift: { no: 'Velkommen innom!', en: 'Come by and see us!' },
+        }
+        const fallback: Record<Locale, string> = { no: 'Si fra om du kommer!', en: 'Let us know if you are coming!' }
+        setCta((prev) => prev || (defaultCta[cat] || fallback)[locale])
+        setTone((prev) => (prev === 'Energisk' ? 'Vennlig' : prev))
+        if (!perspectiveTouched) setPerspective('vi')
+      } catch { /* anledningen utilgjengelig — skjemaet fungerer tomt */ }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant.vertical, productId])
+  // Kampanjemaler (vertikal-gatet): forhåndsfyller brief-feltene som stillas.
   const templates = campaignTemplates(tenant.vertical)
   const [templateKey, setTemplateKey] = useState<string | null>(null)
   const applyTemplate = (tpl: CampaignTemplate) => {

@@ -28,7 +28,24 @@
     "categoryKonfirmasjon": "Confirmation",
     "categoryBedrift": "Business / opening",
     "categoryAnnet": "Other",
+    "categoryOtherLabel": "What kind of occasion?",
+    "categoryOtherPlaceholder": "e.g. crayfish party",
     "createProduct": "Add the occasion",
     "errorNameRequired": "Tell us what is being celebrated."
+  },
+  "newDraft": {
+    "backToProduct": "← Back to the occasion",
+    "title": "Create a video for the occasion",
+    "subtitle": "We filled in what you already told us about the occasion — edit freely before the video is made.",
+    "titleLabel": "Video title *",
+    "titlePlaceholder": "e.g. Crayfish party on our street",
+    "topicLabel": "What should the video say? *",
+    "topicPlaceholder": "e.g. Everyone on the street is invited to a crayfish party in the garden on Saturday at 6 pm. Bring your own drinks.",
+    "targetAudienceLabel": "Who is the video for?",
+    "targetAudiencePlaceholder": "e.g. The neighbours, family and friends",
+    "problemLabel": "The most important things to include",
+    "problemPlaceholder": "e.g. Time, place, and that people bring their own drinks",
+    "ctaLabel": "Closing call to action",
+    "ctaPlaceholder": "e.g. Let us know by Thursday if you are coming!"
   }
 }

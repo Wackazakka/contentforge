@@ -28,7 +28,24 @@
     "categoryKonfirmasjon": "Konfirmasjon",
     "categoryBedrift": "Bedrift / åpning",
     "categoryAnnet": "Annet",
+    "categoryOtherLabel": "Hva slags anledning?",
+    "categoryOtherPlaceholder": "f.eks. krepselag",
     "createProduct": "Legg til anledningen",
     "errorNameRequired": "Fortell hva som feires."
+  },
+  "newDraft": {
+    "backToProduct": "← Tilbake til anledningen",
+    "title": "Lag video til anledningen",
+    "subtitle": "Vi har fylt ut det du allerede fortalte om anledningen — endre fritt før videoen lages.",
+    "titleLabel": "Tittel på videoen *",
+    "titlePlaceholder": "F.eks. Krepselag i gata",
+    "topicLabel": "Hva skal videoen si? *",
+    "topicPlaceholder": "F.eks. Alle i gata inviteres til krepselag i hagen lørdag kl. 18. Ta med egen drikke.",
+    "targetAudienceLabel": "Hvem er videoen til?",
+    "targetAudiencePlaceholder": "F.eks. Naboene i gata, familie og venner",
+    "problemLabel": "Det viktigste å få med",
+    "problemPlaceholder": "F.eks. Tid, sted og at folk tar med egen drikke",
+    "ctaLabel": "Oppfordring til slutt",
+    "ctaPlaceholder": "F.eks. Si fra om du kommer innen torsdag!"
   }
 }
