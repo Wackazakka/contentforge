@@ -273,14 +273,14 @@ export async function startProductionForDraft(
     .eq('id', draftId)
   if (updateError) console.error('[production] draft-oppdatering feilet (jobben er i kø):', updateError)
 
-  // Fast produkt (Ropert-film, Lars 4/9): den enkle flyten lager utkast med
-  // egen stemme og alle scener uten tale — den signaturen finnes bare der.
+  // Fast produkt (Ropert-film, Lars 4/9): den enkle flyten stempler hvert
+  // segment med `simple_film` — det er signaturen, uansett sang/stemme.
   // Maalt API-kost er ~0 for slike filmer, saa forbruket logges som
   // vertikalens faste engrospris (25 kr) med kundeprisen (149 inkl. mva)
   // frosset paa raden. Loggingen velter aldri produksjonen.
   try {
     const pris = filmPricing(vertical)
-    const erFilm = pris && draft.voice_id === 'own' && segments.length > 0 && segments.every((s: { no_voice?: boolean }) => s.no_voice === true)
+    const erFilm = pris && segments.length > 0 && segments.every((s: { simple_film?: boolean }) => s.simple_film === true)
     if (erFilm) {
       // Omgjøring (film 2–4 i blokka, lib/filmAllowance): 0 kr i alle ledd —
       // engrosprisen paa den betalte filmen dekker dem.

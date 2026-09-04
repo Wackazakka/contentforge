@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { isFilmVoice } from '@/lib/filmVoices'
 
 // Enkel filmflyt (Standard Ropert, Lars 4/9): sangen ER lydsporet.
 //
@@ -28,16 +29,22 @@ interface SimpleRequest {
   musicDurationSec?: number | null
   photos?: string[]
   locale?: 'no' | 'en'
+  // Uten egen sang (4/9): en stemme leser teksten (voiceId fra FILM_VOICES),
+  // og/eller et spor fra det delte biblioteket ligger under.
+  voiceId?: string | null
+  libraryMusic?: string | null
 }
 
 // Ca. 8 sekunder per bilde gir ro nok til aa lese linja og se bildet.
-// Minst 4 scener saa filmen ikke blir en plakat; maks 24 med egne bilder.
-// Uten egne bilder koster hver scene et AI-bilde (~12 s + kroner), saa der
-// stopper vi paa 10.
+// Minst 4 scener saa filmen ikke blir en plakat. TAKET er 12 (4/9): Netlify
+// kutter synkrone funksjoner ved ~26 s, og et Claude-kall som skriver 24
+// linjer med bildeprompter brukte mer enn det — kunden fikk HTML 502 og
+// «ingenting skjedde». Ved lange sanger holdes bildene lenger i stedet.
+// Uten egne bilder koster hver scene et AI-bilde (~12 s + kroner) → maks 8.
 const SECONDS_PER_SCENE = 8
 function sceneCount(durationSec: number | null | undefined, photoCount: number): number {
   const fromMusic = durationSec && durationSec > 0 ? Math.round(durationSec / SECONDS_PER_SCENE) : 6
-  const cap = photoCount > 0 ? 24 : 10
+  const cap = photoCount > 0 ? 12 : 8
   return Math.max(4, Math.min(cap, fromMusic))
 }
 
@@ -47,11 +54,13 @@ async function writeLines(opts: {
   category: string
   count: number
   needImagePrompts: boolean
+  spoken: boolean
   locale: 'no' | 'en'
-}): Promise<Array<{ text: string; image_prompt: string }>> {
-  const { title, description, category, count, needImagePrompts, locale } = opts
+}): Promise<Array<{ text: string; voiceover: string; image_prompt: string }>> {
+  const { title, description, category, count, needImagePrompts, spoken, locale } = opts
   const lang = locale === 'en' ? 'English' : 'Norwegian (bokmål)'
-  const prompt = `You write the on-screen text for a short personal celebration video (an invitation or greeting) that plays over a song the sender made for the occasion. There is NO narrator — the text lines are the only words besides the song, so they must carry the message on their own.
+  const t0 = Date.now()
+  const prompt = `You write the on-screen text for a short personal celebration video (an invitation or greeting)${spoken ? ' read aloud by a warm narrator over gentle background music' : ' that plays over a song the sender made for the occasion. There is NO narrator — the text lines are the only words besides the song, so they must carry the message on their own'}.
 
 Occasion: "${title}"
 Type: ${category || 'unspecified'}
@@ -63,9 +72,10 @@ Write exactly ${count} lines in ${lang}, one per scene, in this order:
 ${count}. A closing line: welcome / see you there / a warm wish.
 
 Rules: max 60 characters per line, plain and warm, no hashtags, no emojis, no quotation marks, end each line with proper punctuation.
-${needImagePrompts ? 'Also give each line a short image prompt (English, max 20 words) for a warm, photographic scene that fits the line — no people\'s faces in close-up, no text in the image.' : 'Set image_prompt to an empty string.'}
+${spoken ? 'Also write "voiceover": what the narrator says for that scene — one or two natural spoken sentences (max 140 characters) that say the same thing as the line but the way a person would say it aloud. Never invent facts.' : 'Set voiceover to an empty string.'}
+${needImagePrompts ? 'Also give each line a short image prompt (English, max 15 words) for a warm, photographic scene that fits the line — no faces in close-up, no text in the image.' : 'Set image_prompt to an empty string.'}
 
-Return JSON only: {"lines":[{"text":"...","image_prompt":"..."}]}`
+Return JSON only: {"lines":[{"text":"...","voiceover":"...","image_prompt":"..."}]}`
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -76,11 +86,13 @@ Return JSON only: {"lines":[{"text":"...","image_prompt":"..."}]}`
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }],
     }),
-    signal: AbortSignal.timeout(45000),
+    // Netlify kutter ved ~26 s totalt — gi opp foer det, med klar melding
+    signal: AbortSignal.timeout(20000),
   })
+  console.log(`[produce/simple] Claude svarte etter ${Date.now() - t0} ms (${count} scener, spoken=${spoken}, prompts=${needImagePrompts})`)
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
     console.error('[produce/simple] Claude API error', { status: response.status, error: errorData })
@@ -92,18 +104,26 @@ Return JSON only: {"lines":[{"text":"...","image_prompt":"..."}]}`
   if (!match) throw new Error('Tekstene kom i feil format')
   const parsed = JSON.parse(match[0])
   const lines = Array.isArray(parsed.lines) ? parsed.lines : []
-  return lines.slice(0, count).map((l: { text?: unknown; image_prompt?: unknown }) => ({
+  return lines.slice(0, count).map((l: { text?: unknown; voiceover?: unknown; image_prompt?: unknown }) => ({
     text: String(l?.text || '').trim(),
+    voiceover: String(l?.voiceover || '').trim(),
     image_prompt: String(l?.image_prompt || '').trim(),
   })).filter((l: { text: string }) => l.text)
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const tStart = Date.now()
     const body: SimpleRequest = await request.json()
     const { productId, musicFile = null, musicDurationSec = null, locale = 'no' } = body
     const photos = (body.photos || []).filter((u) => typeof u === 'string' && /^https?:\/\//.test(u))
     if (!productId) return NextResponse.json({ error: 'productId mangler' }, { status: 400 })
+    // Stemme og biblioteksmusikk gjelder bare UTEN egen sang (sangen har vokal)
+    const voiceId = !musicFile && isFilmVoice(body.voiceId) ? String(body.voiceId) : null
+    const libraryMusic = !musicFile && typeof body.libraryMusic === 'string'
+      && /^[a-z0-9-]+\/[^/]+$/.test(body.libraryMusic)
+      && !/^(tracks|jingles)-/.test(body.libraryMusic)
+      ? body.libraryMusic : null
 
     // Eierskap: brukerens eget token mot RLS paa products.
     const auth = request.headers.get('authorization')
@@ -122,28 +142,34 @@ export async function POST(request: NextRequest) {
     const description = (body.description || product.description || '').trim()
     if (!title) return NextResponse.json({ error: 'Fortell hva som feires.' }, { status: 400 })
 
-    const count = sceneCount(musicDurationSec, photos.length)
+    const count = sceneCount(musicFile ? musicDurationSec : null, photos.length)
     const lines = await writeLines({
       title,
       description,
       category: product.category || '',
       count,
       needImagePrompts: photos.length === 0,
+      spoken: !!voiceId,
       locale,
     })
     if (lines.length < 2) throw new Error('Fikk for få tekstlinjer')
 
     // Egne bilder brukes i rekkefoelge og gjentas om det er faerre enn scener.
     // Ingen egne bilder: image_url tom → klienten lager AI-bilder etterpaa.
+    // `simple_film` er filmflytens signatur — production.ts logger fastpris
+    // paa den, uansett om filmen har sang, stemme eller bare musikk.
     const segments = lines.map((l, i) => ({
       index: i,
       text: l.text,
-      voiceover: '',
+      voiceover: voiceId ? (l.voiceover || l.text) : '',
       image_url: photos.length > 0 ? photos[i % photos.length] : '',
       image_prompt: l.image_prompt,
       approved: true,
-      no_voice: true,
+      no_voice: !voiceId,
+      // Bare kundens EGEN sang styrer lengden. Biblioteksmusikk kuttes/
+      // fades av renderen; scenene faar standard hviletid (5 s uten tale).
       match_music: !!musicFile,
+      simple_film: true,
     }))
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY)
@@ -157,12 +183,14 @@ export async function POST(request: NextRequest) {
         segments,
         target_audience: '',
         problem: '',
-        voice_id: 'own', // ingen TTS — alle scener er uten tale
+        // Uten stemme: 'own' + alle scener uten tale → ingen TTS.
+        // Med stemme: dropleten lager talen (turbo v2.5, norsk) ved produksjon.
+        voice_id: voiceId || 'own',
         tone: 'Vennlig',
         cta: '',
         video_format: '9:16',
         music_style: 'Warm',
-        music_file: musicFile,
+        music_file: musicFile || libraryMusic,
         // Produksjonsvalgene ligger paa raden: Stripe-webhooken starter
         // produksjonen uten klient, og maa finne dem her.
         image_style: 'warm',
@@ -174,6 +202,7 @@ export async function POST(request: NextRequest) {
       .single()
     if (error || !draft) throw new Error(error?.message || 'Utkastet kunne ikke lagres')
 
+    console.log(`[produce/simple] ferdig etter ${Date.now() - tStart} ms — draft ${draft.id}`)
     return NextResponse.json({ draftId: draft.id, segments, needsImages: photos.length === 0 })
   } catch (err) {
     console.error('[produce/simple] Error:', err)
