@@ -1082,7 +1082,8 @@
     "field_rsvp": "How to reply, and by when?",
     "field_rsvp_ph": "e.g. Tell Lise by Thursday",
     "field_greeting": "A greeting at the end",
-    "field_greeting_ph": "e.g. We look forward to seeing you!"
+    "field_greeting_ph": "e.g. We look forward to seeing you!",
+    "lengthExtended": "You filled in a lot, so the film will be {seconds} seconds to fit all the posters."
   },
   "occasion": {
     "back": "← All occasions",

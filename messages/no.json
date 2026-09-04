@@ -1082,7 +1082,8 @@
     "field_rsvp": "Hvordan svare, og innen når?",
     "field_rsvp_ph": "F.eks. Si fra til Lise innen torsdag",
     "field_greeting": "En hilsen til slutt",
-    "field_greeting_ph": "F.eks. Vi gleder oss til å se dere!"
+    "field_greeting_ph": "F.eks. Vi gleder oss til å se dere!",
+    "lengthExtended": "Du fylte ut mye, så filmen blir {seconds} sekunder for å få plass til alle plakatene."
   },
   "occasion": {
     "back": "← Alle anledninger",
