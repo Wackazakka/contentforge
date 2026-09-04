@@ -161,6 +161,10 @@ export async function startProductionForDraft(
     : null
 
   const segments = draft.segments || []
+  // Ropert-film (4/9): stempelet `simple_film` gir langsom bevegelse paa
+  // stillbildene og scenetekst som overskrift. Brukes ogsaa til fastpris-
+  // loggingen lenger ned.
+  const erSimpleFilm = segments.length > 0 && segments.every((s: { simple_film?: boolean }) => s.simple_film === true)
   const allApproved = segments.every((s: any) => s.approved === true)
   if (!allApproved) {
     const approvedCount = segments.filter((s: any) => s.approved).length
@@ -257,6 +261,8 @@ export async function startProductionForDraft(
       aiMotion: !!aiMotion,
       aiMotionEngine,
       imageFit,
+      stillMotion: erSimpleFilm,
+      textStyle: erSimpleFilm ? 'headline' : undefined,
       // Engelsk stemme trenger 'en' — ellers leses teksten med norske
       // uttaleregler (Lars 1/8). Slaas opp direkte hos ElevenLabs, saa det
       // ikke krever en ny kolonne og aldri kan komme i utakt med stemmevalget.
@@ -280,7 +286,7 @@ export async function startProductionForDraft(
   // frosset paa raden. Loggingen velter aldri produksjonen.
   try {
     const pris = filmPricing(vertical)
-    const erFilm = pris && segments.length > 0 && segments.every((s: { simple_film?: boolean }) => s.simple_film === true)
+    const erFilm = pris && erSimpleFilm
     if (erFilm) {
       // Omgjøring (film 2–4 i blokka, lib/filmAllowance): 0 kr i alle ledd —
       // engrosprisen paa den betalte filmen dekker dem.

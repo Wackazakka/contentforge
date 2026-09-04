@@ -37,6 +37,9 @@ COLOR_WHITE = "#ffffff"  # White
 # bildet med sort rundt (Lars 31/7: artistenes pressebilder/artwork er
 # komposisjoner — de skal ikke beskjaeres). Settes fra config.imageFit.
 _IMAGE_FIT = 'cover'
+# Langsom zoom/panorering paa stillbilder (Standard Ropert, 4/9). Slaas paa
+# per jobb via config.stillMotion — ellers noeyaktig gammel oppfoersel.
+_STILL_MOTION = False
 
 def make_bg_frame(bg_path):
     """Prepare background with overlays as numpy array."""
@@ -66,6 +69,53 @@ def make_bg_frame(bg_path):
     bg = Image.alpha_composite(bg, bar)
 
     return np.array(bg.convert("RGB"))
+
+def _make_bg_image(bg_path, oversize=1.0):
+    """Bakgrunnsbildet fylt og beskaaret til (W*oversize, H*oversize), UTEN
+    overlegg — brukes av bevegelsen, som beskjaerer et vindu per bilde."""
+    bw, bh = int(W * oversize), int(H * oversize)
+    bg = Image.open(bg_path).convert("RGB")
+    scale = max(bw / bg.width, bh / bg.height)
+    bg = bg.resize((max(bw, int(bg.width * scale)), max(bh, int(bg.height * scale))), Image.LANCZOS)
+    cx, cy = bg.width // 2, bg.height // 2
+    return bg.crop((cx - bw // 2, cy - bh // 2, cx - bw // 2 + bw, cy - bh // 2 + bh))
+
+
+def make_motion_clip_file(bg_path, duration, motion_idx=0):
+    """Stillbilde -> kort videofil med langsom kamerabevegelse («Ken Burns»),
+    laget av ffmpeg zoompan (C, sekunder) — ikke bilde-for-bilde i Python
+    (maalt 4/9: 5 min for 12 s film). Fire moenstre i rotasjon saa nabo-scener
+    beveger seg ulikt: zoom inn, panorer hoeyre, zoom ut, panorer venstre.
+    Returnerer sti til mp4 med noeyaktig `duration` sekunder, eller None."""
+    OVER = 1.12
+    fps = 24
+    n = max(2, int(round(duration * fps)))
+    try:
+        tmpdir = tempfile.mkdtemp(prefix='kb_')
+        src = os.path.join(tmpdir, 'src.png')
+        _make_bg_image(bg_path, OVER).save(src)
+        out = os.path.join(tmpdir, 'motion.mp4')
+        # p = glattet fremdrift 0..1 over klippet (smoothstep)
+        p = f"((on/{n})*(on/{n})*(3-2*(on/{n})))"
+        pattern = motion_idx % 4
+        if pattern == 0:      # zoom inn
+            z = f"1+{OVER - 1.0}*{p}"; x = "iw/2-(iw/zoom/2)"
+        elif pattern == 2:    # zoom ut
+            z = f"{OVER}-{OVER - 1.0}*{p}"; x = "iw/2-(iw/zoom/2)"
+        elif pattern == 1:    # panorer hoeyre
+            z = "1.06"; x = f"(iw-iw/zoom)*{p}"
+        else:                 # panorer venstre
+            z = "1.06"; x = f"(iw-iw/zoom)*(1-{p})"
+        y = "ih/2-(ih/zoom/2)"
+        vf = f"zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={W}x{H}:fps={fps},format=yuv420p"
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-i', src,
+                        '-vf', vf, '-frames:v', str(n), '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '20', out],
+                       check=True, timeout=300)
+        return out
+    except Exception as e:
+        print(f'[stillMotion] hoppet over ({e}) — stillbilde i stedet')
+        return None
+
 
 def make_text_frame(lines, sub=None, logo_url=None):
     """Text-only layer on transparent background."""
@@ -234,7 +284,7 @@ def _extend_boomerang(v, duration):
     out = concatenate_videoclips(parts)
     return out.subclipped(0, duration) if out.duration > duration else out
 
-def make_segment(bg_path, lines, vo_path, sub=None, logo_url=None, hold=0.0):
+def make_segment(bg_path, lines, vo_path, sub=None, logo_url=None, hold=0.0, motion_idx=0):
     """Create single video segment from background + text + voiceover.
 
     hold: ekstra hviletid (sek) ETTER at stemmen er ferdig — bildet blir
@@ -248,12 +298,19 @@ def make_segment(bg_path, lines, vo_path, sub=None, logo_url=None, hold=0.0):
     vo = AudioFileClip(_normalize_voice(vo_path)) if vo_path else None
     duration = (vo.duration if vo else 0.0) + 0.4 + max(0.0, float(hold or 0))
 
-    bg_arr = make_bg_frame(bg_path)
     txt_arr = make_text_frame(lines, sub, logo_url=logo_url)
-
-    bg_clip  = ImageClip(bg_arr, duration=duration)
     txt_clip = ImageClip(txt_arr, duration=duration).with_effects([vfx.FadeIn(0.5)])
 
+    if _STILL_MOTION and _IMAGE_FIT != 'contain':
+        # Bevegelse: lag et videoklipp av stillbildet og gaa videostien —
+        # samme demping, tekstfelt og tekst som for ekte klipp.
+        motion_path = make_motion_clip_file(bg_path, duration, motion_idx)
+        if motion_path:
+            if vo is not None:
+                vo.close()
+            return make_segment_video(motion_path, lines, vo_path, sub, logo_url=logo_url, hold=hold)
+    bg_arr = make_bg_frame(bg_path)
+    bg_clip  = ImageClip(bg_arr, duration=duration)
     comp = CompositeVideoClip([bg_clip, txt_clip], size=(W, H))
     if vo is not None:
         comp = comp.with_audio(vo)
@@ -764,7 +821,7 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         if seg.get("clip"):
             clip = make_segment_video(seg["clip"], seg["lines"], seg_vo, seg.get("sub"), logo_url=logoUrl, hold=seg_hold)
         else:
-            clip = make_segment(seg["bg"], seg["lines"], seg_vo, seg.get("sub"), logo_url=logoUrl, hold=seg_hold)
+            clip = make_segment(seg["bg"], seg["lines"], seg_vo, seg.get("sub"), logo_url=logoUrl, hold=seg_hold, motion_idx=i)
         if i > 0:
             clip = clip.with_effects([vfx.FadeIn(0.3)])
         clips.append(clip)
@@ -920,6 +977,9 @@ if __name__ == "__main__":
     if config.get('imageFit') in ('contain', 'cover'):
         _IMAGE_FIT = config['imageFit']
         print(f"[imageFit] {_IMAGE_FIT}")
+    if config.get('stillMotion'):
+        _STILL_MOTION = True
+        print("[stillMotion] langsom bevegelse paa stillbilder")
     build_video(config["segments"], config["output"], backgroundMusicPath, logoUrl=logoUrl, outroCard=outroCard, mix=config.get("mix"), brandCard=config.get("brandCard"))
 
     # Signal completion to job-queue

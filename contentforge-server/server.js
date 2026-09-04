@@ -315,6 +315,51 @@ app.post('/music/medley', express.json(), (req, res) => {
 })
 
 
+// ── Utsnitt av EN laat (2026-09-04, Standard Ropert) ────────────────────────
+// Kunden har en 3-minutters Sangskaper-sang, men filmen skal vaere 30 eller
+// 60 sekunder. Lager <folder>/klipp-<sek>-<navn>.mp3: fra startSec, clipSec
+// langt, med 2,5 s uttoning. Ingen loudnorm — det er samme laat, samme nivaa.
+app.post('/music/clip', express.json(), (req, res) => {
+  try {
+    const filename = String(req.body?.filename || '')
+    const folder = String(req.body?.folder || '').toLowerCase().replace(/[^a-z0-9-]/g, '')
+    const startSec = Math.max(0, Number(req.body?.startSec) || 0)
+    const clipSec = Math.min(Math.max(5, Number(req.body?.clipSec) || 60), 180)
+    if (!filename || filename.includes('..')) return res.status(400).json({ error: 'Ugyldig filsti' })
+    if (!folder) return res.status(400).json({ error: 'Ugyldig mappe' })
+    const src = path.join(MUSIC_DIR, filename)
+    if (!src.startsWith(MUSIC_DIR + path.sep) || !fs.existsSync(src)) return res.status(400).json({ error: `Fant ikke ${filename}` })
+    const folderPath = path.join(MUSIC_DIR, folder)
+    if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true })
+    const base = path.basename(filename).replace(/\.mp3$/i, '').replace(/^klipp-\d+-/, '')
+    const outName = `klipp-${clipSec}-${base}.mp3`
+    const outPath = path.join(folderPath, outName)
+    const fade = Math.min(2.5, clipSec / 4)
+    const args = ['-y', '-ss', String(startSec), '-t', String(clipSec), '-i', src,
+      '-af', `afade=t=out:st=${(clipSec - fade).toFixed(2)}:d=${fade}`, '-c:a', 'libmp3lame', '-b:a', '192k', outPath]
+    execFile('ffmpeg', args, { timeout: 120000 }, (err, _stdout, stderr) => {
+      if (err) {
+        console.error('[server] Klipp ffmpeg-feil:', String(stderr).slice(-300))
+        return res.status(500).json({ error: 'Klippingen feilet' })
+      }
+      const size = fs.statSync(outPath).size
+      const fileInfo = {
+        filename: `${folder}/${outName}`,
+        name: `${base.replace(/[-_]/g, ' ')} (${clipSec} s)`,
+        folder,
+        url: `http://139.59.212.218:${PORT}/music/files/${encodeURIComponent(`${folder}/${outName}`)}`,
+        size,
+        uploadedAt: new Date().toISOString(),
+      }
+      console.log(`[server] Klipp ferdig: ${fileInfo.filename} (${size} bytes)`)
+      res.json({ success: true, file: fileInfo })
+    })
+  } catch (err) {
+    console.error('[server] Klipp-feil:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ── Import fra URL (2026-07-30) ──────────────────────────────────────────────
 // Store laater taaler ikke Netlify-proxyen (~4,5 MB reell grense) — nettleseren
 // laster opp til Supabase Storage-innboksen, og vi henter derfra til MUSIC_DIR.

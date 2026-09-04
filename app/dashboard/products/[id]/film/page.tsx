@@ -19,7 +19,7 @@ import { filmPricing } from '@/lib/verticals'
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
 
-type Phase = 'idle' | 'writing' | 'images' | 'paying' | 'starting'
+type Phase = 'idle' | 'clipping' | 'writing' | 'images' | 'paying' | 'starting'
 
 function fmtDuration(sec: number | null): string {
   if (!sec || !isFinite(sec)) return ''
@@ -74,6 +74,9 @@ export default function FilmPage() {
   // Opphavsrett (4/9): kunden bekrefter at sangen er egen (Sangskaper) eller
   // noe de har rett til aa bruke — vi rendrer og deler filmen fra vaar server.
   const [rightsOk, setRightsOk] = useState(false)
+  // Filmlengde (4/9): sangen kan vaere 3 minutter, filmen boer vaere 60 s.
+  // 'full' = hele sangen; ellers klippes sangen paa dropleten med uttoning.
+  const [filmLength, setFilmLength] = useState<'30' | '60' | 'full'>('60')
   // Uten sang (4/9): en stemme leser teksten, eller bare musikk, eller stille.
   const [mode, setMode] = useState<'voice' | 'music' | 'silent'>('voice')
   const [voiceId, setVoiceId] = useState<string>(FILM_VOICES[0]?.id || '')
@@ -187,10 +190,28 @@ export default function FilmPage() {
         await getSupabase().from('products').update({ name: title.trim(), description: description.trim() }).eq('id', productId)
       } catch { /* ikke kritisk */ }
 
-      setPhase('writing')
       const tk = await token()
       if (!tk) throw new Error(t('mustSignIn'))
-      const dur = musicFile ? (musicDuration ?? durationByFile[musicFile] ?? null) : null
+      let useMusic = musicFile
+      let dur = musicFile ? (musicDuration ?? durationByFile[musicFile] ?? null) : null
+      // Kortere film enn sangen: klipp sangen foerst (dropleten lager en fil
+      // med uttoning; «film = musikkens lengde» gir da riktig lengde)
+      if (musicFile && filmLength !== 'full') {
+        const wanted = Number(filmLength)
+        if (dur === null || dur > wanted + 5) {
+          setPhase('clipping')
+          const cr = await fetch('/api/music/clip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` },
+            body: JSON.stringify({ productId, filename: musicFile, clipSec: wanted, startSec: 0 }),
+          })
+          const cd = await cr.json().catch(() => null)
+          if (!cr.ok || !cd?.file?.filename) throw new Error(cd?.error || t('failed'))
+          useMusic = cd.file.filename
+          dur = cd.clipSec
+        }
+      }
+      setPhase('writing')
       const res = await fetch('/api/content/produce/simple', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` },
@@ -198,7 +219,7 @@ export default function FilmPage() {
           productId,
           title: title.trim(),
           description: description.trim(),
-          musicFile,
+          musicFile: useMusic,
           musicDurationSec: dur,
           photos: photos.map((p) => p.url),
           locale,
@@ -312,12 +333,28 @@ export default function FilmPage() {
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div style={{ fontFamily: HANKEN, fontWeight: 600, fontSize: 15, color: 'var(--ink)' }}>{chosenTrack.name}</div>
                 <div style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--text-muted)' }}>
-                  {chosenDuration ? t('filmLength', { length: fmtDuration(chosenDuration) }) : t('filmLengthUnknown')}
+                  {filmLength !== 'full' && chosenDuration && chosenDuration > Number(filmLength) + 5
+                    ? t('filmLengthClipped', { length: fmtDuration(Number(filmLength)), song: fmtDuration(chosenDuration) })
+                    : chosenDuration ? t('filmLength', { length: fmtDuration(chosenDuration) }) : t('filmLengthUnknown')}
                 </div>
               </div>
               <audio controls preload="none" src={musicSrc(chosenTrack.filename)} style={{ height: 34, maxWidth: 220 }} />
             </div>
           ) : null}
+          {chosenTrack && (
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('lengthLabel')}</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {([['30', t('length30')], ['60', t('length60')], ['full', t('lengthFull')]] as const).map(([v, label]) => (
+                  <button key={v} type="button" disabled={busy} onClick={() => setFilmLength(v)}
+                    style={{ fontFamily: HANKEN, fontWeight: 600, fontSize: 14.5, borderRadius: 999, padding: '9px 16px', cursor: 'pointer', color: filmLength === v ? 'var(--on-ember)' : 'var(--ink)', background: filmLength === v ? 'var(--ember-deep)' : 'transparent', border: filmLength === v ? '1.5px solid var(--ember-deep)' : '1.5px solid var(--ds-border)' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p style={{ ...hint, margin: '8px 0 0', fontSize: 13.5 }}>{t('lengthHint')}</p>
+            </div>
+          )}
           {tracks.length > 1 && (
             <select value={musicFile || ''} onChange={(e) => { setMusicFile(e.target.value || null); setMusicDuration(null) }} disabled={busy} className="cf-input" style={{ marginBottom: 12 }}>
               {tracks.map((tr) => <option key={tr.filename} value={tr.filename}>{tr.name}</option>)}
@@ -449,6 +486,7 @@ export default function FilmPage() {
           {busy ? (
             <div style={{ fontFamily: HANKEN, fontSize: 15.5, color: 'var(--ink)' }}>
               <div className="cf-spinner" style={{ margin: '0 auto 12px' }} />
+              {phase === 'clipping' && t('phaseClipping')}
               {phase === 'writing' && t('phaseWriting')}
               {phase === 'images' && t('phaseImages', { done: imageProgress?.done ?? 0, total: imageProgress?.total ?? 0 })}
               {phase === 'paying' && t('phasePaying')}
