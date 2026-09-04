@@ -236,9 +236,19 @@ def build(cfg):
         runde = vi // len(visuals); vi += 1
         return kind, src, runde
 
-    # Sekvens: aapningsplakat (4 slag), saa [bilde 2, plakat 2, bilde 4, bilde 2] til
-    # plakatene er brukt opp; deretter bilder; siste plakat avslutter (4 slag).
-    seq = [('card', 0, 4)]
+    # Lesetid (Lars 4/9: «flere av tekstsegmentene sto altfor kort»): en plakat
+    # maa staa lenge nok til aa leses — ~1,6 s + 0,06 s per tegn, minst 2 s —
+    # og bytter fortsatt paa et taktslag (avrundet OPP til partall slag).
+    diffs = np.diff(beats[:32]) if len(beats) > 2 else np.array([0.5])
+    beat_len = float(np.median(diffs)) if len(diffs) else 0.5
+    def card_beats(text, minimum=2):
+        need = max(2.0, 1.6 + 0.06 * len(text))
+        nb = int(math.ceil(need / max(beat_len, 0.2)))
+        nb += nb % 2
+        return max(minimum, nb)
+    # Sekvens: aapningsplakat, saa [bilde 2, plakat, bilde 4, bilde 2] til
+    # plakatene er brukt opp; deretter bilder; siste plakat avslutter.
+    seq = [('card', 0, card_beats(texts[0], 4))]
     kidx = 1
     n_cards = len(texts)
     guard = 0
@@ -246,7 +256,7 @@ def build(cfg):
         guard += 1
         seq.append(('visual', nxt_visual(), 2))
         if kidx < n_cards - 1:
-            seq.append(('card', kidx, 2)); kidx += 1
+            seq.append(('card', kidx, card_beats(texts[kidx]))); kidx += 1
         seq.append(('visual', nxt_visual(), 4))
         seq.append(('visual', nxt_visual(), 2))
         # nok til aa fylle filmen?
@@ -259,7 +269,7 @@ def build(cfg):
             break
         plan.append((typ, ref, nb)); t_idx += nb
     if n_cards > 1:
-        plan.append(('card', n_cards - 1, 4))
+        plan.append(('card', n_cards - 1, card_beats(texts[-1], 4)))
 
     seg_files, t_idx, pattern = [], 0, 0
     for k, (typ, ref, nb) in enumerate(plan):
