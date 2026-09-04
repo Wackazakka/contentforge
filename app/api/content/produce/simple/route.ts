@@ -73,7 +73,7 @@ ${count}. A closing line: welcome / see you there / a warm wish.
 
 Rules: max 60 characters per line, plain and warm, no hashtags, no emojis, no quotation marks, end each line with proper punctuation.
 ${spoken ? 'Also write "voiceover": what the narrator says for that scene — one or two natural spoken sentences (max 140 characters) that say the same thing as the line but the way a person would say it aloud. Never invent facts.' : 'Set voiceover to an empty string.'}
-${needImagePrompts ? 'Also give each line a short image prompt (English, max 15 words) for a warm, photographic scene that fits the line — no faces in close-up, no text in the image.' : 'Set image_prompt to an empty string.'}
+${needImagePrompts ? 'Also give each line a short image prompt (English, max 25 words) for a warm, photographic scene that fits the line. IMPORTANT: the setting is Norway — Scandinavian homes, gardens, light and seasons — and any people are Scandinavian/Northern European in appearance, unless the sender\'s text says otherwise. No faces in close-up, no text in the image.' : 'Set image_prompt to an empty string.'}
 
 Return JSON only: {"lines":[{"text":"...","voiceover":"...","image_prompt":"..."}]}`
 
