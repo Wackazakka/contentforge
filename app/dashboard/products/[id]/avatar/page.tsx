@@ -1035,7 +1035,8 @@ export default function AvatarVideoPage() {
                           onClick={async (e) => {
                             e.stopPropagation()
                             if (!confirm(`Slett «${m.name}»?`)) return
-                            await fetch(`/api/music/${encodeURIComponent(m.filename)}`, { method: 'DELETE' })
+                            const { data: sess } = await getSupabase().auth.getSession()
+                            await fetch(`/api/music/${encodeURIComponent(m.filename)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${sess?.session?.access_token || ''}` } })
                             if (musicFile === m.filename) setMusicFile(null)
                             await refreshMusicLibrary()
                           }}
