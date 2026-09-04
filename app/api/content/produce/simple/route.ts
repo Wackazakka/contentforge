@@ -129,8 +129,6 @@ export async function POST(request: NextRequest) {
     const auth = request.headers.get('authorization')
     if (!auth?.startsWith('Bearer ')) return NextResponse.json({ error: 'Du må være innlogget.' }, { status: 401 })
     const asUser = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: auth } } })
-    const { data: who } = await asUser.auth.getUser()
-    const userId = who?.user?.id || null
     const { data: product } = await asUser
       .from('products')
       .select('id, name, description, category')
@@ -191,12 +189,11 @@ export async function POST(request: NextRequest) {
         video_format: '9:16',
         music_style: 'Warm',
         music_file: musicFile || libraryMusic,
-        // Produksjonsvalgene ligger paa raden: Stripe-webhooken starter
-        // produksjonen uten klient, og maa finne dem her.
-        image_style: 'warm',
-        include_outro_card: false,
-        ai_motion: false,
-        user_id: userId,
+        // ⚠️ IKKE image_style/include_outro_card/ai_motion/user_id her: de
+        // kolonnene finnes ikke i prod-tabellen (Lars 4/9: «Could not find
+        // the 'include_outro_card' column»). Produksjonsvalgene sendes
+        // eksplisitt fra klienten; webhook-stien faar standardene (ingen
+        // sluttplakat uten nettside, ingen bevegelse).
       })
       .select('id')
       .single()

@@ -22,9 +22,11 @@ export async function POST(request: Request) {
     let invoiceTenant = false
     let draftProductId: string | null = null
     {
+      // select('*'): payment_status/ai_motion finnes ikke i alle miljoer, og en
+      // eksplisitt liste ga null → invoice-sjekken ble hoppet over → 402 (4/9)
       const { data: d } = await supabase
         .from('production_drafts')
-        .select('product_id, payment_status, segments, ai_motion')
+        .select('*')
         .eq('id', draftId)
         .single()
       draftProductId = d?.product_id ?? null

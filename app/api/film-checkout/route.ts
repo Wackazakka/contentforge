@@ -57,9 +57,11 @@ export async function POST(request: Request) {
     const userId = u?.user?.id
     if (!userId) return NextResponse.json({ error: 'Du må være innlogget.' }, { status: 401 })
 
+    // select('*'): valgfrie kolonner (payment_status m.fl.) finnes ikke i
+    // alle miljoer — en eksplisitt liste feiler da hele oppslaget.
     const { data: draft } = await admin
       .from('production_drafts')
-      .select('id, product_id, title, payment_status, job_id')
+      .select('*')
       .eq('id', draftId)
       .single()
     if (!draft) return NextResponse.json({ error: 'Fant ikke utkastet.' }, { status: 404 })
@@ -112,7 +114,11 @@ export async function POST(request: Request) {
       cancel_url: `${origin}${back}?avbrutt=1`,
     })
 
-    await admin.from('production_drafts').update({ payment_status: 'pending', price_ore: ore, user_id: userId }).eq('id', draftId)
+    // Best effort: kolonnene kan mangle — betalingsraden under er ankeret
+    for (const felt of [{ payment_status: 'pending' }, { price_ore: ore }, { user_id: userId }]) {
+      const { error: uErr } = await admin.from('production_drafts').update(felt).eq('id', draftId)
+      if (uErr) console.warn('[film-checkout] draft-felt ikke lagret:', Object.keys(felt)[0], uErr.message)
+    }
 
     // Betalingsrad = idempotens-anker for webhooken (samme mønster som produksjoner)
     const { error: payErr } = await admin.from('production_payments').insert({
