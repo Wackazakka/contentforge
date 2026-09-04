@@ -81,48 +81,40 @@ def _make_bg_image(bg_path, oversize=1.0):
     return bg.crop((cx - bw // 2, cy - bh // 2, cx - bw // 2 + bw, cy - bh // 2 + bh))
 
 
-def _make_overlay_rgba():
-    """Samme demping + moerkt tekstfelt som make_bg_frame, som eget RGBA-lag —
-    ligger stille mens bakgrunnen beveger seg."""
-    layer = Image.new("RGBA", (W, H), (0, 0, 0, 45))
-    draw = ImageDraw.Draw(layer)
-    draw.rectangle([(0, int(H * 0.78)), (W, H)], fill=(10, 10, 25, 185))
-    return np.array(layer)
-
-
-def make_motion_bg_clip(bg_path, duration, motion_idx=0):
-    """Stillbilde med langsom kamerabevegelse («Ken Burns»). Fire moenstre i
-    rotasjon saa nabo-scener beveger seg ulikt: zoom inn, panorer hoeyre,
-    zoom ut, panorer venstre. Ren bildebehandling — koster ingenting."""
+def make_motion_clip_file(bg_path, duration, motion_idx=0):
+    """Stillbilde -> kort videofil med langsom kamerabevegelse («Ken Burns»),
+    laget av ffmpeg zoompan (C, sekunder) — ikke bilde-for-bilde i Python
+    (maalt 4/9: 5 min for 12 s film). Fire moenstre i rotasjon saa nabo-scener
+    beveger seg ulikt: zoom inn, panorer hoeyre, zoom ut, panorer venstre.
+    Returnerer sti til mp4 med noeyaktig `duration` sekunder, eller None."""
     OVER = 1.12
-    big = np.array(_make_bg_image(bg_path, OVER))
-    bh, bw = big.shape[0], big.shape[1]
-    pattern = motion_idx % 4
-
-    def window(p):
-        # p i [0,1], glattet saa bevegelsen starter og stopper mykt
-        p = p * p * (3 - 2 * p)
+    fps = 24
+    n = max(2, int(round(duration * fps)))
+    try:
+        tmpdir = tempfile.mkdtemp(prefix='kb_')
+        src = os.path.join(tmpdir, 'src.png')
+        _make_bg_image(bg_path, OVER).save(src)
+        out = os.path.join(tmpdir, 'motion.mp4')
+        # p = glattet fremdrift 0..1 over klippet (smoothstep)
+        p = f"((on/{n})*(on/{n})*(3-2*(on/{n})))"
+        pattern = motion_idx % 4
         if pattern == 0:      # zoom inn
-            z = 1.0 + (OVER - 1.0) * p; fx = 0.5
+            z = f"1+{OVER - 1.0}*{p}"; x = "iw/2-(iw/zoom/2)"
         elif pattern == 2:    # zoom ut
-            z = OVER - (OVER - 1.0) * p; fx = 0.5
-        else:                 # panorering i fast, lett zoom
-            z = 1.06
-            fx = (0.0 + p) if pattern == 1 else (1.0 - p)
-        ww, wh = int(bw / z), int(bh / z)
-        x0 = int((bw - ww) * fx)
-        y0 = (bh - wh) // 2
-        return x0, y0, ww, wh
-
-    def frame(t):
-        p = 0.0 if duration <= 0 else min(1.0, max(0.0, t / duration))
-        x0, y0, ww, wh = window(p)
-        crop = big[y0:y0 + wh, x0:x0 + ww]
-        if ww == W and wh == H:
-            return crop
-        return np.array(Image.fromarray(crop).resize((W, H), Image.BILINEAR))
-
-    return VideoClip(frame, duration=duration)
+            z = f"{OVER}-{OVER - 1.0}*{p}"; x = "iw/2-(iw/zoom/2)"
+        elif pattern == 1:    # panorer hoeyre
+            z = "1.06"; x = f"(iw-iw/zoom)*{p}"
+        else:                 # panorer venstre
+            z = "1.06"; x = f"(iw-iw/zoom)*(1-{p})"
+        y = "ih/2-(ih/zoom/2)"
+        vf = f"zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={W}x{H}:fps={fps},format=yuv420p"
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-i', src,
+                        '-vf', vf, '-frames:v', str(n), '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '20', out],
+                       check=True, timeout=300)
+        return out
+    except Exception as e:
+        print(f'[stillMotion] hoppet over ({e}) — stillbilde i stedet')
+        return None
 
 
 def make_text_frame(lines, sub=None, logo_url=None):
@@ -310,16 +302,16 @@ def make_segment(bg_path, lines, vo_path, sub=None, logo_url=None, hold=0.0, mot
     txt_clip = ImageClip(txt_arr, duration=duration).with_effects([vfx.FadeIn(0.5)])
 
     if _STILL_MOTION and _IMAGE_FIT != 'contain':
-        # Bevegelse: bakgrunnen beveger seg, dempingen/tekstfeltet ligger stille
-        bg_clip = make_motion_bg_clip(bg_path, duration, motion_idx)
-        ov = _make_overlay_rgba()
-        ov_clip = ImageClip(ov[:, :, :3], duration=duration).with_mask(
-            ImageClip(ov[:, :, 3] / 255.0, is_mask=True, duration=duration))
-        comp = CompositeVideoClip([bg_clip, ov_clip, txt_clip], size=(W, H))
-    else:
-        bg_arr = make_bg_frame(bg_path)
-        bg_clip  = ImageClip(bg_arr, duration=duration)
-        comp = CompositeVideoClip([bg_clip, txt_clip], size=(W, H))
+        # Bevegelse: lag et videoklipp av stillbildet og gaa videostien —
+        # samme demping, tekstfelt og tekst som for ekte klipp.
+        motion_path = make_motion_clip_file(bg_path, duration, motion_idx)
+        if motion_path:
+            if vo is not None:
+                vo.close()
+            return make_segment_video(motion_path, lines, vo_path, sub, logo_url=logo_url, hold=hold)
+    bg_arr = make_bg_frame(bg_path)
+    bg_clip  = ImageClip(bg_arr, duration=duration)
+    comp = CompositeVideoClip([bg_clip, txt_clip], size=(W, H))
     if vo is not None:
         comp = comp.with_audio(vo)
     return comp
