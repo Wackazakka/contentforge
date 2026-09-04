@@ -130,7 +130,9 @@ export default function FilmPage() {
       } catch { /* skjemaet fungerer tomt */ } finally { setLoaded(true) }
       try {
         const lib = await fetchMusicLibrary()
-        const mine = ownTracks(lib.files, productId).filter((f) => !isMedleyFile(f.filename))
+        // Klipp (klipp-30-…) er avledet av originalen og skal ikke velges selv
+        // (4/9: klipp av et klipp → ffmpeg «Output same as Input»)
+        const mine = ownTracks(lib.files, productId).filter((f) => !isMedleyFile(f.filename) && !/^klipp-\d+-/.test(f.filename.split('/').pop() || ''))
         setTracks(mine)
         // Nyeste sang forhaandsvelges — den de nettopp lastet opp er den de vil ha
         if (mine.length > 0) setMusicFile(mine[mine.length - 1].filename)

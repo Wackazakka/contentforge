@@ -23,12 +23,23 @@ function admin() {
 }
 
 export async function filmCountForProduct(productId: string): Promise<number> {
-  const { count } = await admin()
+  const sb = admin()
+  const { data } = await sb
     .from('usage_events')
-    .select('id', { count: 'exact', head: true })
+    .select('id, meta')
     .eq('product_id', productId)
     .eq('event_type', 'film_production')
-  return count || 0
+  const rows = (data || []) as Array<{ id: string; meta: { jobId?: string } | null }>
+  if (rows.length === 0) return 0
+  // Feilede renders skal ikke spise av omgjoeringene (Lars 4/9: to feil paa
+  // rad fra vaare egne bugs viste «1 gratis omgjoering igjen»)
+  const jobIds = rows.map((r) => r.meta?.jobId).filter((j): j is string => !!j)
+  let failed = 0
+  if (jobIds.length > 0) {
+    const { data: jobs } = await sb.from('production_jobs').select('id, status').in('id', jobIds)
+    failed = (jobs || []).filter((j: { status: string }) => j.status === 'failed').length
+  }
+  return Math.max(0, rows.length - failed)
 }
 
 // Er film nr. (count+1) en gratis omgjøring?
