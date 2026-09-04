@@ -104,7 +104,7 @@ export async function startProductionForDraft(
       .select('*')
       .eq('product_id', draft.product_id)
       .single(),
-    supabase.from('products').select('logo_url, organization_id').eq('id', draft.product_id).single(),
+    supabase.from('products').select('logo_url, organization_id, category').eq('id', draft.product_id).single(),
   ])
   // Artistenes egne bilder er komposisjoner (Lars 31/7): music-vertikalen
   // viser HELE bildet med sort rundt i stedet for aa beskjaere til formatet.
@@ -263,6 +263,10 @@ export async function startProductionForDraft(
       imageFit,
       stillMotion: erSimpleFilm,
       textStyle: erSimpleFilm ? 'headline' : undefined,
+      // «Festlig» (Lars 4/9): Ropert-filmene lages av festlig.py — taktklipp,
+      // plakater, konfetti, palett etter anledningstypen (products.category)
+      festlig: erSimpleFilm,
+      occasionTheme: erSimpleFilm ? ((product as any)?.category || 'default') : undefined,
       // Engelsk stemme trenger 'en' — ellers leses teksten med norske
       // uttaleregler (Lars 1/8). Slaas opp direkte hos ElevenLabs, saa det
       // ikke krever en ny kolonne og aldri kan komme i utakt med stemmevalget.

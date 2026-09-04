@@ -33,7 +33,20 @@ interface SimpleRequest {
   // og/eller et spor fra det delte biblioteket ligger under.
   voiceId?: string | null
   libraryMusic?: string | null
+  // Skjemaet (Lars 4/9): ett svar per felt gir én plakat per felt
+  details?: Partial<Record<'who' | 'when' | 'where' | 'bring' | 'dress' | 'extra' | 'rsvp' | 'greeting', string>>
 }
+
+const DETAIL_ORDER: Array<[keyof NonNullable<SimpleRequest['details']>, string]> = [
+  ['who', 'who it is for / who is hosting'],
+  ['when', 'date and time'],
+  ['where', 'place'],
+  ['bring', 'what to bring'],
+  ['dress', 'dress code / costume'],
+  ['extra', 'something extra (food, prize, children welcome, program)'],
+  ['rsvp', 'how and when to reply'],
+  ['greeting', 'a personal greeting from the sender'],
+]
 
 // Ca. 8 sekunder per bilde gir ro nok til aa lese linja og se bildet.
 // Minst 4 scener saa filmen ikke blir en plakat. TAKET er 12 (4/9): Netlify
@@ -56,8 +69,12 @@ async function writeLines(opts: {
   needImagePrompts: boolean
   spoken: boolean
   locale: 'no' | 'en'
+  details?: Array<[string, string]> // [beskrivelse av feltet, kundens svar]
 }): Promise<Array<{ text: string; voiceover: string; image_prompt: string }>> {
-  const { title, description, category, count, needImagePrompts, spoken, locale } = opts
+  const { title, description, category, count, needImagePrompts, spoken, locale, details } = opts
+  const detailBlock = details && details.length
+    ? `The sender filled in these fields (use them, one line each, in this order):\n${details.map(([k, v], i) => `${i + 1}. ${k}: "${v}"`).join('\n')}\n`
+    : ''
   const lang = locale === 'en' ? 'English' : 'Norwegian (bokmål)'
   const t0 = Date.now()
   const prompt = `You write the on-screen text for a short personal celebration video (an invitation or greeting)${spoken ? ' read aloud by a warm narrator over gentle background music' : ' that plays over a song the sender made for the occasion. There is NO narrator — the text lines are the only words besides the song, so they must carry the message on their own'}.
@@ -66,9 +83,9 @@ Occasion: "${title}"
 Type: ${category || 'unspecified'}
 What the sender wrote about it: "${description || '(nothing more)'}"
 
-Write exactly ${count} lines in ${lang}, one per scene, in this order:
+${detailBlock}Write exactly ${count} lines in ${lang}, one per scene, in this order:
 1. An opening line that says what is being celebrated.
-2–${count - 1}. The essentials, one per line: who it is for, when, where, what to bring or do, and warm personal touches drawn from the sender's text. If the sender gave no time or place, do NOT invent them — write a warm line instead. Never invent names, dates, addresses or facts.
+2–${count - 1}. ${details && details.length ? 'One line per filled-in field above, in that order — keep the sender\'s facts exactly (names, dates, places), just make each a short punchy poster line.' : 'The essentials, one per line: who it is for, when, where, what to bring or do, and warm personal touches drawn from the sender\'s text. If the sender gave no time or place, do NOT invent them — write a warm line instead.'} Never invent names, dates, addresses or facts.
 ${count}. A closing line: welcome / see you there / a warm wish.
 
 Rules: max 60 characters per line, plain and warm, no hashtags, no emojis, no quotation marks, end each line with proper punctuation.
@@ -140,7 +157,14 @@ export async function POST(request: NextRequest) {
     const description = (body.description || product.description || '').trim()
     if (!title) return NextResponse.json({ error: 'Fortell hva som feires.' }, { status: 400 })
 
-    const count = sceneCount(musicFile ? musicDurationSec : null, photos.length)
+    // Skjemaet: én plakat per utfylt felt + aapning + avslutning. Uten skjema
+    // faller vi tilbake til scenetallet fra sanglengden.
+    const details: Array<[string, string]> = DETAIL_ORDER
+      .map(([k, label]) => [label, String(body.details?.[k] || '').trim()] as [string, string])
+      .filter(([, v]) => v)
+    const count = details.length > 0
+      ? Math.min(16, details.length + 2)
+      : sceneCount(musicFile ? musicDurationSec : null, photos.length)
     const lines = await writeLines({
       title,
       description,
@@ -149,6 +173,7 @@ export async function POST(request: NextRequest) {
       needImagePrompts: photos.length === 0,
       spoken: !!voiceId,
       locale,
+      details,
     })
     if (lines.length < 2) throw new Error('Fikk for få tekstlinjer')
 
