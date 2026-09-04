@@ -1438,7 +1438,8 @@ export default function DraftPage() {
                             ev.stopPropagation()
                             if (!confirm(`Slette «${m.name}» permanent fra låtbanken?`)) return
                             try {
-                              const res = await fetch(`/api/music/${encodeURIComponent(m.filename)}`, { method: 'DELETE' })
+                              const { data: sess } = await getSupabase().auth.getSession()
+                              const res = await fetch(`/api/music/${encodeURIComponent(m.filename)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${sess?.session?.access_token || ''}` } })
                               if (!res.ok) { alert('Slettingen feilet — prøv igjen.'); return }
                               setMedleySelection((prev) => prev.filter((f) => f !== m.filename))
                               setMedleyStarts((prev) => { const n = { ...prev }; delete n[m.filename]; return n })
