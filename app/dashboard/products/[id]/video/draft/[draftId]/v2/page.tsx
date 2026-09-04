@@ -17,7 +17,7 @@ import { COSTS_NOK, fmtCredits } from '@/lib/costs'
 import { MOTION_STYLES } from '@/lib/motionStyles'
 import { uploadSegmentVideo, VIDEO_MAX_BYTES } from '@/lib/uploadSegmentVideo'
 import { VOICES as VOICES_FALLBACK, voiceName, type VoiceOption, languageForGroup } from '@/lib/voices'
-import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
+import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile, fetchMusicLibrary } from '@/lib/musicLibrary'
 
 interface Segment {
   index: number
@@ -267,8 +267,7 @@ export default function DraftV2Page() {
 
   // Musikkbiblioteket (sidepanelets musikk-/jinglevelgere)
   useEffect(() => {
-    fetch('/api/music')
-      .then((r) => r.json())
+    fetchMusicLibrary()
       .then((d) => setMusicLibrary(d.files || []))
       .catch(() => { /* biblioteket er valgfritt */ })
   }, [])
@@ -368,7 +367,7 @@ export default function DraftV2Page() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Miksingen feilet')
-      const lib = await fetch('/api/music').then((r) => r.json())
+      const lib = await fetchMusicLibrary()
       setMusicLibrary(lib.files || [])
       setMedleyResult({ filename: data.file?.filename || '', name: data.file?.name || navn })
       if (data.file?.filename) updateDraftFields({ music_file: data.file.filename })

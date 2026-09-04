@@ -24,8 +24,9 @@ export async function POST(request: Request) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
 
-      // Betalt produksjon (engangsbetaling) — egen sti, rører ikke abonnement
-      if (session.metadata?.kind === 'production') {
+      // Betalt produksjon (engangsbetaling) — egen sti, rører ikke abonnement.
+      // 'film' = fastpris-filmen i den enkle flyten (4/9), samme oppfyllelse.
+      if (session.metadata?.kind === 'production' || session.metadata?.kind === 'film') {
         try {
           const { fulfillProductionSession } = await import('@/lib/production')
           await fulfillProductionSession(
@@ -213,7 +214,7 @@ export async function POST(request: Request) {
 
     case 'checkout.session.expired': {
       const session = event.data.object as Stripe.Checkout.Session
-      if (session.metadata?.kind === 'production') {
+      if (session.metadata?.kind === 'production' || session.metadata?.kind === 'film') {
         await supabase.from('production_payments')
           .update({ status: 'expired', updated_at: new Date().toISOString() })
           .eq('stripe_session_id', session.id)

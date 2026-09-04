@@ -66,7 +66,9 @@ export async function POST(request: Request) {
     // Privatpakkene har bedre kurs enn bedriftskurven. Gjelder VoiceBank og
     // artist-tenanter (music) — artister er enkeltpersoner, ikke byraaer
     // (Lars 1/8: IndigoBoom-artister skal kunne kjoepe dem).
-    const privatOK = tenant.slug === 'voicebank' || (tenant as any).vertical === 'music'
+    // Anledninger (celebration, 4/9) er ogsaa privatpersoner — ingen skal
+    // moete en 1 000-kroners bedriftskurv for aa lage en bursdagsfilm.
+    const privatOK = tenant.slug === 'voicebank' || ['music', 'celebration'].includes((tenant as any).vertical)
     if (packageId.startsWith('privat-') && !privatOK) {
       return NextResponse.json({ error: 'Ukjent pakke', code: 'UNKNOWN_PACKAGE' }, { status: 400 })
     }

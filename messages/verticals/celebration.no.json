@@ -8,10 +8,22 @@
     "step1Desc": "Hva som feires, hvem det gjelder og når — to setninger holder.",
     "step2Title": "Få det laget",
     "step2Desc": "Video, bilder og tekst — du ser og godkjenner alt før det sendes ut.",
-    "step3Desc": "Del rett til Facebook og Instagram fra {name}, eller last ned og send selv."
+    "step3Desc": "Del rett til Facebook og Instagram fra {name}, eller last ned og send selv.",
+    "products": "anledninger",
+    "product": "anledning",
+    "step3Title": "Del det",
+    "deleteConfirm": "Slette denne anledningen? Filmene som er laget forsvinner også.",
+    "created": "Lagt til {date}",
+    "deleteTitle": "Slett anledningen"
   },
   "register": {
-    "subtitle": "Lag invitasjoner, gratulasjoner og kunngjøringer på minutter."
+    "subtitle": "Lag invitasjoner, gratulasjoner og kunngjøringer på minutter.",
+    "title": "Lag konto",
+    "fullNameLabel": "Navnet ditt",
+    "fullNamePlaceholder": "Kari Nordmann",
+    "createAccount": "Lag konto",
+    "creatingAccount": "Lager konto …",
+    "errorFullNameRequired": "Skriv navnet ditt."
   },
   "productModal": {
     "title": "Ny anledning",
@@ -28,7 +40,37 @@
     "categoryKonfirmasjon": "Konfirmasjon",
     "categoryBedrift": "Bedrift / åpning",
     "categoryAnnet": "Annet",
+    "categoryOtherLabel": "Hva slags anledning?",
+    "categoryOtherPlaceholder": "f.eks. krepselag",
     "createProduct": "Legg til anledningen",
     "errorNameRequired": "Fortell hva som feires."
+  },
+  "newDraft": {
+    "backToProduct": "← Tilbake til anledningen",
+    "title": "Lag video til anledningen",
+    "subtitle": "Vi har fylt ut det du allerede fortalte om anledningen — endre fritt før videoen lages.",
+    "titleLabel": "Tittel på videoen *",
+    "titlePlaceholder": "F.eks. Krepselag i gata",
+    "topicLabel": "Hva skal videoen si? *",
+    "topicPlaceholder": "F.eks. Alle i gata inviteres til krepselag i hagen lørdag kl. 18. Ta med egen drikke.",
+    "targetAudienceLabel": "Hvem er videoen til?",
+    "targetAudiencePlaceholder": "F.eks. Naboene i gata, familie og venner",
+    "problemLabel": "Det viktigste å få med",
+    "problemPlaceholder": "F.eks. Tid, sted og at folk tar med egen drikke",
+    "ctaLabel": "Oppfordring til slutt",
+    "ctaPlaceholder": "F.eks. Si fra om du kommer innen torsdag!"
+  },
+  "videoStatus": {
+    "title": "Filmen lages",
+    "jobId": " ",
+    "takesTime": "Dette tar vanligvis noen minutter. Du kan lukke siden og komme tilbake — filmen ligger klar under anledningen.",
+    "videoReady": "✅ Filmen er klar!",
+    "openVideo": "▶️ Se filmen",
+    "backToProduct": "Tilbake til anledningen",
+    "productionFailed": "❌ Dette gikk ikke",
+    "statusQueued": "⏳ Venter på tur",
+    "statusGenerating": "✍️ Gjør klar scenene",
+    "statusRendering": "🎬 Setter sammen filmen",
+    "statusUploading": "☁️ Nesten ferdig"
   }
 }

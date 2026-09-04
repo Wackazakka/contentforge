@@ -7,7 +7,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 import CostMeter from '@/components/CostMeter'
 import { COSTS_NOK } from '@/lib/costs'
 import { useTenant } from '@/lib/tenantContext'
-import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
+import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack } from '@/lib/uploadTrack'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
@@ -156,7 +156,7 @@ export default function AvatarVideoPage() {
   }
 
   const refreshMusicLibrary = () =>
-    fetch('/api/music').then(r => r.json()).then(d => setMusicLibrary(d.files || [])).catch(() => {})
+    fetchMusicLibrary().then(d => setMusicLibrary(d.files || [])).catch(() => {})
 
   useEffect(() => { refreshMusicLibrary() }, [])
 

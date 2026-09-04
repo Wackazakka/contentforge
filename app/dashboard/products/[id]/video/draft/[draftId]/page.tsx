@@ -10,7 +10,7 @@ import { MOTION_STYLES } from '@/lib/motionStyles'
 import { VOICES as VOICES_FALLBACK, type VoiceOption, languageForGroup } from '@/lib/voices'
 import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
-import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES } from '@/lib/musicLibrary'
+import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack } from '@/lib/uploadTrack'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
@@ -180,7 +180,7 @@ export default function DraftPage() {
       })
       const data = await res.json()
       if (res.ok && data?.file?.filename) {
-        const lib = await fetch('/api/music').then((r) => r.json())
+        const lib = await fetchMusicLibrary()
         if (lib.files) setMusicLibrary(lib.files)
         updateMusic(data.file.filename) // auto-velg medleyen
         setMedleyResult({ filename: data.file.filename, name: data.file.name || 'Medley' })
@@ -427,8 +427,7 @@ export default function DraftPage() {
 
   // Hent musikk-/jingle-biblioteket for velgerne
   useEffect(() => {
-    fetch('/api/music')
-      .then((r) => r.json())
+    fetchMusicLibrary()
       .then((d) => setMusicLibrary(d.files || []))
       .catch((err) => console.error('[DraftPage] Music fetch error:', err))
     ;(async () => {
@@ -1356,7 +1355,7 @@ export default function DraftPage() {
                         // Store laater: utenom Netlify-proxyen (413 over ~4,5 MB)
                         uploaded = await uploadTrack(file, tracksFolder(productId))
                       }
-                      const data = await fetch('/api/music').then((r) => r.json())
+                      const data = await fetchMusicLibrary()
                       if (data.files) setMusicLibrary(data.files)
                       if (uploaded?.filename) updateMusic(uploaded.filename) // auto-velg den nye musikken
                     } catch (err) {
@@ -1369,7 +1368,7 @@ export default function DraftPage() {
                   className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-[var(--on-ember)] hover:file:bg-[var(--ink)] disabled:opacity-50"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene du vil bruke (MP3, maks 50MB) — egen musikk, eller musikk du har rett til å bruke. Kun synlige for denne artisten. Flere låter? Lag en medley.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 15MB) — kun synlig for dette produktet.')}</p>
+              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene du vil bruke (MP3, maks 50MB) — egen musikk, eller musikk du har rett til å bruke. Kun synlige for denne artisten. Flere låter? Lag en medley.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 50 MB) — kun synlig for dette produktet.')}</p>
             </div>
 
             {/* Medley av egne låter (fase 3b) — vises når produktet har ≥2 egne låter */}
@@ -1444,7 +1443,7 @@ export default function DraftPage() {
                               setMedleySelection((prev) => prev.filter((f) => f !== m.filename))
                               setMedleyStarts((prev) => { const n = { ...prev }; delete n[m.filename]; return n })
                               if (draft?.music_file === m.filename) updateMusic(null)
-                              const data = await fetch('/api/music').then((r) => r.json())
+                              const data = await fetchMusicLibrary()
                               if (data.files) setMusicLibrary(data.files)
                             } catch { alert('Slettingen feilet — prøv igjen.') }
                           }}
@@ -1606,7 +1605,7 @@ export default function DraftPage() {
                       const res = await fetch(`/api/music/upload?folder=jingles-${productId}`, { method: 'POST', body: fd })
                       if (res.ok) {
                         const up = await res.json()
-                        const data = await fetch('/api/music').then((r) => r.json())
+                        const data = await fetchMusicLibrary()
                         if (data.files) setMusicLibrary(data.files)
                         if (up?.file?.filename) updateJingle(up.file.filename)
                       } else {

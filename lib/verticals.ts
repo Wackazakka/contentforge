@@ -8,11 +8,26 @@ export interface VerticalCategoryOption {
   labelKey: string // nøkkel i productModal-namespacet
 }
 
+export type ProductionType = 'video' | 'radio' | 'avatar' | 'article'
+
 export interface VerticalConfig {
   categoryOptions: VerticalCategoryOption[]
   serviceAreaField: boolean // vis «Område»-felt (product_profiles.service_area)
   contactFields?: boolean // vis Nettside/Telefon/Adresse i registreringen (product_profiles)
   logoUpload?: boolean // vis logoopplasting i registreringen (to-fase via upload-logo)
+  // «Enkel modus» (Standard Ropert, Lars 4/9): folk som saa vidt sender
+  // e-post. Produktsiden erstattes av en firestegs filmflyt (sang → bilder →
+  // se → del), navigasjonen krympes til Oversikt/Konto, og alt byraa-spraak
+  // (merkevareprofil, taxameter, publiseringskanaler) holdes utenfor.
+  simpleMode?: boolean
+  // Hvilke produksjonstyper som tilbys. Utelatt = alle (som foer).
+  productionTypes?: ProductionType[]
+  // Merkevareprofilen (logo/farger/tone) paa produktsiden. Utelatt = vist.
+  brandProfile?: boolean
+  // Fast pris per film i den enkle flyten (Lars 4/9): kunden betaler
+  // customerPriceNok (inkl. mva) i Stripe; Norditechs engrospris til partneren
+  // er wholesaleNok og logges som forbruk i stedet for maalt API-kost.
+  film?: { customerPriceNok: number; wholesaleNok: number }
 }
 
 export const VERTICALS: Record<string, VerticalConfig> = {
@@ -65,9 +80,28 @@ export const VERTICALS: Record<string, VerticalConfig> = {
     serviceAreaField: false,
     contactFields: false,
     logoUpload: false,
+    simpleMode: true,
+    productionTypes: ['video'],
+    brandProfile: false,
+    film: { customerPriceNok: 149, wholesaleNok: 25 },
   },
+}
+
+export function filmPricing(vertical: string | null | undefined) {
+  return verticalConfig(vertical)?.film ?? null
 }
 
 export function verticalConfig(vertical: string | null | undefined): VerticalConfig | null {
   return (vertical && VERTICALS[vertical]) || null
+}
+
+export function isSimpleMode(vertical: string | null | undefined): boolean {
+  return verticalConfig(vertical)?.simpleMode === true
+}
+
+// Tilbys denne produksjonstypen i vertikalen? Vertikaler uten liste faar alt.
+export function offersProduction(vertical: string | null | undefined, type: ProductionType): boolean {
+  const cfg = verticalConfig(vertical)
+  if (!cfg || !cfg.productionTypes) return true
+  return cfg.productionTypes.includes(type)
 }

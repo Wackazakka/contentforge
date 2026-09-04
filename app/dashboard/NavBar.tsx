@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
+import { isSimpleMode } from '@/lib/verticals'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 
@@ -22,12 +23,18 @@ export default function NavBar() {
   const tKonto = useTranslations('account')
   const tenant = useTenant()
 
+  // Enkel modus (Standard Ropert, 4/9): Publiser (krever Facebook-side og
+  // Instagram-bedriftskonto), Kalender og Kreditter er byraaflater — folk
+  // som saa vidt sender e-post skal se Oversikt, Konto og Logg ut.
+  const enkel = isSimpleMode(tenant.vertical)
   // Invoice-tenants (white-label via partner) skal ikke se CenterForge-priser/billing
   const navLinks = [
     { href: '/dashboard', label: t('overview') },
-    { href: '/dashboard/publish', label: t('publish') },
-    { href: '/dashboard/calendar', label: t('calendar') },
-    ...(tenant.billing_mode === 'invoice'
+    ...(enkel ? [] : [
+      { href: '/dashboard/publish', label: t('publish') },
+      { href: '/dashboard/calendar', label: t('calendar') },
+    ]),
+    ...(enkel ? [] : tenant.billing_mode === 'invoice'
       ? [{ href: '/dashboard/credits', label: t('buy_credits') }]
       : [{ href: '/dashboard/billing', label: t('billing') }]),
     // Admin-lenker (kun tenant-admins — vanlige artister ser dem aldri).

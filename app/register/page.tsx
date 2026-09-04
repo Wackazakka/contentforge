@@ -6,10 +6,14 @@ import { signUp, getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { AuthShell, AuthField, AuthSubmit, AuthBanner, AuthSwitch } from '@/components/AuthUI'
 import { useTenant } from '@/lib/tenantContext'
+import { isSimpleMode } from '@/lib/verticals'
 
 export default function RegisterPage() {
   const t = useTranslations('register')
   const tenant = useTenant()
+  // Enkel modus (4/9): ett passordfelt er nok — «bekreft passord» er et
+  // hinder til for folk som saa vidt sender e-post.
+  const enkel = isSimpleMode(tenant.vertical)
   const searchParams = useSearchParams()
   // Valgfri intern retur-sti (?next=…) tråkles videre til login-lenkene
   const rawNext = searchParams?.get('next')
@@ -53,7 +57,7 @@ export default function RegisterPage() {
       setLoading(false)
       return
     }
-    if (form.password !== form.confirmPassword) {
+    if (!enkel && form.password !== form.confirmPassword) {
       setError(t('errorPasswordsDoNotMatch'))
       setLoading(false)
       return
@@ -90,7 +94,7 @@ export default function RegisterPage() {
           await supabase
             .from('organizations')
             .insert({
-              name: form.fullName + "'s Organization",
+              name: enkel ? form.fullName : form.fullName + "'s Organization",
               owner_id: data.user.id,
               slug: slug.toLowerCase(),
               description: 'Default organization for ' + form.fullName,
@@ -186,6 +190,7 @@ export default function RegisterPage() {
           placeholder={t('passwordPlaceholder')}
           hint={t('passwordHint')}
         />
+        {!enkel && (
         <AuthField
           label={t('confirmPasswordLabel')}
           type="password"
@@ -196,6 +201,7 @@ export default function RegisterPage() {
           disabled={loading}
           placeholder={t('confirmPasswordPlaceholder')}
         />
+        )}
         <AuthSubmit loading={loading} loadingLabel={t('creatingAccount')}>{t('createAccount')}</AuthSubmit>
       </form>
 
