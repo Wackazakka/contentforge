@@ -327,13 +327,30 @@ app.post('/music/clip', express.json(), (req, res) => {
     const clipSec = Math.min(Math.max(5, Number(req.body?.clipSec) || 60), 180)
     if (!filename || filename.includes('..')) return res.status(400).json({ error: 'Ugyldig filsti' })
     if (!folder) return res.status(400).json({ error: 'Ugyldig mappe' })
-    const src = path.join(MUSIC_DIR, filename)
+    let src = path.join(MUSIC_DIR, filename)
     if (!src.startsWith(MUSIC_DIR + path.sep) || !fs.existsSync(src)) return res.status(400).json({ error: `Fant ikke ${filename}` })
     const folderPath = path.join(MUSIC_DIR, folder)
     if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true })
     const base = path.basename(filename).replace(/\.mp3$/i, '').replace(/^klipp-\d+-/, '')
+    // Er kilden selv et klipp (4/9: «Output same as Input»), klipp fra originalen
+    if (/^klipp-\d+-/.test(path.basename(filename))) {
+      const orig = path.join(path.dirname(src), `${base}.mp3`)
+      if (fs.existsSync(orig)) src = orig
+    }
     const outName = `klipp-${clipSec}-${base}.mp3`
     const outPath = path.join(folderPath, outName)
+    const fileInfoFor = (p, name, size) => ({
+      filename: `${folder}/${name}`,
+      name: `${base.replace(/[-_]/g, ' ')} (${clipSec} s)`,
+      folder,
+      url: `http://139.59.212.218:${PORT}/music/files/${encodeURIComponent(`${folder}/${name}`)}`,
+      size,
+      uploadedAt: new Date().toISOString(),
+    })
+    if (outPath === src) {
+      // Alt riktig lengde fra foer — bruk fila som den er
+      return res.json({ success: true, file: fileInfoFor(src, path.basename(src), fs.statSync(src).size), unchanged: true })
+    }
     const fade = Math.min(2.5, clipSec / 4)
     const args = ['-y', '-ss', String(startSec), '-t', String(clipSec), '-i', src,
       '-af', `afade=t=out:st=${(clipSec - fade).toFixed(2)}:d=${fade}`, '-c:a', 'libmp3lame', '-b:a', '192k', outPath]
@@ -343,14 +360,7 @@ app.post('/music/clip', express.json(), (req, res) => {
         return res.status(500).json({ error: 'Klippingen feilet' })
       }
       const size = fs.statSync(outPath).size
-      const fileInfo = {
-        filename: `${folder}/${outName}`,
-        name: `${base.replace(/[-_]/g, ' ')} (${clipSec} s)`,
-        folder,
-        url: `http://139.59.212.218:${PORT}/music/files/${encodeURIComponent(`${folder}/${outName}`)}`,
-        size,
-        uploadedAt: new Date().toISOString(),
-      }
+      const fileInfo = fileInfoFor(outPath, outName, size)
       console.log(`[server] Klipp ferdig: ${fileInfo.filename} (${size} bytes)`)
       res.json({ success: true, file: fileInfo })
     })
