@@ -299,16 +299,29 @@ def build(cfg):
     per_gap = (rest // gaps) if gaps else rest
     per_gap -= per_gap % 2          # hele 2-slags biter
     slack = rest - per_gap * gaps   # ekstra bilder paa slutten
+    # Bitlengde (Lars 5/9: «litt mye gjenbruk»): er det flere bildeplasser enn
+    # bilder, brukes lengre biter (4 slag, ev. hele mellomrommet) saa hvert
+    # bilde vises én gang. Finnes det bilder nok, holdes tempoet med 2-slags biter.
+    n_vis = len(visuals)
+    slots_2 = gaps * max(0, per_gap // 2)
+    slots_4 = gaps * max(0, per_gap // 4) + gaps * (1 if per_gap % 4 >= 2 else 0)
+    if slots_2 <= n_vis:
+        piece = 2
+    elif slots_4 <= n_vis:
+        piece = 4
+    else:
+        piece = max(2, per_gap)  # ett bilde per mellomrom
+    print(f'[festlig] bilder={n_vis} plasser@2={slots_2} @4={slots_4} → bit={piece} slag', flush=True)
     seq = []
     for i in range(n_cards):
         seq.append(('card', i, cb[i]))
         if i < n_cards - 1:
             g = per_gap
-            # 4-2-... veksling i mellomrommet
-            k = 0
             while g >= 2:
-                take = 4 if (g >= 4 and k % 2 == 1) else 2
-                seq.append(('visual', nxt_visual(), take)); g -= take; k += 1
+                take = min(g, piece) if g >= piece else g
+                take -= take % 2
+                if take < 2: break
+                seq.append(('visual', nxt_visual(), take)); g -= take
     # ledige slag etter siste plakat: bilder til musikken er slutt
     g = slack - slack % 2
     while g >= 2:
