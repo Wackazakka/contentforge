@@ -161,6 +161,8 @@ export async function POST(request: NextRequest) {
     const auth = request.headers.get('authorization')
     if (!auth?.startsWith('Bearer ')) return NextResponse.json({ error: 'Du må være innlogget.' }, { status: 401 })
     const asUser = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: auth } } })
+    const { data: who } = await asUser.auth.getUser()
+    const userId = who?.user?.id || null
     const { data: product } = await asUser
       .from('products')
       .select('id, name, description, category')
@@ -229,11 +231,11 @@ export async function POST(request: NextRequest) {
         video_format: '9:16',
         music_style: 'Warm',
         music_file: musicFile || libraryMusic,
-        // ⚠️ IKKE image_style/include_outro_card/ai_motion/user_id her: de
-        // kolonnene finnes ikke i prod-tabellen (Lars 4/9: «Could not find
-        // the 'include_outro_card' column»). Produksjonsvalgene sendes
-        // eksplisitt fra klienten; webhook-stien faar standardene (ingen
-        // sluttplakat uten nettside, ingen bevegelse).
+        // Eier paa utkastet: uten user_id regnes det som ANONYMT, og
+        // generate-image stopper ved 24 bilder (Lars 5/9: «ikke nok credits»
+        // paa siste bildet). Kolonnen finnes (skjema lest 4/9); det var
+        // include_outro_card som manglet.
+        user_id: userId,
       })
       .select('id')
       .single()

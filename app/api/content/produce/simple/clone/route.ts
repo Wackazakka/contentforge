@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     if (!src) return NextResponse.json({ error: 'Fant ikke utkastet.' }, { status: 404 })
 
     const asUser = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: auth } } })
+    const { data: who } = await asUser.auth.getUser()
     const { data: product } = await asUser.from('products').select('id').eq('id', src.product_id).maybeSingle()
     if (!product) return NextResponse.json({ error: 'Ingen tilgang til denne anledningen.' }, { status: 403 })
 
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
         video_format: src.video_format || '9:16',
         music_style: src.music_style || 'Warm',
         music_file: src.music_file || null,
+        user_id: who?.user?.id || src.user_id || null,
       })
       .select('id, title, segments, music_file')
       .single()
