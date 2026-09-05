@@ -265,8 +265,6 @@ export default function VoiceBankAdminPage() {
                 ...(fees ? [{ label: `Infrastrukturavgift (${fees.infraPct} %)`, value: nok(monthInfraNok) }] : []),
                 ...(fees?.licenseTo ? [{ label: `Lisensavgift til ${fees.licenseTo} (${fees.licensePct} %)`, value: nok(monthLicenseNok) }] : []),
                 { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.cut - monthInfraNok - monthLicenseNok) },
-                // Påløper uansett bruk — derfor egen rute, ikke trukket fra «vår andel».
-                ...(subsCount > 0 ? [{ label: `Faste kostnader (${subsCount} abonnement)`, value: `− ${nok(subsNok)}` }] : []),
               ].map((c) => (
                 <div key={c.label} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4">
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>
@@ -274,6 +272,13 @@ export default function VoiceBankAdminPage() {
                 </div>
               ))}
             </div>
+            {subsCount > 0 && (
+              <p className="text-xs text-gray-400 -mt-5 mb-8">
+                Onboarding dekket for {subsCount} skuespiller{subsCount === 1 ? '' : 'e'} — én måned ElevenLabs
+                Creator hver, {nok(subsNok)} totalt. Engangskostnad, ikke løpende: delingen overlever at
+                skuespilleren nedgraderer til gratis.
+              </p>
+            )}
 
             {/* Skuespillere */}
             <div className="flex items-center justify-between mb-3">

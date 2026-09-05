@@ -65,6 +65,17 @@ export default function VoiceActorPage() {
   const [earnPeriod, setEarnPeriod] = useState('')
   const [earnGross, setEarnGross] = useState('')
   const [earnBusy, setEarnBusy] = useState(false)
+  // Oppgjør: opptjent (summert i DB, ikke over radtaket) − utbetalt = til gode
+  const [payouts, setPayouts] = useState<Array<{ id: string; periode_fra: string; periode_til: string; amount_nok: number; betalt_dato: string; note: string | null }>>([])
+  const [earnedNok, setEarnedNok] = useState(0)
+  const [paidNok, setPaidNok] = useState(0)
+  const [dueNok, setDueNok] = useState(0)
+  const [poFra, setPoFra] = useState('')
+  const [poTil, setPoTil] = useState('')
+  const [poBelop, setPoBelop] = useState('')
+  const [poNotat, setPoNotat] = useState('')
+  const [poBusy, setPoBusy] = useState(false)
+  const [origin, setOrigin] = useState('')
   const [uploadBusy, setUploadBusy] = useState<string | null>(null)
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
@@ -85,6 +96,7 @@ export default function VoiceActorPage() {
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Kunne ikke hente skuespilleren'); return }
       setError(null)
+      setOrigin(window.location.origin)
       setActor(data.actor)
       setEvents(data.events || [])
       setByMonth(data.byMonth || [])
@@ -123,6 +135,20 @@ export default function VoiceActorPage() {
           if (er.ok) setEarnings(ed.earnings || [])
         }
       } catch { /* eksterne inntekter er valgfritt */ }
+      try {
+        const { data: sess4 } = await getSupabase().auth.getSession()
+        const t4 = sess4?.session?.access_token
+        if (t4) {
+          const pr = await fetch(`/api/voice-bank/payouts?actorId=${actorId}`, { headers: { Authorization: `Bearer ${t4}` } })
+          const pd = await pr.json()
+          if (pr.ok) {
+            setPayouts(pd.payouts || [])
+            setEarnedNok(Number(pd.earnedNok) || 0)
+            setPaidNok(Number(pd.paidNok) || 0)
+            setDueNok(Number(pd.dueNok) || 0)
+          }
+        }
+      } catch { /* oppgjør er valgfritt inntil migrasjon 068 er kjørt */ }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -246,6 +272,32 @@ export default function VoiceActorPage() {
     } catch { /* behold visning */ }
   }
 
+  const addPayout = async () => {
+    const belop = Number(String(poBelop).replace(',', '.'))
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(poFra) || !/^\d{4}-\d{2}-\d{2}$/.test(poTil) || !Number.isFinite(belop) || belop < 0) {
+      alert('Fyll ut periode (to datoer) og et beløp.'); return
+    }
+    setPoBusy(true)
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Ikke innlogget')
+      const res = await fetch('/api/voice-bank/payouts', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actorId, periodeFra: poFra, periodeTil: poTil, amountNok: belop, note: poNotat || undefined }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Kunne ikke registrere utbetalingen')
+      setPoFra(''); setPoTil(''); setPoBelop(''); setPoNotat('')
+      await refresh()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Kunne ikke registrere utbetalingen')
+    } finally {
+      setPoBusy(false)
+    }
+  }
+
   const addEarning = async () => {
     if (!/^\d{4}-\d{2}$/.test(earnPeriod) || isNaN(Number(earnGross)) || Number(earnGross) <= 0) {
       alert('Fyll ut periode (ÅÅÅÅ-MM) og et beløp større enn 0.'); return
@@ -320,7 +372,9 @@ export default function VoiceActorPage() {
               {[
                 { label: 'Bruk totalt', value: String(totals.uses) },
                 { label: 'Generert fra kundene', value: nok(totals.from) },
-                { label: 'Opptjent til skuespilleren', value: nok(totals.to) },
+                { label: 'Opptjent til skuespilleren', value: nok(earnedNok || totals.to) },
+                { label: 'Utbetalt til skuespilleren', value: nok(paidNok) },
+                { label: 'Til gode', value: nok(dueNok) },
                 ...(fees ? [{ label: `Infrastrukturavgift (${fees.infraPct} %)`, value: nok(totalInfraNok) }] : []),
                 ...(fees?.licenseTo ? [{ label: `Lisensavgift til ${fees.licenseTo} (${fees.licensePct} %)`, value: nok(totalLicenseNok) }] : []),
                 { label: fees ? 'Vår andel (netto)' : 'Vår andel', value: nok(totals.from - totals.to - totalInfraNok - totalLicenseNok) },
@@ -330,6 +384,47 @@ export default function VoiceActorPage() {
                   <div className="text-xl font-bold text-gray-900">{c.value}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Oppgjør med skuespilleren — den andre halvdelen av hovedboken */}
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-5 mb-8">
+              <h2 className="font-semibold text-gray-900 mb-1">Oppgjør med skuespilleren</h2>
+              <p className="text-xs text-gray-400 mb-3">
+                Hovedboken sier hva som er opptjent. Her føres det som faktisk er betalt — ellers viser
+                «til gode» samme beløp om igjen neste måned.
+                {actor?.actor_email
+                  ? <> Skuespilleren ser det samme selv på <span className="font-mono">{origin}/min-stemme</span>, innlogget som {actor.actor_email}.</>
+                  : <> Legg inn e-post under «Takster», så kan skuespilleren se hovedboken sin selv.</>}
+              </p>
+              {payouts.length === 0 ? (
+                <p className="text-sm text-gray-400 mb-3">Ingen utbetalinger ført ennå.</p>
+              ) : (
+                <div className="space-y-1.5 mb-3">
+                  {payouts.map((p) => (
+                    <div key={p.id} className="flex flex-wrap gap-x-4 text-sm border-t border-gray-100 pt-1.5 first:border-0 first:pt-0">
+                      <span className="text-gray-600">{p.periode_fra} – {p.periode_til}</span>
+                      <span className="font-medium text-gray-900">{nok(p.amount_nok)}</span>
+                      <span className="text-gray-500">betalt {p.betalt_dato}</span>
+                      {p.note && <span className="text-gray-400">{p.note}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <input type="date" value={poFra} onChange={(e) => setPoFra(e.target.value)} aria-label="Periode fra"
+                  className="px-2 py-1.5 border border-gray-300 rounded-lg" />
+                <span className="text-gray-400">–</span>
+                <input type="date" value={poTil} onChange={(e) => setPoTil(e.target.value)} aria-label="Periode til"
+                  className="px-2 py-1.5 border border-gray-300 rounded-lg" />
+                <input value={poBelop} onChange={(e) => setPoBelop(e.target.value)} placeholder={dueNok > 0 ? `${dueNok} kr` : 'beløp kr'} inputMode="decimal"
+                  className="w-28 px-2 py-1.5 border border-gray-300 rounded-lg" />
+                <input value={poNotat} onChange={(e) => setPoNotat(e.target.value)} placeholder="notat (valgfritt)"
+                  className="w-44 px-2 py-1.5 border border-gray-300 rounded-lg" />
+                <button onClick={addPayout} disabled={poBusy}
+                  className="px-4 py-1.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
+                  {poBusy ? 'Fører …' : 'Før utbetaling'}
+                </button>
+              </div>
             </div>
 
             {/* Presentasjonsside */}
@@ -448,12 +543,12 @@ export default function VoiceActorPage() {
               <label className="flex items-start gap-2 mb-4 max-w-md text-sm text-gray-700">
                 <input type="checkbox" checked={editSubsCovered} onChange={(e) => setEditSubsCovered(e.target.checked)} className="mt-0.5" />
                 <span>
-                  Vi dekker ElevenLabs-abonnementet
+                  Vi dekket onboarding-måneden hos ElevenLabs
                   <span className="block text-xs text-gray-400 mt-0.5">
-                    Klonen ligger på skuespillerens egen konto, som må stå på Creator for at
-                    delingen til oss skal virke. Kryss av her, så tas 220 kr/mnd med i de faste
-                    kostnadene i stemmebankoversikten. Påløper uansett bruk — utbetales manuelt
-                    ved månedsavregningen.
+                    Klonen ligger på skuespillerens egen konto, som må stå på Creator (~220 kr) i det
+                    øyeblikket den deles med oss. Etterpå kan kontoen nedgraderes til gratis — delingen
+                    overlever (bekreftet av ElevenLabs 03.09.2026). Kryss av hvis vi tok den ene måneden.
+                    Engangskostnad, ikke løpende.
                   </span>
                 </span>
               </label>

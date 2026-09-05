@@ -161,10 +161,10 @@ export async function GET(request: Request) {
     const fees = await getFees(tenant.id)
     const monthEvents = events.filter((e) => new Date(e.created_at) >= monthStart)
 
-    // Faste kostnader: skuespillere vi dekker ElevenLabs-abonnementet for.
-    // Påløper uansett bruk — derfor synlig ved siden av månedstallene og ikke
-    // gjemt i en kolonne. Konstanten bor server-side (lib/voiceBank importerer
-    // service-nøkkelen og skal aldri i klientbundelen).
+    // Onboarding-kostnad: skuespillere vi dekket ElevenLabs-måneden for.
+    // ENGANGS, ikke løpende — ElevenLabs bekreftet 03.09.2026 at delingen
+    // overlever nedgradering til gratis. Konstanten bor server-side
+    // (lib/voiceBank importerer service-nøkkelen og skal aldri i klientbundelen).
     const subscriptionCount = (actors || []).filter((a) => a.subscription_covered).length
 
     return NextResponse.json({
