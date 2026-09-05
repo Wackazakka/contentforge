@@ -96,12 +96,13 @@ export default function StandardRopertLanding() {
       <hr className="sr-rule" />
 
       {/* Hero — sangen blir film */}
-      <section className="sr-band" style={{ paddingTop: 72, paddingBottom: 56, textAlign: 'center' }}>
-        <div style={{ fontSize: 52, marginBottom: 14 }} aria-hidden="true">📣</div>
-        <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(36px, 5.6vw, 58px)', lineHeight: 1.04, letterSpacing: '-0.03em', margin: '0 auto 20px', maxWidth: 760, textWrap: 'balance' }}>
+      {/* Mindre luft i toppen (Lars 5/9): roperten satt tettere paa tittelen */}
+      <section className="sr-band" style={{ paddingTop: 40, paddingBottom: 44, textAlign: 'center' }}>
+        <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 6 }} aria-hidden="true">📣</div>
+        <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(36px, 5.6vw, 58px)', lineHeight: 1.04, letterSpacing: '-0.03em', margin: '0 auto 16px', maxWidth: 760, textWrap: 'balance' }}>
           Har du laget en sang?<br />Gjør den til en film.
         </h1>
-        <p className="sr-p" style={{ fontSize: 19, margin: '0 auto 30px', maxWidth: '32em' }}>
+        <p className="sr-p" style={{ fontSize: 19, margin: '0 auto 24px', maxWidth: '32em' }}>
           Last opp sangen fra Sangskaper, legg til noen bilder, og få en film du kan sende til
           alle du vil invitere eller gratulere. Du forteller hva som skjer; Roperten setter det sammen.
         </p>
