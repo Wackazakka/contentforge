@@ -668,7 +668,13 @@ export default function FilmPage() {
               <p style={{ ...hint, margin: '10px 0 0', fontSize: 13.5 }}>{t('stayOnPage')}</p>
             </div>
           ) : (
-            <button type="button" onClick={writePosters} disabled={!loaded} style={{ ...bigBtn, fontSize: 18, padding: '16px 34px' }}>{review ? t('rewritePosters') : t('writePosters')}</button>
+            <>
+              <button type="button" onClick={writePosters} disabled={!loaded || (!!musicFile && !rightsOk)} title={musicFile && !rightsOk ? t('rightsFirst') : undefined}
+                style={{ ...bigBtn, fontSize: 18, padding: '16px 34px', opacity: !loaded || (!!musicFile && !rightsOk) ? 0.45 : 1, cursor: musicFile && !rightsOk ? 'not-allowed' : 'pointer' }}>
+                {review ? t('rewritePosters') : t('writePosters')}
+              </button>
+              {musicFile && !rightsOk && <p style={{ ...hint, margin: '10px 0 0', fontSize: 13.5 }}>{t('rightsFirst')}</p>}
+            </>
           )}
         </section>
 
