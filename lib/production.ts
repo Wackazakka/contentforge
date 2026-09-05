@@ -3,7 +3,40 @@ import { holdSecondsFor } from './sceneTiming'
 import { fetchVerticalForOrganization } from '@/lib/senderContext.mjs'
 import { merkekortTekst } from '@/lib/tenantNames'
 import { filmPricing } from '@/lib/verticals'
-import { filmCountForProduct, isFreeRemake } from '@/lib/filmAllowance'
+import { nextFilmIsFreeRemake } from '@/lib/filmAllowance'
+
+// Hvor mange scener trenger NYE Kling-klipp (ikke i dropletens klipp-lager)?
+// Samme sporring som start-production bruker til kostnad. Feiler kallet,
+// regnes alle animerte scener som nye (kvoten tar aldri for lite).
+export async function countNewClips(draft: any, segments: any[]): Promise<number> {
+  const animated = segments.filter((s) => (s.motion && s.motion !== 'none') || s.animate === true)
+  if (animated.length === 0) return 0
+  try {
+    const rc = await fetch(`${DROPLET_URL}/jobs/reuse-check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        engine: draft.ai_motion_engine || 'kling',
+        musicFile: draft.music_file || null,
+        matchMusicLength: segments.some((s) => s.match_music === true),
+        segments: segments.map((s) => ({
+          imageUrl: s.image_url, motion: s.motion, animate: s.animate, voiceoverUrl: s.voiceover_url, noVoice: s.no_voice,
+          holdSeconds: s.hold_seconds, clipNonce: s.clip_nonce || '', motionStyle: s.motion_style || 'push-in',
+          motionPrompt: s.motion_prompt || '', allowMouth: s.allow_mouth === true,
+        })),
+      }),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!rc.ok) return animated.length
+    const reusable: boolean[] = (await rc.json()).reusable || []
+    return segments.reduce((n, s, i) => {
+      const anim = (s.motion && s.motion !== 'none') || s.animate === true
+      return n + (anim && !reusable[i] ? 1 : 0)
+    }, 0)
+  } catch {
+    return animated.length
+  }
+}
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
 
@@ -296,9 +329,11 @@ export async function startProductionForDraft(
     if (erFilm) {
       // Omgjøring (film 2–4 i blokka, lib/filmAllowance): 0 kr i alle ledd —
       // engrosprisen paa den betalte filmen dekker dem.
-      const remake = isFreeRemake(await filmCountForProduct(draft.product_id))
+      const remake = await nextFilmIsFreeRemake(draft.product_id)
       // Nivaa 2 (animert) har egen engros- og kundepris
       const animert = !!aiMotion && !!pris.animated
+      // Nye Kling-klipp i denne produksjonen — grunnlaget for animasjonskvoten
+      const newClips = animert ? await countNewClips(draft, segments) : 0
       const engros = animert ? pris.animated!.wholesaleNok : pris.wholesaleNok
       const kunde = animert ? pris.animated!.customerPriceNok : pris.customerPriceNok
       const { logUsageEvent } = await import('@/lib/tenantBilling')
@@ -310,7 +345,7 @@ export async function startProductionForDraft(
         costNok: remake ? 0 : engros,
         fixedWholesale: true,
         customerNok: remake ? 0 : Math.round((kunde / 1.25) * 100) / 100,
-        meta: { jobId: job.jobId, customerPriceNok: remake ? 0 : kunde, paid: draft.payment_status === 'paid', remake, animated: animert },
+        meta: { jobId: job.jobId, customerPriceNok: remake ? 0 : kunde, paid: draft.payment_status === 'paid', remake, animated: animert, newClips },
       })
     }
   } catch (uErr) {

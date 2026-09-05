@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import { getStripe } from '@/lib/stripe'
 import { filmPricing } from '@/lib/verticals'
 import { fetchVerticalForOrganization } from '@/lib/senderContext.mjs'
-import { filmCountForProduct, isFreeRemake, freeRemakesLeft, FREE_REMAKES } from '@/lib/filmAllowance'
+import { getFilmAllowance, FREE_REMAKES, ANIM_QUOTA } from '@/lib/filmAllowance'
+import { countNewClips } from '@/lib/production'
 
 // Fastpris-betaling for den enkle filmflyten (Standard Ropert, Lars 4/9):
 // 149 kr per film, betalt i Stripe FOER produksjonen starter. Oppfyllelsen
@@ -32,14 +33,18 @@ export async function GET(request: Request) {
     const pris = filmPricing(vertical)
     if (!pris) return NextResponse.json({ priceNok: null, billing: false })
     const billing = process.env.BILLING_ENABLED === 'true'
-    const soFar = await filmCountForProduct(productId)
+    const a = await getFilmAllowance(productId)
     return NextResponse.json({
       priceNok: pris.customerPriceNok,
       animatedPriceNok: pris.animated?.customerPriceNok ?? null,
       billing,
-      nextIsFree: !billing || isFreeRemake(soFar),
-      freeLeft: freeRemakesLeft(soFar),
+      nextIsFree: !billing || a.nextIsFree,
+      freeLeft: a.remakesLeft,
       freeRemakes: FREE_REMAKES,
+      // Animasjonskvote (5/9): 12 nye klipp per betalt animert film
+      blockAnimated: a.blockAnimated,
+      animLeft: a.animLeft,
+      animQuota: ANIM_QUOTA,
     })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Noe gikk galt' }, { status: 500 })
@@ -48,7 +53,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { draftId } = await request.json()
+    const { draftId, forcePay } = await request.json()
     if (!draftId) return NextResponse.json({ error: 'Mangler draftId' }, { status: 400 })
 
     const auth = request.headers.get('authorization')
@@ -82,10 +87,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ free: true })
     }
 
-    // Gratis omgjøring (Lars 4/9): tre per betalt film, samme anledning
-    const soFar = await filmCountForProduct(draft.product_id)
-    if (isFreeRemake(soFar)) {
-      return NextResponse.json({ free: true, remake: true, freeLeft: freeRemakesLeft(soFar) - 1 })
+    // Gratis omgjøring (Lars 4/9): tre per betalt film, samme anledning.
+    // Animert omgjøring (5/9): i tillegg maks 12 NYE Kling-klipp per betalt
+    // animert film — uendrede scener gjenbrukes fra klipp-lageret og koster
+    // ingen. forcePay = kunden kjøper en ny animert film i stedet.
+    const a = await getFilmAllowance(draft.product_id)
+    if (a.nextIsFree && !forcePay) {
+      const wantsAnimated = draft.ai_motion === true && !!pris.animated
+      if (wantsAnimated) {
+        const needed = await countNewClips(draft, Array.isArray(draft.segments) ? draft.segments : [])
+        const left = a.blockAnimated ? a.animLeft : 0
+        if (needed > left) {
+          return NextResponse.json({ error: 'Ikke nok animasjoner igjen', code: 'ANIM_QUOTA', needed, left, blockAnimated: a.blockAnimated }, { status: 409 })
+        }
+        return NextResponse.json({ free: true, remake: true, freeLeft: a.remakesLeft - 1, animNeeded: needed, animLeft: left - needed })
+      }
+      return NextResponse.json({ free: true, remake: true, freeLeft: a.remakesLeft - 1 })
     }
 
     // Tilbake til tenantens eget domene etter betaling (x-forwarded-host —

@@ -1,19 +1,31 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Omgjøringer (Lars 4/9): hver betalte film gir TRE gratis omgjøringer av
-// samme anledning. Filmene for en anledning telles i blokker på fire —
-// film 1 betales (og koster Norditech 25 kr), film 2–4 er gratis
-// omgjøringer (0 kr i alle ledd), film 5 betales igjen, osv.
+// Omgjøringer (Lars 4/9 + 5/9): hver betalte film gir TRE gratis
+// omgjøringer av samme anledning. Er den betalte filmen ANIMERT, følger det
+// i tillegg 12 nye animasjoner (Kling-klipp) med — uendrede plakater koster
+// ingen, fordi dropleten gjenbruker klipp fra klipp-lageret.
 //
-// Tellingen er usage_events med event_type 'film_production' for produktet.
-// Den logges ved jobbstart i startProductionForDraft — én kilde for både
-// betalingssjekken (film-checkout) og forbruksloggingen (production).
-// ⚠️ En produksjon som feiler på dropleten teller også — dropletens
-// utfall lever i production_jobs og telles ikke her. Sjelden nok til at
-// det tas manuelt hvis en kunde klager.
+// Blokk = en betalt film (meta.paid) og filmene etter den, frem til neste
+// betalte. Første film for et produkt starter også en blokk (åpningsperiode
+// uten betaling). Tellingen er usage_events 'film_production' for produktet,
+// logget ved jobbstart i startProductionForDraft. Feilede renders
+// (production_jobs.status = failed) teller ikke.
 
 export const FREE_REMAKES = 3
-const BLOCK = FREE_REMAKES + 1
+export const ANIM_QUOTA = 12
+
+export interface FilmAllowance {
+  total: number            // filmer i alt (uten feilede)
+  hasBlock: boolean        // finnes det en betalt/åpnings-film å gjøre om?
+  remakesUsed: number      // omgjøringer siden blokkstart
+  remakesLeft: number
+  nextIsFree: boolean      // neste film er en gratis omgjøring
+  blockAnimated: boolean   // var den betalte filmen animert?
+  animUsed: number         // nye animasjoner brukt i blokken
+  animLeft: number         // 12 − brukt (0 hvis blokken ikke er animert)
+}
+
+interface EventRow { id: string; created_at: string; meta: { jobId?: string; paid?: boolean; remake?: boolean; animated?: boolean; newClips?: number } | null }
 
 function admin() {
   return createClient(
@@ -22,34 +34,49 @@ function admin() {
   )
 }
 
-export async function filmCountForProduct(productId: string): Promise<number> {
+export async function getFilmAllowance(productId: string): Promise<FilmAllowance> {
   const sb = admin()
   const { data } = await sb
     .from('usage_events')
-    .select('id, meta')
+    .select('id, created_at, meta')
     .eq('product_id', productId)
     .eq('event_type', 'film_production')
-  const rows = (data || []) as Array<{ id: string; meta: { jobId?: string } | null }>
-  if (rows.length === 0) return 0
-  // Feilede renders skal ikke spise av omgjoeringene (Lars 4/9: to feil paa
-  // rad fra vaare egne bugs viste «1 gratis omgjoering igjen»)
-  const jobIds = rows.map((r) => r.meta?.jobId).filter((j): j is string => !!j)
-  let failed = 0
-  if (jobIds.length > 0) {
-    const { data: jobs } = await sb.from('production_jobs').select('id, status').in('id', jobIds)
-    failed = (jobs || []).filter((j: { status: string }) => j.status === 'failed').length
+    .order('created_at', { ascending: true })
+  let rows = (data || []) as EventRow[]
+  if (rows.length > 0) {
+    const jobIds = rows.map((r) => r.meta?.jobId).filter((j): j is string => !!j)
+    if (jobIds.length > 0) {
+      const { data: jobs } = await sb.from('production_jobs').select('id, status').in('id', jobIds)
+      const failed = new Set((jobs || []).filter((j: { status: string }) => j.status === 'failed').map((j: { id: string }) => j.id))
+      rows = rows.filter((r) => !(r.meta?.jobId && failed.has(r.meta.jobId)))
+    }
   }
-  return Math.max(0, rows.length - failed)
+  const empty: FilmAllowance = { total: rows.length, hasBlock: false, remakesUsed: 0, remakesLeft: 0, nextIsFree: false, blockAnimated: false, animUsed: 0, animLeft: 0 }
+  if (rows.length === 0) return empty
+  // Blokkstart = siste betalte film; finnes ingen betalt, er første film starten
+  let start = 0
+  rows.forEach((r, i) => { if (r.meta?.paid === true) start = i })
+  const block = rows[start]
+  const after = rows.slice(start + 1)
+  const blockAnimated = block.meta?.animated === true
+  const animUsed = after.reduce((s, r) => s + (Number(r.meta?.newClips) || 0), 0)
+  const remakesUsed = after.length
+  return {
+    total: rows.length,
+    hasBlock: true,
+    remakesUsed,
+    remakesLeft: Math.max(0, FREE_REMAKES - remakesUsed),
+    nextIsFree: remakesUsed < FREE_REMAKES,
+    blockAnimated,
+    animUsed,
+    animLeft: blockAnimated ? Math.max(0, ANIM_QUOTA - animUsed) : 0,
+  }
 }
 
-// Er film nr. (count+1) en gratis omgjøring?
-export function isFreeRemake(filmsSoFar: number): boolean {
-  return filmsSoFar % BLOCK !== 0
+// Bakoverkompatible hjelpere (production.ts)
+export async function filmCountForProduct(productId: string): Promise<number> {
+  return (await getFilmAllowance(productId)).total
 }
-
-// Hvor mange gratis omgjøringer som er igjen i inneværende blokk.
-export function freeRemakesLeft(filmsSoFar: number): number {
-  if (filmsSoFar === 0) return 0
-  const used = filmsSoFar % BLOCK
-  return used === 0 ? 0 : BLOCK - used
+export async function nextFilmIsFreeRemake(productId: string): Promise<boolean> {
+  return (await getFilmAllowance(productId)).nextIsFree
 }

@@ -1101,7 +1101,15 @@
     "tierStillDesc": "Slow zoom and pan on each picture. Ready in a few minutes.",
     "tierAnimated": "Animated pictures",
     "tierAnimatedDesc": "Each picture becomes a little film: flickering lights, things that move. Takes about ten minutes longer.",
-    "tierFree": "free remake"
+    "tierFree": "free remake",
+    "reviewHintEdit": "Edit the texts freely — the pictures are kept, so text changes cost nothing. Want a new picture for a poster, press “New picture”. New posters get a new picture.",
+    "newImage": "New picture",
+    "newImageOn": "✓ New picture",
+    "animQuotaInfo": "This film uses {needed} new animations. You have {left} left on this film.",
+    "animQuotaNone": "The paid film was not animated, so an animated remake is bought as a new film.",
+    "animQuotaStop": "This remake needs {needed} new animations, but you have {left} left. Choose:",
+    "animQuotaStill": "Make it as “Pictures with motion” (free)",
+    "animQuotaBuy": "Buy a new animated film ({price} kr)"
   },
   "occasion": {
     "back": "← All occasions",
