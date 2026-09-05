@@ -50,7 +50,7 @@ interface Monthly {
 }
 
 const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('nb-NO')} kr`
-const KIND_LABEL: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt', preview: 'Preview' }
+const KIND_LABEL: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt', preview: 'Prøvelytt' }
 
 export default function VoiceBankAdminPage() {
   const [loading, setLoading] = useState(true)

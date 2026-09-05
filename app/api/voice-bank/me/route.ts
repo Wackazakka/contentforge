@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { actorSettlement } from '@/lib/actorLedger'
+import { PREVIEW_ROYALTY_PER_1000 } from '@/lib/voiceBank'
 
 function admin() {
   return createClient(
@@ -80,7 +81,9 @@ export async function GET(request: Request) {
       // Kun rettighetshaverens egen side av taksten — aldri kundeprisen.
       const rates: Record<string, number> = {}
       const r = (a.rates || {}) as Record<string, { actor_rate_nok?: number }>
-      for (const k of Object.keys(r)) if (r[k]?.actor_rate_nok != null) rates[k] = Number(r[k].actor_rate_nok)
+      for (const k of Object.keys(r)) if (k !== 'preview' && r[k]?.actor_rate_nok != null) rates[k] = Number(r[k].actor_rate_nok)
+      // Proevelytt: naar en kunde tester stemmen. Per 1000 tegn, ikke per bruk.
+      const previewRatePer1000 = Number(r.preview?.actor_rate_nok ?? PREVIEW_ROYALTY_PER_1000.actor)
 
       out.push({
         id: a.id,
@@ -91,6 +94,7 @@ export async function GET(request: Request) {
         isExclusive: a.is_exclusive !== false,
         defaultRateNok: Number(a.actor_rate_nok),
         rates,
+        previewRatePer1000,
         since: a.created_at,
         managedBy: tenantNames.get(a.owner_tenant_id as string) ?? tenant.app_name,
         uses: settlement.uses,
@@ -102,6 +106,7 @@ export async function GET(request: Request) {
           id: e.id,
           at: e.created_at,
           kind: (e.meta as { kind?: string } | null)?.kind || (e.asset_type === 'face' ? 'face' : 'ukjent'),
+          chars: (e.meta as { chars?: number } | null)?.chars ?? null,
           assetType: e.asset_type || 'voice',
           usedBy: tenantNames.get(e.used_by_tenant_id as string) ?? 'Ukjent',
           toYouNok: Number(e.actor_rate_nok),
