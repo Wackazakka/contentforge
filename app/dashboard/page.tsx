@@ -30,8 +30,19 @@ export default function DashboardPage() {
   const [organizationId, setOrganizationId] = useState<string | null>(null)
   const [organizationName, setOrganizationName] = useState<string>('')
   const [loadingOrg, setLoadingOrg] = useState(true)
-  // Forsidekortene: /dashboard?ny=halloween aapner «Ny anledning» direkte
-  const nyParam = useSearchParams()?.get('ny') || null
+  // Forsidekortene: /dashboard?ny=halloween aapner «Ny anledning» direkte.
+  // Typen huskes ogsaa i localStorage fra kortet (5/9: Lars klikket «Jul» og
+  // endte i en generisk modal — parameteren overlevde ikke registrering →
+  // e-postbekreftelse → innlogging). Leses én gang og slettes.
+  const nyFromUrl = useSearchParams()?.get('ny') || null
+  const [nyParam] = useState<string | null>(() => {
+    if (nyFromUrl) return nyFromUrl
+    try {
+      const v = localStorage.getItem('ropert.ny')
+      if (v) localStorage.removeItem('ropert.ny')
+      return v
+    } catch { return null }
+  })
   const [showProductModal, setShowProductModal] = useState(!!nyParam)
   const [creatingProduct, setCreatingProduct] = useState(false)
 

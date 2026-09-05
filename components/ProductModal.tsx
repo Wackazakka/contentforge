@@ -38,7 +38,10 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, ini
   const t = useTranslations('productModal')
   const tenant = useTenant()
   const vcfg = verticalConfig(tenant.vertical) // vertikal (f.eks. håndverker) = egne kategorier + Område-felt
-  const [name, setName] = useState('')
+  // Fra forsidekortet: «Hva feires?» forhaandsfylles med anledningens navn
+  // (Lars 5/9: tom modal + «Fortell hva som feires» = «ingenting skjer»)
+  const initialOpt = initialCategory ? vcfg?.categoryOptions.find((o) => o.value === initialCategory) : undefined
+  const [name, setName] = useState(initialOpt ? t(initialOpt.labelKey) : '')
   const [description, setDescription] = useState('')
   // Startverdi fra forsidekortet naar den er gyldig; ellers foerste valg.
   // (Foreldren remonterer modalen via key naar initialCategory endres.)
