@@ -22,6 +22,24 @@ const ROD = '#D4283F'
 const ROD_DYP = '#B01F33'
 const GULL = '#E8A33D'
 
+// Anledningene paa forsiden (Lars 5/9): papirklipp-illustrasjoner laget med
+// samme bildemotor og stil som filmene — kunden ser hva de faar.
+// Filene ligger i public/ropert/anledninger/ (720x1080 JPEG).
+const ANLEDNINGER: Array<{ key: string; navn: string; linje: string; farge: string }> = [
+  { key: 'halloween', navn: 'Halloween', linje: 'Kom utkledd, om du tør', farge: '#5E2C8C' },
+  { key: 'jul', navn: 'Jul', linje: 'God jul fra oss', farge: '#B41E2D' },
+  { key: 'syttendemai', navn: '17. mai', linje: 'Hurra for dagen', farge: '#BA0C2F' },
+  { key: 'bursdag', navn: 'Bursdag', linje: 'Kom og feir med oss', farge: '#FF5C7A' },
+  { key: 'bryllup', navn: 'Bryllup', linje: 'Vi gifter oss', farge: '#C8A06E' },
+  { key: 'konfirmasjon', navn: 'Konfirmasjon', linje: 'Velkommen til feiringen', farge: '#3C6EC8' },
+  { key: 'daap', navn: 'Dåp', linje: 'Velkommen til dåpen', farge: '#8CBEE6' },
+  { key: 'paaske', navn: 'Påske', linje: 'God påske', farge: '#F0C830' },
+  { key: 'nyttaar', navn: 'Nyttårsaften', linje: 'Godt nytt år', farge: '#B08A2E' },
+  { key: 'krepselag', navn: 'Krepselag', linje: 'Ta med egen drikke', farge: '#D4283F' },
+  { key: 'julebord', navn: 'Julebord', linje: 'Velkommen til bords', farge: '#2F5A44' },
+  { key: 'oktoberfest', navn: 'Oktoberfest', linje: 'Prost!', farge: '#285AC8' },
+]
+
 export default function StandardRopertLanding() {
   return (
     <div style={{ minHeight: '100vh', background: PAPIR, color: BLEKK, fontFamily: SANS }}>
@@ -44,6 +62,15 @@ export default function StandardRopertLanding() {
         .sr-sang { background: ${KORT}; border: 1px solid ${LINJE}; border-radius: 14px; padding: 26px 30px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
         .sr-sang p { margin: 0; }
         .sr-foot a { color: ${DEMPET}; font-size: 14px; text-decoration: none; }
+        .sr-anl { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+        .sr-anl-kort { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 2 / 3; background: ${LINJE}; box-shadow: 0 10px 26px -18px rgba(42,21,24,0.35); transition: transform 160ms ease-out; }
+        .sr-anl-kort:hover { transform: translateY(-4px); }
+        .sr-anl-kort img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .sr-anl-tekst { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 12px 12px; color: #fff; background: linear-gradient(to top, rgba(20,10,20,0.78), rgba(20,10,20,0)); }
+        .sr-anl-tekst b { display: block; font-family: ${DISPLAY}; font-size: 16px; letter-spacing: -0.01em; }
+        .sr-anl-tekst span { display: block; font-size: 12.5px; opacity: 0.85; margin-top: 2px; }
+        @media (max-width: 1000px) { .sr-anl { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 640px) { .sr-anl { grid-template-columns: repeat(3, 1fr); gap: 10px; } .sr-anl-tekst b { font-size: 13.5px; } .sr-anl-tekst span { display: none; } }
         .sr-foot a:hover { color: ${ROD}; }
         @media (max-width: 820px) { .sr-g3, .sr-steg { grid-template-columns: 1fr; } }
       `}</style>
@@ -77,6 +104,23 @@ export default function StandardRopertLanding() {
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/register" className="sr-cta">Kom i gang</Link>
           <a href="#slik" className="sr-ghost">Se hvordan</a>
+        </div>
+      </section>
+
+      {/* Anledningene — papirklipp fra samme motor som filmene */}
+      <section className="sr-band" style={{ paddingBottom: 64 }}>
+        <h2 className="sr-h2" style={{ textAlign: 'center' }}>Til alt som feires</h2>
+        <p className="sr-p" style={{ textAlign: 'center', margin: '0 auto 26px' }}>
+          Hver anledning har sin egen palett og sine egne illustrasjoner. Velg din, så ser filmen ut som den hører til.
+        </p>
+        <div className="sr-anl">
+          {ANLEDNINGER.map((a) => (
+            <Link key={a.key} href="/register" className="sr-anl-kort" style={{ background: a.farge }} aria-label={a.navn}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/ropert/anledninger/${a.key}.jpg`} alt={a.navn} loading="lazy" />
+              <div className="sr-anl-tekst"><b>{a.navn}</b><span>{a.linje}</span></div>
+            </Link>
+          ))}
         </div>
       </section>
 
