@@ -209,10 +209,18 @@ export default function FilmPage() {
     setPhotos((prev) => prev.filter((p) => p.name !== name))
   }
 
+  const rightsRef = useRef<HTMLLabelElement | null>(null)
   const writePosters = async () => {
     if (phase !== 'idle') return
     setError(null); setReview(null)
     if (!title.trim()) { setError(t('needTitle')); return }
+    // Har kunden valgt en sang, maa retten bekreftes foer noe lages —
+    // men bytting av sang skal alltid vaere mulig (Lars 5/9)
+    if (musicFile && !rightsOk) {
+      setError(t('rightsFirst'))
+      setTimeout(() => rightsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+      return
+    }
     try {
       // Lagre skjemaet paa anledningen (som lesbare linjer)
       const compiled = compileDescription(details) || description.trim()
@@ -443,14 +451,14 @@ export default function FilmPage() {
               {tracks.map((tr) => <option key={tr.filename} value={tr.filename}>{tr.name}</option>)}
             </select>
           )}
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.5, color: 'var(--ink)', marginBottom: 14, cursor: 'pointer' }}>
+          <label ref={rightsRef} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.5, color: 'var(--ink)', marginBottom: 14, cursor: 'pointer' }}>
             <input type="checkbox" checked={rightsOk} onChange={(e) => setRightsOk(e.target.checked)} disabled={busy} style={{ marginTop: 4, width: 18, height: 18 }} />
             <span>{t('rightsLabel')}</span>
           </label>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label style={{ ...(chosenTrack ? ghostBtn : bigBtn), opacity: uploadingTrack || busy || !rightsOk ? 0.5 : 1, cursor: rightsOk ? 'pointer' : 'not-allowed' }} title={rightsOk ? undefined : t('rightsFirst')}>
+            <label style={{ ...(chosenTrack ? ghostBtn : bigBtn), opacity: uploadingTrack || busy ? 0.6 : 1 }}>
               {uploadingTrack ? t('uploading') : chosenTrack ? t('changeSong') : t('uploadSong')}
-              <input type="file" accept=".mp3,audio/mpeg" className="hidden" disabled={uploadingTrack || busy || !rightsOk} onChange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ''; if (f) onTrackChosen(f) }} />
+              <input type="file" accept=".mp3,audio/mpeg" className="hidden" disabled={uploadingTrack || busy} onChange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ''; if (f) onTrackChosen(f) }} />
             </label>
             {chosenTrack && (
               <button type="button" onClick={() => { setMusicFile(null); setMusicDuration(null) }} disabled={busy} style={{ ...ghostBtn, border: 'none', color: 'var(--text-muted)' }}>{t('noSong')}</button>
