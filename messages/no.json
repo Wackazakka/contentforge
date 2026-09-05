@@ -1030,7 +1030,7 @@
     "descriptionLabel": "Fortell litt mer",
     "descriptionPlaceholder": "Hvem det gjelder, når og hvor det skjer, og hva folk skal ta med …",
     "step4Title": "Skriv plakatene",
-    "step4Hint": "Vi skriver en plakat for hvert svar. Du ser dem og retter det du vil før filmen lages.",
+    "step4Hint": "Vi skriver en plakat for hvert svar. Du ser dem og retter det du vil. Betalingen skjer før filmen lages.",
     "makeFilm": "Lag filmen",
     "phaseWriting": "Skriver tekstene til filmen …",
     "phaseImages": "Lager bilder ({done} av {total}) …",
@@ -1110,7 +1110,10 @@
     "animQuotaNone": "Den betalte filmen var ikke animert, så en animert omgjøring kjøpes som ny film.",
     "animQuotaStop": "Denne omgjøringen trenger {needed} nye animasjoner, men du har {left} igjen. Velg:",
     "animQuotaStill": "Lag den som «Bilder med bevegelse» (gratis)",
-    "animQuotaBuy": "Kjøp ny animert film ({price} kr)"
+    "animQuotaBuy": "Kjøp ny animert film ({price} kr)",
+    "paidImagesTitle": "Betalt! Nå lages bildene …",
+    "failedTitle": "Dette gikk ikke",
+    "retryFinish": "Prøv å fullføre igjen"
   },
   "occasion": {
     "back": "← Alle anledninger",
@@ -1133,6 +1136,9 @@
     "copyManually": "Kopier denne lenken:",
     "shareHint": "Last ned filmen og send den på Messenger, WhatsApp eller e-post, eller legg den ut på Facebook. «Del lenke» gir deg en lenke rett til filmen.",
     "deleteConfirm": "Slette denne filmen? Det kan ikke angres.",
-    "editPosters": "✏️ Rediger plakatene"
+    "editPosters": "✏️ Rediger plakatene",
+    "unfinishedTitle": "Betalt, men ikke ferdig",
+    "unfinishedHint": "Du betalte for denne filmen, men den ble ikke fullført. Trykk for å lage bildene og starte filmen.",
+    "finishFilm": "Fullfør filmen"
   }
 }

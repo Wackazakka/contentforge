@@ -10,6 +10,7 @@ import { fetchMusicLibrary, ownTracks, sharedMusic, tracksFolder, isMedleyFile, 
 import { FILM_VOICES, FILM_LIBRARY_FOLDER } from '@/lib/filmVoices'
 import { uploadTrack, TRACK_UPLOAD_MAX_BYTES } from '@/lib/uploadTrack'
 import { filmPricing } from '@/lib/verticals'
+import { fillMissingImages, type FilmSeg } from '@/lib/filmImages'
 
 // Den enkle filmflyten (Standard Ropert, Lars 4/9): sang → bilder → tekst →
 // film. Ingen segmentredigering, ingen stemmevalg, ingen taxameter. Sangen
@@ -384,41 +385,6 @@ export default function FilmPage() {
       const { error: saveErr } = await getSupabase().from('production_drafts').update({ segments, ai_motion: animert, ai_motion_engine: animert ? 'kling' : null }).eq('id', draftId)
       if (saveErr) throw new Error(saveErr.message)
 
-      // Ingen egne bilder: lag ett AI-bilde per scene, ett om gangen
-      if (review.needsImages || segments.some((sg) => !sg.image_url)) {
-        setPhase('images')
-        const total = segments.length
-        setImageProgress({ done: 0, total })
-        for (let i = 0; i < segments.length; i++) {
-          if (segments[i].image_url) { setImageProgress({ done: i + 1, total }); continue }
-          try {
-            const r = await fetch('/api/content/generate-image', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                topic: segments[i].image_prompt || `${segments[i].text} (${title})`,
-                productId,
-                imageSize: '1024x1536',
-                imageStyle: 'papercut',
-                draftId,
-              }),
-              signal: AbortSignal.timeout(55000),
-            })
-            const d = await r.json().catch(() => null)
-            if (r.ok && d?.imageUrl) segments[i] = { ...segments[i], image_url: d.imageUrl }
-          } catch { /* scenen faar bildet fra naboen under */ }
-          setImageProgress({ done: i + 1, total })
-        }
-        // Scener som ikke fikk bilde laaner naermeste ferdige bilde — filmen
-        // skal aldri stoppe paa ett mislykket bildekall.
-        const anyImage = segments.find((s) => s.image_url)?.image_url
-        if (!anyImage) throw new Error(t('imagesFailed'))
-        let last = anyImage
-        segments = segments.map((s) => { if (s.image_url) last = s.image_url; return { ...s, image_url: s.image_url || last } })
-        const { error: upErr } = await getSupabase().from('production_drafts').update({ segments }).eq('id', draftId)
-        if (upErr) throw new Error(upErr.message)
-      }
-
       // Fastpris (149 kr): Stripe foer produksjonen. Serveren svarer
       // {free:true} naar billing er av — da startes produksjonen direkte.
       setPhase('paying')
@@ -436,6 +402,20 @@ export default function FilmPage() {
       }
       if (!payRes.ok) throw new Error(pay?.error || t('failed'))
       if (pay?.url) { window.location.href = pay.url; return }
+
+      // Bildene lages ETTER betalingen (Lars 5/9) — gratis omgjoering lager dem her
+      if (segments.some((sg) => !sg.image_url)) {
+        setPhase('images')
+        try {
+          segments = await fillMissingImages({
+            draftId, productId, title,
+            segments: segments as FilmSeg[],
+            onProgress: (done, total) => setImageProgress({ done, total }),
+          }) as Seg[]
+        } catch (e) {
+          throw new Error(e instanceof Error && e.message === 'IMAGES_FAILED' ? t('imagesFailed') : (e instanceof Error ? e.message : t('failed')))
+        }
+      }
 
       setPhase('starting')
       const startRes = await fetch('/api/start-production', {

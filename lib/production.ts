@@ -365,7 +365,7 @@ export async function startProductionForDraft(
 export async function fulfillProductionSession(
   session: { id: string; payment_intent?: string | null; metadata?: Record<string, string> | null },
   eventId?: string
-): Promise<{ jobId?: string; alreadyHandled?: boolean }> {
+): Promise<{ jobId?: string; alreadyHandled?: boolean; deferred?: boolean }> {
   const supabase = admin()
   const draftId = session.metadata?.draft_id
   if (!draftId) throw new Error('Mangler draft_id i session-metadata')
@@ -388,6 +388,13 @@ export async function fulfillProductionSession(
   }
 
   await supabase.from('production_drafts').update({ payment_status: 'paid' }).eq('id', draftId)
+
+  // Ropert-film (5/9): betalingen kommer FOER bildene lages. Webhooken
+  // markerer betalt og stopper her; /film/klar lager bildene og kaller
+  // start-production selv. Betalingsraden staar som 'paid' til da.
+  if (session.metadata?.defer === '1') {
+    return { deferred: true }
+  }
 
   try {
     const { jobId } = await startProductionForDraft(draftId)
