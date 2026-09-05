@@ -101,7 +101,7 @@ export default function FilmPage() {
   const [filmLength, setFilmLength] = useState<'30' | '60' | 'full'>('60')
   const [lengthNote, setLengthNote] = useState<string | null>(null)
   // Rettesteget (Lars 5/9): plakatene vises og redigeres FOER filmen lages.
-  const [review, setReview] = useState<{ draftId: string; needsImages: boolean; segments: Seg[]; texts: string[] } | null>(null)
+  const [review, setReview] = useState<{ draftId: string; needsImages: boolean; segments: Seg[]; texts: string[]; extraPrompts: string[] } | null>(null)
   const reviewRef = useRef<HTMLDivElement | null>(null)
   // Uten sang (4/9): en stemme leser teksten, eller bare musikk, eller stille.
   const [mode, setMode] = useState<'voice' | 'music' | 'silent'>('voice')
@@ -272,7 +272,7 @@ export default function FilmPage() {
         throw new Error(`${data?.error || t('failed')} (${res.status})`)
       }
       const segs: Seg[] = data.segments || []
-      setReview({ draftId: data.draftId, needsImages: !!data.needsImages, segments: segs, texts: segs.map((sg) => sg.text) })
+      setReview({ draftId: data.draftId, needsImages: !!data.needsImages, segments: segs, texts: segs.map((sg) => sg.text), extraPrompts: Array.isArray(data.extraPrompts) ? data.extraPrompts : [] })
       setPhase('idle')
       setTimeout(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
     } catch (err) {
@@ -308,6 +308,13 @@ export default function FilmPage() {
           simple_film: true,
         } as Seg
       })
+      // Stemningsbilder uten tekst (5/9): ekstra scener som bare gir bilder til
+      // renderen, saa ingen bilder gjentas. Bare naar kunden ikke har egne bilder.
+      if (photos.length === 0) {
+        review.extraPrompts.forEach((pr) => {
+          segments.push({ index: segments.length, text: '', voiceover: '', image_url: '', image_prompt: pr, no_voice: true, match_music: !!musicFile, simple_film: true, approved: true } as Seg)
+        })
+      }
       const { error: saveErr } = await getSupabase().from('production_drafts').update({ segments }).eq('id', draftId)
       if (saveErr) throw new Error(saveErr.message)
 
@@ -326,7 +333,7 @@ export default function FilmPage() {
                 topic: segments[i].image_prompt || `${segments[i].text} (${title})`,
                 productId,
                 imageSize: '1024x1536',
-                imageStyle: 'warm',
+                imageStyle: 'papercut',
                 draftId,
               }),
               signal: AbortSignal.timeout(55000),
@@ -362,7 +369,7 @@ export default function FilmPage() {
       const startRes = await fetch('/api/start-production', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId, imageStyle: 'warm', includeOutroCard: false, aiMotion: false }),
+        body: JSON.stringify({ draftId, imageStyle: 'papercut', includeOutroCard: false, aiMotion: false }),
       })
       const started = await startRes.json().catch(() => null)
       if (!startRes.ok || !started?.jobId) throw new Error(started?.error || t('failed'))
