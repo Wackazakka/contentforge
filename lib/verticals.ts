@@ -27,7 +27,12 @@ export interface VerticalConfig {
   // Fast pris per film i den enkle flyten (Lars 4/9): kunden betaler
   // customerPriceNok (inkl. mva) i Stripe; Norditechs engrospris til partneren
   // er wholesaleNok og logges som forbruk i stedet for maalt API-kost.
-  film?: { customerPriceNok: number; wholesaleNok: number }
+  film?: {
+    customerPriceNok: number; wholesaleNok: number
+    // Nivaa 2 (Lars 5/9): animerte bilder — hvert bilde blir et Kling-klipp
+    // (~2 kr raakost per scene), derfor hoeyere engrospris
+    animated?: { customerPriceNok: number; wholesaleNok: number }
+  }
 }
 
 export const VERTICALS: Record<string, VerticalConfig> = {
@@ -96,7 +101,7 @@ export const VERTICALS: Record<string, VerticalConfig> = {
     simpleMode: true,
     productionTypes: ['video'],
     brandProfile: false,
-    film: { customerPriceNok: 149, wholesaleNok: 25 },
+    film: { customerPriceNok: 149, wholesaleNok: 25, animated: { customerPriceNok: 249, wholesaleNok: 60 } },
   },
 }
 

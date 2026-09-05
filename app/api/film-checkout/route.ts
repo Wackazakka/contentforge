@@ -35,6 +35,7 @@ export async function GET(request: Request) {
     const soFar = await filmCountForProduct(productId)
     return NextResponse.json({
       priceNok: pris.customerPriceNok,
+      animatedPriceNok: pris.animated?.customerPriceNok ?? null,
       billing,
       nextIsFree: !billing || isFreeRemake(soFar),
       freeLeft: freeRemakesLeft(soFar),
@@ -93,7 +94,10 @@ export async function POST(request: Request) {
     const origin = host ? `https://${host}` : (process.env.NEXT_PUBLIC_BASE_URL || 'https://contentforge-610.netlify.app')
     const back = `/dashboard/products/${draft.product_id}/film`
 
-    const ore = Math.round(pris.customerPriceNok * 100)
+    // Nivaa: animert film (draft.ai_motion) har egen pris
+    const animert = draft.ai_motion === true && !!pris.animated
+    const kundePris = animert ? pris.animated!.customerPriceNok : pris.customerPriceNok
+    const ore = Math.round(kundePris * 100)
     const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
       line_items: [
@@ -102,7 +106,7 @@ export async function POST(request: Request) {
             currency: 'nok',
             unit_amount: ore,
             product_data: {
-              name: `Film — ${draft.title || 'anledning'}`,
+              name: `${animert ? 'Animert film' : 'Film'} — ${draft.title || 'anledning'}`,
               description: 'Filmen lages så snart betalingen er bekreftet.',
             },
           },
@@ -137,7 +141,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Kunne ikke registrere betalingen: ${payErr.message}` }, { status: 500 })
     }
 
-    return NextResponse.json({ url: session.url, priceNok: pris.customerPriceNok })
+    return NextResponse.json({ url: session.url, priceNok: kundePris })
   } catch (err) {
     console.error('[film-checkout] Error:', err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Noe gikk galt' }, { status: 500 })
