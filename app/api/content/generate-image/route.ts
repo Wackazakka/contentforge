@@ -24,7 +24,7 @@ interface GenerateImageRequest {
   logoUrl?: string
   articleIds?: string[]
   imageSize?: '1024x1024' | '1024x1536' | '1536x1024'
-  imageStyle?: 'tech' | 'cinematic' | 'warm' | 'surreal' | 'manga'
+  imageStyle?: 'tech' | 'cinematic' | 'warm' | 'surreal' | 'manga' | 'papercut'
   character?: string
   draftId?: string
 }
@@ -38,6 +38,9 @@ const VIDEO_STYLE_PROMPTS: Record<string, string> = {
   warm:      'Warm lifestyle photograph style, soft natural light, organic textures, earthy tones with golden accents, shallow depth of field, inviting and human-centered composition, Instagram editorial aesthetic.',
   surreal:   'Sophisticated conceptual surrealism, dreamlike scene with unexpected juxtapositions, photorealistic rendering of impossible scenarios, thought-provoking and visually arresting, Dalí meets contemporary advertising.',
   manga:     'Dynamic manga-inspired digital illustration, bold clean outlines, dramatic foreshortening and perspective, high-contrast cel shading, expressive visual energy, cinematic panel composition, Studio Ghibli meets modern Japanese editorial design. Sophisticated, not childish.',
+  // Standard Ropert (Lars 5/9 valgte papirklipp): illustrert, aldri fotorealisme,
+  // ingen mennesker — bare ting, steder og stemning.
+  papercut:  'Paper-cut collage illustration: layered coloured paper shapes with soft drop shadows, handmade feel, clean composition, gentle depth. Objects, places and decorations only — absolutely no people, no faces, no figures.',
 }
 
 async function generateImageBuffer(topic: string, imageSize: string = '1024x1024', imageStyle?: string): Promise<Buffer> {

@@ -37,6 +37,17 @@ interface SimpleRequest {
   details?: Partial<Record<'who' | 'when' | 'where' | 'bring' | 'dress' | 'extra' | 'rsvp' | 'greeting', string>>
 }
 
+// Palettord per anledning — speiler THEMES i contentforge-server/festlig.py,
+// saa AI-bildene (papirklipp) og plakatene snakker samme farger.
+const THEME_WORDS: Record<string, string> = {
+  bursdag: 'coral pink, sunny yellow and cream', bryllup: 'champagne gold, ivory and soft blush', utdrikningslag: 'hot pink, yellow and turquoise',
+  jubileum: 'antique gold, cream and warm brown', daap: 'powder blue, ivory and pale pink', konfirmasjon: 'royal blue, ivory and warm gold',
+  krepselag: 'lobster red, sunflower yellow and cream', oktoberfest: 'bavarian blue, white and warm beer gold', halloween: 'pumpkin orange, purple and cream',
+  julebord: 'deep red, gold and pine green', jul: 'christmas red, pine green and gold', nyttaar: 'gold, black and champagne',
+  valentine: 'red, blush pink and cream', paaske: 'sunny yellow, spring green and lilac', syttendemai: 'red, white and navy blue',
+  firmafest: 'navy blue, warm gold and light grey', bedrift: 'navy blue, warm gold and light grey',
+}
+
 const DETAIL_ORDER: Array<[keyof NonNullable<SimpleRequest['details']>, string]> = [
   ['who', 'who it is for / who is hosting'],
   ['when', 'date and time'],
@@ -70,8 +81,9 @@ async function writeLines(opts: {
   spoken: boolean
   locale: 'no' | 'en'
   details?: Array<[string, string]> // [beskrivelse av feltet, kundens svar]
-}): Promise<Array<{ text: string; voiceover: string; image_prompt: string }>> {
+}): Promise<{ lines: Array<{ text: string; voiceover: string; image_prompt: string }>; extra: string[] }> {
   const { title, description, category, count, needImagePrompts, spoken, locale, details } = opts
+  const palette = THEME_WORDS[category] || 'warm red, golden yellow and cream'
   const detailBlock = details && details.length
     ? `The sender filled in these fields (use them, one line each, in this order):\n${details.map(([k, v], i) => `${i + 1}. ${k}: "${v}"`).join('\n')}\n`
     : ''
@@ -91,9 +103,9 @@ ${count}. A closing line: welcome / see you there / a warm wish.
 Rules: max 60 characters per line, plain and warm, no hashtags, no emojis, no quotation marks, end each line with proper punctuation.
 Norwegian grammar: street addresses take "i" ("i Solveien 5", "i Storgata 12"), never "på"; "på" is for named places and venues ("på Grand Hotell", "på skolen"); "hjemme hos Lars og Lise" for homes.
 ${spoken ? 'Also write "voiceover": what the narrator says for that scene — one or two natural spoken sentences (max 140 characters) that say the same thing as the line but the way a person would say it aloud. Never invent facts.' : 'Set voiceover to an empty string.'}
-${needImagePrompts ? 'Also give each line a short image prompt (English, max 25 words) for a warm, photographic scene that fits the line. IMPORTANT: the setting is Norway — Scandinavian homes, gardens, light and seasons — and any people are Scandinavian/Northern European in appearance, unless the sender\'s text says otherwise. No faces in close-up, no text in the image.' : 'Set image_prompt to an empty string.'}
+${needImagePrompts ? `Also give each line an image prompt (English, max 25 words) for a PAPER-CUT COLLAGE ILLUSTRATION that fits the line: objects, food, decorations, places, weather, season — in a palette of ${palette}. The setting is Norway (wooden houses, gardens, Nordic light). STRICT: never people, never faces, never figures or silhouettes, never text. Also give "extra": 4 more image prompts in the same style for general mood scenes of this occasion (no people).` : 'Set image_prompt to an empty string and "extra" to an empty list.'}
 
-Return JSON only: {"lines":[{"text":"...","voiceover":"...","image_prompt":"..."}]}`
+Return JSON only: {"lines":[{"text":"...","voiceover":"...","image_prompt":"..."}],"extra":["...","..."]}`
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -121,12 +133,14 @@ Return JSON only: {"lines":[{"text":"...","voiceover":"...","image_prompt":"..."
   const match = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').match(/\{[\s\S]*\}/)
   if (!match) throw new Error('Tekstene kom i feil format')
   const parsed = JSON.parse(match[0])
-  const lines = Array.isArray(parsed.lines) ? parsed.lines : []
-  return lines.slice(0, count).map((l: { text?: unknown; voiceover?: unknown; image_prompt?: unknown }) => ({
+  const rawLines = Array.isArray(parsed.lines) ? parsed.lines : []
+  const lines = rawLines.slice(0, count).map((l: { text?: unknown; voiceover?: unknown; image_prompt?: unknown }) => ({
     text: String(l?.text || '').trim(),
     voiceover: String(l?.voiceover || '').trim(),
     image_prompt: String(l?.image_prompt || '').trim(),
   })).filter((l: { text: string }) => l.text)
+  const extra = (Array.isArray(parsed.extra) ? parsed.extra : []).map((x: unknown) => String(x || '').trim()).filter(Boolean).slice(0, 4)
+  return { lines, extra }
 }
 
 export async function POST(request: NextRequest) {
@@ -166,7 +180,7 @@ export async function POST(request: NextRequest) {
     const count = details.length > 0
       ? Math.min(16, details.length + 2)
       : sceneCount(musicFile ? musicDurationSec : null, photos.length)
-    const lines = await writeLines({
+    const { lines, extra } = await writeLines({
       title,
       description,
       category: product.category || '',
@@ -226,7 +240,8 @@ export async function POST(request: NextRequest) {
     if (error || !draft) throw new Error(error?.message || 'Utkastet kunne ikke lagres')
 
     console.log(`[produce/simple] ferdig etter ${Date.now() - tStart} ms — draft ${draft.id}`)
-    return NextResponse.json({ draftId: draft.id, segments, needsImages: photos.length === 0 })
+    // extraPrompts: 4 stemningsbilder (uten tekst) saa bildene ikke gjentas i filmen
+    return NextResponse.json({ draftId: draft.id, segments, needsImages: photos.length === 0, extraPrompts: photos.length === 0 ? extra : [] })
   } catch (err) {
     console.error('[produce/simple] Error:', err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Noe gikk galt' }, { status: 500 })
