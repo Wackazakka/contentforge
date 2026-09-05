@@ -291,9 +291,10 @@ export default function FilmPage() {
       // med uttoning; «film = musikkens lengde» gir da riktig lengde)
       if (musicSource && filmLength !== 'full') {
         // Hver plakat trenger ~3 s + et bilde imellom: mange svar i skjemaet
-        // krever lengre film enn valgt. Forleng til naermeste 30 s, innenfor sangen.
+        // krever lengre film enn valgt. Forleng bare med det som trengs (til
+        // naermeste 5 s), innenfor sangen — ikke til neste 30 s (Lars 5/9).
         const filled = DETAIL_KEYS.filter((k) => details[k].trim()).length + 2
-        const needed = Math.ceil((filled * 5) / 30) * 30
+        const needed = filled * 5
         let wanted = Math.max(Number(filmLength), needed)
         if (dur !== null) wanted = Math.min(wanted, Math.floor(dur))
         if (wanted > Number(filmLength)) setLengthNote(t('lengthExtended', { seconds: wanted }))
