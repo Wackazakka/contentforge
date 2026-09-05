@@ -39,11 +39,11 @@ const VIDEO_STYLE_PROMPTS: Record<string, string> = {
   surreal:   'Sophisticated conceptual surrealism, dreamlike scene with unexpected juxtapositions, photorealistic rendering of impossible scenarios, thought-provoking and visually arresting, Dalí meets contemporary advertising.',
   manga:     'Dynamic manga-inspired digital illustration, bold clean outlines, dramatic foreshortening and perspective, high-contrast cel shading, expressive visual energy, cinematic panel composition, Studio Ghibli meets modern Japanese editorial design. Sophisticated, not childish.',
   // Standard Ropert (Lars 5/9 valgte papirklipp): illustrert, aldri fotorealisme.
-  // Folk er velkomne som GENERISKE, stiliserte papirfigurer (festglade
-  // gjester paa avstand) — aldri portretter, aldri noen som skal forestille
-  // bestemte personer (Lars 5/9: «vi er for strenge naar vi utelukker
-  // mennesker helt»; Oktoberfest uten folk i lederhosen ble tomt).
-  papercut:  'Paper-cut collage illustration: layered coloured paper shapes with soft drop shadows, handmade feel, clean composition, gentle depth. People, when present, are small stylised paper figures seen at a distance or mid-shot — generic party-goers, simplified faces, never realistic portraits or close-ups. No text.',
+  // Folk er velkomne som stiliserte papirfigurer — ogsaa en figur som
+  // symboliserer den som feires (Lars 5/9: «problemet var superrealistiske
+  // fotoer; med illustrasjoner blir det annerledes»). Aldri realistiske
+  // portretter.
+  papercut:  'Paper-cut collage illustration: layered coloured paper shapes with soft drop shadows, handmade feel, clean composition, gentle depth. People, when present, are stylised paper figures with simplified features — festive, warm, never realistic portraits or photographic faces. No text.',
 }
 
 async function generateImageBuffer(topic: string, imageSize: string = '1024x1024', imageStyle?: string): Promise<Buffer> {
