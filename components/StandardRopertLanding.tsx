@@ -62,6 +62,10 @@ export default function StandardRopertLanding() {
         .sr-sang { background: ${KORT}; border: 1px solid ${LINJE}; border-radius: 14px; padding: 26px 30px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
         .sr-sang p { margin: 0; }
         .sr-foot a { color: ${DEMPET}; font-size: 14px; text-decoration: none; }
+        .sr-eks { display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: center; }
+        .sr-tlf { width: 300px; aspect-ratio: 9 / 16; border-radius: 28px; overflow: hidden; background: #14101a; box-shadow: 0 24px 50px -24px rgba(42,21,24,0.55); border: 6px solid #2A1518; }
+        .sr-tlf video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        @media (max-width: 820px) { .sr-eks { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
         .sr-anl { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
         .sr-anl-kort { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 2 / 3; background: ${LINJE}; box-shadow: 0 10px 26px -18px rgba(42,21,24,0.35); transition: transform 160ms ease-out; }
         .sr-anl-kort:hover { transform: translateY(-4px); }
@@ -107,6 +111,25 @@ export default function StandardRopertLanding() {
         </div>
       </section>
 
+      {/* Eksempelfilm — Lars' Halloween-film, laget i produktet 5/9 */}
+      <section className="sr-band" style={{ paddingBottom: 72 }}>
+        <div className="sr-eks">
+          <div className="sr-tlf">
+            <video controls playsInline preload="none" poster="/ropert/halloween-eksempel.jpg" src="/ropert/halloween-eksempel.mp4" />
+          </div>
+          <div>
+            <h2 className="sr-h2">Slik ser en ferdig film ut</h2>
+            <p className="sr-p">
+              En Halloween-invitasjon laget i Roperten på noen minutter: sangen fra Sangskaper, svarene fra skjemaet som
+              plakater, papirklipp-illustrasjoner i Halloween-farger, og klipp i takt med musikken. Ett minutt, klar til å sende.
+            </p>
+            <Link href="/register" className="sr-cta">Lag din egen</Link>
+          </div>
+        </div>
+      </section>
+
+      <hr className="sr-rule" />
+
       {/* Anledningene — papirklipp fra samme motor som filmene */}
       <section className="sr-band" style={{ paddingBottom: 64 }}>
         <h2 className="sr-h2" style={{ textAlign: 'center' }}>Til alt som feires</h2>
@@ -115,7 +138,7 @@ export default function StandardRopertLanding() {
         </p>
         <div className="sr-anl">
           {ANLEDNINGER.map((a) => (
-            <Link key={a.key} href="/register" className="sr-anl-kort" style={{ background: a.farge }} aria-label={a.navn}>
+            <Link key={a.key} href={`/register?next=${encodeURIComponent(`/dashboard?ny=${a.key}`)}`} className="sr-anl-kort" style={{ background: a.farge }} aria-label={a.navn}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/ropert/anledninger/${a.key}.jpg`} alt={a.navn} loading="lazy" />
               <div className="sr-anl-tekst"><b>{a.navn}</b><span>{a.linje}</span></div>
