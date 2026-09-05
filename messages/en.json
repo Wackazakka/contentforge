@@ -1123,7 +1123,8 @@
     "usePhoto": "Use the photo instead",
     "useDrawing": "Use the drawing",
     "drawingUsed": "✓ The drawing is used in the film",
-    "photoUsed": "✓ The photo is used in the film"
+    "photoUsed": "✓ The photo is used in the film",
+    "tierFreeNow": "→ free remake now"
   },
   "occasion": {
     "back": "← All occasions",

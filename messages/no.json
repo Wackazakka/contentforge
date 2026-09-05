@@ -1123,7 +1123,8 @@
     "usePhoto": "Bruk fotoet i stedet",
     "useDrawing": "Bruk tegningen",
     "drawingUsed": "✓ Tegningen brukes i filmen",
-    "photoUsed": "✓ Fotoet brukes i filmen"
+    "photoUsed": "✓ Fotoet brukes i filmen",
+    "tierFreeNow": "→ gratis omgjøring nå"
   },
   "occasion": {
     "back": "← Alle anledninger",
