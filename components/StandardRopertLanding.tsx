@@ -138,7 +138,8 @@ export default function StandardRopertLanding() {
         </p>
         <div className="sr-anl">
           {ANLEDNINGER.map((a) => (
-            <Link key={a.key} href={`/register?next=${encodeURIComponent(`/dashboard?ny=${a.key}`)}`} className="sr-anl-kort" style={{ background: a.farge }} aria-label={a.navn}>
+            <Link key={a.key} href={`/register?next=${encodeURIComponent(`/dashboard?ny=${a.key}`)}`} className="sr-anl-kort" style={{ background: a.farge }} aria-label={a.navn}
+              onClick={() => { try { localStorage.setItem('ropert.ny', a.key) } catch { /* privat modus */ } }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/ropert/anledninger/${a.key}.jpg`} alt={a.navn} loading="lazy" />
               <div className="sr-anl-tekst"><b>{a.navn}</b><span>{a.linje}</span></div>
