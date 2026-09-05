@@ -1045,7 +1045,7 @@
     "priceFreePeriod": "Free during the opening period.",
     "rightsLabel": "The song is made by me (for example in Sangskaper), or I have the right to use it. Well-known music from Spotify and the like cannot be used.",
     "rightsFirst": "Confirm that you have the right to use the song before we make the film, or change the song.",
-    "noSongTitle": "No song? Choose how the film should sound:",
+    "noSongTitle": "No song? Pick one from the list below.",
     "modeVoice": "Read the text aloud",
     "modeVoiceHint": "A voice reads the text, with gentle music underneath.",
     "modeMusic": "Music only",

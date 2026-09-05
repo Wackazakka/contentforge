@@ -28,9 +28,9 @@
   "productModal": {
     "title": "Ny anledning",
     "productNameLabel": "Hva feires?",
-    "productNamePlaceholder": "f.eks. «Farmors 80-årsdag»",
+    "productNamePlaceholder": "f.eks. «Oktoberfest i hagen hos Kari og Ola»",
     "descriptionLabel": "Fortell litt om anledningen",
-    "descriptionPlaceholder": "Hvem det gjelder, når og hvor det skjer, og stemningen dere vil ha …",
+    "descriptionPlaceholder": "f.eks. «Lørdag 3. oktober kl. 18 i hagen. Lederhosen og dirndl, vi stiller med grill og øl!»",
     "descriptionHint": "Brukes når invitasjonene og hilsenene lages — to setninger holder.",
     "categoryLabel": "Type anledning",
     "categoryBursdag": "Bursdag",
