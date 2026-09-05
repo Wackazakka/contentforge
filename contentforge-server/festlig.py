@@ -200,15 +200,64 @@ def photo_clip(png, dur, out, pattern=0):
     vf = f"scale={bw}:{bh}:force_original_aspect_ratio=increase,crop={bw}:{bh},zoompan=z='{z}':x='{x}':y='ih/2-(ih/zoom/2)':d={n}:s={W}x{H}:fps={FPS},format=yuv420p"
     run(['-loop', '1', '-i', png, '-vf', vf, '-frames:v', str(n), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', out])
 
-# ── Konfetti (RGBA-rammer, gjennomsiktig bakgrunn) ─────────────────────────
-def confetti(total, cols, out_dir, alpha=0.8):
+# ── Drysset (RGBA-rammer, gjennomsiktig bakgrunn) ──────────────────────────
+# Lars 5/9: «Nå regner det konfetti på alle filmene. Kanskje det kan sne på
+# jul og nyttår? Stjerner og hjerter på Valentine's?» Hver anledning har sitt
+# eget dryss: form, farger, fallhastighet. Konfetti er reserven.
+WHITE, GOLD, PINK, RED = (255, 255, 255), (255, 218, 120), (255, 150, 180), (225, 50, 80)
+# (form, farger eller None = palett, antall, fallfart min/maks, stoerrelse min/maks)
+PARTICLES = {
+    'jul':       [('snow', [WHITE], 220, (45, 110), (10, 26))],
+    'julebord':  [('snow', [WHITE], 160, (45, 110), (10, 26)), ('star', [GOLD], 30, (60, 120), (18, 30))],
+    'nyttaar':   [('snow', [WHITE], 140, (45, 110), (10, 24)), ('star', [GOLD, WHITE], 70, (60, 140), (18, 38))],
+    'valentine': [('heart', [RED, PINK, WHITE], 110, (70, 160), (22, 48)), ('star', [GOLD, WHITE], 50, (60, 130), (16, 28))],
+    'bryllup':   [('petal', [(255, 215, 225), (255, 240, 235), (230, 190, 200)], 150, (60, 140), (16, 30)), ('heart', [PINK], 25, (60, 120), (16, 26))],
+    'daap':      [('star', [WHITE, GOLD, (200, 225, 250)], 90, (40, 100), (14, 30)), ('snow', [WHITE], 60, (30, 70), (8, 16))],
+    'halloween': [('leaf', [(255, 122, 24), (200, 80, 20), (120, 60, 140)], 120, (60, 150), (18, 34)), ('star', [(255, 240, 210)], 40, (40, 90), (8, 16))],
+    'paaske':    [('egg', [(255, 210, 50), (150, 210, 130), (255, 170, 190), (160, 200, 240)], 110, (60, 140), (20, 36))],
+}
+
+def _star(cx, cy, r, rot):
+    pts = []
+    for i in range(10):
+        rr = r if i % 2 == 0 else r * 0.45
+        a = rot + i * math.pi / 5
+        pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
+    return pts
+
+def _heart(cx, cy, r, rot):
+    ca, sa = math.cos(rot), math.sin(rot)
+    pts = []
+    for i in range(24):
+        t = i * 2 * math.pi / 24
+        x = 16 * math.sin(t) ** 3
+        y = -(13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t))
+        x, y = x * r / 17, y * r / 17
+        pts.append((cx + x * ca - y * sa, cy + x * sa + y * ca))
+    return pts
+
+def _blob(cx, cy, w, h, rot, pointed=False):
+    ca, sa = math.cos(rot), math.sin(rot)
+    pts = []
+    for i in range(16):
+        t = i * 2 * math.pi / 16
+        x, y = w / 2 * math.cos(t), h / 2 * math.sin(t)
+        if pointed: y *= 1.0 + 0.25 * abs(math.sin(t))  # bladform
+        pts.append((cx + x * ca - y * sa, cy + x * sa + y * ca))
+    return pts
+
+def confetti(total, cols, out_dir, alpha=0.8, theme=''):
     rnd = random.Random(7)
     n = int(total * FPS)
+    spec = PARTICLES.get(theme) or [('confetti', cols, 170, (140, 320), (14, 30))]
     parts = []
-    for _ in range(170):
-        parts.append({'x': rnd.uniform(0, W), 'y': rnd.uniform(-H, H), 'vy': rnd.uniform(140, 320),
-                      'sw': rnd.uniform(0.5, 1.6), 'ph': rnd.uniform(0, 6.28), 'w': rnd.randint(14, 30),
-                      'h': rnd.randint(22, 46), 'c': rnd.choice(cols), 'rot': rnd.uniform(0, 360), 'rv': rnd.uniform(-160, 160)})
+    for shape, scols, count, (v0, v1), (s0, s1) in spec:
+        for _ in range(count):
+            size = rnd.uniform(s0, s1)
+            parts.append({'shape': shape, 'x': rnd.uniform(0, W), 'y': rnd.uniform(-H, H), 'vy': rnd.uniform(v0, v1),
+                          'sw': rnd.uniform(0.5, 1.6), 'ph': rnd.uniform(0, 6.28), 'w': size, 'h': size * (1.6 if shape in ('confetti', 'petal', 'leaf', 'egg') else 1.0),
+                          'c': rnd.choice(scols), 'rot': rnd.uniform(0, 360), 'rv': rnd.uniform(-160, 160) if shape == 'confetti' else rnd.uniform(-50, 50),
+                          'tw': rnd.uniform(0.6, 1.4)})
     frames_dir = os.path.join(out_dir, 'konf'); os.makedirs(frames_dir, exist_ok=True)
     a8 = int(255 * alpha)
     for f in range(n):
@@ -219,10 +268,22 @@ def confetti(total, cols, out_dir, alpha=0.8):
             y = (p['y'] + p['vy'] * t) % (H + 80) - 40
             x = (p['x'] + 60 * math.sin(p['sw'] * t + p['ph'])) % (W + 40) - 20
             a = math.radians(p['rot'] + p['rv'] * t)
-            ww = p['w'] * abs(math.cos(a * 0.7)) + 3; hh = p['h']
-            ca, sa = math.cos(a), math.sin(a)
-            pts = [(x + dx * ca - dy * sa, y + dx * sa + dy * ca) for dx, dy in ((-ww/2, -hh/2), (ww/2, -hh/2), (ww/2, hh/2), (-ww/2, hh/2))]
-            d.polygon(pts, fill=p['c'] + (a8,))
+            sh = p['shape']
+            if sh == 'snow':
+                r = p['w'] / 2
+                d.ellipse((x - r, y - r, x + r, y + r), fill=p['c'] + (int(a8 * 0.85),))
+            elif sh == 'star':
+                tw = 0.55 + 0.45 * abs(math.sin(p['tw'] * t * 3 + p['ph']))  # blink
+                d.polygon(_star(x, y, p['w'] / 2, a), fill=p['c'] + (int(a8 * tw),))
+            elif sh == 'heart':
+                d.polygon(_heart(x, y, p['w'] / 2, a * 0.3), fill=p['c'] + (a8,))
+            elif sh in ('petal', 'leaf', 'egg'):
+                d.polygon(_blob(x, y, p['w'], p['h'], a, pointed=(sh == 'leaf')), fill=p['c'] + (a8,))
+            else:
+                ww = p['w'] * abs(math.cos(a * 0.7)) + 3; hh = p['h']
+                ca, sa = math.cos(a), math.sin(a)
+                pts = [(x + dx * ca - dy * sa, y + dx * sa + dy * ca) for dx, dy in ((-ww/2, -hh/2), (ww/2, -hh/2), (ww/2, hh/2), (-ww/2, hh/2))]
+                d.polygon(pts, fill=p['c'] + (a8,))
         img.save(os.path.join(frames_dir, f'k{f:05d}.png'), compress_level=1)
     return os.path.join(frames_dir, 'k%05d.png')
 
@@ -364,7 +425,7 @@ def build(cfg):
     body = os.path.join(work, 'body.mp4')
     run(['-f', 'concat', '-safe', '0', '-i', lst, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', body])
 
-    konf = confetti(total_v, [pal['a'], pal['b'], pal['c'], pal['e']], work, float(cfg.get('confettiOpacity') or 0.8))
+    konf = confetti(total_v, [pal['a'], pal['b'], pal['c'], pal['e']], work, float(cfg.get('confettiOpacity') or 0.8), theme=str(cfg.get('theme') or ''))
 
     tmp_out = output + '.tmp.mp4'
     fade_st = max(0, total_v - 2.5)
