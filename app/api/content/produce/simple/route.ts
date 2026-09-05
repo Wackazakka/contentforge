@@ -41,7 +41,7 @@ interface SimpleRequest {
 // saa AI-bildene (papirklipp) og plakatene snakker samme farger.
 const THEME_WORDS: Record<string, string> = {
   bursdag: 'coral pink, sunny yellow and cream', bryllup: 'champagne gold, ivory and soft blush', utdrikningslag: 'hot pink, yellow and turquoise',
-  jubileum: 'antique gold, cream and warm brown', daap: 'powder blue, ivory and pale pink', konfirmasjon: 'royal blue, ivory and warm gold',
+  jubileum: 'antique gold, cream and warm brown', gratulasjon: 'coral, warm gold, teal and cream', daap: 'powder blue, ivory and pale pink', konfirmasjon: 'royal blue, ivory and warm gold',
   krepselag: 'lobster red, sunflower yellow and cream', oktoberfest: 'bavarian blue, white and warm beer gold', halloween: 'pumpkin orange, purple and cream',
   julebord: 'deep red, gold and pine green', jul: 'christmas red, pine green and gold', nyttaar: 'gold, black and champagne',
   valentine: 'red, blush pink and cream', paaske: 'sunny yellow, spring green and lilac', syttendemai: 'red, white and navy blue',

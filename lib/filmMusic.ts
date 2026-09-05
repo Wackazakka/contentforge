@@ -22,6 +22,7 @@ export const FILM_TRACK_NAMES: Record<string, string> = {
   'papirkopper-og-bass.mp3': 'Papirkopper og bass',
   'shot-glass-shuffle.mp3': 'Shot Glass Shuffle',
   'snoefall-paa-taket.mp3': 'Snøfall på taket',
+  'storslaatt-feiring.mp3': 'Storslått feiring',
 }
 
 // Standardspor per anledningstype (products.category → filnavn i celebration/)
@@ -42,6 +43,7 @@ export const DEFAULT_TRACK_BY_CATEGORY: Record<string, string> = {
   // Papirkopper og bass = firmafest/bedrift, Shot Glass Shuffle = utdrikningslag.
   // Julebord beholder Julebord Glow.
   jubileum: 'gullbaand-glitrer.mp3',
+  gratulasjon: 'storslaatt-feiring.mp3',
   nyttaar: 'gullbaand-glitrer.mp3',
   firmafest: 'papirkopper-og-bass.mp3',
   bedrift: 'papirkopper-og-bass.mp3',

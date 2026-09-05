@@ -10,6 +10,7 @@ const POSES: Record<string, string> = {
   bryllup: 'in festive wedding attire under an arch of flowers, confetti in the air',
   utdrikningslag: 'wearing a party sash and party glasses, streamers and cocktails around',
   jubileum: 'raising a glass of bubbly, golden streamers and a big anniversary banner behind',
+  gratulasjon: 'arms raised in triumph with a bouquet of flowers, confetti and a big congratulations banner behind',
   daap: 'holding a small baby bundle in a white christening gown, soft blue and white flowers around',
   konfirmasjon: 'dressed up for confirmation holding flowers and a gift, a church and spring trees behind',
   krepselag: 'wearing a paper bib and a party hat and holding a crayfish, paper lanterns and a big moon',

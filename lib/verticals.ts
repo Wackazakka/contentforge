@@ -80,6 +80,8 @@ export const VERTICALS: Record<string, VerticalConfig> = {
       { value: 'bryllup', labelKey: 'categoryBryllup' },
       { value: 'utdrikningslag', labelKey: 'categoryUtdrikningslag' },
       { value: 'jubileum', labelKey: 'categoryJubileum' },
+      // Gratulasjon (Lars 5/9): eksamen, nytt hjem, baby, ny jobb — egen laat
+      { value: 'gratulasjon', labelKey: 'categoryGratulasjon' },
       { value: 'daap', labelKey: 'categoryDaap' },
       { value: 'konfirmasjon', labelKey: 'categoryKonfirmasjon' },
       { value: 'krepselag', labelKey: 'categoryKrepselag' },
