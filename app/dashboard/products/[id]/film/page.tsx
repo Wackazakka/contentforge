@@ -7,7 +7,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { fetchMusicLibrary, ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
-import { FILM_VOICES, FILM_LIBRARY_FOLDER } from '@/lib/filmVoices'
+import { FILM_LIBRARY_FOLDER } from '@/lib/filmVoices'
 import { uploadTrack, TRACK_UPLOAD_MAX_BYTES } from '@/lib/uploadTrack'
 import { filmPricing } from '@/lib/verticals'
 import { fillMissingImages, type FilmSeg } from '@/lib/filmImages'
@@ -115,13 +115,10 @@ export default function FilmPage() {
   // Rettesteget (Lars 5/9): plakatene vises og redigeres FOER filmen lages.
   const [review, setReview] = useState<{ draftId: string; needsImages: boolean; segments: Seg[]; texts: string[]; extraPrompts: string[]; regen: boolean[] } | null>(null)
   const reviewRef = useRef<HTMLDivElement | null>(null)
-  // Uten sang (4/9): en stemme leser teksten, eller bare musikk, eller stille.
-  const [mode, setMode] = useState<'voice' | 'music' | 'silent'>('voice')
-  const [voiceId, setVoiceId] = useState<string>(FILM_VOICES[0]?.id || '')
+  // Uten sang (Lars 5/9: «så enkelt som mulig»): bare musikk fra lista —
+  // opplesing og «uten lyd» er tatt bort fra flyten.
   const [library, setLibrary] = useState<MusicFile[]>([])
   const [libraryMusic, setLibraryMusic] = useState<string | null>(null)
-  const [previewing, setPreviewing] = useState<string | null>(null)
-  const previewRef = useRef<HTMLAudioElement | null>(null)
   const errorRef = useRef<HTMLDivElement | null>(null)
 
   // Bilder
@@ -285,7 +282,7 @@ export default function FilmPage() {
       let dur = musicFile ? (musicDuration ?? durationByFile[musicFile] ?? null) : null
       // Biblioteksmusikk (5/9): lengdevalget gjelder ogsaa der — klippet
       // legges i produktets egen mappe og sendes som libraryMusic.
-      let useLibrary = !musicFile && mode !== 'silent' ? libraryMusic : null
+      let useLibrary = !musicFile ? libraryMusic : null
       const musicSource = musicFile || useLibrary
       // Kortere film enn sangen: klipp sangen foerst (dropleten lager en fil
       // med uttoning; «film = musikkens lengde» gir da riktig lengde)
@@ -325,7 +322,7 @@ export default function FilmPage() {
           musicDurationSec: dur,
           photos: photos.map((p) => p.url),
           locale,
-          voiceId: !musicFile && mode === 'voice' ? voiceId : null,
+          voiceId: null,
           libraryMusic: useLibrary,
         }),
       })
@@ -497,7 +494,7 @@ export default function FilmPage() {
               <audio controls preload="none" src={musicSrc(chosenTrack.filename)} style={{ height: 34, maxWidth: 220 }} />
             </div>
           ) : null}
-          {(chosenTrack || (mode !== 'silent' && libraryMusic)) && (
+          {(chosenTrack || libraryMusic) && (
             <div style={{ marginBottom: 14, marginTop: chosenTrack ? 0 : 14 }}>
               <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('lengthLabel')}</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -534,48 +531,7 @@ export default function FilmPage() {
           {!chosenTrack && (
             <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--ds-border-faint)' }}>
               <p style={{ fontFamily: HANKEN, fontWeight: 600, fontSize: 15, color: 'var(--ink)', margin: '0 0 10px' }}>{t('noSongTitle')}</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, marginBottom: 14 }}>
-                {([
-                  { key: 'voice', label: t('modeVoice'), hintText: t('modeVoiceHint') },
-                  { key: 'music', label: t('modeMusic'), hintText: t('modeMusicHint') },
-                  { key: 'silent', label: t('modeSilent'), hintText: t('modeSilentHint') },
-                ] as const).map((m) => (
-                  <button key={m.key} type="button" disabled={busy} onClick={() => setMode(m.key)}
-                    style={{ textAlign: 'left', fontFamily: HANKEN, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', background: mode === m.key ? 'var(--ember-tint-bg)' : 'var(--paper)', border: mode === m.key ? '2px solid var(--ember-deep)' : '1.5px solid var(--ds-border)' }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{m.label}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{m.hintText}</div>
-                  </button>
-                ))}
-              </div>
-              {mode === 'voice' && (
-                <div style={{ marginBottom: 14 }}>
-                  <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('voiceLabel')}</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-                    {FILM_VOICES.map((v) => (
-                      <div key={v.id} style={{ borderRadius: 12, padding: '10px 12px', background: voiceId === v.id ? 'var(--ember-tint-bg)' : 'var(--paper)', border: voiceId === v.id ? '2px solid var(--ember-deep)' : '1.5px solid var(--ds-border)' }}>
-                        <button type="button" disabled={busy} onClick={() => setVoiceId(v.id)} style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: HANKEN }}>
-                          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{v.name}</div>
-                          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{v.desc}</div>
-                        </button>
-                        {v.preview && (
-                          <button type="button" onClick={() => {
-                            const a = previewRef.current
-                            if (!a) return
-                            if (previewing === v.id) { a.pause(); setPreviewing(null); return }
-                            a.src = v.preview as string; a.play().catch(() => {}); setPreviewing(v.id)
-                          }} style={{ marginTop: 6, fontFamily: HANKEN, fontSize: 13, fontWeight: 600, color: 'var(--ember-deep)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
-                            {previewing === v.id ? t('stopListen') : t('listen')}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <audio ref={previewRef} onEnded={() => setPreviewing(null)} className="hidden" />
-                </div>
-              )}
-              {mode !== 'silent' && (
-                <div>
-                  <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('musicLabel')}</p>
+              <div>
                   {library.length === 0 ? (
                     <p style={{ ...hint, margin: 0, fontSize: 13.5 }}>{t('noLibrary')}</p>
                   ) : (
@@ -586,8 +542,7 @@ export default function FilmPage() {
                       {libraryMusic && <audio key={libraryMusic} controls preload="none" src={musicSrc(libraryMusic)} style={{ height: 34, maxWidth: 220 }} />}
                     </div>
                   )}
-                </div>
-              )}
+              </div>
             </div>
           )}
         </section>
@@ -637,7 +592,7 @@ export default function FilmPage() {
         {/* 4 · Lag filmen */}
         <section style={{ ...card, textAlign: 'center' }}>
           <h2 style={{ ...h2, justifyContent: 'center' }}><span style={stepNo}>4</span>{t('step4Title')}</h2>
-          <p style={hint}>{chosenTrack ? t('step4Hint') : mode === 'voice' ? t('step4HintVoice') : mode === 'music' ? t('step4HintMusic') : t('step4HintSilent')}</p>
+          <p style={hint}>{chosenTrack ? t('step4Hint') : t('step4HintMusic')}</p>
           <p style={{ ...hint, fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
             {allowance && !allowance.billing
               ? t('priceFreePeriod')
