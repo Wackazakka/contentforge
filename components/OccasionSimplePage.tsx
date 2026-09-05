@@ -44,6 +44,8 @@ export default function OccasionSimplePage({ productId }: { productId: string })
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState<Job[]>([])
   const [copied, setCopied] = useState<string | null>(null)
+  // Fra ferdig film tilbake til utkastet som lagde den (for «Rediger plakatene»)
+  const [draftByJob, setDraftByJob] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -67,7 +69,14 @@ export default function OccasionSimplePage({ productId }: { productId: string })
           .select('id, title, status, content_type, video_format, ai_parameters, created_at')
           .eq('product_id', productId)
           .order('created_at', { ascending: false })
-        if (!stopped && data) setJobs(data as Job[])
+        if (!stopped && data) {
+          setJobs(data as Job[])
+          const ids = (data as Job[]).map((j) => j.id)
+          if (ids.length) {
+            const { data: drafts } = await getSupabase().from('production_drafts').select('id, job_id').in('job_id', ids)
+            if (!stopped && drafts) setDraftByJob(Object.fromEntries((drafts as Array<{ id: string; job_id: string }>).map((d) => [d.job_id, d.id])))
+          }
+        }
       } catch { /* lista er tom til neste runde */ }
     }
     load()
@@ -198,6 +207,9 @@ export default function OccasionSimplePage({ productId }: { productId: string })
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <a href={`/api/video-proxy?url=${encodeURIComponent(url)}`} download={`${j.title.replace(/[^\p{L}\p{N}]+/gu, '_')}.mp4`} style={{ ...smallBtn, color: 'var(--on-ember)', background: 'var(--ember-deep)', border: '1.5px solid var(--ember-deep)' }}>{t('download')}</a>
                         <button type="button" onClick={() => share(j)} style={smallBtn}>{copied === j.id ? t('copied') : t('share')}</button>
+                        {draftByJob[j.id] && (
+                          <Link href={`/dashboard/products/${productId}/film?draft=${draftByJob[j.id]}`} style={smallBtn}>{t('editPosters')}</Link>
+                        )}
                         <button type="button" onClick={() => remove(j)} title={t('remove')} style={{ ...smallBtn, border: 'none', color: 'var(--text-faint)', padding: '9px 6px' }}>🗑</button>
                       </div>
                     </div>

@@ -1092,7 +1092,10 @@
     "removePoster": "Fjern plakaten",
     "posterCount": "{count} plakater",
     "needPosters": "Filmen trenger minst to plakater.",
-    "phaseSaving": "Lagrer plakatene …"
+    "phaseSaving": "Lagrer plakatene …",
+    "editModeTitle": "Du redigerer plakatene til en ferdig film",
+    "editModeHint": "Sangen, bildene og lengden beholdes fra forrige film. Rett tekstene under og trykk «Lag filmen» — det er en omgjøring.",
+    "editModeStartOver": "Begynn heller helt på nytt"
   },
   "occasion": {
     "back": "← Alle anledninger",
@@ -1114,6 +1117,7 @@
     "copied": "Lenken er kopiert!",
     "copyManually": "Kopier denne lenken:",
     "shareHint": "Last ned filmen og send den på Messenger, WhatsApp eller e-post, eller legg den ut på Facebook. «Del lenke» gir deg en lenke rett til filmen.",
-    "deleteConfirm": "Slette denne filmen? Det kan ikke angres."
+    "deleteConfirm": "Slette denne filmen? Det kan ikke angres.",
+    "editPosters": "✏️ Rediger plakatene"
   }
 }

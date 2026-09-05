@@ -121,9 +121,43 @@ export default function FilmPage() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [imageProgress, setImageProgress] = useState<{ done: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const avbrutt = useSearchParams()?.get('avbrutt') === '1'
+  const searchParams = useSearchParams()
+  const avbrutt = searchParams?.get('avbrutt') === '1'
+  // «Rediger plakatene» (5/9): ?draft=<id> kopierer utkastet og hopper rett
+  // til steg 5 — sang, bilder og skjema beholdes fra forrige film.
+  const editDraftId = searchParams?.get('draft') || null
+  const [editMode, setEditMode] = useState<boolean>(!!editDraftId)
+  const [editExtras, setEditExtras] = useState<Seg[]>([])
 
   const token = async () => (await getSupabase().auth.getSession()).data?.session?.access_token || null
+
+  useEffect(() => {
+    if (!productId || !editDraftId) return
+    ;(async () => {
+      try {
+        const tk = await token()
+        const res = await fetch('/api/content/produce/simple/clone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk || ''}` },
+          body: JSON.stringify({ draftId: editDraftId }),
+        })
+        const d = await res.json().catch(() => null)
+        if (!res.ok || !d?.draftId) throw new Error(d?.error || t('failed'))
+        const segs: Seg[] = (d.segments || []) as Seg[]
+        // Tekstloese segmenter er stemningsbilder — de beholdes, men vises ikke
+        const withText = segs.filter((sg) => (sg.text || '').trim())
+        const extras = segs.filter((sg) => !(sg.text || '').trim())
+        setEditExtras(extras)
+        setReview({ draftId: d.draftId, needsImages: false, segments: withText, texts: withText.map((sg) => sg.text), extraPrompts: extras.map((sg) => sg.image_prompt || '').filter(Boolean) })
+        setEditMode(true)
+        setTimeout(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+      } catch (err) {
+        setEditMode(false)
+        setError(err instanceof Error && err.message ? err.message : t('failed'))
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, editDraftId])
 
   useEffect(() => {
     if (!productId) return
@@ -310,7 +344,7 @@ export default function FilmPage() {
           index: i,
           text,
           voiceover: base.voiceover ? (sameText ? base.voiceover : text) : '',
-          image_url: photos.length > 0 ? photos[i % photos.length].url : (sameText ? (base.image_url || '') : ''),
+          image_url: editMode ? (sameText ? (base.image_url || '') : '') : (photos.length > 0 ? photos[i % photos.length].url : (sameText ? (base.image_url || '') : '')),
           image_prompt: sameText ? (base.image_prompt || '') : '',
           approved: true,
           simple_film: true,
@@ -318,9 +352,10 @@ export default function FilmPage() {
       })
       // Stemningsbilder uten tekst (5/9): ekstra scener som bare gir bilder til
       // renderen, saa ingen bilder gjentas. Bare naar kunden ikke har egne bilder.
-      if (photos.length === 0) {
+      if (photos.length === 0 || editMode) {
         review.extraPrompts.forEach((pr) => {
-          segments.push({ index: segments.length, text: '', voiceover: '', image_url: '', image_prompt: pr, no_voice: true, match_music: !!musicFile, simple_film: true, approved: true } as Seg)
+          const prev = editExtras.find((e) => e.image_prompt === pr)
+          segments.push({ index: segments.length, text: '', voiceover: '', image_url: prev?.image_url || '', image_prompt: pr, no_voice: true, match_music: prev?.match_music ?? !!musicFile, simple_film: true, approved: true } as Seg)
         })
       }
       const { error: saveErr } = await getSupabase().from('production_drafts').update({ segments }).eq('id', draftId)
@@ -414,6 +449,14 @@ export default function FilmPage() {
         {avbrutt && !error && (
           <div style={{ background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', color: 'var(--ink)', borderRadius: 12, padding: '12px 16px', fontFamily: HANKEN, fontSize: 14.5, marginBottom: 18 }}>{t('paymentCancelled')}</div>
         )}
+        {editMode && (
+          <section style={{ ...card, background: 'var(--ember-tint-bg)', borderColor: 'var(--ember-tint-border)' }}>
+            <p style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: 'var(--ink)', margin: '0 0 6px' }}>{t('editModeTitle')}</p>
+            <p style={{ ...hint, margin: 0 }}>{t('editModeHint')}</p>
+            <button type="button" onClick={() => { setEditMode(false); setReview(null); router.replace(`/dashboard/products/${productId}/film`) }} disabled={busy} style={{ ...ghostBtn, marginTop: 12, padding: '10px 18px', fontSize: 14.5 }}>{t('editModeStartOver')}</button>
+          </section>
+        )}
+        {!editMode && (<>
         {/* 1 · Sangen */}
         <section style={card}>
           <h2 style={h2}><span style={stepNo}>1</span>{t('step1Title')}</h2>
@@ -599,6 +642,8 @@ export default function FilmPage() {
             <button type="button" onClick={writePosters} disabled={!loaded} style={{ ...bigBtn, fontSize: 18, padding: '16px 34px' }}>{review ? t('rewritePosters') : t('writePosters')}</button>
           )}
         </section>
+
+        </>)}
 
         {review && (
           <section ref={reviewRef} style={card}>
