@@ -334,18 +334,30 @@ export async function startProductionForDraft(
       const animert = !!aiMotion && !!pris.animated
       // Nye Kling-klipp i denne produksjonen — grunnlaget for animasjonskvoten
       const newClips = animert ? await countNewClips(draft, segments) : 0
-      const engros = animert ? pris.animated!.wholesaleNok : pris.wholesaleNok
-      const kunde = animert ? pris.animated!.customerPriceNok : pris.customerPriceNok
+      // Oppgradering (Lars 5/9): betalingsraden har tier 'upgrade' → kunden
+      // betalte differansen, engros er differansen (60 − 25)
+      let upgrade = false
+      try {
+        const { data: payRow } = await supabase.from('production_payments').select('tier').eq('draft_id', draftId).in('status', ['paid', 'fulfilled']).order('created_at', { ascending: false }).limit(1).maybeSingle()
+        upgrade = animert && payRow?.tier === 'upgrade'
+      } catch { /* uten rad: vanlig logikk */ }
+      const engros = upgrade
+        ? pris.animated!.wholesaleNok - pris.wholesaleNok
+        : animert ? pris.animated!.wholesaleNok : pris.wholesaleNok
+      const kunde = upgrade
+        ? pris.animated!.customerPriceNok - pris.customerPriceNok
+        : animert ? pris.animated!.customerPriceNok : pris.customerPriceNok
+      const gratis = remake && !upgrade
       const { logUsageEvent } = await import('@/lib/tenantBilling')
       await logUsageEvent({
         productId: draft.product_id,
         draftId,
         userId: draft.user_id || null,
         eventType: 'film_production',
-        costNok: remake ? 0 : engros,
+        costNok: gratis ? 0 : engros,
         fixedWholesale: true,
-        customerNok: remake ? 0 : Math.round((kunde / 1.25) * 100) / 100,
-        meta: { jobId: job.jobId, customerPriceNok: remake ? 0 : kunde, paid: draft.payment_status === 'paid', remake, animated: animert, newClips },
+        customerNok: gratis ? 0 : Math.round((kunde / 1.25) * 100) / 100,
+        meta: { jobId: job.jobId, customerPriceNok: gratis ? 0 : kunde, paid: draft.payment_status === 'paid', remake, upgrade, animated: animert, newClips },
       })
     }
   } catch (uErr) {

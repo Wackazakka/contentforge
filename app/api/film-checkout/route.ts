@@ -45,6 +45,9 @@ export async function GET(request: Request) {
       blockAnimated: a.blockAnimated,
       animLeft: a.animLeft,
       animQuota: ANIM_QUOTA,
+      // Oppgradering (Lars 5/9): betalt stillbildefilm → animert omgjøring
+      // koster differansen, og blokken blir animert med full kvote.
+      upgradePriceNok: pris.animated ? pris.animated.customerPriceNok - pris.customerPriceNok : null,
     })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Noe gikk galt' }, { status: 500 })
@@ -92,17 +95,25 @@ export async function POST(request: Request) {
     // animert film — uendrede scener gjenbrukes fra klipp-lageret og koster
     // ingen. forcePay = kunden kjøper en ny animert film i stedet.
     const a = await getFilmAllowance(draft.product_id)
+    // Oppgradering (Lars 5/9): gratis omgjøring av en stillbildefilm som
+    // kunden vil ha animert → differansen (249 − 149) i stedet for full pris.
+    // Filmen logges som betalt+upgrade: animasjonsblokken starter der (16
+    // nye klipp), men omgjøringene telles videre fra den opprinnelige filmen.
+    let upgrade = false
     if (a.nextIsFree && !forcePay) {
       const wantsAnimated = draft.ai_motion === true && !!pris.animated
-      if (wantsAnimated) {
+      if (wantsAnimated && !a.blockAnimated) {
+        upgrade = true
+      } else if (wantsAnimated) {
         const needed = await countNewClips(draft, Array.isArray(draft.segments) ? draft.segments : [])
-        const left = a.blockAnimated ? a.animLeft : 0
+        const left = a.animLeft
         if (needed > left) {
           return NextResponse.json({ error: 'Ikke nok animasjoner igjen', code: 'ANIM_QUOTA', needed, left, blockAnimated: a.blockAnimated }, { status: 409 })
         }
         return NextResponse.json({ free: true, remake: true, freeLeft: a.remakesLeft - 1, animNeeded: needed, animLeft: left - needed })
+      } else {
+        return NextResponse.json({ free: true, remake: true, freeLeft: a.remakesLeft - 1 })
       }
-      return NextResponse.json({ free: true, remake: true, freeLeft: a.remakesLeft - 1 })
     }
 
     // Tilbake til tenantens eget domene etter betaling (x-forwarded-host —
@@ -113,7 +124,9 @@ export async function POST(request: Request) {
 
     // Nivaa: animert film (draft.ai_motion) har egen pris
     const animert = draft.ai_motion === true && !!pris.animated
-    const kundePris = animert ? pris.animated!.customerPriceNok : pris.customerPriceNok
+    const kundePris = upgrade
+      ? pris.animated!.customerPriceNok - pris.customerPriceNok
+      : animert ? pris.animated!.customerPriceNok : pris.customerPriceNok
     const ore = Math.round(kundePris * 100)
     const session = await getStripe().checkout.sessions.create({
       mode: 'payment',
@@ -123,8 +136,8 @@ export async function POST(request: Request) {
             currency: 'nok',
             unit_amount: ore,
             product_data: {
-              name: `${animert ? 'Animert film' : 'Film'} — ${draft.title || 'anledning'}`,
-              description: 'Filmen lages så snart betalingen er bekreftet.',
+              name: `${upgrade ? 'Oppgradering til animerte bilder' : animert ? 'Animert film' : 'Film'} — ${draft.title || 'anledning'}`,
+              description: upgrade ? 'Omgjøringen lages animert så snart betalingen er bekreftet.' : 'Filmen lages så snart betalingen er bekreftet.',
             },
           },
           quantity: 1,
@@ -132,7 +145,7 @@ export async function POST(request: Request) {
       ],
       // defer: webhooken markerer betalt uten aa starte — /film/klar lager
       // bildene og starter produksjonen (betaling FOER skapelsen, Lars 5/9)
-      metadata: { kind: 'film', draft_id: draftId, tier: 'registered', user_id: userId, product_id: draft.product_id, defer: '1' },
+      metadata: { kind: 'film', draft_id: draftId, tier: upgrade ? 'upgrade' : 'registered', user_id: userId, product_id: draft.product_id, defer: '1' },
       success_url: `${origin}${back}/klar?draft=${draftId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${back}?avbrutt=1`,
     })
@@ -147,7 +160,8 @@ export async function POST(request: Request) {
     const { error: payErr } = await admin.from('production_payments').insert({
       draft_id: draftId,
       user_id: userId,
-      tier: 'registered',
+      // 'upgrade' leses av startProductionForDraft: engros = differansen
+      tier: upgrade ? 'upgrade' : 'registered',
       amount_ore: ore,
       stripe_session_id: session.id,
       status: 'pending',
@@ -160,7 +174,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Kunne ikke registrere betalingen: ${payErr.message}` }, { status: 500 })
     }
 
-    return NextResponse.json({ url: session.url, priceNok: kundePris })
+    return NextResponse.json({ url: session.url, priceNok: kundePris, upgrade })
   } catch (err) {
     console.error('[film-checkout] Error:', err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Noe gikk galt' }, { status: 500 })

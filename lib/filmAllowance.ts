@@ -25,7 +25,7 @@ export interface FilmAllowance {
   animLeft: number         // 12 − brukt (0 hvis blokken ikke er animert)
 }
 
-interface EventRow { id: string; created_at: string; meta: { jobId?: string; paid?: boolean; remake?: boolean; animated?: boolean; newClips?: number } | null }
+interface EventRow { id: string; created_at: string; meta: { jobId?: string; paid?: boolean; remake?: boolean; animated?: boolean; newClips?: number; upgrade?: boolean } | null }
 
 function admin() {
   return createClient(
@@ -53,14 +53,17 @@ export async function getFilmAllowance(productId: string): Promise<FilmAllowance
   }
   const empty: FilmAllowance = { total: rows.length, hasBlock: false, remakesUsed: 0, remakesLeft: 0, nextIsFree: false, blockAnimated: false, animUsed: 0, animLeft: 0 }
   if (rows.length === 0) return empty
-  // Blokkstart = siste betalte film; finnes ingen betalt, er første film starten
-  let start = 0
-  rows.forEach((r, i) => { if (r.meta?.paid === true) start = i })
-  const block = rows[start]
-  const after = rows.slice(start + 1)
+  // Blokkstart = siste betalte film; finnes ingen betalt, er første film starten.
+  // Oppgradering (Lars 5/9, meta.upgrade): en omgjøring kunden betalte
+  // differansen for → ANIMASJONSblokken starter der (full kvote), men
+  // omgjøringene telles videre fra den opprinnelige betalte filmen.
+  let start = 0       // omgjøringer
+  let animStart = 0   // animasjonskvote
+  rows.forEach((r, i) => { if (r.meta?.paid === true) { animStart = i; if (r.meta?.upgrade !== true) start = i } })
+  const block = rows[animStart]
   const blockAnimated = block.meta?.animated === true
-  const animUsed = after.reduce((s, r) => s + (Number(r.meta?.newClips) || 0), 0)
-  const remakesUsed = after.length
+  const animUsed = rows.slice(animStart + 1).reduce((s, r) => s + (Number(r.meta?.newClips) || 0), 0)
+  const remakesUsed = rows.length - 1 - start
   return {
     total: rows.length,
     hasBlock: true,

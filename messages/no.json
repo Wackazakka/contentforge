@@ -1124,7 +1124,10 @@
     "useDrawing": "Bruk tegningen",
     "drawingUsed": "✓ Tegningen brukes i filmen",
     "photoUsed": "✓ Fotoet brukes i filmen",
-    "tierFreeNow": "→ gratis omgjøring nå"
+    "tierFreeNow": "→ gratis omgjøring nå",
+    "upgradePrice": "oppgradering {price} kr",
+    "tierUpgradeNow": "→ oppgrader for {price} kr",
+    "animQuotaUpgrade": "Den betalte filmen var ikke animert. Oppgrader til animerte bilder for {price} kr — da følger {quota} nye animasjoner med til omgjøringene."
   },
   "occasion": {
     "back": "← Alle anledninger",
