@@ -481,6 +481,28 @@ export default function FilmPage() {
   }
 
   const busy = phase !== 'idle'
+  // Anslag paa nye animasjoner — speiler renderFilm: plakater som faar nytt
+  // bilde + stemningsbilder uten bilde fra foer + tegninger av egne foto.
+  // (Ekte foto faar ikke Kling-klipp.) Serveren avgjoer endelig (reuse-check).
+  const estNew = review ? (() => {
+    let n = 0
+    review.texts.forEach((x, i) => {
+      if (!x.trim()) return
+      const base = review.segments[i]
+      n += editMode ? ((review.regen[i] || !base?.image_url) ? 1 : 0) : 1
+    })
+    review.extraPrompts.forEach((pr) => { if (!editExtras.find((e) => e.image_prompt === pr)?.image_url) n += 1 })
+    if (!editMode) photos.forEach((p) => { const a = photoArt[p.url]; if (a?.url && !a.usePhoto) n += 1 })
+    return n
+  })() : 0
+  const overQuota = !!(tier === 'animated' && allowance?.billing && allowance.nextIsFree && allowance.blockAnimated && estNew > (allowance.animLeft ?? 0))
+  // Prisen staar i knappen (Lars 5/9): gratis omgjoering, eller beloepet
+  const priceLabel = (() => {
+    if (!allowance || !allowance.billing) return ''
+    const free = allowance.nextIsFree && (tier === 'still' || (allowance.blockAnimated && !overQuota))
+    if (free) return t('tierFree')
+    return `${tier === 'animated' && animatedPrice ? animatedPrice : (filmPrice ?? 149)} kr`
+  })()
   const chosenTrack = tracks.find((tr) => tr.filename === musicFile) || null
   const chosenDuration = musicFile ? (musicDuration ?? durationByFile[musicFile] ?? null) : null
 
@@ -668,6 +690,44 @@ export default function FilmPage() {
           <section ref={reviewRef} style={card}>
             <h2 style={h2}><span style={stepNo}>5</span>{t('reviewTitle')}</h2>
             <p style={hint}>{editMode ? t('reviewHintEdit') : t('reviewHint')}</p>
+            {/* Nivaa, pris og kvote OEVERST (Lars 5/9: «maatte scrolle ned for aa
+                se at jeg maatte betale») — og kvotestoppen vises FOER knappen. */}
+            {animatedPrice && (
+              <div style={{ marginTop: 4, marginBottom: 22 }}>
+                <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('tierLabel')}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+                  {([
+                    { key: 'still', label: t('tierStill'), desc: t('tierStillDesc'), price: filmPrice ?? 149 },
+                    { key: 'animated', label: t('tierAnimated'), desc: t('tierAnimatedDesc'), price: animatedPrice },
+                  ] as const).map((o) => (
+                    <button key={o.key} type="button" disabled={busy} onClick={() => setTier(o.key)}
+                      style={{ textAlign: 'left', fontFamily: HANKEN, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', background: tier === o.key ? 'var(--ember-tint-bg)' : 'var(--paper)', border: tier === o.key ? '2px solid var(--ember-deep)' : '1.5px solid var(--ds-border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{o.label}</span>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ember-deep)' }}>{allowance && !allowance.billing ? '' : allowance?.nextIsFree ? t('tierFree') : `${o.price} kr`}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{o.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {tier === 'animated' && allowance?.billing && allowance.nextIsFree && (
+              <p style={{ ...hint, margin: '12px 0 0', fontSize: 13.5 }}>
+                {allowance.blockAnimated
+                  ? t('animQuotaInfo', { needed: estNew, left: allowance.animLeft ?? 0 })
+                  : t('animQuotaNone')}
+              </p>
+            )}
+            {(quotaStop || overQuota) && (
+              <div style={{ background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', borderRadius: 12, padding: '14px 16px', fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.5, color: 'var(--ink)', marginTop: 16, marginBottom: 22 }}>
+                <p style={{ margin: '0 0 10px', fontWeight: 600 }}>{t('animQuotaStop', { needed: quotaStop?.needed ?? estNew, left: quotaStop?.left ?? (allowance?.animLeft ?? 0) })}</p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => { setTier('still'); setQuotaStop(null) }} style={{ ...ghostBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('animQuotaStill')}</button>
+                  <button type="button" onClick={() => renderFilm({ forcePay: true })} style={{ ...bigBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('animQuotaBuy', { price: animatedPrice ?? 249 })}</button>
+                </div>
+              </div>
+            )}
             {review.texts.map((tx, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
                 <span style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--text-faint)', width: 22, textAlign: 'right', flex: 'none' }}>{i + 1}</span>
@@ -730,42 +790,6 @@ export default function FilmPage() {
                 </div>
               </div>
             )}
-            {animatedPrice && (
-              <div style={{ marginTop: 22 }}>
-                <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('tierLabel')}</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
-                  {([
-                    { key: 'still', label: t('tierStill'), desc: t('tierStillDesc'), price: filmPrice ?? 149 },
-                    { key: 'animated', label: t('tierAnimated'), desc: t('tierAnimatedDesc'), price: animatedPrice },
-                  ] as const).map((o) => (
-                    <button key={o.key} type="button" disabled={busy} onClick={() => setTier(o.key)}
-                      style={{ textAlign: 'left', fontFamily: HANKEN, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', background: tier === o.key ? 'var(--ember-tint-bg)' : 'var(--paper)', border: tier === o.key ? '2px solid var(--ember-deep)' : '1.5px solid var(--ds-border)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{o.label}</span>
-                        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ember-deep)' }}>{allowance && !allowance.billing ? '' : allowance?.nextIsFree ? t('tierFree') : `${o.price} kr`}</span>
-                      </div>
-                      <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{o.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {tier === 'animated' && allowance?.billing && allowance.nextIsFree && (
-              <p style={{ ...hint, margin: '12px 0 0', fontSize: 13.5 }}>
-                {allowance.blockAnimated
-                  ? t('animQuotaInfo', { needed: editMode ? review.regen.filter(Boolean).length : review.texts.filter((x) => x.trim()).length, left: allowance.animLeft ?? 0 })
-                  : t('animQuotaNone')}
-              </p>
-            )}
-            {quotaStop && (
-              <div style={{ background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', borderRadius: 12, padding: '14px 16px', fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.5, color: 'var(--ink)', marginTop: 16 }}>
-                <p style={{ margin: '0 0 10px', fontWeight: 600 }}>{t('animQuotaStop', { needed: quotaStop.needed, left: quotaStop.left })}</p>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button type="button" onClick={() => { setTier('still'); setQuotaStop(null) }} style={{ ...ghostBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('animQuotaStill')}</button>
-                  <button type="button" onClick={() => renderFilm({ forcePay: true })} style={{ ...bigBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('animQuotaBuy', { price: animatedPrice ?? 249 })}</button>
-                </div>
-              </div>
-            )}
             <div style={{ textAlign: 'center', marginTop: 22 }}>
               {busy ? (
                 <div style={{ fontFamily: HANKEN, fontSize: 15.5, color: 'var(--ink)' }}>
@@ -777,7 +801,7 @@ export default function FilmPage() {
                   <p style={{ ...hint, margin: '10px 0 0', fontSize: 13.5 }}>{t('stayOnPage')}</p>
                 </div>
               ) : (
-                <button type="button" onClick={() => renderFilm()} style={{ ...bigBtn, fontSize: 18, padding: '16px 34px' }}>🎬 {t('makeFilm')}</button>
+                <button type="button" onClick={() => renderFilm()} disabled={overQuota} style={{ ...bigBtn, fontSize: 18, padding: '16px 34px', opacity: overQuota ? 0.45 : 1 }}>🎬 {t('makeFilm')}{priceLabel ? ` · ${priceLabel}` : ''}</button>
               )}
             </div>
           </section>
