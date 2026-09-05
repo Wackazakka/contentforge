@@ -150,6 +150,16 @@ export default function OccasionSimplePage({ productId }: { productId: string })
     )
   }
 
+  const hasFilms = done.length > 0 || active.length > 0
+  const makeCard = (
+    <section style={{ ...card, textAlign: 'center', padding: 34 }}>
+      <div style={{ fontSize: 40, marginBottom: 10 }} aria-hidden="true">🎬</div>
+      <h2 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 21, color: 'var(--ink)', margin: '0 0 8px' }}>{hasFilms ? t('makeAnotherTitle') : t('makeFirstTitle')}</h2>
+      <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 auto 20px', maxWidth: 420 }}>{hasFilms ? t('makeAnotherHint') : t('makeHint')}</p>
+      <Link href={`/dashboard/products/${productId}/film`} style={bigBtn}>{t('makeFilm')}</Link>
+    </section>
+  )
+
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -166,12 +176,10 @@ export default function OccasionSimplePage({ productId }: { productId: string })
           {product.description && <p style={{ fontFamily: HANKEN, fontSize: 15.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '12px 0 0' }}>{product.description}</p>}
         </div>
 
-        <section style={{ ...card, textAlign: 'center', padding: 34 }}>
-          <div style={{ fontSize: 40, marginBottom: 10 }} aria-hidden="true">🎬</div>
-          <h2 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 21, color: 'var(--ink)', margin: '0 0 8px' }}>{done.length ? t('makeAnotherTitle') : t('makeFirstTitle')}</h2>
-          <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 auto 20px', maxWidth: 420 }}>{t('makeHint')}</p>
-          <Link href={`/dashboard/products/${productId}/film`} style={bigBtn}>{t('makeFilm')}</Link>
-        </section>
+        {/* Finnes det en film, kommer den FOERST (Lars 5/9: «et sted burde det
+            staa at jeg kan gjoere endringer uten aa starte helt paa nytt»).
+            «Lag film»-kortet flyttes under filmene og forklarer forskjellen. */}
+        {!hasFilms && makeCard}
 
         {unfinished.length > 0 && (
           <section style={{ ...card, background: 'var(--ember-tint-bg)', borderColor: 'var(--ember-tint-border)' }}>
@@ -217,7 +225,8 @@ export default function OccasionSimplePage({ productId }: { productId: string })
 
         {done.length > 0 && (
           <section style={card}>
-            <h2 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 18, color: 'var(--ink)', margin: '0 0 16px' }}>{t('yourFilms', { count: done.length })}</h2>
+            <h2 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 18, color: 'var(--ink)', margin: '0 0 6px' }}>{t('yourFilms', { count: done.length })}</h2>
+            <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 16px' }}>{t('yourFilmsHint')}</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 18 }}>
               {done.map((j) => {
                 const url = videoUrlOf(j) as string
@@ -244,6 +253,7 @@ export default function OccasionSimplePage({ productId }: { productId: string })
             <p style={{ fontFamily: HANKEN, fontSize: 13.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '16px 0 0' }}>{t('shareHint')}</p>
           </section>
         )}
+        {hasFilms && makeCard}
       </div>
     </div>
   )

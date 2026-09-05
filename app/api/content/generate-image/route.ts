@@ -27,6 +27,9 @@ interface GenerateImageRequest {
   imageStyle?: 'tech' | 'cinematic' | 'warm' | 'surreal' | 'manga' | 'papercut'
   character?: string
   draftId?: string
+  // Ropert (5/9): kundens eget foto som utgangspunkt for en tegning i samme
+  // stil — images/edits med input_fidelity=high beholder trekkene.
+  referenceImageUrl?: string
 }
 
 // Anonyme drafts: tak på antall bildegenereringer (hindrer API-brenning før betaling)
@@ -88,6 +91,43 @@ async function generateImageBuffer(topic: string, imageSize: string = '1024x1024
   const b64 = data.data?.[0]?.b64_json
   if (!b64) throw new Error('No image data in OpenAI response')
 
+  return Buffer.from(b64, 'base64')
+}
+
+// Tegning av en person fra kundens foto (Lars 5/9): fotoet sendes som
+// referanse til images/edits, stilen er den samme som resten av filmen.
+// Likheten blir omtrentlig (haar, briller, ansiktsform, klesfarger) — kunden
+// ser resultatet i «Plakatene dine» og kan velge fotoet i stedet.
+async function editImageBuffer(topic: string, referenceImageUrl: string, imageSize: string, imageStyle?: string): Promise<Buffer> {
+  if (!referenceImageUrl.startsWith(R2_PUBLIC_URL + '/')) throw new Error('Referansebildet må være et opplastet bilde')
+  const src = await fetch(referenceImageUrl, { signal: AbortSignal.timeout(10000) })
+  if (!src.ok) throw new Error('Kunne ikke hente referansebildet')
+  const ct = (src.headers.get('content-type') || 'image/jpeg').split(';')[0]
+  const ab = await src.arrayBuffer()
+  if (ab.byteLength > 12 * 1024 * 1024) throw new Error('Referansebildet er for stort')
+  const styleGuide = (imageStyle && VIDEO_STYLE_PROMPTS[imageStyle]) ? VIDEO_STYLE_PROMPTS[imageStyle] : VIDEO_STYLE_PROMPTS.papercut
+  const prompt = styleGuide + ' Redraw the person in the reference photo as a stylised figure in exactly this style: keep their recognisable features (hair colour and style, glasses, face shape, skin tone, clothing colours) but rendered as flat layered paper with simplified features — an illustration, never a photograph. Scene: ' + topic + ' No text, letters, words, or typography in the image.'
+  const fd = new FormData()
+  fd.append('model', 'gpt-image-1')
+  fd.append('image', new Blob([ab], { type: ct }), ct.includes('png') ? 'reference.png' : ct.includes('webp') ? 'reference.webp' : 'reference.jpg')
+  fd.append('prompt', prompt)
+  fd.append('size', imageSize)
+  fd.append('quality', 'low')
+  fd.append('input_fidelity', 'high')
+  fd.append('n', '1')
+  console.log('[generateImage] Calling gpt-image-1 edits (reference photo) for: ' + topic)
+  const response = await fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + (OPENAI_API_KEY || '') },
+    body: fd,
+  })
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error('OpenAI image edit error: ' + response.status + ' ' + response.statusText + ' — ' + JSON.stringify(errorData))
+  }
+  const data = await response.json()
+  const b64 = data.data?.[0]?.b64_json
+  if (!b64) throw new Error('No image data in OpenAI response')
   return Buffer.from(b64, 'base64')
 }
 
@@ -226,7 +266,7 @@ async function uploadBufferToR2(imageBuffer: Buffer, fileName: string): Promise<
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateImageRequest = await request.json()
-    const { topic, productId, logoUrl, articleIds, imageSize = '1024x1024', imageStyle, character, draftId } = body
+    const { topic, productId, logoUrl, articleIds, imageSize = '1024x1024', imageStyle, character, draftId, referenceImageUrl } = body
 
     if (!topic || !productId) {
       return NextResponse.json({ error: 'Missing topic or productId' }, { status: 400 })
@@ -264,7 +304,9 @@ export async function POST(request: NextRequest) {
 
     let imageBuffer = character
       ? await generateCharacterImageBuffer(topic, character, imageSize)
-      : await generateImageBuffer(topic, imageSize, imageStyle)
+      : referenceImageUrl
+        ? await editImageBuffer(topic, String(referenceImageUrl), imageSize, imageStyle)
+        : await generateImageBuffer(topic, imageSize, imageStyle)
 
     // Composite product logo onto bottom-right if provided
     if (logoUrl) {

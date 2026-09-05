@@ -1017,7 +1017,7 @@
     "uploading": "Uploading …",
     "uploadFailed": "The upload failed. Please try again.",
     "step2Title": "The pictures",
-    "step2Hint": "Pick pictures from your phone or computer — of the person, of you, of the place. Feel free to pick many — eight or more give a film with no repeats.",
+    "step2Hint": "Pick pictures from your phone or computer — of the person, of you, of the place. Each picture appears once; the rest of the film is filled with illustrations in the style of the occasion.",
     "addPhotos": "Add pictures",
     "morePhotos": "Add more pictures",
     "removePhoto": "Remove picture",
@@ -1113,14 +1113,24 @@
     "animQuotaBuy": "Buy a new animated film ({price} kr)",
     "paidImagesTitle": "Paid! Now creating the pictures …",
     "failedTitle": "This did not work",
-    "retryFinish": "Try to finish again"
+    "retryFinish": "Try to finish again",
+    "ownPhotosTitle": "Your pictures",
+    "ownPhotosHint": "Each picture appears once in the film, as it is. If you would rather have a drawing in the same style as the rest, we make one from the picture. The picture is then sent to OpenAI to make the drawing, and the likeness is approximate — you choose what gets used.",
+    "makeDrawing": "Make a drawing in the same style",
+    "drawingBusy": "Drawing … this takes about half a minute.",
+    "drawingFailed": "The drawing failed. Try again.",
+    "drawingRetry": "Try again ({left} left)",
+    "usePhoto": "Use the photo instead",
+    "useDrawing": "Use the drawing",
+    "drawingUsed": "✓ The drawing is used in the film",
+    "photoUsed": "✓ The photo is used in the film"
   },
   "occasion": {
     "back": "← All occasions",
     "notFound": "Could not find the occasion.",
     "created": "Added {date}",
     "makeFirstTitle": "Make a film for the occasion",
-    "makeAnotherTitle": "Make another film",
+    "makeAnotherTitle": "Make a brand new film",
     "makeHint": "Your song, your pictures and a short text — and you have a film you can send to everyone.",
     "makeFilm": "🎬 Make a film",
     "inProgress": "Being made now",
@@ -1139,6 +1149,8 @@
     "editPosters": "✏️ Edit the posters",
     "unfinishedTitle": "Paid, but not finished",
     "unfinishedHint": "You paid for this film but it was not completed. Press to create the pictures and start the film.",
-    "finishFilm": "Finish the film"
+    "finishFilm": "Finish the film",
+    "makeAnotherHint": "Just want to change something in the film you have? Use “Edit the posters” under the film — it is free. This button starts from the beginning.",
+    "yourFilmsHint": "Want to change something? Press “Edit the posters” — the song, pictures and form are kept, and you go straight to the texts. Text changes cost nothing."
   }
 }

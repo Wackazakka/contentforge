@@ -12,6 +12,7 @@ import { uploadTrack, TRACK_UPLOAD_MAX_BYTES } from '@/lib/uploadTrack'
 import { filmPricing } from '@/lib/verticals'
 import { fillMissingImages, type FilmSeg } from '@/lib/filmImages'
 import { defaultTrackFor, trackDisplayName } from '@/lib/filmMusic'
+import { personPromptFor, DRAWING_MAX_TRIES } from '@/lib/filmPersonPrompt'
 
 // Den enkle filmflyten (Standard Ropert, Lars 4/9): sang → bilder → tekst →
 // film. Ingen segmentredigering, ingen stemmevalg, ingen taxameter. Sangen
@@ -23,7 +24,7 @@ const SERIF = 'var(--font-serif), serif'
 
 type Phase = 'idle' | 'clipping' | 'writing' | 'saving' | 'images' | 'paying' | 'starting'
 
-type Seg = { index: number; text: string; voiceover?: string; image_url: string; image_prompt?: string; no_voice?: boolean; match_music?: boolean; simple_film?: boolean; motion?: string; motion_style?: string; motion_prompt?: string; style_lock?: boolean; hold_seconds?: number; approved?: boolean }
+type Seg = { index: number; text: string; voiceover?: string; image_url: string; image_prompt?: string; no_voice?: boolean; match_music?: boolean; simple_film?: boolean; motion?: string; motion_style?: string; motion_prompt?: string; style_lock?: boolean; hold_seconds?: number; approved?: boolean; own_photo?: boolean; source_photo?: string }
 
 // Nivaa 2 (Lars 5/9): papirklippet settes i bevegelse med Kling — stille
 // stop-motion, ikke kamerakjoering, og aldri fotorealisme.
@@ -123,6 +124,10 @@ export default function FilmPage() {
 
   // Bilder
   const [photos, setPhotos] = useState<Array<{ url: string; name: string }>>([])
+  // Tegning av kunden (Lars 5/9): fotoet som utgangspunkt for en figur i
+  // samme stil. Per foto: tegningen, antall forsoek, og om fotoet skal
+  // brukes i stedet. Egne bilder vises én gang hver uansett.
+  const [photoArt, setPhotoArt] = useState<Record<string, { url: string | null; tries: number; usePhoto: boolean; busy: boolean; error: boolean }>>({})
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [photoError, setPhotoError] = useState<string | null>(null)
 
@@ -344,6 +349,26 @@ export default function FilmPage() {
     }
   }
 
+  const makeDrawing = async (photoUrl: string) => {
+    if (!review) return
+    const cur = photoArt[photoUrl] || { url: null, tries: 0, usePhoto: false, busy: false, error: false }
+    if (cur.busy || cur.tries >= DRAWING_MAX_TRIES) return
+    setPhotoArt((prev) => ({ ...prev, [photoUrl]: { ...cur, busy: true, error: false } }))
+    try {
+      const r = await fetch('/api/content/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: personPromptFor(category), productId, imageSize: '1024x1536', imageStyle: 'papercut', draftId: review.draftId, referenceImageUrl: photoUrl }),
+        signal: AbortSignal.timeout(58000),
+      })
+      const d = await r.json().catch(() => null)
+      if (!r.ok || !d?.imageUrl) throw new Error(d?.error || 'failed')
+      setPhotoArt((prev) => ({ ...prev, [photoUrl]: { url: d.imageUrl, tries: cur.tries + 1, usePhoto: false, busy: false, error: false } }))
+    } catch {
+      setPhotoArt((prev) => ({ ...prev, [photoUrl]: { ...cur, tries: cur.tries + 1, busy: false, error: true } }))
+    }
+  }
+
   const renderFilm = async (opts?: { forcePay?: boolean }) => {
     if (phase !== 'idle' || !review) return
     setError(null); setQuotaStop(null)
@@ -371,26 +396,37 @@ export default function FilmPage() {
           index: k,
           text,
           voiceover: base.voiceover ? (sameText ? base.voiceover : text) : '',
-          image_url: keepImage ? (base.image_url || '') : (editMode ? '' : (photos.length > 0 ? photos[k % photos.length].url : '')),
+          image_url: keepImage ? (base.image_url || '') : '',
           image_prompt: keepImage ? (base.image_prompt || '') : '',
           clip_nonce: keepImage ? (base as Seg & { clip_nonce?: string }).clip_nonce : undefined,
           approved: true,
           simple_film: true,
         } as Seg
       })
-      // Stemningsbilder uten tekst (5/9): ekstra scener som bare gir bilder til
-      // renderen, saa ingen bilder gjentas. Bare naar kunden ikke har egne bilder.
-      if (photos.length === 0 || editMode) {
-        review.extraPrompts.forEach((pr) => {
-          const prev = editExtras.find((e) => e.image_prompt === pr)
-          segments.push({ index: segments.length, text: '', voiceover: '', image_url: prev?.image_url || '', image_prompt: pr, no_voice: true, match_music: prev?.match_music ?? !!musicFile, simple_film: true, approved: true } as Seg)
+      // Egne bilder (Lars 5/9: «ett foto ble brukt seks ganger»): én scene uten
+      // tekst per bilde — fotoet slik det er, eller tegningen kunden godkjente.
+      // Legges tidlig (etter aapningen og «hvem») saa personen kommer foerst.
+      // I redigeringsmodus beholdes forrige films bildescener uendret.
+      const photoSegs: Seg[] = editMode
+        ? editExtras.filter((e) => e.source_photo)
+        : photos.map((p) => {
+          const art = photoArt[p.url]
+          const useArt = !!art?.url && !art.usePhoto
+          return { index: 0, text: '', voiceover: '', image_url: useArt ? String(art?.url) : p.url, image_prompt: '', no_voice: true, match_music: !!musicFile, simple_film: true, approved: true, own_photo: !useArt, source_photo: p.url } as Seg
         })
-      }
+      segments.splice(Math.min(2, segments.length), 0, ...photoSegs)
+      // Stemningsbilder uten tekst (5/9): ekstra scener som bare gir bilder til
+      // renderen, saa ingen bilder gjentas.
+      review.extraPrompts.forEach((pr) => {
+        const prev = editExtras.find((e) => e.image_prompt === pr)
+        segments.push({ index: segments.length, text: '', voiceover: '', image_url: prev?.image_url || '', image_prompt: pr, no_voice: true, match_music: prev?.match_music ?? !!musicFile, simple_film: true, approved: true } as Seg)
+      })
+      segments = segments.map((sg, i) => ({ ...sg, index: i }))
       // Animert nivaa: hvert bilde faar et bevegelsesklipp (kling), 4 s hviletid
       // saa hvert klipp er ETT 5-sekunders Kling-kall
       const animert = tier === 'animated' && !!animatedPrice
       if (animert) {
-        segments = segments.map((sg) => ({ ...sg, motion: 'move', motion_style: 'custom', motion_prompt: MOTION_PROMPT, style_lock: true, hold_seconds: 4 }))
+        segments = segments.map((sg) => (sg.own_photo ? sg : { ...sg, motion: 'move', motion_style: 'custom', motion_prompt: MOTION_PROMPT, style_lock: true, hold_seconds: 4 }))
       }
       const { error: saveErr } = await getSupabase().from('production_drafts').update({ segments, ai_motion: animert, ai_motion_engine: animert ? 'kling' : null }).eq('id', draftId)
       if (saveErr) throw new Error(saveErr.message)
@@ -654,6 +690,46 @@ export default function FilmPage() {
                 style={{ ...ghostBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('addPoster')}</button>
               <span style={{ ...hint, margin: 0, fontSize: 13.5 }}>{t('posterCount', { count: review.texts.filter((x) => x.trim()).length })}</span>
             </div>
+            {!editMode && photos.length > 0 && (
+              <div style={{ marginTop: 22 }}>
+                <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 4px' }}>{t('ownPhotosTitle')}</p>
+                <p style={{ ...hint, margin: '0 0 12px', fontSize: 13.5 }}>{t('ownPhotosHint')}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12 }}>
+                  {photos.map((p) => {
+                    const art = photoArt[p.url]
+                    const left = DRAWING_MAX_TRIES - (art?.tries || 0)
+                    const usingArt = !!art?.url && !art.usePhoto
+                    return (
+                      <div key={p.url} style={{ border: '1.5px solid var(--ds-border)', borderRadius: 12, padding: 10, background: 'var(--paper)' }}>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={p.url} alt="" style={{ width: 90, height: 120, objectFit: 'cover', borderRadius: 8, border: usingArt ? '1px solid var(--ds-border)' : '2px solid var(--ember-deep)' }} />
+                          {art?.url && (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={art.url} alt="" style={{ width: 90, height: 120, objectFit: 'cover', borderRadius: 8, border: usingArt ? '2px solid var(--ember-deep)' : '1px solid var(--ds-border)' }} />
+                          )}
+                          {art?.busy && <div className="cf-spinner" style={{ margin: 'auto' }} />}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                          {!art?.url && !art?.busy && left > 0 && (
+                            <button type="button" disabled={busy} onClick={() => makeDrawing(p.url)} style={{ ...ghostBtn, padding: '8px 14px', fontSize: 13.5, justifyContent: 'center' }}>{t('makeDrawing')}</button>
+                          )}
+                          {art?.busy && <span style={{ ...hint, margin: 0, fontSize: 13 }}>{t('drawingBusy')}</span>}
+                          {art?.error && !art.busy && <span style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--ember-deep)' }}>{t('drawingFailed')}</span>}
+                          {art?.url && !art.busy && (
+                            <>
+                              <button type="button" disabled={busy} onClick={() => setPhotoArt((prev) => ({ ...prev, [p.url]: { ...prev[p.url], usePhoto: !prev[p.url].usePhoto } }))} style={{ ...ghostBtn, padding: '8px 14px', fontSize: 13.5, justifyContent: 'center' }}>{usingArt ? t('usePhoto') : t('useDrawing')}</button>
+                              {left > 0 && <button type="button" disabled={busy} onClick={() => makeDrawing(p.url)} style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>{t('drawingRetry', { left })}</button>}
+                              <span style={{ ...hint, margin: 0, fontSize: 12.5 }}>{usingArt ? t('drawingUsed') : t('photoUsed')}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
             {animatedPrice && (
               <div style={{ marginTop: 22 }}>
                 <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('tierLabel')}</p>

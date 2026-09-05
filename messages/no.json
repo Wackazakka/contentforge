@@ -1017,7 +1017,7 @@
     "uploading": "Laster opp …",
     "uploadFailed": "Opplastingen feilet. Prøv igjen.",
     "step2Title": "Bildene",
-    "step2Hint": "Velg bilder fra telefonen eller maskinen din — av den som feires, av dere, av stedet. Velg gjerne mange — åtte eller flere gir en film uten gjentakelser.",
+    "step2Hint": "Velg bilder fra telefonen eller maskinen din — av den som feires, av dere, av stedet. Hvert bilde vises én gang; resten av filmen fylles med illustrasjoner i anledningens stil.",
     "addPhotos": "Legg til bilder",
     "morePhotos": "Legg til flere bilder",
     "removePhoto": "Fjern bildet",
@@ -1113,14 +1113,24 @@
     "animQuotaBuy": "Kjøp ny animert film ({price} kr)",
     "paidImagesTitle": "Betalt! Nå lages bildene …",
     "failedTitle": "Dette gikk ikke",
-    "retryFinish": "Prøv å fullføre igjen"
+    "retryFinish": "Prøv å fullføre igjen",
+    "ownPhotosTitle": "Bildene dine",
+    "ownPhotosHint": "Hvert bilde vises én gang i filmen, slik det er. Vil du heller ha en tegning i samme stil som resten, lager vi en ut fra bildet. Bildet sendes da til OpenAI for å lage tegningen, og likheten blir omtrentlig — du velger selv hva som brukes.",
+    "makeDrawing": "Lag en tegning i samme stil",
+    "drawingBusy": "Tegner … dette tar et halvt minutt.",
+    "drawingFailed": "Tegningen feilet. Prøv igjen.",
+    "drawingRetry": "Nytt forsøk ({left} igjen)",
+    "usePhoto": "Bruk fotoet i stedet",
+    "useDrawing": "Bruk tegningen",
+    "drawingUsed": "✓ Tegningen brukes i filmen",
+    "photoUsed": "✓ Fotoet brukes i filmen"
   },
   "occasion": {
     "back": "← Alle anledninger",
     "notFound": "Fant ikke anledningen.",
     "created": "Lagt til {date}",
     "makeFirstTitle": "Lag film til anledningen",
-    "makeAnotherTitle": "Lag en film til",
+    "makeAnotherTitle": "Lag en helt ny film",
     "makeHint": "Sangen din, bildene dine og en kort tekst — så har du en film du kan sende til alle.",
     "makeFilm": "🎬 Lag film",
     "inProgress": "Lages nå",
@@ -1139,6 +1149,8 @@
     "editPosters": "✏️ Rediger plakatene",
     "unfinishedTitle": "Betalt, men ikke ferdig",
     "unfinishedHint": "Du betalte for denne filmen, men den ble ikke fullført. Trykk for å lage bildene og starte filmen.",
-    "finishFilm": "Fullfør filmen"
+    "finishFilm": "Fullfør filmen",
+    "makeAnotherHint": "Vil du bare endre noe i filmen du har? Bruk «Rediger plakatene» under filmen — det er gratis. Denne knappen starter helt fra begynnelsen.",
+    "yourFilmsHint": "Vil du endre noe? Trykk «Rediger plakatene» — sangen, bildene og skjemaet beholdes, og du går rett til tekstene. Tekstendringer koster ingenting."
   }
 }
