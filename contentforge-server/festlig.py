@@ -101,7 +101,29 @@ def wrap(draw, text, font, maxw):
     if cur: lines.append(cur)
     return lines
 
-def card(text, bg, fg, accent, path, size=170, tilt=0, stripes=False, dots=False, ring=False):
+def _lum(c):
+    def ch(v):
+        v = v / 255.0
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    return 0.2126 * ch(c[0]) + 0.7152 * ch(c[1]) + 0.0722 * ch(c[2])
+
+def _contrast(a, b):
+    la, lb = _lum(a), _lum(b)
+    hi, lo = max(la, lb), min(la, lb)
+    return (hi + 0.05) / (lo + 0.05)
+
+def pick_fg(bg, fg, pal):
+    """Lesbar tekstfarge (Lars 5/9: lilla paa moerk lilla var uleselig).
+    Beholder oensket farge om kontrasten holder (>= 4.5), ellers den i
+    paletten med best kontrast mot bakgrunnen — hvitt/svart som siste utvei."""
+    if _contrast(bg, fg) >= 4.5:
+        return fg
+    cands = list(pal.values()) + [(255, 255, 255), (20, 16, 24)]
+    return max(cands, key=lambda c: _contrast(bg, c))
+
+def card(text, bg, fg, accent, path, size=170, tilt=0, stripes=False, dots=False, ring=False, pal=None):
+    if pal:
+        fg = pick_fg(bg, fg, pal)
     img = Image.new('RGB', (W, H), bg)
     d = ImageDraw.Draw(img)
     if stripes:
@@ -220,7 +242,7 @@ def build(cfg):
         bg, fg, acc, kw = CARD_STYLES[i % len(CARD_STYLES)]
         if i == 0: bg, fg, acc, kw = CARD_STYLES[0]
         p = os.path.join(work, f'kort{i}.png')
-        card(txt, pal[bg], pal[fg], pal[acc], p, **kw); card_png.append(p)
+        card(txt, pal[bg], pal[fg], pal[acc], p, pal=pal, **kw); card_png.append(p)
 
     # Visuelle kilder i rotasjon: bilder (og klipp naar de finnes).
     visuals = []  # ('photo', path) | ('video', path)

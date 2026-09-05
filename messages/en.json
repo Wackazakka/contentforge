@@ -1092,7 +1092,10 @@
     "removePoster": "Remove poster",
     "posterCount": "{count} posters",
     "needPosters": "The film needs at least two posters.",
-    "phaseSaving": "Saving the posters …"
+    "phaseSaving": "Saving the posters …",
+    "editModeTitle": "You are editing the posters of a finished film",
+    "editModeHint": "The song, pictures and length are kept from the previous film. Fix the texts below and press “Make the film” — it counts as a remake.",
+    "editModeStartOver": "Start over from scratch instead"
   },
   "occasion": {
     "back": "← All occasions",
@@ -1114,6 +1117,7 @@
     "copied": "Link copied!",
     "copyManually": "Copy this link:",
     "shareHint": "Download the film and send it on Messenger, WhatsApp or e-mail, or post it on Facebook. “Share link” gives you a link straight to the film.",
-    "deleteConfirm": "Delete this film? This cannot be undone."
+    "deleteConfirm": "Delete this film? This cannot be undone.",
+    "editPosters": "✏️ Edit the posters"
   }
 }
