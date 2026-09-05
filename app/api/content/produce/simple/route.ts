@@ -152,9 +152,10 @@ export async function POST(request: NextRequest) {
     if (!productId) return NextResponse.json({ error: 'productId mangler' }, { status: 400 })
     // Stemme og biblioteksmusikk gjelder bare UTEN egen sang (sangen har vokal)
     const voiceId = !musicFile && isFilmVoice(body.voiceId) ? String(body.voiceId) : null
+    // Delt bibliotek, eller et klipp av det som ligger i produktets egen mappe
     const libraryMusic = !musicFile && typeof body.libraryMusic === 'string'
       && /^[a-z0-9-]+\/[^/]+$/.test(body.libraryMusic)
-      && !/^(tracks|jingles)-/.test(body.libraryMusic)
+      && (!/^(tracks|jingles)-/.test(body.libraryMusic) || body.libraryMusic.startsWith(`tracks-${productId}/`))
       ? body.libraryMusic : null
 
     // Eierskap: brukerens eget token mot RLS paa products.

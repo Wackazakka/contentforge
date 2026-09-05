@@ -283,9 +283,13 @@ export default function FilmPage() {
       if (!tk) throw new Error(t('mustSignIn'))
       let useMusic = musicFile
       let dur = musicFile ? (musicDuration ?? durationByFile[musicFile] ?? null) : null
+      // Biblioteksmusikk (5/9): lengdevalget gjelder ogsaa der — klippet
+      // legges i produktets egen mappe og sendes som libraryMusic.
+      let useLibrary = !musicFile && mode !== 'silent' ? libraryMusic : null
+      const musicSource = musicFile || useLibrary
       // Kortere film enn sangen: klipp sangen foerst (dropleten lager en fil
       // med uttoning; «film = musikkens lengde» gir da riktig lengde)
-      if (musicFile && filmLength !== 'full') {
+      if (musicSource && filmLength !== 'full') {
         // Hver plakat trenger ~3 s + et bilde imellom: mange svar i skjemaet
         // krever lengre film enn valgt. Forleng til naermeste 30 s, innenfor sangen.
         const filled = DETAIL_KEYS.filter((k) => details[k].trim()).length + 2
@@ -298,11 +302,12 @@ export default function FilmPage() {
           const cr = await fetch('/api/music/clip', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` },
-            body: JSON.stringify({ productId, filename: musicFile, clipSec: wanted, startSec: 0 }),
+            body: JSON.stringify({ productId, filename: musicSource, clipSec: wanted, startSec: 0 }),
           })
           const cd = await cr.json().catch(() => null)
           if (!cr.ok || !cd?.file?.filename) throw new Error(cd?.error || t('failed'))
-          useMusic = cd.file.filename
+          if (musicFile) useMusic = cd.file.filename
+          else useLibrary = cd.file.filename
           dur = cd.clipSec
         }
       }
@@ -320,7 +325,7 @@ export default function FilmPage() {
           photos: photos.map((p) => p.url),
           locale,
           voiceId: !musicFile && mode === 'voice' ? voiceId : null,
-          libraryMusic: !musicFile && mode !== 'silent' ? libraryMusic : null,
+          libraryMusic: useLibrary,
         }),
       })
       const data = await res.json().catch(() => null)
@@ -491,8 +496,8 @@ export default function FilmPage() {
               <audio controls preload="none" src={musicSrc(chosenTrack.filename)} style={{ height: 34, maxWidth: 220 }} />
             </div>
           ) : null}
-          {chosenTrack && (
-            <div style={{ marginBottom: 14 }}>
+          {(chosenTrack || (mode !== 'silent' && libraryMusic)) && (
+            <div style={{ marginBottom: 14, marginTop: chosenTrack ? 0 : 14 }}>
               <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('lengthLabel')}</p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {([['30', t('length30')], ['60', t('length60')], ['full', t('lengthFull')]] as const).map(([v, label]) => (
