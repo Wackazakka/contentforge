@@ -1124,7 +1124,10 @@
     "useDrawing": "Use the drawing",
     "drawingUsed": "✓ The drawing is used in the film",
     "photoUsed": "✓ The photo is used in the film",
-    "tierFreeNow": "→ free remake now"
+    "tierFreeNow": "→ free remake now",
+    "upgradePrice": "upgrade {price} kr",
+    "tierUpgradeNow": "→ upgrade for {price} kr",
+    "animQuotaUpgrade": "The paid film was not animated. Upgrade to animated pictures for {price} kr — {quota} new animations for remakes come with it."
   },
   "occasion": {
     "back": "← All occasions",

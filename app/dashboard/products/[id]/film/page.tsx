@@ -66,7 +66,7 @@ export default function FilmPage() {
   const tenant = useTenant()
   const filmPrice = filmPricing(tenant.vertical)?.customerPriceNok ?? null
   // Hva koster NESTE film? Betalt film → 3 gratis omgjøringer (4/9).
-  const [allowance, setAllowance] = useState<{ billing: boolean; nextIsFree: boolean; freeLeft: number; freeRemakes: number; animatedPriceNok?: number | null; blockAnimated?: boolean; animLeft?: number; animQuota?: number } | null>(null)
+  const [allowance, setAllowance] = useState<{ billing: boolean; nextIsFree: boolean; freeLeft: number; freeRemakes: number; animatedPriceNok?: number | null; blockAnimated?: boolean; animLeft?: number; animQuota?: number; upgradePriceNok?: number | null } | null>(null)
   // Kvoten er brukt opp: kunden velger «bilder med bevegelse» gratis, eller kjøper ny animert film
   const [quotaStop, setQuotaStop] = useState<{ needed: number; left: number } | null>(null)
   // Nivaa: 'still' = bilder med langsom bevegelse (149), 'animated' = Kling-klipp (249)
@@ -498,8 +498,12 @@ export default function FilmPage() {
   })() : 0
   const overQuota = !!(tier === 'animated' && allowance?.billing && allowance.nextIsFree && allowance.blockAnimated && estNew > (allowance.animLeft ?? 0))
   // Prisen staar i knappen (Lars 5/9): gratis omgjoering, eller beloepet
+  // Oppgradering (Lars 5/9): gratis omgjoering av stillbildefilm → animert
+  // koster differansen (249 − 149), og blokken blir animert med full kvote
+  const upgradeOffer = !!(allowance?.billing && allowance.nextIsFree && !allowance.blockAnimated && animatedPrice && allowance.upgradePriceNok)
   const priceLabel = (() => {
     if (!allowance || !allowance.billing) return ''
+    if (tier === 'animated' && upgradeOffer) return t('upgradePrice', { price: allowance.upgradePriceNok ?? 0 })
     const free = allowance.nextIsFree && (tier === 'still' || (allowance.blockAnimated && !overQuota))
     if (free) return t('tierFree')
     return `${tier === 'animated' && animatedPrice ? animatedPrice : (filmPrice ?? 149)} kr`
@@ -711,6 +715,9 @@ export default function FilmPage() {
                           {allowance?.billing && allowance.nextIsFree && (o.key === 'still' || allowance.blockAnimated) && (
                             <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600 }}>{t('tierFreeNow')}</span>
                           )}
+                          {o.key === 'animated' && upgradeOffer && (
+                            <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600 }}>{t('tierUpgradeNow', { price: allowance?.upgradePriceNok ?? 0 })}</span>
+                          )}
                         </span>
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{o.desc}</div>
@@ -723,7 +730,7 @@ export default function FilmPage() {
               <p style={{ ...hint, margin: '12px 0 0', fontSize: 13.5 }}>
                 {allowance.blockAnimated
                   ? t('animQuotaInfo', { needed: estNew, left: allowance.animLeft ?? 0 })
-                  : t('animQuotaNone')}
+                  : t('animQuotaUpgrade', { price: allowance.upgradePriceNok ?? 0, quota: allowance.animQuota ?? 16 })}
               </p>
             )}
             {(quotaStop || overQuota) && (
