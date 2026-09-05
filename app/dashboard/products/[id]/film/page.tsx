@@ -70,7 +70,8 @@ export default function FilmPage() {
   // Kvoten er brukt opp: kunden velger «bilder med bevegelse» gratis, eller kjøper ny animert film
   const [quotaStop, setQuotaStop] = useState<{ needed: number; left: number } | null>(null)
   // Nivaa: 'still' = bilder med langsom bevegelse (149), 'animated' = Kling-klipp (249)
-  const [tier, setTier] = useState<'still' | 'animated'>('still')
+  // Animert er standard (Lars 5/9); «Bilder med bevegelse» er det rimelige valget
+  const [tier, setTier] = useState<'still' | 'animated'>('animated')
   const animatedPrice = filmPricing(tenant.vertical)?.animated?.customerPriceNok ?? null
 
   const [title, setTitle] = useState('')
@@ -704,7 +705,13 @@ export default function FilmPage() {
                       style={{ textAlign: 'left', fontFamily: HANKEN, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', background: tier === o.key ? 'var(--ember-tint-bg)' : 'var(--paper)', border: tier === o.key ? '2px solid var(--ember-deep)' : '1.5px solid var(--ds-border)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{o.label}</span>
-                        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ember-deep)' }}>{allowance && !allowance.billing ? '' : allowance?.nextIsFree ? t('tierFree') : `${o.price} kr`}</span>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ember-deep)', textAlign: 'right' }}>
+                          {allowance && !allowance.billing ? '' : `${o.price} kr`}
+                          {/* Gratis omgjoering gjelder animert bare naar den betalte filmen var animert */}
+                          {allowance?.billing && allowance.nextIsFree && (o.key === 'still' || allowance.blockAnimated) && (
+                            <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600 }}>{t('tierFreeNow')}</span>
+                          )}
+                        </span>
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{o.desc}</div>
                     </button>
