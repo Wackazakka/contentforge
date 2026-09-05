@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from "next/link"
 import { useAuth } from "@/lib/authContext"
 import { getSupabase } from "@/lib/supabaseClient"
@@ -30,12 +30,15 @@ export default function DashboardPage() {
   const [organizationId, setOrganizationId] = useState<string | null>(null)
   const [organizationName, setOrganizationName] = useState<string>('')
   const [loadingOrg, setLoadingOrg] = useState(true)
-  const [showProductModal, setShowProductModal] = useState(false)
+  // Forsidekortene: /dashboard?ny=halloween aapner «Ny anledning» direkte
+  const nyParam = useSearchParams()?.get('ny') || null
+  const [showProductModal, setShowProductModal] = useState(!!nyParam)
   const [creatingProduct, setCreatingProduct] = useState(false)
 
   const tenant = useTenant()
   const locale = useLocale()
   const vcfg = verticalConfig(tenant.vertical)
+  const nyCategory = nyParam && vcfg?.categoryOptions.some((o) => o.value === nyParam) ? nyParam : null
   const tModal = useTranslations('productModal')
   // Kategorien lagres som noekkel (bursdag/daap) — vis etiketten (Bursdag/Daap).
   // Fritekst fra «Annet» har ingen etikett og vises som den er.
@@ -302,10 +305,12 @@ export default function DashboardPage() {
       )}
 
       <ProductModal
+        key={nyCategory || 'ny'}
         isOpen={showProductModal}
         onClose={() => setShowProductModal(false)}
         onSubmit={handleCreateProduct}
         isLoading={creatingProduct}
+        initialCategory={nyCategory}
       />
     </div>
   )

@@ -26,18 +26,27 @@ interface ProductModalProps {
   onClose: () => void
   // Returnerer det opprettede produktet så logo-fasen kan kjøre mot id-en
   onSubmit: (input: CreateProductFormInput) => Promise<{ id: string } | null>
+  // Forsidekortene (Lars 5/9): «Halloween» paa forsiden aapner modalen med
+  // Halloween ferdig valgt
+  initialCategory?: string | null
   isLoading?: boolean
 }
 
 const labelStyle = { display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 } as const
 
-export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false }: ProductModalProps) {
+export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, initialCategory = null }: ProductModalProps) {
   const t = useTranslations('productModal')
   const tenant = useTenant()
   const vcfg = verticalConfig(tenant.vertical) // vertikal (f.eks. håndverker) = egne kategorier + Område-felt
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [category, setCategory] = useState(vcfg ? vcfg.categoryOptions[0].value : 'product')
+  // Startverdi fra forsidekortet naar den er gyldig; ellers foerste valg.
+  // (Foreldren remonterer modalen via key naar initialCategory endres.)
+  const [category, setCategory] = useState(
+    initialCategory && vcfg?.categoryOptions.some((o) => o.value === initialCategory)
+      ? initialCategory
+      : (vcfg ? vcfg.categoryOptions[0].value : 'product')
+  )
   // «Annet»-valget åpner fritekst: det brukeren skriver LAGRES som kategorien
   // (products.category), så prompt-konteksten får «Genre: shoegaze» i stedet
   // for «Genre: annet». Tomt felt faller tilbake til 'annet'.
