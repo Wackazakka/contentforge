@@ -182,28 +182,31 @@ export async function POST(request: NextRequest) {
       .filter(([, v]) => v)
     const count = details.length > 0
       ? Math.min(16, details.length + 2)
-      : sceneCount(musicFile ? musicDurationSec : null, photos.length)
+      : sceneCount(musicFile ? musicDurationSec : null, 0)
     const { lines, extra } = await writeLines({
       title,
       description,
       category: product.category || '',
       count,
-      needImagePrompts: photos.length === 0,
+      // Illustrasjoner alltid (Lars 5/9): egne bilder er tillegg som vises én
+      // gang hver, ikke erstatning for illustrasjonene.
+      needImagePrompts: true,
       spoken: !!voiceId,
       locale,
       details,
     })
     if (lines.length < 2) throw new Error('Fikk for få tekstlinjer')
 
-    // Egne bilder brukes i rekkefoelge og gjentas om det er faerre enn scener.
-    // Ingen egne bilder: image_url tom → klienten lager AI-bilder etterpaa.
+    // Alle plakater faar illustrasjon (image_url tom → klienten lager dem
+    // etter betalingen). Egne bilder legges inn av filmsiden som egne scener
+    // uten tekst — én gang hver (Lars 5/9: ett foto ble brukt seks ganger).
     // `simple_film` er filmflytens signatur — production.ts logger fastpris
     // paa den, uansett om filmen har sang, stemme eller bare musikk.
     const segments = lines.map((l, i) => ({
       index: i,
       text: l.text,
       voiceover: voiceId ? (l.voiceover || l.text) : '',
-      image_url: photos.length > 0 ? photos[i % photos.length] : '',
+      image_url: '',
       image_prompt: l.image_prompt,
       approved: true,
       no_voice: !voiceId,
@@ -243,8 +246,8 @@ export async function POST(request: NextRequest) {
     if (error || !draft) throw new Error(error?.message || 'Utkastet kunne ikke lagres')
 
     console.log(`[produce/simple] ferdig etter ${Date.now() - tStart} ms — draft ${draft.id}`)
-    // extraPrompts: 4 stemningsbilder (uten tekst) saa bildene ikke gjentas i filmen
-    return NextResponse.json({ draftId: draft.id, segments, needsImages: photos.length === 0, extraPrompts: photos.length === 0 ? extra : [] })
+    // extraPrompts: 6 stemningsbilder (uten tekst) saa bildene ikke gjentas i filmen
+    return NextResponse.json({ draftId: draft.id, segments, needsImages: true, extraPrompts: extra })
   } catch (err) {
     console.error('[produce/simple] Error:', err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Noe gikk galt' }, { status: 500 })
