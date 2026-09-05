@@ -130,6 +130,9 @@ export const PLATFORM_RIGHTS_FEE_PCT = 3
 // per aktiv skuespiller (avtaleforhold, ikke gjennomstrømming).
 // ⚠️ Dette er en kostnad UTEN inntekt bak — en skuespiller som aldri blir valgt
 // koster 2 640 kr i året. Derfor er summen synlig i stemmebank-adminen.
+// Én måned ElevenLabs Creator (USD 22) — det klonen trenger for å kunne DELES.
+// ENGANGSKOSTNAD ved onboarding, ikke løpende: delingen overlever at eieren
+// nedgraderer til gratis etterpå (bekreftet av ElevenLabs 03.09.2026).
 export const ACTOR_SUBSCRIPTION_NOK = 220
 
 // Aktivum-modellen (2026-07-29): én bankrad = én forvaltningsavtale — stemme,

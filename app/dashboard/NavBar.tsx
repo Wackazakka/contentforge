@@ -18,6 +18,9 @@ export default function NavBar() {
   const { signOut, session } = useAuth()
   const [credits, setCredits] = useState<number | null>(null)
   const [voiceBankAdmin, setVoiceBankAdmin] = useState(false)
+  // Rettighetshaver-lenken vises kun når den innloggede e-posten har en
+  // forvaltningsavtale i denne banken (avgjøres server-side, som admin-lenken).
+  const [actorLedger, setActorLedger] = useState(false)
   const t = useTranslations('nav')
   const tLogin = useTranslations('login')
   const tKonto = useTranslations('account')
@@ -37,6 +40,8 @@ export default function NavBar() {
     ...(enkel ? [] : tenant.billing_mode === 'invoice'
       ? [{ href: '/dashboard/credits', label: t('buy_credits') }]
       : [{ href: '/dashboard/billing', label: t('billing') }]),
+    // Rettighetshaverens egen hovedbok — utenfor dashbordet, se app/min-stemme.
+    ...(actorLedger ? [{ href: '/min-stemme', label: t('myledger') }] : []),
     // Admin-lenker (kun tenant-admins — vanlige artister ser dem aldri).
     // Stemmebanken er skjult for artist-tenanter inntil videre (Lars 1/8):
     // skuespiller-royalty er ikke tema for IndigoBoom ennå.
@@ -81,6 +86,14 @@ export default function NavBar() {
     if (!token) return
     fetch('/api/voice-bank/admin', { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => setVoiceBankAdmin(r.ok))
+      .catch(() => {})
+  }, [session])
+
+  useEffect(() => {
+    const token = session?.access_token
+    if (!token) return
+    fetch('/api/voice-bank/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (r) => { const d = r.ok ? await r.json() : null; setActorLedger(!!d && Array.isArray(d.actors) && d.actors.length > 0) })
       .catch(() => {})
   }, [session])
 
