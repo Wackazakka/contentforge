@@ -17,8 +17,11 @@ export async function POST(request: Request) {
     const { productId, filename, clipSec, startSec } = await request.json()
     if (!productId || !filename) return NextResponse.json({ error: 'Mangler produkt eller fil' }, { status: 400 })
     const folder = tracksFolder(productId)
-    if (!String(filename).startsWith(folder + '/')) {
-      return NextResponse.json({ error: 'Bare egne sanger kan klippes' }, { status: 400 })
+    // Egen sang, eller et spor fra det delte biblioteket (5/9: lengdevalget
+    // gjelder ogsaa biblioteksmusikk). Klippet lagres alltid i produktets mappe.
+    const fn = String(filename)
+    if (!fn.startsWith(folder + '/') && !fn.startsWith('celebration/')) {
+      return NextResponse.json({ error: 'Bare egne sanger og biblioteksmusikk kan klippes' }, { status: 400 })
     }
     const auth = request.headers.get('authorization')
     if (!auth?.startsWith('Bearer ')) return NextResponse.json({ error: 'Du må være innlogget.' }, { status: 401 })
