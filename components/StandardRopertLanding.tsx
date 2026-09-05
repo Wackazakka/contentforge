@@ -32,7 +32,8 @@ const ANLEDNINGER: Array<{ key: string; navn: string; linje: string; farge: stri
   { key: 'bursdag', navn: 'Bursdag', linje: 'Kom og feir med oss', farge: '#FF5C7A' },
   { key: 'bryllup', navn: 'Bryllup', linje: 'Vi gifter oss', farge: '#C8A06E' },
   { key: 'konfirmasjon', navn: 'Konfirmasjon', linje: 'Velkommen til feiringen', farge: '#3C6EC8' },
-  { key: 'daap', navn: 'Dåp', linje: 'Velkommen til dåpen', farge: '#8CBEE6' },
+  // Gratulasjon i stedet for daap paa forsiden (Lars 5/9: «Bytt den ut med dåp»)
+  { key: 'gratulasjon', navn: 'Gratulasjon', linje: 'Gratulerer så mye', farge: '#FF7850' },
   { key: 'paaske', navn: 'Påske', linje: 'God påske', farge: '#F0C830' },
   { key: 'nyttaar', navn: 'Nyttårsaften', linje: 'Godt nytt år', farge: '#B08A2E' },
   { key: 'krepselag', navn: 'Krepselag', linje: 'Ta med egen drikke', farge: '#D4283F' },
