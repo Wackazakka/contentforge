@@ -19,7 +19,9 @@ import { filmPricing } from '@/lib/verticals'
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
 
-type Phase = 'idle' | 'clipping' | 'writing' | 'images' | 'paying' | 'starting'
+type Phase = 'idle' | 'clipping' | 'writing' | 'saving' | 'images' | 'paying' | 'starting'
+
+type Seg = { index: number; text: string; voiceover?: string; image_url: string; image_prompt?: string; no_voice?: boolean; match_music?: boolean; simple_film?: boolean }
 
 function fmtDuration(sec: number | null): string {
   if (!sec || !isFinite(sec)) return ''
@@ -98,6 +100,9 @@ export default function FilmPage() {
   // 'full' = hele sangen; ellers klippes sangen paa dropleten med uttoning.
   const [filmLength, setFilmLength] = useState<'30' | '60' | 'full'>('60')
   const [lengthNote, setLengthNote] = useState<string | null>(null)
+  // Rettesteget (Lars 5/9): plakatene vises og redigeres FOER filmen lages.
+  const [review, setReview] = useState<{ draftId: string; needsImages: boolean; segments: Seg[]; texts: string[] } | null>(null)
+  const reviewRef = useRef<HTMLDivElement | null>(null)
   // Uten sang (4/9): en stemme leser teksten, eller bare musikk, eller stille.
   const [mode, setMode] = useState<'voice' | 'music' | 'silent'>('voice')
   const [voiceId, setVoiceId] = useState<string>(FILM_VOICES[0]?.id || '')
@@ -204,9 +209,9 @@ export default function FilmPage() {
     setPhotos((prev) => prev.filter((p) => p.name !== name))
   }
 
-  const makeFilm = async () => {
+  const writePosters = async () => {
     if (phase !== 'idle') return
-    setError(null)
+    setError(null); setReview(null)
     if (!title.trim()) { setError(t('needTitle')); return }
     try {
       // Lagre skjemaet paa anledningen (som lesbare linjer)
@@ -266,21 +271,59 @@ export default function FilmPage() {
         console.error('[film] produce/simple feilet', res.status, data)
         throw new Error(`${data?.error || t('failed')} (${res.status})`)
       }
-      const draftId: string = data.draftId
-      let segments: Array<{ index: number; text: string; image_url: string; image_prompt?: string }> = data.segments || []
+      const segs: Seg[] = data.segments || []
+      setReview({ draftId: data.draftId, needsImages: !!data.needsImages, segments: segs, texts: segs.map((sg) => sg.text) })
+      setPhase('idle')
+      setTimeout(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : t('failed'))
+      setPhase('idle')
+      setTimeout(() => errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+    }
+  }
+
+  const renderFilm = async () => {
+    if (phase !== 'idle' || !review) return
+    setError(null)
+    const texts = review.texts.map((x) => x.trim()).filter(Boolean)
+    if (texts.length < 2) { setError(t('needPosters')); return }
+    try {
+      const tk = await token()
+      if (!tk) throw new Error(t('mustSignIn'))
+      const draftId = review.draftId
+      // Bygg segmentene paa nytt fra de redigerte plakatene. Bilder fordeles
+      // paa nytt; en redigert tekst faar talelinjen erstattet av teksten.
+      setPhase('saving')
+      let segments: Seg[] = texts.map((text, i) => {
+        const base = review.segments[i] || review.segments[review.segments.length - 1] || ({} as Seg)
+        const sameText = (base.text || '').trim() === text
+        return {
+          ...base,
+          index: i,
+          text,
+          voiceover: base.voiceover ? (sameText ? base.voiceover : text) : '',
+          image_url: photos.length > 0 ? photos[i % photos.length].url : (sameText ? (base.image_url || '') : ''),
+          image_prompt: sameText ? (base.image_prompt || '') : '',
+          approved: true,
+          simple_film: true,
+        } as Seg
+      })
+      const { error: saveErr } = await getSupabase().from('production_drafts').update({ segments }).eq('id', draftId)
+      if (saveErr) throw new Error(saveErr.message)
 
       // Ingen egne bilder: lag ett AI-bilde per scene, ett om gangen
-      if (data.needsImages) {
+      if (review.needsImages || segments.some((sg) => !sg.image_url)) {
         setPhase('images')
         const total = segments.length
         setImageProgress({ done: 0, total })
         for (let i = 0; i < segments.length; i++) {
+          if (segments[i].image_url) { setImageProgress({ done: i + 1, total }); continue }
           try {
             const r = await fetch('/api/content/generate-image', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                topic: segments[i].image_prompt || segments[i].text,
+                topic: segments[i].image_prompt || `${segments[i].text} (${title})`,
                 productId,
                 imageSize: '1024x1536',
                 imageStyle: 'warm',
@@ -341,6 +384,7 @@ export default function FilmPage() {
   const h2: React.CSSProperties = { fontFamily: HANKEN, fontWeight: 700, fontSize: 20, color: 'var(--ink)', margin: 0, display: 'flex', alignItems: 'center' }
   const hint: React.CSSProperties = { fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '8px 0 16px' }
   const bigBtn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 700, fontSize: 16, color: 'var(--on-ember)', background: 'var(--ember-deep)', border: 'none', borderRadius: 999, padding: '14px 26px', cursor: 'pointer' }
+  const smallGhost: React.CSSProperties = { fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', background: 'transparent', border: '1.5px solid var(--ds-border)', borderRadius: 999, width: 34, height: 34, cursor: 'pointer', flex: 'none' }
   const ghostBtn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: HANKEN, fontWeight: 600, fontSize: 15, color: 'var(--ink)', background: 'transparent', border: '1.5px solid var(--ds-border)', borderRadius: 999, padding: '12px 22px', cursor: 'pointer' }
 
   return (
@@ -530,15 +574,54 @@ export default function FilmPage() {
               {phase === 'clipping' && t('phaseClipping')}
               {lengthNote && <p style={{ ...hint, margin: '8px 0 0', fontSize: 13.5 }}>{lengthNote}</p>}
               {phase === 'writing' && t('phaseWriting')}
+              {phase === 'saving' && t('phaseSaving')}
               {phase === 'images' && t('phaseImages', { done: imageProgress?.done ?? 0, total: imageProgress?.total ?? 0 })}
               {phase === 'paying' && t('phasePaying')}
               {phase === 'starting' && t('phaseStarting')}
               <p style={{ ...hint, margin: '10px 0 0', fontSize: 13.5 }}>{t('stayOnPage')}</p>
             </div>
           ) : (
-            <button type="button" onClick={makeFilm} disabled={!loaded} style={{ ...bigBtn, fontSize: 18, padding: '16px 34px' }}>🎬 {t('makeFilm')}</button>
+            <button type="button" onClick={writePosters} disabled={!loaded} style={{ ...bigBtn, fontSize: 18, padding: '16px 34px' }}>{review ? t('rewritePosters') : t('writePosters')}</button>
           )}
         </section>
+
+        {review && (
+          <section ref={reviewRef} style={card}>
+            <h2 style={h2}><span style={stepNo}>5</span>{t('reviewTitle')}</h2>
+            <p style={hint}>{t('reviewHint')}</p>
+            {review.texts.map((tx, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--text-faint)', width: 22, textAlign: 'right', flex: 'none' }}>{i + 1}</span>
+                <input type="text" value={tx} maxLength={80} disabled={busy}
+                  onChange={(e) => setReview((r) => r ? { ...r, texts: r.texts.map((x, j) => (j === i ? e.target.value : x)) } : r)}
+                  className="cf-input" style={{ marginBottom: 0, flex: 1 }} />
+                <button type="button" disabled={busy} title={t('removePoster')}
+                  onClick={() => setReview((r) => r ? { ...r, texts: r.texts.filter((_, j) => j !== i) } : r)}
+                  style={{ ...smallGhost }}>✕</button>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
+              <button type="button" disabled={busy || review.texts.length >= 16}
+                onClick={() => setReview((r) => r ? { ...r, texts: [...r.texts, ''] } : r)}
+                style={{ ...ghostBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('addPoster')}</button>
+              <span style={{ ...hint, margin: 0, fontSize: 13.5 }}>{t('posterCount', { count: review.texts.filter((x) => x.trim()).length })}</span>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 22 }}>
+              {busy ? (
+                <div style={{ fontFamily: HANKEN, fontSize: 15.5, color: 'var(--ink)' }}>
+                  <div className="cf-spinner" style={{ margin: '0 auto 12px' }} />
+                  {phase === 'saving' && t('phaseSaving')}
+                  {phase === 'images' && t('phaseImages', { done: imageProgress?.done ?? 0, total: imageProgress?.total ?? 0 })}
+                  {phase === 'paying' && t('phasePaying')}
+                  {phase === 'starting' && t('phaseStarting')}
+                  <p style={{ ...hint, margin: '10px 0 0', fontSize: 13.5 }}>{t('stayOnPage')}</p>
+                </div>
+              ) : (
+                <button type="button" onClick={renderFilm} style={{ ...bigBtn, fontSize: 18, padding: '16px 34px' }}>🎬 {t('makeFilm')}</button>
+              )}
+            </div>
+          </section>
+        )}
 
         <div style={{ textAlign: 'center' }}>
           <button type="button" onClick={() => router.push(`/dashboard/products/${productId}`)} disabled={busy} style={{ ...ghostBtn, border: 'none', color: 'var(--text-muted)' }}>{t('cancel')}</button>
