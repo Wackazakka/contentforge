@@ -1101,7 +1101,15 @@
     "tierStillDesc": "Langsom zoom og panorering på hvert bilde. Klar på noen minutter.",
     "tierAnimated": "Animerte bilder",
     "tierAnimatedDesc": "Hvert bilde blir en liten film: lys som flakker, ting som beveger seg. Tar rundt ti minutter lenger.",
-    "tierFree": "gratis omgjøring"
+    "tierFree": "gratis omgjøring",
+    "reviewHintEdit": "Rett tekstene fritt — bildene beholdes, så tekstendringer koster ingenting. Vil du ha nytt bilde til en plakat, trykk «Nytt bilde». Nye plakater får nytt bilde.",
+    "newImage": "Nytt bilde",
+    "newImageOn": "✓ Nytt bilde",
+    "animQuotaInfo": "Denne filmen bruker {needed} nye animasjoner. Du har {left} igjen på denne filmen.",
+    "animQuotaNone": "Den betalte filmen var ikke animert, så en animert omgjøring kjøpes som ny film.",
+    "animQuotaStop": "Denne omgjøringen trenger {needed} nye animasjoner, men du har {left} igjen. Velg:",
+    "animQuotaStill": "Lag den som «Bilder med bevegelse» (gratis)",
+    "animQuotaBuy": "Kjøp ny animert film ({price} kr)"
   },
   "occasion": {
     "back": "← Alle anledninger",

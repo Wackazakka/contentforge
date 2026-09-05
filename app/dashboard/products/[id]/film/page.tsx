@@ -63,7 +63,9 @@ export default function FilmPage() {
   const tenant = useTenant()
   const filmPrice = filmPricing(tenant.vertical)?.customerPriceNok ?? null
   // Hva koster NESTE film? Betalt film → 3 gratis omgjøringer (4/9).
-  const [allowance, setAllowance] = useState<{ billing: boolean; nextIsFree: boolean; freeLeft: number; freeRemakes: number; animatedPriceNok?: number | null } | null>(null)
+  const [allowance, setAllowance] = useState<{ billing: boolean; nextIsFree: boolean; freeLeft: number; freeRemakes: number; animatedPriceNok?: number | null; blockAnimated?: boolean; animLeft?: number; animQuota?: number } | null>(null)
+  // Kvoten er brukt opp: kunden velger «bilder med bevegelse» gratis, eller kjøper ny animert film
+  const [quotaStop, setQuotaStop] = useState<{ needed: number; left: number } | null>(null)
   // Nivaa: 'still' = bilder med langsom bevegelse (149), 'animated' = Kling-klipp (249)
   const [tier, setTier] = useState<'still' | 'animated'>('still')
   const animatedPrice = filmPricing(tenant.vertical)?.animated?.customerPriceNok ?? null
@@ -108,7 +110,7 @@ export default function FilmPage() {
   const [filmLength, setFilmLength] = useState<'30' | '60' | 'full'>('60')
   const [lengthNote, setLengthNote] = useState<string | null>(null)
   // Rettesteget (Lars 5/9): plakatene vises og redigeres FOER filmen lages.
-  const [review, setReview] = useState<{ draftId: string; needsImages: boolean; segments: Seg[]; texts: string[]; extraPrompts: string[] } | null>(null)
+  const [review, setReview] = useState<{ draftId: string; needsImages: boolean; segments: Seg[]; texts: string[]; extraPrompts: string[]; regen: boolean[] } | null>(null)
   const reviewRef = useRef<HTMLDivElement | null>(null)
   // Uten sang (4/9): en stemme leser teksten, eller bare musikk, eller stille.
   const [mode, setMode] = useState<'voice' | 'music' | 'silent'>('voice')
@@ -155,7 +157,7 @@ export default function FilmPage() {
         const withText = segs.filter((sg) => (sg.text || '').trim())
         const extras = segs.filter((sg) => !(sg.text || '').trim())
         setEditExtras(extras)
-        setReview({ draftId: d.draftId, needsImages: false, segments: withText, texts: withText.map((sg) => sg.text), extraPrompts: extras.map((sg) => sg.image_prompt || '').filter(Boolean) })
+        setReview({ draftId: d.draftId, needsImages: false, segments: withText, texts: withText.map((sg) => sg.text), extraPrompts: extras.map((sg) => sg.image_prompt || '').filter(Boolean), regen: withText.map(() => false) })
         setEditMode(true)
         setTimeout(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
       } catch (err) {
@@ -321,7 +323,7 @@ export default function FilmPage() {
         throw new Error(`${data?.error || t('failed')} (${res.status})`)
       }
       const segs: Seg[] = data.segments || []
-      setReview({ draftId: data.draftId, needsImages: !!data.needsImages, segments: segs, texts: segs.map((sg) => sg.text), extraPrompts: Array.isArray(data.extraPrompts) ? data.extraPrompts : [] })
+      setReview({ draftId: data.draftId, needsImages: !!data.needsImages, segments: segs, texts: segs.map((sg) => sg.text), extraPrompts: Array.isArray(data.extraPrompts) ? data.extraPrompts : [], regen: segs.map(() => false) })
       setPhase('idle')
       setTimeout(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
     } catch (err) {
@@ -331,9 +333,9 @@ export default function FilmPage() {
     }
   }
 
-  const renderFilm = async () => {
+  const renderFilm = async (opts?: { forcePay?: boolean }) => {
     if (phase !== 'idle' || !review) return
-    setError(null)
+    setError(null); setQuotaStop(null)
     const texts = review.texts.map((x) => x.trim()).filter(Boolean)
     if (texts.length < 2) { setError(t('needPosters')); return }
     try {
@@ -343,16 +345,24 @@ export default function FilmPage() {
       // Bygg segmentene paa nytt fra de redigerte plakatene. Bilder fordeles
       // paa nytt; en redigert tekst faar talelinjen erstattet av teksten.
       setPhase('saving')
-      let segments: Seg[] = texts.map((text, i) => {
-        const base = review.segments[i] || review.segments[review.segments.length - 1] || ({} as Seg)
+      // Redigeringsmodus (5/9): tekstendringer koster ingenting — bildet (og
+      // dermed animasjonsklippet) beholdes med mindre kunden ba om nytt bilde.
+      const keptIdx: number[] = []
+      review.texts.forEach((x, i) => { if (x.trim()) keptIdx.push(i) })
+      let segments: Seg[] = texts.map((text, k) => {
+        const srcIdx = keptIdx[k]
+        const base = review.segments[srcIdx] || ({} as Seg)
+        const wantNew = !!review.regen[srcIdx] || !base.image_url
         const sameText = (base.text || '').trim() === text
+        const keepImage = editMode ? !wantNew : (sameText && !wantNew)
         return {
           ...base,
-          index: i,
+          index: k,
           text,
           voiceover: base.voiceover ? (sameText ? base.voiceover : text) : '',
-          image_url: editMode ? (sameText ? (base.image_url || '') : '') : (photos.length > 0 ? photos[i % photos.length].url : (sameText ? (base.image_url || '') : '')),
-          image_prompt: sameText ? (base.image_prompt || '') : '',
+          image_url: keepImage ? (base.image_url || '') : (editMode ? '' : (photos.length > 0 ? photos[k % photos.length].url : '')),
+          image_prompt: keepImage ? (base.image_prompt || '') : '',
+          clip_nonce: keepImage ? (base as Seg & { clip_nonce?: string }).clip_nonce : undefined,
           approved: true,
           simple_film: true,
         } as Seg
@@ -415,9 +425,15 @@ export default function FilmPage() {
       const payRes = await fetch('/api/film-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tk}` },
-        body: JSON.stringify({ draftId }),
+        body: JSON.stringify({ draftId, forcePay: !!opts?.forcePay }),
       })
       const pay = await payRes.json().catch(() => null)
+      if (payRes.status === 409 && pay?.code === 'ANIM_QUOTA') {
+        setQuotaStop({ needed: Number(pay.needed) || 0, left: Number(pay.left) || 0 })
+        setPhase('idle')
+        setTimeout(() => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+        return
+      }
       if (!payRes.ok) throw new Error(pay?.error || t('failed'))
       if (pay?.url) { window.location.href = pay.url; return }
 
@@ -661,21 +677,26 @@ export default function FilmPage() {
         {review && (
           <section ref={reviewRef} style={card}>
             <h2 style={h2}><span style={stepNo}>5</span>{t('reviewTitle')}</h2>
-            <p style={hint}>{t('reviewHint')}</p>
+            <p style={hint}>{editMode ? t('reviewHintEdit') : t('reviewHint')}</p>
             {review.texts.map((tx, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
                 <span style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--text-faint)', width: 22, textAlign: 'right', flex: 'none' }}>{i + 1}</span>
                 <input type="text" value={tx} maxLength={80} disabled={busy}
                   onChange={(e) => setReview((r) => r ? { ...r, texts: r.texts.map((x, j) => (j === i ? e.target.value : x)) } : r)}
                   className="cf-input" style={{ marginBottom: 0, flex: 1 }} />
+                {editMode && (
+                  <button type="button" disabled={busy} title={t('newImage')}
+                    onClick={() => setReview((r) => r ? { ...r, regen: r.regen.map((x, j) => (j === i ? !x : x)) } : r)}
+                    style={{ ...smallGhost, width: 'auto', padding: '0 10px', fontSize: 13, color: review.regen[i] ? 'var(--ember-deep)' : 'var(--text-muted)', borderColor: review.regen[i] ? 'var(--ember-deep)' : 'var(--ds-border)' }}>{review.regen[i] ? t('newImageOn') : t('newImage')}</button>
+                )}
                 <button type="button" disabled={busy} title={t('removePoster')}
-                  onClick={() => setReview((r) => r ? { ...r, texts: r.texts.filter((_, j) => j !== i) } : r)}
+                  onClick={() => setReview((r) => r ? { ...r, texts: r.texts.filter((_, j) => j !== i), regen: r.regen.filter((_, j) => j !== i), segments: r.segments.filter((_, j) => j !== i) } : r)}
                   style={{ ...smallGhost }}>✕</button>
               </div>
             ))}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
               <button type="button" disabled={busy || review.texts.length >= 16}
-                onClick={() => setReview((r) => r ? { ...r, texts: [...r.texts, ''] } : r)}
+                onClick={() => setReview((r) => r ? { ...r, texts: [...r.texts, ''], regen: [...r.regen, true], segments: [...r.segments, { index: r.segments.length, text: '', image_url: '' } as Seg] } : r)}
                 style={{ ...ghostBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('addPoster')}</button>
               <span style={{ ...hint, margin: 0, fontSize: 13.5 }}>{t('posterCount', { count: review.texts.filter((x) => x.trim()).length })}</span>
             </div>
@@ -699,6 +720,22 @@ export default function FilmPage() {
                 </div>
               </div>
             )}
+            {tier === 'animated' && allowance?.billing && allowance.nextIsFree && (
+              <p style={{ ...hint, margin: '12px 0 0', fontSize: 13.5 }}>
+                {allowance.blockAnimated
+                  ? t('animQuotaInfo', { needed: editMode ? review.regen.filter(Boolean).length : review.texts.filter((x) => x.trim()).length, left: allowance.animLeft ?? 0 })
+                  : t('animQuotaNone')}
+              </p>
+            )}
+            {quotaStop && (
+              <div style={{ background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', borderRadius: 12, padding: '14px 16px', fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.5, color: 'var(--ink)', marginTop: 16 }}>
+                <p style={{ margin: '0 0 10px', fontWeight: 600 }}>{t('animQuotaStop', { needed: quotaStop.needed, left: quotaStop.left })}</p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => { setTier('still'); setQuotaStop(null) }} style={{ ...ghostBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('animQuotaStill')}</button>
+                  <button type="button" onClick={() => renderFilm({ forcePay: true })} style={{ ...bigBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('animQuotaBuy', { price: animatedPrice ?? 249 })}</button>
+                </div>
+              </div>
+            )}
             <div style={{ textAlign: 'center', marginTop: 22 }}>
               {busy ? (
                 <div style={{ fontFamily: HANKEN, fontSize: 15.5, color: 'var(--ink)' }}>
@@ -710,7 +747,7 @@ export default function FilmPage() {
                   <p style={{ ...hint, margin: '10px 0 0', fontSize: 13.5 }}>{t('stayOnPage')}</p>
                 </div>
               ) : (
-                <button type="button" onClick={renderFilm} style={{ ...bigBtn, fontSize: 18, padding: '16px 34px' }}>🎬 {t('makeFilm')}</button>
+                <button type="button" onClick={() => renderFilm()} style={{ ...bigBtn, fontSize: 18, padding: '16px 34px' }}>🎬 {t('makeFilm')}</button>
               )}
             </div>
           </section>
