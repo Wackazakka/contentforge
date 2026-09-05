@@ -18,6 +18,10 @@ export const FILM_TRACK_NAMES: Record<string, string> = {
   'julebord-glow.mp3': 'Julebord Glow',
   '17-mai.mp3': '17. mai',
   'flagg-og-fanfarer.mp3': 'Flagg og fanfarer',
+  'gullbaand-glitrer.mp3': 'Gullbånd glitrer',
+  'papirkopper-og-bass.mp3': 'Papirkopper og bass',
+  'shot-glass-shuffle.mp3': 'Shot Glass Shuffle',
+  'snoefall-paa-taket.mp3': 'Snøfall på taket',
 }
 
 // Standardspor per anledningstype (products.category → filnavn i celebration/)
@@ -33,7 +37,16 @@ export const DEFAULT_TRACK_BY_CATEGORY: Record<string, string> = {
   valentine: 'your-heart-fits-mine.mp3',
   julebord: 'julebord-glow.mp3',
   syttendemai: '17-mai.mp3',
-  // jul, nyttaar, utdrikningslag, jubileum, firmafest, bedrift: spor kommer
+  // 5/9 andre leveranse (Lars: «julebord, firmafest og jubileum, tror jeg»):
+  // koblet etter navnene — Gullbånd = jubileum (og nyttår inntil eget spor),
+  // Papirkopper og bass = firmafest/bedrift, Shot Glass Shuffle = utdrikningslag.
+  // Julebord beholder Julebord Glow.
+  jubileum: 'gullbaand-glitrer.mp3',
+  nyttaar: 'gullbaand-glitrer.mp3',
+  firmafest: 'papirkopper-og-bass.mp3',
+  bedrift: 'papirkopper-og-bass.mp3',
+  utdrikningslag: 'shot-glass-shuffle.mp3',
+  jul: 'snoefall-paa-taket.mp3',
 }
 
 export function trackDisplayName(filename: string, fallback: string): string {
