@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       nextIsFree: !billing || a.nextIsFree,
       freeLeft: a.remakesLeft,
       freeRemakes: FREE_REMAKES,
-      // Animasjonskvote (5/9): 12 nye klipp per betalt animert film
+      // Animasjonskvote (5/9): 16 nye klipp per betalt animert film (hevet fra 12)
       blockAnimated: a.blockAnimated,
       animLeft: a.animLeft,
       animQuota: ANIM_QUOTA,

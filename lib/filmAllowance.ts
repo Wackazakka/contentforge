@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 // Omgjøringer (Lars 4/9 + 5/9): hver betalte film gir TRE gratis
 // omgjøringer av samme anledning. Er den betalte filmen ANIMERT, følger det
-// i tillegg 12 nye animasjoner (Kling-klipp) med — uendrede plakater koster
+// i tillegg 16 nye animasjoner (Kling-klipp) med (Lars 5/9: hevet fra 12 saa én hel omgjoering faar plass) — uendrede plakater koster
 // ingen, fordi dropleten gjenbruker klipp fra klipp-lageret.
 //
 // Blokk = en betalt film (meta.paid) og filmene etter den, frem til neste
@@ -12,7 +12,7 @@ import { createClient } from '@supabase/supabase-js'
 // (production_jobs.status = failed) teller ikke.
 
 export const FREE_REMAKES = 3
-export const ANIM_QUOTA = 12
+export const ANIM_QUOTA = 16
 
 export interface FilmAllowance {
   total: number            // filmer i alt (uten feilede)
