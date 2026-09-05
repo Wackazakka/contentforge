@@ -122,6 +122,16 @@ def pick_fg(bg, fg, pal):
     return max(cands, key=lambda c: _contrast(bg, c))
 
 def card(text, bg, fg, accent, path, size=170, tilt=0, stripes=False, dots=False, ring=False, pal=None):
+    """Lager TRE filer: <path> (ferdig plakat, brukes som bilde naar kunden
+    ikke har noen), <path>_bg (moenster uten tekst) og <path>_txt (bare tekst,
+    RGBA). Teksten legges paa som eget lag OVER konfettien i sluttmiksen
+    (Lars 5/9: konfettibiter laa paa bokstavene).
+
+    Halo: hver bokstav faar en kant i BAKGRUNNSFARGEN. pick_fg garanterer
+    kontrast mot bakgrunnen — men striper og prikker tegnes i aksentfargen
+    oppaa, og teksten landet paa dem (moerk tekst paa svarte striper). Med
+    haloen sitter bokstavene alltid paa fargen de er sjekket mot.
+    Returnerer (bg_path, txt_path)."""
     if pal:
         fg = pick_fg(bg, fg, pal)
     img = Image.new('RGB', (W, H), bg)
@@ -137,27 +147,35 @@ def card(text, bg, fg, accent, path, size=170, tilt=0, stripes=False, dots=False
     if ring:
         for r, wdt in ((700, 26), (560, 14)):
             d.ellipse((W // 2 - r, H // 2 - r, W // 2 + r, H // 2 + r), outline=accent, width=wdt)
-    maxw = W - 160
+    bg_path = path[:-4] + '_bg.png'
+    txt_path = path[:-4] + '_txt.png'
+    img.save(bg_path)
+    halo = max(6, size // 12)
+    maxw = W - 160 - 2 * halo
     font = ImageFont.truetype(FONT, size)
     lines = wrap(d, text, font, maxw)
     def too_wide():
         return any(d.textbbox((0, 0), ln, font=font)[2] > maxw for ln in lines)
     while (len(lines) > 3 or too_wide()) and size > 60:
-        size -= 10; font = ImageFont.truetype(FONT, size); lines = wrap(d, text, font, maxw)
-    lh = int(size * 1.12)
+        size -= 10; halo = max(6, size // 12); maxw = W - 160 - 2 * halo
+        font = ImageFont.truetype(FONT, size); lines = wrap(d, text, font, maxw)
+    lh = int(size * 1.18)
     layer = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     ld = ImageDraw.Draw(layer)
     y = (H - lh * len(lines)) // 2
     for ln in lines:
         bw = ld.textbbox((0, 0), ln, font=font)[2]
         x = (W - bw) // 2
-        ld.text((x + 10, y + 10), ln, font=font, fill=(0, 0, 0, 120))
-        ld.text((x, y), ln, font=font, fill=fg + (255,))
+        # skygge med samme omriss som den halo-ede bokstaven
+        ld.text((x + 8, y + 8), ln, font=font, fill=(0, 0, 0, 90), stroke_width=halo, stroke_fill=(0, 0, 0, 90))
+        ld.text((x, y), ln, font=font, fill=fg + (255,), stroke_width=halo, stroke_fill=bg + (255,))
         y += lh
     if tilt:
         layer = layer.rotate(tilt, resample=Image.BICUBIC, center=(W // 2, H // 2))
+    layer.save(txt_path)
     img.paste(layer, (0, 0), layer)
     img.save(path)
+    return bg_path, txt_path
 
 def card_clip(png, dur, out):
     n = max(2, int(round(dur * FPS)))
@@ -237,12 +255,13 @@ def build(cfg):
     print(f'[festlig] {tempo:.0f} BPM, {len(beats)} slag, {total:.1f} s', flush=True)
 
     # Plakater: stil i rotasjon, tekstene i rekkefoelge
-    card_png = []
+    card_png, card_bg, card_txt = [], [], []
     for i, txt in enumerate(texts):
         bg, fg, acc, kw = CARD_STYLES[i % len(CARD_STYLES)]
         if i == 0: bg, fg, acc, kw = CARD_STYLES[0]
         p = os.path.join(work, f'kort{i}.png')
-        card(txt, pal[bg], pal[fg], pal[acc], p, pal=pal, **kw); card_png.append(p)
+        b, x = card(txt, pal[bg], pal[fg], pal[acc], p, pal=pal, **kw)
+        card_png.append(p); card_bg.append(b); card_txt.append(x)
 
     # Visuelle kilder i rotasjon: bilder (og klipp naar de finnes).
     visuals = []  # ('photo', path) | ('video', path)
@@ -301,6 +320,7 @@ def build(cfg):
     print(f'[festlig] plakater {cb} slag, {per_gap} slag bilder per mellomrom', flush=True)
 
     seg_files, t_idx, pattern = [], 0, 0
+    text_spans, run_t = [], 0.0   # (txt_png, start, slutt) i sekunder — legges OVER konfettien
     for k, (typ, ref, nb) in enumerate(plan):
         if t_idx >= len(beats) - 1: break
         end_idx = min(t_idx + nb, len(beats) - 1)
@@ -310,7 +330,7 @@ def build(cfg):
         if dur < 0.3: break
         out = os.path.join(work, f'seg{k:02d}.mp4')
         if typ == 'card':
-            card_clip(card_png[ref], dur, out)
+            card_clip(card_bg[ref], dur, out)
         else:
             kind, src, runde = ref
             if kind == 'video':
@@ -318,7 +338,11 @@ def build(cfg):
             else:
                 photo_clip(src, dur, out, pattern); pattern += 1
         seg_files.append(out); t_idx = end_idx
-    total_v = sum(probe_dur(f) for f in seg_files)
+        seg_d = probe_dur(out)
+        if typ == 'card':
+            text_spans.append((card_txt[ref], run_t, run_t + seg_d))
+        run_t += seg_d
+    total_v = run_t
     print(f'[festlig] {len(seg_files)} scener, {total_v:.1f} s', flush=True)
 
     lst = os.path.join(work, 'list.txt')
@@ -331,13 +355,22 @@ def build(cfg):
 
     tmp_out = output + '.tmp.mp4'
     fade_st = max(0, total_v - 2.5)
+    # Lagrekkefoelge: plakatbakgrunn/bilder -> konfetti -> TEKST. Teksten er
+    # stillbilder (-loop 1) som slaas paa i plakatens tidsvindu, saa ingen
+    # konfettibit havner paa en bokstav.
+    inputs = ['-i', body, '-framerate', str(FPS), '-i', konf]
+    chain = "[0:v][1:v]overlay=shortest=1:format=auto[v0]"
+    for i, (png, s, e) in enumerate(text_spans):
+        inputs += ['-loop', '1', '-i', png]
+        chain += f";[v{i}][{2 + i}:v]overlay=format=auto:enable='between(t,{s:.3f},{e:.3f})'[v{i + 1}]"
+    chain += f";[v{len(text_spans)}]format=yuv420p[v]"
     if music:
-        run(['-i', body, '-framerate', str(FPS), '-i', konf, '-ss', str(offset), '-i', music, '-filter_complex',
-             f"[0:v][1:v]overlay=shortest=1:format=auto,format=yuv420p[v];[2:a]atrim=0:{total_v:.3f},afade=t=out:st={fade_st:.2f}:d=2.5,volume=0.95[a]",
+        m = 2 + len(text_spans)
+        run(inputs + ['-ss', str(offset), '-i', music, '-filter_complex',
+             chain + f";[{m}:a]atrim=0:{total_v:.3f},afade=t=out:st={fade_st:.2f}:d=2.5,volume=0.95[a]",
              '-map', '[v]', '-map', '[a]', '-t', f'{total_v:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-b:a', '160k', tmp_out])
     else:
-        run(['-i', body, '-framerate', str(FPS), '-i', konf, '-filter_complex',
-             "[0:v][1:v]overlay=shortest=1:format=auto,format=yuv420p[v]",
+        run(inputs + ['-filter_complex', chain,
              '-map', '[v]', '-t', f'{total_v:.3f}', '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', tmp_out])
     os.replace(tmp_out, output)
     shutil.rmtree(os.path.join(work, 'konf'), ignore_errors=True)
