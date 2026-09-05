@@ -1030,7 +1030,7 @@
     "descriptionLabel": "Tell us a little more",
     "descriptionPlaceholder": "Who it is for, when and where it happens, and what people should bring …",
     "step4Title": "Write the posters",
-    "step4Hint": "We write one poster per answer. You see them and fix what you want before the film is made.",
+    "step4Hint": "We write one poster per answer. You see them and fix what you want. Payment happens before the film is made.",
     "makeFilm": "Make the film",
     "phaseWriting": "Writing the lines for the film …",
     "phaseImages": "Creating pictures ({done} of {total}) …",
@@ -1110,7 +1110,10 @@
     "animQuotaNone": "The paid film was not animated, so an animated remake is bought as a new film.",
     "animQuotaStop": "This remake needs {needed} new animations, but you have {left} left. Choose:",
     "animQuotaStill": "Make it as “Pictures with motion” (free)",
-    "animQuotaBuy": "Buy a new animated film ({price} kr)"
+    "animQuotaBuy": "Buy a new animated film ({price} kr)",
+    "paidImagesTitle": "Paid! Now creating the pictures …",
+    "failedTitle": "This did not work",
+    "retryFinish": "Try to finish again"
   },
   "occasion": {
     "back": "← All occasions",
@@ -1133,6 +1136,9 @@
     "copyManually": "Copy this link:",
     "shareHint": "Download the film and send it on Messenger, WhatsApp or e-mail, or post it on Facebook. “Share link” gives you a link straight to the film.",
     "deleteConfirm": "Delete this film? This cannot be undone.",
-    "editPosters": "✏️ Edit the posters"
+    "editPosters": "✏️ Edit the posters",
+    "unfinishedTitle": "Paid, but not finished",
+    "unfinishedHint": "You paid for this film but it was not completed. Press to create the pictures and start the film.",
+    "finishFilm": "Finish the film"
   }
 }

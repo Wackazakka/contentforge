@@ -46,6 +46,8 @@ export default function OccasionSimplePage({ productId }: { productId: string })
   const [copied, setCopied] = useState<string | null>(null)
   // Fra ferdig film tilbake til utkastet som lagde den (for «Rediger plakatene»)
   const [draftByJob, setDraftByJob] = useState<Record<string, string>>({})
+  // Betalt, men ikke ferdig (kunden forlot /film/klar foer bildene var laget)
+  const [unfinished, setUnfinished] = useState<Array<{ id: string; title: string | null }>>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -69,6 +71,15 @@ export default function OccasionSimplePage({ productId }: { productId: string })
           .select('id, title, status, content_type, video_format, ai_parameters, created_at')
           .eq('product_id', productId)
           .order('created_at', { ascending: false })
+        if (!stopped) {
+          const { data: paidDrafts } = await getSupabase()
+            .from('production_drafts')
+            .select('id, title')
+            .eq('product_id', productId)
+            .eq('payment_status', 'paid')
+            .is('job_id', null)
+          if (!stopped && paidDrafts) setUnfinished(paidDrafts as Array<{ id: string; title: string | null }>)
+        }
         if (!stopped && data) {
           setJobs(data as Job[])
           const ids = (data as Job[]).map((j) => j.id)
@@ -161,6 +172,19 @@ export default function OccasionSimplePage({ productId }: { productId: string })
           <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 auto 20px', maxWidth: 420 }}>{t('makeHint')}</p>
           <Link href={`/dashboard/products/${productId}/film`} style={bigBtn}>{t('makeFilm')}</Link>
         </section>
+
+        {unfinished.length > 0 && (
+          <section style={{ ...card, background: 'var(--ember-tint-bg)', borderColor: 'var(--ember-tint-border)' }}>
+            <h2 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 18, color: 'var(--ink)', margin: '0 0 6px' }}>{t('unfinishedTitle')}</h2>
+            <p style={{ fontFamily: HANKEN, fontSize: 14.5, color: 'var(--text-muted)', margin: '0 0 12px' }}>{t('unfinishedHint')}</p>
+            {unfinished.map((d) => (
+              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0' }}>
+                <div style={{ flex: 1, fontFamily: HANKEN, fontSize: 15, color: 'var(--ink)' }}>{d.title || t('makeFilm')}</div>
+                <Link href={`/dashboard/products/${productId}/film/klar?draft=${d.id}`} style={{ ...bigBtn, fontSize: 14.5, padding: '10px 18px' }}>{t('finishFilm')}</Link>
+              </div>
+            ))}
+          </section>
+        )}
 
         {active.length > 0 && (
           <section style={card}>

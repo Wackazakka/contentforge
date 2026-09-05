@@ -130,7 +130,9 @@ export async function POST(request: Request) {
           quantity: 1,
         },
       ],
-      metadata: { kind: 'film', draft_id: draftId, tier: 'registered', user_id: userId, product_id: draft.product_id },
+      // defer: webhooken markerer betalt uten aa starte — /film/klar lager
+      // bildene og starter produksjonen (betaling FOER skapelsen, Lars 5/9)
+      metadata: { kind: 'film', draft_id: draftId, tier: 'registered', user_id: userId, product_id: draft.product_id, defer: '1' },
       success_url: `${origin}${back}/klar?draft=${draftId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${back}?avbrutt=1`,
     })
