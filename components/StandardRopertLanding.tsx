@@ -111,25 +111,6 @@ export default function StandardRopertLanding() {
         </div>
       </section>
 
-      {/* Eksempelfilm — Lars' Halloween-film, laget i produktet 5/9 */}
-      <section className="sr-band" style={{ paddingBottom: 72 }}>
-        <div className="sr-eks">
-          <div className="sr-tlf">
-            <video controls playsInline preload="none" poster="/ropert/halloween-eksempel.jpg" src="/ropert/halloween-eksempel.mp4" />
-          </div>
-          <div>
-            <h2 className="sr-h2">Slik ser en ferdig film ut</h2>
-            <p className="sr-p">
-              En Halloween-invitasjon laget i Roperten på noen minutter: sangen fra Sangskaper, svarene fra skjemaet som
-              plakater, papirklipp-illustrasjoner i Halloween-farger, og klipp i takt med musikken. Ett minutt, klar til å sende.
-            </p>
-            <Link href="/register" className="sr-cta">Lag din egen</Link>
-          </div>
-        </div>
-      </section>
-
-      <hr className="sr-rule" />
-
       {/* Anledningene — papirklipp fra samme motor som filmene */}
       <section className="sr-band" style={{ paddingBottom: 64 }}>
         <h2 className="sr-h2" style={{ textAlign: 'center' }}>Til alt som feires</h2>
@@ -145,6 +126,25 @@ export default function StandardRopertLanding() {
               <div className="sr-anl-tekst"><b>{a.navn}</b><span>{a.linje}</span></div>
             </Link>
           ))}
+        </div>
+      </section>
+
+      <hr className="sr-rule" />
+
+      {/* Eksempelfilm — Lars' Halloween-film, laget i produktet 5/9 */}
+      <section className="sr-band" style={{ paddingBottom: 72 }}>
+        <div className="sr-eks">
+          <div className="sr-tlf">
+            <video controls playsInline preload="none" poster="/ropert/halloween-eksempel.jpg" src="/ropert/halloween-eksempel.mp4" />
+          </div>
+          <div>
+            <h2 className="sr-h2">Slik ser en ferdig film ut</h2>
+            <p className="sr-p">
+              En Halloween-invitasjon laget i Roperten på noen minutter: sangen fra Sangskaper, svarene fra skjemaet som
+              plakater, papirklipp-illustrasjoner i Halloween-farger, og klipp i takt med musikken. Ett minutt, klar til å sende.
+            </p>
+            <Link href="/register" className="sr-cta">Lag din egen</Link>
+          </div>
         </div>
       </section>
 
