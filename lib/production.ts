@@ -225,6 +225,8 @@ export async function startProductionForDraft(
     motionStyle: s.motion_style || 'push-in',
     motionPrompt: s.motion_prompt || '',
     allowMouth: s.allow_mouth === true,
+    // Ropert (5/9): illustrasjoner animeres med egen prompt uten munnsperre
+    styleLock: s.style_lock === true,
     // Musikkdrevet tempo: hviletid etter stemmen per segment. Stille
     // segmenter uten film=musikk og uten egen verdi får 5 s standard —
     // ellers ville scenen vart 0,4 s.
@@ -295,16 +297,20 @@ export async function startProductionForDraft(
       // Omgjøring (film 2–4 i blokka, lib/filmAllowance): 0 kr i alle ledd —
       // engrosprisen paa den betalte filmen dekker dem.
       const remake = isFreeRemake(await filmCountForProduct(draft.product_id))
+      // Nivaa 2 (animert) har egen engros- og kundepris
+      const animert = !!aiMotion && !!pris.animated
+      const engros = animert ? pris.animated!.wholesaleNok : pris.wholesaleNok
+      const kunde = animert ? pris.animated!.customerPriceNok : pris.customerPriceNok
       const { logUsageEvent } = await import('@/lib/tenantBilling')
       await logUsageEvent({
         productId: draft.product_id,
         draftId,
         userId: draft.user_id || null,
         eventType: 'film_production',
-        costNok: remake ? 0 : pris.wholesaleNok,
+        costNok: remake ? 0 : engros,
         fixedWholesale: true,
-        customerNok: remake ? 0 : Math.round((pris.customerPriceNok / 1.25) * 100) / 100,
-        meta: { jobId: job.jobId, customerPriceNok: remake ? 0 : pris.customerPriceNok, paid: draft.payment_status === 'paid', remake },
+        customerNok: remake ? 0 : Math.round((kunde / 1.25) * 100) / 100,
+        meta: { jobId: job.jobId, customerPriceNok: remake ? 0 : kunde, paid: draft.payment_status === 'paid', remake, animated: animert },
       })
     }
   } catch (uErr) {

@@ -1095,7 +1095,13 @@
     "phaseSaving": "Saving the posters …",
     "editModeTitle": "You are editing the posters of a finished film",
     "editModeHint": "The song, pictures and length are kept from the previous film. Fix the texts below and press “Make the film” — it counts as a remake.",
-    "editModeStartOver": "Start over from scratch instead"
+    "editModeStartOver": "Start over from scratch instead",
+    "tierLabel": "How should the pictures come alive?",
+    "tierStill": "Pictures with motion",
+    "tierStillDesc": "Slow zoom and pan on each picture. Ready in a few minutes.",
+    "tierAnimated": "Animated pictures",
+    "tierAnimatedDesc": "Each picture becomes a little film: flickering lights, things that move. Takes about ten minutes longer.",
+    "tierFree": "free remake"
   },
   "occasion": {
     "back": "← All occasions",

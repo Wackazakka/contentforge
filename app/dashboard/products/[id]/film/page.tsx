@@ -21,7 +21,11 @@ const SERIF = 'var(--font-serif), serif'
 
 type Phase = 'idle' | 'clipping' | 'writing' | 'saving' | 'images' | 'paying' | 'starting'
 
-type Seg = { index: number; text: string; voiceover?: string; image_url: string; image_prompt?: string; no_voice?: boolean; match_music?: boolean; simple_film?: boolean }
+type Seg = { index: number; text: string; voiceover?: string; image_url: string; image_prompt?: string; no_voice?: boolean; match_music?: boolean; simple_film?: boolean; motion?: string; motion_style?: string; motion_prompt?: string; style_lock?: boolean; hold_seconds?: number; approved?: boolean }
+
+// Nivaa 2 (Lars 5/9): papirklippet settes i bevegelse med Kling — stille
+// stop-motion, ikke kamerakjoering, og aldri fotorealisme.
+const MOTION_PROMPT = 'Gentle stop-motion animation of a paper-cut collage illustration: paper elements sway slightly, lights flicker softly, leaves and confetti drift, subtle parallax between layers. Camera almost still. Keep the flat paper-cut style exactly — no realism, no people, no text.'
 
 function fmtDuration(sec: number | null): string {
   if (!sec || !isFinite(sec)) return ''
@@ -59,7 +63,10 @@ export default function FilmPage() {
   const tenant = useTenant()
   const filmPrice = filmPricing(tenant.vertical)?.customerPriceNok ?? null
   // Hva koster NESTE film? Betalt film → 3 gratis omgjøringer (4/9).
-  const [allowance, setAllowance] = useState<{ billing: boolean; nextIsFree: boolean; freeLeft: number; freeRemakes: number } | null>(null)
+  const [allowance, setAllowance] = useState<{ billing: boolean; nextIsFree: boolean; freeLeft: number; freeRemakes: number; animatedPriceNok?: number | null } | null>(null)
+  // Nivaa: 'still' = bilder med langsom bevegelse (149), 'animated' = Kling-klipp (249)
+  const [tier, setTier] = useState<'still' | 'animated'>('still')
+  const animatedPrice = filmPricing(tenant.vertical)?.animated?.customerPriceNok ?? null
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -358,7 +365,13 @@ export default function FilmPage() {
           segments.push({ index: segments.length, text: '', voiceover: '', image_url: prev?.image_url || '', image_prompt: pr, no_voice: true, match_music: prev?.match_music ?? !!musicFile, simple_film: true, approved: true } as Seg)
         })
       }
-      const { error: saveErr } = await getSupabase().from('production_drafts').update({ segments }).eq('id', draftId)
+      // Animert nivaa: hvert bilde faar et bevegelsesklipp (kling), 4 s hviletid
+      // saa hvert klipp er ETT 5-sekunders Kling-kall
+      const animert = tier === 'animated' && !!animatedPrice
+      if (animert) {
+        segments = segments.map((sg) => ({ ...sg, motion: 'move', motion_style: 'custom', motion_prompt: MOTION_PROMPT, style_lock: true, hold_seconds: 4 }))
+      }
+      const { error: saveErr } = await getSupabase().from('production_drafts').update({ segments, ai_motion: animert, ai_motion_engine: animert ? 'kling' : null }).eq('id', draftId)
       if (saveErr) throw new Error(saveErr.message)
 
       // Ingen egne bilder: lag ett AI-bilde per scene, ett om gangen
@@ -412,7 +425,7 @@ export default function FilmPage() {
       const startRes = await fetch('/api/start-production', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId, imageStyle: 'papercut', includeOutroCard: false, aiMotion: false }),
+        body: JSON.stringify({ draftId, imageStyle: 'papercut', includeOutroCard: false, aiMotion: animert, aiMotionEngine: 'kling' }),
       })
       const started = await startRes.json().catch(() => null)
       if (!startRes.ok || !started?.jobId) throw new Error(started?.error || t('failed'))
@@ -666,6 +679,26 @@ export default function FilmPage() {
                 style={{ ...ghostBtn, padding: '10px 18px', fontSize: 14.5 }}>{t('addPoster')}</button>
               <span style={{ ...hint, margin: 0, fontSize: 13.5 }}>{t('posterCount', { count: review.texts.filter((x) => x.trim()).length })}</span>
             </div>
+            {animatedPrice && (
+              <div style={{ marginTop: 22 }}>
+                <p style={{ fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', margin: '0 0 8px' }}>{t('tierLabel')}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+                  {([
+                    { key: 'still', label: t('tierStill'), desc: t('tierStillDesc'), price: filmPrice ?? 149 },
+                    { key: 'animated', label: t('tierAnimated'), desc: t('tierAnimatedDesc'), price: animatedPrice },
+                  ] as const).map((o) => (
+                    <button key={o.key} type="button" disabled={busy} onClick={() => setTier(o.key)}
+                      style={{ textAlign: 'left', fontFamily: HANKEN, borderRadius: 12, padding: '12px 14px', cursor: 'pointer', background: tier === o.key ? 'var(--ember-tint-bg)' : 'var(--paper)', border: tier === o.key ? '2px solid var(--ember-deep)' : '1.5px solid var(--ds-border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{o.label}</span>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ember-deep)' }}>{allowance && !allowance.billing ? '' : allowance?.nextIsFree ? t('tierFree') : `${o.price} kr`}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{o.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{ textAlign: 'center', marginTop: 22 }}>
               {busy ? (
                 <div style={{ fontFamily: HANKEN, fontSize: 15.5, color: 'var(--ink)' }}>

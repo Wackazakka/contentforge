@@ -843,6 +843,9 @@ router.post('/', async (req, res) => {
           const MYK_SPERRE = 'Natural facial expressions are welcome — smiling, laughing, joy. But no talking, no singing, no mouthing words. Photorealistic, no text or letters.'
           const promptFor = (seg) => {
             const egen = (seg.motionPrompt || '').trim()
+            // styleLock (Ropert 5/9): illustrasjoner skal animeres som
+            // illustrasjoner — ingen munnsperre med «photorealistic» paa slutten
+            if (seg.styleLock && egen) return egen
             const kamera = (seg.motionStyle === 'custom' && egen)
               ? egen
               : (KAMERA[seg.motionStyle] || KAMERA['push-in'])
@@ -883,7 +886,7 @@ router.post('/', async (req, res) => {
             // Gjenbruk: identisk scene fra en tidligere produksjon (eller
             // forhåndsvisning) hentes fra cachen — ingen ny generering.
             const fp = clipFingerprint(
-              { imageUrl: url, motion, voiceoverUrl: seg.voiceoverUrl, noVoice: seg.noVoice, holdSeconds: seg.holdSeconds, clipNonce: seg.clipNonce, motionStyle: seg.motionStyle, motionPrompt: seg.motionPrompt, allowMouth: seg.allowMouth },
+              { imageUrl: url, motion, voiceoverUrl: seg.voiceoverUrl, noVoice: seg.noVoice, holdSeconds: seg.holdSeconds, clipNonce: seg.clipNonce, motionStyle: seg.motionStyle, motionPrompt: seg.motionPrompt, allowMouth: seg.allowMouth, styleLock: seg.styleLock },
               { engine, musicFile, segmentCount: orderedSegments.length, matchMusicLength }
             )
             if (clipCacheGet(fp, clipPath)) {
@@ -1022,6 +1025,7 @@ router.post('/', async (req, res) => {
           const seenUrl = new Set()
           const photos = []
           orderedSegments.forEach((seg, i) => {
+            if (segClips && segClips[i]) return // animert: klippet erstatter bildet
             const p = `${jobDir}/image_${i + 1}.png`
             const key = segImageUrls[i] || p
             if (!seenUrl.has(key) && fs.existsSync(p)) { seenUrl.add(key); photos.push(p) }

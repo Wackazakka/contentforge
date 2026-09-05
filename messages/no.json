@@ -1095,7 +1095,13 @@
     "phaseSaving": "Lagrer plakatene …",
     "editModeTitle": "Du redigerer plakatene til en ferdig film",
     "editModeHint": "Sangen, bildene og lengden beholdes fra forrige film. Rett tekstene under og trykk «Lag filmen» — det er en omgjøring.",
-    "editModeStartOver": "Begynn heller helt på nytt"
+    "editModeStartOver": "Begynn heller helt på nytt",
+    "tierLabel": "Hvordan skal bildene leve?",
+    "tierStill": "Bilder med bevegelse",
+    "tierStillDesc": "Langsom zoom og panorering på hvert bilde. Klar på noen minutter.",
+    "tierAnimated": "Animerte bilder",
+    "tierAnimatedDesc": "Hvert bilde blir en liten film: lys som flakker, ting som beveger seg. Tar rundt ti minutter lenger.",
+    "tierFree": "gratis omgjøring"
   },
   "occasion": {
     "back": "← Alle anledninger",
