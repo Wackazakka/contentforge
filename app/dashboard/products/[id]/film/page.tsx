@@ -11,6 +11,7 @@ import { FILM_VOICES, FILM_LIBRARY_FOLDER } from '@/lib/filmVoices'
 import { uploadTrack, TRACK_UPLOAD_MAX_BYTES } from '@/lib/uploadTrack'
 import { filmPricing } from '@/lib/verticals'
 import { fillMissingImages, type FilmSeg } from '@/lib/filmImages'
+import { defaultTrackFor, trackDisplayName } from '@/lib/filmMusic'
 
 // Den enkle filmflyten (Standard Ropert, Lars 4/9): sang → bilder → tekst →
 // film. Ingen segmentredigering, ingen stemmevalg, ingen taxameter. Sangen
@@ -73,6 +74,7 @@ export default function FilmPage() {
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [category, setCategory] = useState<string | null>(null)
   // Skjemaet (Lars 4/9): ett svar per felt = én plakat i filmen. Lagres i
   // products.description som lesbare linjer («Når: …»), og parses tilbake.
   const DETAIL_KEYS = ['who', 'when', 'where', 'bring', 'dress', 'extra', 'rsvp', 'greeting'] as const
@@ -172,11 +174,15 @@ export default function FilmPage() {
   useEffect(() => {
     if (!productId) return
     ;(async () => {
+      // Kategorien brukes rett etter for standardsporet — state er ikke oppdatert ennaa
+      let loadedCategory: string | null = null
       try {
-        const { data } = await getSupabase().from('products').select('name, description').eq('id', productId).single()
+        const { data } = await getSupabase().from('products').select('name, description, category').eq('id', productId).single()
         setTitle((data?.name || '').trim())
         setDescription((data?.description || '').trim())
         setDetails(parseDetails((data?.description || '').trim()))
+        setCategory(data?.category || null)
+        loadedCategory = data?.category || null
       } catch { /* skjemaet fungerer tomt */ } finally { setLoaded(true) }
       try {
         const lib = await fetchMusicLibrary()
@@ -191,7 +197,8 @@ export default function FilmPage() {
         const felles = shared.filter((f) => f.folder === FILM_LIBRARY_FOLDER)
         const bib = felles.length > 0 ? felles : shared
         setLibrary(bib)
-        if (bib.length > 0) setLibraryMusic(bib[0].filename)
+        // Standardspor etter anledningstypen (Lars 5/9)
+        if (bib.length > 0) setLibraryMusic(defaultTrackFor(loadedCategory, bib))
       } catch { /* biblioteket er valgfritt */ }
       try {
         const tk = await token()
@@ -568,7 +575,7 @@ export default function FilmPage() {
                   ) : (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                       <select value={libraryMusic || ''} onChange={(e) => setLibraryMusic(e.target.value || null)} disabled={busy} className="cf-input" style={{ flex: 1, minWidth: 180, marginBottom: 0 }}>
-                        {library.map((m) => <option key={m.filename} value={m.filename}>{m.name}</option>)}
+                        {library.map((m) => <option key={m.filename} value={m.filename}>{trackDisplayName(m.filename, m.name)}</option>)}
                       </select>
                       {libraryMusic && <audio key={libraryMusic} controls preload="none" src={musicSrc(libraryMusic)} style={{ height: 34, maxWidth: 220 }} />}
                     </div>
