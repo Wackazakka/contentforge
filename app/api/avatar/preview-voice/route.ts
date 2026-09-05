@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
 
     const audioBuffer = await res.arrayBuffer()
 
-    // Skuespiller-preview → liten tegnbasert royalty (tenant fra host)
+    // Skuespiller-preview → liten tegnbasert royalty (tenant fra host).
+    // Ingen produkt/organisasjon i denne ruten, saa kundeleddet blir null.
     try {
       const { getTenant } = await import('@/lib/tenantServer')
       const tenant = await getTenant()

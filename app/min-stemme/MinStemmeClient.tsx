@@ -10,17 +10,17 @@ import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 // Kundepris og kundenavn sendes ikke fra serveren, og vises derfor ikke.
 
 interface Payout { id: string; periode_fra: string; periode_til: string; amount_nok: number; betalt_dato: string; note: string | null }
-interface Usage { id: number; at: string; kind: string; assetType: string; usedBy: string; toYouNok: number }
+interface Usage { id: number; at: string; kind: string; chars: number | null; assetType: string; usedBy: string; toYouNok: number }
 interface Actor {
   id: string; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
-  defaultRateNok: number; rates: Record<string, number>; since: string; managedBy: string
+  defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
   uses: number; earnedNok: number; paidNok: number; dueNok: number
   payouts: Payout[]; events: Usage[]
 }
 
 const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('nb-NO')} kr`
 const dato = (s: string) => new Date(s).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' })
-const KIND: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt', ukjent: 'Annet' }
+const KIND: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt', preview: 'Prøvelytt', ukjent: 'Annet' }
 
 export default function MinStemmeClient({ appName }: { appName: string }) {
   const { session, loading: authLoading, signOut } = useAuth()
@@ -129,8 +129,12 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 {Object.entries(a.rates).map(([k, v]) => (
                   <span key={k}><span className="text-gray-500">{KIND[k] || k}:</span> <strong>{nok(v)}</strong></span>
                 ))}
+                <span><span className="text-gray-500">Prøvelytt:</span> <strong>{nok(a.previewRatePer1000)}</strong> <span className="text-gray-500">per 1000 tegn</span></span>
               </div>
-              <p className="text-xs text-gray-400 mt-2">Satsen som gjaldt da bruken skjedde, er den som står i boka — endringer virker bare framover.</p>
+              <p className="text-xs text-gray-400 mt-2">
+                Prøvelytt er når en kunde tester stemmen din på en tekst før de bestiller — hver test gir en liten
+                sum etter tekstlengden. Satsen som gjaldt da bruken skjedde, er den som står i boka — endringer virker bare framover.
+              </p>
             </div>
 
             {/* Utbetalinger */}
@@ -173,7 +177,7 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                     {a.events.map((e) => (
                       <tr key={e.id} className="border-b border-gray-100 last:border-0">
                         <td className="px-4 py-2 whitespace-nowrap text-gray-600">{dato(e.at)}</td>
-                        <td className="px-4 py-2">{KIND[e.kind] || e.kind}</td>
+                        <td className="px-4 py-2">{KIND[e.kind] || e.kind}{e.kind === 'preview' && e.chars ? <span className="text-gray-400"> · {e.chars} tegn</span> : null}</td>
                         <td className="px-4 py-2">{e.usedBy}</td>
                         <td className="px-4 py-2 text-right font-medium tabular-nums">{nok(e.toYouNok)}</td>
                       </tr>

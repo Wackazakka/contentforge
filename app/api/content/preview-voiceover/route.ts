@@ -104,7 +104,7 @@ export async function POST(request: Request) {
           const pt = await getProductTenant(productId)
           if (pt.tenantId) {
             const { logPreviewRoyalty } = await import('@/lib/voiceBank')
-            const r = await logPreviewRoyalty({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, chars: String(text).length, draftId })
+            const r = await logPreviewRoyalty({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, organizationId: pt.organizationId, chars: String(text).length, draftId })
             if (r) {
               actorExtraNok = r.customerNok
               await supabase.rpc('add_draft_cost', { p_draft_id: draftId, p_amount: r.customerNok })

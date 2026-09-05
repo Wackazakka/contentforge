@@ -33,7 +33,7 @@ interface ActorDetail {
 interface Agg { key: string; uses: number; to_actor_nok: number; from_customers_nok: number }
 
 const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('nb-NO')} kr`
-const KIND_LABEL: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt (karakter)', ukjent: 'Ukjent' }
+const KIND_LABEL: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt (karakter)', preview: 'Prøvelytt', ukjent: 'Ukjent' }
 const KINDS = ['video', 'avatar', 'radio', 'face']
 
 export default function VoiceActorPage() {

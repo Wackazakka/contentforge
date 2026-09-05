@@ -155,6 +155,7 @@ export async function getAvailableFaceActors(tenantId: string): Promise<VoiceAct
 export async function logPreviewRoyalty(e: {
   elevenlabsVoiceId?: string | null
   usedByTenantId?: string | null
+  organizationId?: string | null
   chars: number
   draftId?: string | null
   meta?: Record<string, unknown>
@@ -172,6 +173,7 @@ export async function logPreviewRoyalty(e: {
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
+      organization_id: e.organizationId ?? null,
       draft_id: e.draftId ?? null,
       actor_rate_nok: actorNok,
       customer_price_nok: customerNok,
