@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import SwapIllustrationModal from '@/components/SwapIllustrationModal'
 import { useTranslations } from 'next-intl'
+import { useTenant } from '@/lib/tenantContext'
 
 interface Article {
   id: string
@@ -62,6 +63,8 @@ export default function ArticleDetailPage() {
   const router = useRouter()
   const params = useParams()
   const t = useTranslations('articleDetail')
+  // Publiser-flaten kan vaere av for tenanten — se lib/tenantServer.
+  const publisering = useTenant().publishing_enabled !== false
   const productId = params?.id as string
   const articleId = params?.articleId as string
 
@@ -275,12 +278,14 @@ export default function ArticleDetailPage() {
 
           {/* Action bar */}
           <div className="flex flex-wrap gap-3 items-center">
+            {publisering && (
             <Link
               href={`/dashboard/publish?type=article&content_id=${article.id}&product_id=${productId}`}
               className="inline-flex items-center px-5 py-2 bg-[var(--ember-deep)] hover:bg-[var(--ink)] text-[var(--on-ember)] font-medium rounded-lg transition-colors"
             >
               {t('publish')}
             </Link>
+            )}
             {!editing && (
               <button
                 onClick={startEdit}

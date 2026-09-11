@@ -35,6 +35,11 @@ export interface Tenant {
   // vertical === 'music' — en tilfeldighet: musikk-tenanter var de eneste som
   // ikke skulle ha den. Naa eksplisitt; NULL/undefined betyr synlig.
   twinledger_enabled?: boolean | null
+  // Om Publiser + Kalender vises. Aa publisere til Facebook/Instagram krever
+  // en Facebook-side OG en Instagram-bedriftskonto koblet til den — for
+  // tenanter der kundene ikke har det, er flaten bare en blindvei.
+  // NULL/undefined betyr synlig, saa eksisterende tenanter er uroerte.
+  publishing_enabled?: boolean | null
   accept_actor_applications?: boolean | null // «Bli en stemme i banken» åpen for drop-in-skuespillere
   is_active: boolean
 }

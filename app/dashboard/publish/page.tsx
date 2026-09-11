@@ -35,6 +35,13 @@ function PublishPage() {
   const tenant = useTenant()
   const t = useTranslations('publish')
   const erArtist = tenant.vertical === 'music'
+  // Flaten er skrudd av for denne tenanten (lib/tenantServer): lenkene inn hit
+  // er borte, men URL-en er fortsatt naabar fra et bokmerke eller en gammel
+  // OAuth-retur. Send dem til oversikten i stedet for en halv side.
+  const publisering = tenant.publishing_enabled !== false
+  useEffect(() => {
+    if (!publisering) router.replace('/dashboard')
+  }, [publisering, router])
 
   const [connections, setConnections] = useState<SocialConnection[]>([])
   const [loading, setLoading] = useState(true)

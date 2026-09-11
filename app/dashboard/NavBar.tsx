@@ -30,10 +30,14 @@ export default function NavBar() {
   // Instagram-bedriftskonto), Kalender og Kreditter er byraaflater — folk
   // som saa vidt sender e-post skal se Oversikt, Konto og Logg ut.
   const enkel = isSimpleMode(tenant.vertical)
+  // Per-tenant av/paa for de samme to flatene (IndigoBoom 11/9). Enkel modus
+  // skjuler dem for en hel vertikal; dette flagget gjoer det for én merkevare,
+  // og er ment aa kunne skrus tilbake paa uten en ny deploy.
+  const publisering = tenant.publishing_enabled !== false
   // Invoice-tenants (white-label via partner) skal ikke se CenterForge-priser/billing
   const navLinks = [
     { href: '/dashboard', label: t('overview') },
-    ...(enkel ? [] : [
+    ...(enkel || !publisering ? [] : [
       { href: '/dashboard/publish', label: t('publish') },
       { href: '/dashboard/calendar', label: t('calendar') },
     ]),

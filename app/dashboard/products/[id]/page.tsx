@@ -115,6 +115,9 @@ function FullProductPage() {
   const t = useTranslations('product')
   const tenant = useTenant()
   const vcfg = verticalConfig(tenant.vertical)
+  // Publiser-flaten er skrudd av for denne tenanten (se lib/tenantServer):
+  // da skal heller ikke knappene inn dit staa igjen som blindveier.
+  const publisering = tenant.publishing_enabled !== false
   const productId = params.id as string
 
   const [product, setProduct] = useState<Product | null>(null)
@@ -1326,6 +1329,7 @@ function FullProductPage() {
                             style={{ aspectRatio: '9/16', maxHeight: '300px' }}
                           />
                           <div className="flex gap-2">
+                            {publisering && (
                             <button
                               onClick={() =>
                                 router.push(
@@ -1336,6 +1340,7 @@ function FullProductPage() {
                             >
                               {t('publish')}
                             </button>
+                            )}
                             <a
                               href={videoUrl}
                               download={`${job.title.replace(/\s+/g, '_')}.mp4`}
@@ -1438,6 +1443,7 @@ function FullProductPage() {
                         style={{ aspectRatio: '9/16', maxHeight: '300px' }}
                       />
                       <div className="flex gap-2">
+                        {publisering && (
                         <button
                           onClick={() =>
                             router.push(
@@ -1449,6 +1455,7 @@ function FullProductPage() {
                         >
                           Publiser
                         </button>
+                        )}
                         <a
                           href={videoUrl}
                           download={`${job.title.replace(/\s+/g, '_')}_avatar.mp4`}
@@ -1514,6 +1521,7 @@ function FullProductPage() {
                             style={{ maxHeight: '200px' }}
                           />
                           <div className="flex gap-2">
+                            {publisering && (
                             <button
                               onClick={() =>
                                 router.push(
@@ -1524,6 +1532,7 @@ function FullProductPage() {
                             >
                               {t('publish')}
                             </button>
+                            )}
                             <a
                               href={video.asset_url}
                               download={(video as any).name || 'video.mp4'}
@@ -1684,6 +1693,7 @@ function FullProductPage() {
                               {new Date(article.created_at).toLocaleDateString('no-NO')}
                             </p>
                             <div className="flex gap-2">
+                              {publisering && (
                               <button
                                 onClick={() =>
                                   router.push(
@@ -1695,6 +1705,7 @@ function FullProductPage() {
                               >
                                 {t('publish')}
                               </button>
+                              )}
                               <button
                                 onClick={() => handleDeleteArticle(article.id)}
                                 className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-colors"

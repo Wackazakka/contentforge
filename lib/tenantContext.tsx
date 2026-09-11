@@ -18,6 +18,8 @@ export interface TenantInfo {
   show_advanced_admin?: boolean | null
   // Om TwinLedger-flatene (stemmebanken) vises. NULL/undefined = synlig.
   twinledger_enabled?: boolean | null
+  // Om Publiser + Kalender vises. NULL/undefined = synlig. Se lib/tenantServer.
+  publishing_enabled?: boolean | null
 }
 
 const DEFAULT: TenantInfo = {

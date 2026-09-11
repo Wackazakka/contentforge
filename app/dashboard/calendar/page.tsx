@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { useTenant } from '@/lib/tenantContext'
@@ -99,6 +100,13 @@ function Badge({ status }: { status: string }) {
 export default function CalendarPage() {
   const t = useTranslations('calendar')
   const tenant = useTenant()
+  const router = useRouter()
+  // Se app/dashboard/publish: flaten kan vaere av for tenanten, og da skal
+  // heller ikke direkte-URL-en vise en tom kalender.
+  const publisering = tenant.publishing_enabled !== false
+  useEffect(() => {
+    if (!publisering) router.replace('/dashboard')
+  }, [publisering, router])
   const [entries, setEntries] = useState<CalendarEntry[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
