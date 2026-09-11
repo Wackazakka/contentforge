@@ -1253,7 +1253,7 @@ export default function DraftV2Page() {
                                       type="button"
                                       onClick={() => slettBilde(img)}
                                       title="Slett fra biblioteket"
-                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FFFFFF]/90 border border-black/20 text-black/55 text-[11px] leading-none opacity-0 group-hover:opacity-100 hover:text-red-600 hover:border-red-300"
+                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FFFFFF]/90 border border-black/20 text-black/55 text-[11px] leading-none opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto hover:text-red-600 hover:border-red-300"
                                     >
                                       ✕
                                     </button>

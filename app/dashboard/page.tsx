@@ -301,7 +301,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => handleDeleteProduct(product.id)}
                 title={t('deleteTitle')}
-                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-md"
+                className="absolute top-3 right-3 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity w-7 h-7 flex items-center justify-center rounded-md"
                 style={{ color: 'var(--text-faint)' }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ember-deep)'; e.currentTarget.style.background = '#FBEAE6' }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-faint)'; e.currentTarget.style.background = 'transparent' }}

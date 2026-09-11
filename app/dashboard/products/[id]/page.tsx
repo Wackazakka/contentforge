@@ -1095,7 +1095,7 @@ function FullProductPage() {
                       await refreshImageLibrary()
                     } catch { setImgLibError('Slettingen feilet — prøv igjen.') }
                   }}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity"
                 >
                   ✕
                 </button>
@@ -1609,7 +1609,7 @@ function FullProductPage() {
                         <button
                           onClick={() => handleDeleteImage(asset.id)}
                           title={t('deleteImage')}
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-md bg-[#FFFFFF]/90 text-black/55 hover:text-red-500 hover:bg-red-50 shadow-sm"
+                          className="absolute top-2 right-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity w-7 h-7 flex items-center justify-center rounded-md bg-[#FFFFFF]/90 text-black/55 hover:text-red-500 hover:bg-red-50 shadow-sm"
                         >
                           <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
                             <path d="M1 3h12M5 3V2h4v1M2 3l1 9h8l1-9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
