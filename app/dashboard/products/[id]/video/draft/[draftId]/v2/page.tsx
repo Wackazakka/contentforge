@@ -18,6 +18,7 @@ import { MOTION_STYLES } from '@/lib/motionStyles'
 import { uploadSegmentVideo, VIDEO_MAX_BYTES } from '@/lib/uploadSegmentVideo'
 import { VOICES as VOICES_FALLBACK, voiceName, type VoiceOption, languageForGroup } from '@/lib/voices'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile, fetchMusicLibrary } from '@/lib/musicLibrary'
+import { komprimerBilde, MAKS_OPPLASTING } from '@/lib/komprimerBilde'
 
 interface Segment {
   index: number
@@ -482,11 +483,13 @@ export default function DraftV2Page() {
   }
 
   const uploadLibraryImage = async (file: File): Promise<string | null> => {
+    const klar = await komprimerBilde(file)
+    if (klar.size > MAKS_OPPLASTING) { alert('Bildet er for stort. Proev et mindre bilde.'); return null }
     setLibUploading(true)
     try {
       const { data: sess } = await getSupabase().auth.getSession()
       const fd = new FormData()
-      fd.append('file', file)
+      fd.append('file', klar)
       fd.append('productId', productId)
       const res = await fetch('/api/products/images', {
         method: 'POST',
@@ -1258,7 +1261,7 @@ export default function DraftV2Page() {
                                 ))}
                               </div>
                               <label className="text-[12.5px] text-gray-600 cursor-pointer underline">
-                                {libUploading ? 'Laster opp…' : '+ Last opp nytt bilde (maks 8 MB)'}
+                                {libUploading ? 'Laster opp…' : '+ Last opp nytt bilde'}
                                 <input
                                   type="file"
                                   accept="image/png,image/jpeg,image/webp"

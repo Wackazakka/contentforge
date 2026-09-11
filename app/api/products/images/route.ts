@@ -15,7 +15,7 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'contentforge-assets'
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
-const MAX_BYTES = 8 * 1024 * 1024 // pressebilder er større enn logoer
+const MAX_BYTES = 25 * 1024 * 1024 // klienten komprimerer foerst (lib/komprimerBilde); dette er sikkerhetsventilen // pressebilder er større enn logoer
 const ALLOWED = /^image\/(png|jpeg|webp)$/
 
 function r2Client() {
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     if (!file || !(file instanceof File)) return NextResponse.json({ error: 'Ingen fil' }, { status: 400 })
     if (!productId) return NextResponse.json({ error: 'productId mangler' }, { status: 400 })
     if (!ALLOWED.test(file.type)) return NextResponse.json({ error: 'Kun PNG, JPG eller WebP' }, { status: 400 })
-    if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Filen er for stor (maks 8 MB)' }, { status: 400 })
+    if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Filen er for stor' }, { status: 400 })
     if (!(await assertOwnership(request, productId))) {
       return NextResponse.json({ error: 'Ingen tilgang til dette produktet' }, { status: 403 })
     }

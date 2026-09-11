@@ -13,6 +13,7 @@ import { filmPricing } from '@/lib/verticals'
 import { fillMissingImages, type FilmSeg } from '@/lib/filmImages'
 import { defaultTrackFor, trackDisplayName } from '@/lib/filmMusic'
 import { personPromptFor, DRAWING_MAX_TRIES } from '@/lib/filmPersonPrompt'
+import { komprimerBilde, MAKS_OPPLASTING } from '@/lib/komprimerBilde'
 
 // Den enkle filmflyten (Standard Ropert, Lars 4/9): sang → bilder → tekst →
 // film. Ingen segmentredigering, ingen stemmevalg, ingen taxameter. Sangen
@@ -241,9 +242,10 @@ export default function FilmPage() {
     try {
       const tk = await token()
       for (const f of files) {
-        if (f.size > 8 * 1024 * 1024) { setPhotoError(t('photoTooLarge', { name: f.name })); continue }
+        const klar = await komprimerBilde(f)
+        if (klar.size > MAKS_OPPLASTING) { setPhotoError(t('photoTooLarge', { name: f.name })); continue }
         const fd = new FormData()
-        fd.append('file', f)
+        fd.append('file', klar)
         fd.append('productId', productId)
         const res = await fetch('/api/products/images', { method: 'POST', headers: tk ? { Authorization: `Bearer ${tk}` } : undefined, body: fd })
         const d = await res.json().catch(() => null)

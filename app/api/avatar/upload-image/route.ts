@@ -9,7 +9,7 @@ const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'contentforge-assets'
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-const MAX_SIZE = 8 * 1024 * 1024
+const MAX_SIZE = 25 * 1024 * 1024 // klienten komprimerer foerst (lib/komprimerBilde); dette er sikkerhetsventilen
 
 export async function POST(request: Request) {
   try {

@@ -12,6 +12,7 @@ import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack } from '@/lib/uploadTrack'
+import { komprimerBilde, MAKS_OPPLASTING } from '@/lib/komprimerBilde'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 
@@ -800,13 +801,14 @@ export default function DraftPage() {
     }
   }
   const uploadLibraryImage = async (file: File): Promise<string | null> => {
-    if (file.size > 8 * 1024 * 1024) { alert('Bildet er for stort (maks 8 MB).'); return null }
+    const klar = await komprimerBilde(file)
+    if (klar.size > MAKS_OPPLASTING) { alert('Bildet er for stort. Proev et mindre bilde.'); return null }
     setLibUploading(true)
     try {
       const { data: sess } = await getSupabase().auth.getSession()
       const token = sess?.session?.access_token
       const fd = new FormData()
-      fd.append('file', file)
+      fd.append('file', klar)
       fd.append('productId', productId)
       const res = await fetch('/api/products/images', {
         method: 'POST',
@@ -1812,7 +1814,7 @@ export default function DraftPage() {
                         </div>
                       )}
                       <label className="block text-xs text-gray-600 cursor-pointer">
-                        <span className="underline">{libUploading ? 'Laster opp…' : '+ Last opp nytt (pressebilde/artwork, maks 8 MB)'}</span>
+                        <span className="underline">{libUploading ? 'Laster opp…' : '+ Last opp nytt (pressebilde/artwork)'}</span>
                         <input
                           type="file"
                           accept="image/png,image/jpeg,image/webp"

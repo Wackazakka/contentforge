@@ -11,6 +11,7 @@ import { verticalConfig, offersProduction } from '@/lib/verticals'
 import OccasionSimplePage from '@/components/OccasionSimplePage'
 import { uploadTrack } from '@/lib/uploadTrack'
 import { fetchMusicLibrary } from '@/lib/musicLibrary'
+import { komprimerBilde, MAKS_OPPLASTING } from '@/lib/komprimerBilde'
 
 function renderMarkdown(text: string) {
   const clean = text.replace(/\n/g, ' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -1124,9 +1125,12 @@ function FullProductPage() {
                   const { data: sess } = await getSupabase().auth.getSession()
                   const token = sess?.session?.access_token
                   for (const f of files) {
-                    if (f.size > 8 * 1024 * 1024) { setImgLibError(`«${f.name}» er for stor (maks 8 MB) — hoppet over.`); continue }
+                    // Skaleres ned i nettleseren foer opplasting; grensen under
+                    // er bare en sikkerhetsventil (se lib/komprimerBilde).
+                    const klar = await komprimerBilde(f)
+                    if (klar.size > MAKS_OPPLASTING) { setImgLibError(`«${f.name}» er for stor. Proev et mindre bilde.`); continue }
                     const fd = new FormData()
-                    fd.append('file', f)
+                    fd.append('file', klar)
                     fd.append('productId', productId)
                     const res = await fetch('/api/products/images', {
                       method: 'POST',
@@ -1145,7 +1149,7 @@ function FullProductPage() {
               }}
             />
           </label>
-          <span className="text-xs text-gray-400 ml-3">PNG, JPG eller WebP — maks 8 MB per bilde. Velg gjerne flere samtidig.</span>
+          <span className="text-xs text-gray-400 ml-3">PNG, JPG eller WebP. Store bilder komprimeres automatisk. Velg gjerne flere samtidig.</span>
         </div>
 
         {/* Låtbanken — egne låter til bakgrunnsmusikk og medley */}
