@@ -223,8 +223,13 @@ app.post('/music/medley', express.json(), (req, res) => {
     const folder = String(req.body?.folder || '').toLowerCase().replace(/[^a-z0-9-]/g, '')
     const rawName = String(req.body?.name || `medley-${Date.now()}`)
 
-    if (files.length < 2 || files.length > 5) {
-      return res.status(400).json({ error: 'Velg 2-5 filer' })
+    // EN fil = trimming (startpunkt + lengde). To til fem = medley med
+    // crossfade. Filterkjeden under takler begge: med bare en input blir
+    // `chain` tom og `prev` staar som [0:a], som er gyldig filter_complex.
+    // Trimmingen (-ss/-t) er den samme uansett antall (Lars 11/9 — artister
+    // med en fire minutters laat trengte a kunne korte den ned).
+    if (files.length < 1 || files.length > 5) {
+      return res.status(400).json({ error: 'Velg 1-5 filer' })
     }
     if (!folder) return res.status(400).json({ error: 'Ugyldig mappe' })
 

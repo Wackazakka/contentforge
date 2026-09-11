@@ -348,20 +348,25 @@ export default function DraftV2Page() {
   // ---- Medley (portert fra gammel side) ----
   const [medleyPicks, setMedleyPicks] = useState<string[]>([])
   const [medleyClip, setMedleyClip] = useState<'full' | '10' | '15' | '20' | '30'>('15')
+  // Hvor i laata utsnittet starter. Serveren har stoettet dette siden juli
+  // (Lars: «jeg vet jo ikke hvilken del av laata som spilles»), men UI-et
+  // sendte alltid 0. Eksponert 11/9 sammen med trimming av EN laat.
+  const [medleyStart, setMedleyStart] = useState('0')
   const [medleyBuilding, setMedleyBuilding] = useState(false)
   const [medleyResult, setMedleyResult] = useState<{ filename: string; name: string } | null>(null)
   const buildMedley = async () => {
-    if (medleyPicks.length < 2) return
+    if (medleyPicks.length < 1) return
     setMedleyBuilding(true)
     setMedleyResult(null)
     try {
       const now = new Date()
-      const navn = `medley-${now.toISOString().slice(0, 10)}-kl-${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}.${String(now.getSeconds()).padStart(2, '0')}`
+      const type = medleyPicks.length === 1 ? 'utsnitt' : 'medley'
+      const navn = `${type}-${now.toISOString().slice(0, 10)}-kl-${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}.${String(now.getSeconds()).padStart(2, '0')}`
       const res = await fetch('/api/music/medley', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          files: medleyPicks.map((f) => ({ filename: f, startSec: 0, clipSec: medleyClip === 'full' ? undefined : Number(medleyClip) })),
+          files: medleyPicks.map((f) => ({ filename: f, startSec: Math.max(0, Number(medleyStart) || 0), clipSec: medleyClip === 'full' ? undefined : Number(medleyClip) })),
           folder: tracksFolder(productId),
           name: navn,
         }),
@@ -1891,8 +1896,21 @@ export default function DraftV2Page() {
                         </div>
                         {medleyPicks.length > 0 && (
                           <>
+                            {medleyPicks.length === 1 && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-[11.5px] text-gray-500">Start på:</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={medleyStart}
+                                  onChange={(e) => setMedleyStart(e.currentTarget.value)}
+                                  className="w-20 px-2 py-1 border border-gray-300 rounded text-[12px] bg-[var(--paper-raised)]"
+                                />
+                                <span className="text-[11.5px] text-gray-500">sek inn i låten</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 mt-2">
-                              <span className="text-[11.5px] text-gray-500">Lengde per låt:</span>
+                              <span className="text-[11.5px] text-gray-500">{medleyPicks.length === 1 ? 'Lengde:' : 'Lengde per låt:'}</span>
                               <select
                                 value={medleyClip}
                                 onChange={(e) => setMedleyClip(e.target.value as typeof medleyClip)}
@@ -1905,6 +1923,12 @@ export default function DraftV2Page() {
                                 <option value="full">Hele låten</option>
                               </select>
                             </div>
+                            {medleyPicks.length === 1 && medleyClip !== 'full' && (
+                              <p className="mt-1.5 text-[11.5px] text-[var(--ember-deep)]">
+                                Du får <strong>{medleyClip} sek</strong> fra {Math.max(0, Number(medleyStart) || 0)} sek og utover,
+                                med mykt uttoning på slutten. Originalen beholdes.
+                              </p>
+                            )}
                             {medleyClip !== 'full' && medleyPicks.length >= 2 && (() => {
                               const bit = Number(medleyClip)
                               const skjoter = medleyPicks.length - 1
@@ -1919,10 +1943,19 @@ export default function DraftV2Page() {
                             <button
                               type="button"
                               onClick={buildMedley}
-                              disabled={medleyPicks.length < 2 || medleyBuilding}
+                              disabled={
+                                medleyPicks.length < 1 || medleyBuilding ||
+                                // Én låt uten hverken lengde eller startpunkt ville bare
+                                // laget en identisk kopi.
+                                (medleyPicks.length === 1 && medleyClip === 'full' && (Number(medleyStart) || 0) === 0)
+                              }
                               className="mt-2 w-full px-3 py-2 rounded-lg bg-[var(--ember-deep)] text-[var(--on-ember)] text-[13px] font-medium hover:bg-[var(--ink)] disabled:opacity-40"
                             >
-                              {medleyBuilding ? 'Mikser låtene…' : `Lag medley (${medleyPicks.length} låter)`}
+                              {medleyBuilding
+                                ? (medleyPicks.length === 1 ? 'Klipper…' : 'Mikser låtene…')
+                                : medleyPicks.length === 1
+                                  ? 'Lag utsnitt av låten'
+                                  : `Lag medley (${medleyPicks.length} låter)`}
                             </button>
                           </>
                         )}
