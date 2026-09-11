@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { getTenant } from '@/lib/tenantServer'
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
@@ -16,6 +17,12 @@ export async function POST(request: NextRequest) {
     }
 
     const firstName = name?.split(' ')[0] ?? 'there'
+
+    // Registreringen kaller denne ruten paa tenantens eget domene, saa
+    // Host-headeren gir riktig tenant. Uten Publiser-flaten (IndigoBoom 11/9)
+    // skal e-posten ikke love at man kan publisere herfra.
+    const tenant = await getTenant()
+    const publisering = tenant.publishing_enabled !== false
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -56,7 +63,9 @@ export async function POST(request: NextRequest) {
                 Welcome, ${firstName}!
               </h1>
               <p style="margin:0 0 28px;font-size:15px;color:#5E564A;line-height:1.6;">
-                Your CenterForge account is ready. Start creating AI-powered content and publishing it to your social media channels — all from one place.
+                ${publisering
+                  ? 'Your CenterForge account is ready. Start creating AI-powered content and publishing it to your social media channels — all from one place.'
+                  : 'Your CenterForge account is ready. Start creating AI-powered content — all from one place.'}
               </p>
 
               <!-- Steps -->
@@ -64,7 +73,9 @@ export async function POST(request: NextRequest) {
                 ${[
                   ['1', 'Add a product', 'Describe what you sell — name, category, and a short description.'],
                   ['2', 'Generate content', 'Create articles and short-form videos with one click using AI.'],
-                  ['3', 'Connect & publish', 'Link your social accounts and publish directly from CenterForge.'],
+                  publisering
+                    ? ['3', 'Connect & publish', 'Link your social accounts and publish directly from CenterForge.']
+                    : ['3', 'Download & share', 'Download the finished video and post it wherever your audience is.'],
                 ].map(([step, title, desc]) => `
                 <tr>
                   <td style="padding-bottom:16px;">

@@ -41,7 +41,8 @@
     "step1Desc": "Navn, sjanger og hvem du eller dere er — to setninger holder.",
     "step2Title": "Få promoinnholdet laget",
     "step2Desc": "Video med stemme, bilder og tekst — du godkjenner alt før det koster noe.",
-    "step3Desc": "Koble til Facebook og Instagram og publiser rett fra {name}."
+    "step3Desc": "Last ned den ferdige filmen og legg den ut der fansen er: TikTok, Reels eller YouTube.",
+    "step3Title": "Last ned og del"
   },
   "product": {
     "phoneLabel": "Booking-telefon",
@@ -93,15 +94,15 @@
     "cta_primary": "Kom i gang",
     "cta_secondary": "Se hvordan det virker",
     "feat_title": "Alt et slipp trenger",
-    "feat_sub": "Fra idé til publisert promo — ingen redigeringsprogrammer, ingen designkunnskap.",
+    "feat_sub": "Fra idé til ferdig promo — ingen redigeringsprogrammer, ingen designkunnskap.",
     "f1_t": "Video som beveger seg",
     "f1_d": "Bildene dine blir levende scener med kamerabevegelse og lip sync. 9:16, 1:1 og 16:9 — samme promo til hver feed.",
     "f2_t": "Din egen musikk under",
     "f2_d": "Bruk dine egne låter som lydspor — én låt, eller flere krysset sammen til en medley. Filmen følger musikken, ikke omvendt.",
     "f3_t": "Dine egne opptak også",
     "f3_d": "Liveklipp fra mobilen går rett inn i en scene. Bland dem med genererte, eller bruk bare dine egne.",
-    "f4_t": "Publiser der fansen er",
-    "f4_d": "Rett til Facebook, Instagram, YouTube og TikTok — med kalender, så teaseren lander dagen før slippet, ikke uka etter.",
+    "f4_t": "Klar til å dele",
+    "f4_d": "Last ned filmen og legg den ut der fansen er, på TikTok, Reels, YouTube eller Facebook. Fila er din, og du bestemmer selv når den slippes.",
     "f5_t": "Se kostnaden underveis",
     "f5_d": "Hvert valg viser prisen mens du jobber, med saldoen din ved siden av. Ingenting belastes før du har godkjent det.",
     "f6_t": "Én konto, alle slipp",
@@ -135,5 +136,8 @@
   "publish": {
     "productLabel": "Artist",
     "selectProduct": "Velg artist..."
+  },
+  "articles": {
+    "backgroundGraphicsDesc": "Ferdig artikkel med bilde finner du under"
   }
 }

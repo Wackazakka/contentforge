@@ -40,8 +40,9 @@
     "step1Desc": "Name, genre and who you are — two sentences is enough.",
     "step2Title": "Get your promo made",
     "step2Desc": "Video with voice, images and copy — you approve everything before it costs anything.",
-    "step3Desc": "Connect Facebook and Instagram and publish straight from {name}.",
-    "createFirstProduct": "+ Add your artist"
+    "step3Desc": "Download the finished video and post it where your fans are: TikTok, Reels or YouTube.",
+    "createFirstProduct": "+ Add your artist",
+    "step3Title": "Download and share"
   },
   "product": {
     "phoneLabel": "Booking phone",
@@ -93,15 +94,15 @@
     "cta_primary": "Get started",
     "cta_secondary": "See how it works",
     "feat_title": "Everything a release needs",
-    "feat_sub": "From idea to posted promo -- no editing software, no design skills.",
+    "feat_sub": "From idea to finished promo -- no editing software, no design skills.",
     "f1_t": "Video that moves",
     "f1_d": "Your photos become moving scenes with camera motion and lip sync. 9:16, 1:1 and 16:9 -- the same promo for every feed.",
     "f2_t": "Your own music underneath",
     "f2_d": "Use your own tracks as the soundtrack -- one song, or several crossfaded into a medley. The film follows the music, not the other way around.",
     "f3_t": "Your own footage too",
     "f3_d": "Live clips from the phone drop straight into a scene. Mix them with generated ones, or use only your own.",
-    "f4_t": "Publish where the fans are",
-    "f4_d": "Straight to Facebook, Instagram, YouTube and TikTok -- with a calendar, so the teaser lands the day before the release, not the week after.",
+    "f4_t": "Ready to share",
+    "f4_d": "Download the video and post it where your fans are, on TikTok, Reels, YouTube or Facebook. The file is yours, so you decide when it drops.",
     "f5_t": "See the cost as you go",
     "f5_d": "Every choice shows its price while you work, with your balance next to it. Nothing is charged before you approve it.",
     "f6_t": "One account, every release",
@@ -135,5 +136,8 @@
   "publish": {
     "productLabel": "Artist",
     "selectProduct": "Select artist..."
+  },
+  "articles": {
+    "backgroundGraphicsDesc": "Finished article with image can be found under"
   }
 }

@@ -682,8 +682,9 @@ function FullProductPage() {
         .map((s) => s.platform as string)
     ),
   ]
+  // Uten Publiser-flaten peker merkene til noe kunden ikke kan se eller endre.
   const PubBadge = ({ publisert, planlagt }: { publisert: string[]; planlagt: string[] }) =>
-    publisert.length > 0 ? (
+    !publisering ? null : publisert.length > 0 ? (
       <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full shrink-0" style={{ backgroundColor: '#E4EFE0', color: '#3F7A4E' }}>
         ✓ Publisert · {publisert.join(', ')}
       </span>

@@ -235,7 +235,8 @@ export default function ArticleDetailPage() {
               onClose={() => setSwapOpen(false)}
               onImageUpdated={(newUrl) => {
                 setArticle((prev) => (prev ? { ...prev, image_urls: [newUrl] } : prev))
-                setImageSavedMsg('✓ Bilde lagret — ingenting er publisert ennå')
+                // «ingenting er publisert» er bare en beroligelse der publisering finnes
+                setImageSavedMsg(publisering ? '✓ Bilde lagret — ingenting er publisert ennå' : '✓ Bilde lagret')
                 setTimeout(() => setImageSavedMsg(null), 5000)
               }}
             />
