@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { finishPendingPublications } from '@/lib/instagramPublish'
 
 async function runCron(request?: NextRequest) {
   // Allow internal Netlify scheduler (no secret) or requests with the correct secret
@@ -18,6 +19,18 @@ async function runCron(request?: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  // Instagram-rader som staar som 'processing' (containeren er opprettet,
+  // mediet prosesseres hos Meta) fullfoeres her -- ogsaa de der brukeren
+  // lukket fanen foer klienten rakk aa polle ferdig. Sjekkes foer de
+  // planlagte postene, saa ingen rad blir hengende til neste kjoering.
+  let finished: Awaited<ReturnType<typeof finishPendingPublications>> = []
+  try {
+    finished = await finishPendingPublications(supabase, {})
+    if (finished.length) console.log('[cron] pending instagram publications:', JSON.stringify(finished))
+  } catch (err) {
+    console.error('[cron] Could not finish pending publications:', err)
+  }
+
   const { data: due, error } = await supabase
     .from('scheduled_publications')
     .select('*')
@@ -29,7 +42,7 @@ async function runCron(request?: NextRequest) {
   }
 
   if (!due || due.length === 0) {
-    return NextResponse.json({ published: 0 })
+    return NextResponse.json({ published: 0, finished })
   }
 
   console.log(`[cron] Found ${due.length} post(s) due for publishing`)
@@ -38,7 +51,7 @@ async function runCron(request?: NextRequest) {
   const results = []
 
   for (const post of due) {
-    const { id, platform, content_type, page_id, caption, draft_id, job_id, user_id, production_id, container_id, ig_account_id, as_reel } = post
+    const { id, platform, content_type, page_id, caption, draft_id, job_id, user_id, production_id, as_reel } = post
 
     // Guard: skip posts with missing critical data
     if (!page_id) {
@@ -47,7 +60,10 @@ async function runCron(request?: NextRequest) {
       results.push({ id, success: false, error: 'missing page_id' })
       continue
     }
-    // Instagram: two-phase flow to handle slow video processing
+    // Instagram: publish-ruta oppretter containeren og logger en
+    // 'processing'-rad i publications; finishPendingPublications (oeverst i
+    // hver kjoering) publiserer naar Meta er ferdig. Den planlagte raden er
+    // dermed gjort med en gang containeren finnes.
     if (platform === 'instagram' && (content_type === 'video' || content_type === 'article')) {
       const videoUrl = content_type === 'video' && job_id ? `${process.env.NEXT_PUBLIC_R2_URL}/videos/${job_id}/output.mp4` : null
       let imageUrl: string | null = null
@@ -81,56 +97,25 @@ async function runCron(request?: NextRequest) {
       }
 
       try {
-        let activeContainerId = container_id
-        let activeIgAccountId = ig_account_id
-
-        // Phase 1: create container if we don't have one yet
-        if (!activeContainerId) {
-          console.log(`[cron] Instagram post ${id}: creating container`)
-          const startRes = await fetch(`${baseUrl}/api/publish/instagram`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pageIds: [page_id], videoUrl, imageUrl, caption: igCaption, draftId: draft_id, productId: production_id, userId: user_id }),
-          })
-          const startData = await startRes.json()
-          const jobInfo = startData.results?.[0]
-          if (!jobInfo?.containerId) {
-            const err = jobInfo?.error || startData.error || 'Failed to create container'
-            console.error(`[cron] Instagram post ${id}: container creation failed:`, err)
-            await supabase.from('scheduled_publications').delete().eq('id', id)
-            results.push({ id, success: false, error: err })
-            continue
-          }
-          activeContainerId = jobInfo.containerId
-          activeIgAccountId = jobInfo.igAccountId
-          // Save container state — cron will finalize on next run
-          await supabase.from('scheduled_publications').update({ container_id: activeContainerId, ig_account_id: activeIgAccountId }).eq('id', id)
-          console.log(`[cron] Instagram post ${id}: container ${activeContainerId} created, will finalize next run`)
-          results.push({ id, success: false, pending: true, containerId: activeContainerId })
-          continue
-        }
-
-        // Phase 2: container already exists — check status and finalize
-        console.log(`[cron] Instagram post ${id}: checking container ${activeContainerId}`)
-        const statusRes = await fetch(`${baseUrl}/api/publish/instagram/status`, {
+        console.log(`[cron] Instagram post ${id}: creating container`)
+        const startRes = await fetch(`${baseUrl}/api/publish/instagram`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ containerId: activeContainerId, igAccountId: activeIgAccountId, pageId: page_id, caption: igCaption, draftId: draft_id, productId: production_id, userId: user_id, videoUrl: videoUrl || imageUrl }),
+          body: JSON.stringify({ pageIds: [page_id], videoUrl, imageUrl, caption: igCaption, contentType: content_type, draftId: draft_id, productId: production_id, userId: user_id }),
         })
-        const statusData = await statusRes.json()
-        console.log(`[cron] Instagram post ${id}: status =`, statusData.status)
-
-        if (statusData.status === 'published') {
+        const startData = await startRes.json()
+        const jobInfo = startData.results?.[0]
+        if (!jobInfo?.publicationId) {
+          const err = jobInfo?.error || startData.error || 'Failed to create container'
+          console.error(`[cron] Instagram post ${id}: container creation failed:`, err)
           await supabase.from('scheduled_publications').delete().eq('id', id)
-          results.push({ id, success: true })
-        } else if (statusData.status === 'processing') {
-          // Still processing — leave the record, retry next cron run
-          results.push({ id, success: false, pending: true })
-        } else {
-          // Failed
-          await supabase.from('scheduled_publications').delete().eq('id', id)
-          results.push({ id, success: false, error: statusData.error })
+          results.push({ id, success: false, error: err })
+          continue
         }
+        // Raden i publications baerer tilstanden videre; den planlagte er ferdig.
+        await supabase.from('scheduled_publications').delete().eq('id', id)
+        console.log(`[cron] Instagram post ${id}: container ${jobInfo.containerId} created, publication ${jobInfo.publicationId} pending`)
+        results.push({ id, success: false, pending: true, publicationId: jobInfo.publicationId })
       } catch (err) {
         console.error(`[cron] Instagram post ${id} error:`, err)
         results.push({ id, success: false, error: String(err) })
@@ -323,7 +308,7 @@ async function runCron(request?: NextRequest) {
 
   const publishedCount = results.filter((r) => r.success).length
   console.log(`[cron] Done: ${publishedCount}/${results.length} published`)
-  return NextResponse.json({ published: publishedCount, results })
+  return NextResponse.json({ published: publishedCount, results, finished })
 }
 
 export async function POST(request: NextRequest) { return runCron(request) }

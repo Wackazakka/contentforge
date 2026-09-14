@@ -1,86 +1,37 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { finishPendingPublications } from '@/lib/instagramPublish'
 
-export async function POST(request: Request) {
-  try {
-    const { containerId, igAccountId, pageId, caption, draftId, productId, userId, pageName, videoUrl } = await request.json()
+// Klienten poller hit etter «Publiser naa» naar Instagram-ruta svarte
+// `processing`. Hvert kall sjekker containeren hos Meta EN gang og
+// publiserer hvis den er ferdig -- ingen venting paa serversiden, saa vi
+// holder oss godt under Netlifys 26-sekundersgrense.
+//
+// GET /api/publish/instagram/status?ids=<uuid>,<uuid>&userId=<uuid>
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+export async function GET(request: Request) {
+  const params = new URL(request.url).searchParams
+  const ids = (params.get('ids') ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const userId = params.get('userId') || null
+  if (ids.length === 0) return NextResponse.json({ error: 'Missing ids' }, { status: 400 })
 
-    // Re-fetch token from social_connections (never expose token to client).
-    // Scope til brukeren: flere brukere kan ha koblet samme side, og
-    // .single() på page_id alene ga da PGRST116 → «Connection not found».
-    let connQuery = supabase
-      .from('social_connections')
-      .select('access_token, user_access_token, page_name')
-      .eq('page_id', pageId)
-      .eq('platform', 'facebook')
-    if (userId) connQuery = connQuery.eq('user_id', userId)
-    const { data: conn } = await connQuery
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
-    if (!conn) {
-      return NextResponse.json({ status: 'failed', error: 'Connection not found' })
-    }
+  await finishPendingPublications(supabase, { userId, ids })
 
-    const token = conn.user_access_token || conn.access_token
+  let query = supabase
+    .from('publications')
+    .select('id, page_name, status, error, post_id')
+    .in('id', ids)
+  if (userId) query = query.eq('user_id', userId)
+  const { data, error } = await query
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    const statusRes = await fetch(
-      `https://graph.facebook.com/v21.0/${containerId}?fields=status_code&access_token=${token}`
-    )
-    const statusData = await statusRes.json()
-    const statusCode = statusData.status_code
-
-    console.log('[instagram/status] Container', containerId, 'status:', statusCode)
-
-    if (statusCode === 'IN_PROGRESS') {
-      return NextResponse.json({ status: 'processing' })
-    }
-
-    if (statusCode !== 'FINISHED') {
-      return NextResponse.json({ status: 'failed', error: `Instagram processing failed: ${statusCode}` })
-    }
-
-    // Publish the container
-    const publishRes = await fetch(`https://graph.facebook.com/v21.0/${igAccountId}/media_publish`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        creation_id: containerId,
-        access_token: token,
-      }),
-    })
-
-    const publishData = await publishRes.json()
-
-    if (!publishData.id) {
-      console.error('[instagram/status] Publish failed:', publishData.error)
-      return NextResponse.json({ status: 'failed', error: publishData.error?.message || 'Publish failed' })
-    }
-
-    console.log('[instagram/status] Published successfully:', publishData.id)
-
-    await supabase.from('publications').insert({
-      user_id: userId,
-      product_id: productId,
-      draft_id: draftId,
-      platform: 'instagram',
-      page_id: igAccountId,
-      page_name: pageName || conn.page_name,
-      post_id: publishData.id,
-      caption,
-      video_url: videoUrl,
-      status: 'published',
-    })
-
-    return NextResponse.json({ status: 'published', postId: publishData.id })
-  } catch (err: any) {
-    console.error('[instagram/status] Error:', err)
-    return NextResponse.json({ status: 'failed', error: err.message })
-  }
+  return NextResponse.json({ results: data ?? [] })
 }

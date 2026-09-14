@@ -4,7 +4,7 @@ import { hentbarMediaUrl } from '@/lib/r2Presign'
 
 export async function POST(request: Request) {
   try {
-    const { pageIds, videoUrl, imageUrl, caption, draftId, productId, userId } = await request.json()
+    const { pageIds, videoUrl, imageUrl, caption, draftId, productId, userId, contentType } = await request.json()
 
     if (!videoUrl && !imageUrl) {
       return NextResponse.json({ error: 'videoUrl or imageUrl is required' }, { status: 400 })
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
         // har den, ellers nyeste rad.
         let connQuery = supabase
           .from('social_connections')
-          .select('access_token, user_access_token, page_name')
+          .select('id, access_token, user_access_token, page_name')
           .eq('page_id', pageId)
           .eq('platform', 'facebook')
         if (userId) connQuery = connQuery.eq('user_id', userId)
@@ -85,19 +85,54 @@ export async function POST(request: Request) {
           continue
         }
 
-        console.log('[publish/instagram] Container created:', containerData.id, '— returning to client for polling')
+        console.log('[publish/instagram] Container created:', containerData.id, '— logging as processing')
 
-        // Return immediately — client will poll /api/publish/instagram/status
+        // Svar med en gang. Meta bruker 30-60 s paa videoen, og Netlify
+        // kutter svaret etter 26 s -- foer ventet klienten selv, og naar
+        // fanen ble lukket ble containeren aldri publisert. Naa logges raden
+        // som 'processing' med container-id-en i post_id; klientens polling
+        // (GET /api/publish/instagram/status) eller cronen fullfoerer den.
+        const type = contentType || (imageUrl ? 'article' : 'video')
+        const row = {
+          user_id: userId || null,
+          product_id: productId || null,
+          // draft_id har FK til production_drafts -- artikler og avatarer
+          // har ikke rad der (samme grunn til at artikkelrader mangler draft_id).
+          draft_id: type === 'video' && draftId ? draftId : null,
+          platform: 'instagram',
+          page_id: igAccountId,
+          page_name: conn.page_name,
+          post_id: containerData.id,
+          caption,
+          video_url: videoUrl || imageUrl,
+          content_type: type,
+          status: 'processing',
+          error: null,
+          connection_id: conn.id,
+        }
+        let { data: logged, error: logErr } = await supabase.from('publications').insert(row).select('id').single()
+        if (logErr && logErr.code === '23503' && row.draft_id) {
+          ;({ data: logged, error: logErr } = await supabase
+            .from('publications')
+            .insert({ ...row, draft_id: null })
+            .select('id')
+            .single())
+        }
+        if (logErr || !logged) {
+          // Uten rad kan ingen fullfoere containeren -- si fra i stedet for
+          // aa late som det gaar bra.
+          console.error('[publish/instagram] Could not log processing row:', logErr?.message)
+          results.push({ pageId, success: false, error: 'Could not log the publication' })
+          continue
+        }
+
         results.push({
           pageId,
           success: false,
           processing: true,
+          publicationId: logged.id,
           containerId: containerData.id,
           igAccountId,
-          caption,
-          draftId,
-          productId,
-          userId,
           pageName: conn.page_name,
         })
       } catch (err) {

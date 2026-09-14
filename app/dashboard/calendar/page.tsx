@@ -29,7 +29,7 @@ type ScheduledPublication = {
 type CalendarEntry = {
   id: string
   platform: string
-  status: 'scheduled' | 'published' | 'failed'
+  status: 'scheduled' | 'processing' | 'published' | 'failed'
   content_type: string
   date: string
   isScheduled: boolean
@@ -51,20 +51,25 @@ const MONO = 'var(--font-cfmono), monospace'
 const PLATFORMS = ['All', 'facebook', 'instagram', 'linkedin', 'tiktok', 'x', 'youtube']
 const STATUSES = ['All', 'scheduled', 'published', 'failed']
 
+// 'processing' = Instagram-container opprettet, Meta er ikke ferdig ennaa
+// (publications.status). Fullfoeres av klientens polling eller cronen.
 const statusColor: Record<string, string> = {
   scheduled: 'var(--ember-deep)',
+  processing: '#B7791F',
   published: '#3F7A4E',
   failed: 'var(--ember-deep)',
 }
 
 const statusBg: Record<string, string> = {
   scheduled: 'var(--ember-tint-bg)',
+  processing: '#FBF3DF',
   published: '#E4EFE0',
   failed: '#FBEAE6',
 }
 
 const statusBorder: Record<string, string> = {
   scheduled: 'var(--ember-tint-border)',
+  processing: '#EAD9A8',
   published: '#CADBC4',
   failed: '#F0C4B8',
 }

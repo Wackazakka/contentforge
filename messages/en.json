@@ -362,7 +362,13 @@
     "needTime": "choose a time",
     "toSchedule": "To schedule",
     "toPublish": "To publish",
-    "missingImageAdd": "⚠ No image — add one"
+    "missingImageAdd": "⚠ No image — add one",
+    "instagramProcessing": "⏳ Instagram is processing your media — this usually takes under a minute. Please keep this page open.",
+    "instagramTimeout": "Instagram did not confirm within four minutes. Check the account and the publishing history below — the post may still go out.",
+    "serverNoAnswer": "No answer from the server. Check the publishing history below — the post may still have gone out.",
+    "unknownError": "Unknown error",
+    "statusProcessing": "⏳ Processing",
+    "statusFailed": "❌ Failed"
   },
   "product": {
     "loading": "Loading product...",

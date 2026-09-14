@@ -73,6 +73,11 @@ function PublishPage() {
   const [scheduledAt, setScheduledAt] = useState<string>('')
   const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null)
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null)
+  // Utfallet vises VED knappen, ikke bare i banneret oeverst: siden er lang,
+  // og med banneret utenfor synsfeltet saa det ut som knappen bare nullstilte
+  // seg uten verken suksess eller feil (aapen bug fra 22/8).
+  const [publishError, setPublishError] = useState<string | null>(null)
+  const [publishPending, setPublishPending] = useState<string | null>(null)
   const [publishAsReel, setPublishAsReel] = useState(true)
   const [scheduling, setScheduling] = useState(false)
   const [igPageStatus, setIgPageStatus] = useState<Record<string, string | null>>({})
@@ -386,7 +391,13 @@ function PublishPage() {
 
     setPublishing(true)
     setPublishSuccess(null)
+    setPublishError(null)
+    setPublishPending(null)
     setScheduleSuccess(null)
+    const fail = (text: string) => {
+      setMessage(`❌ ${text}`)
+      setPublishError(text)
+    }
     try {
       // Build pages map for page names
       const pagesMap: Record<string, string> = {}
@@ -462,63 +473,85 @@ function PublishPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const data = await res.json()
+      // Netlify kutter et funksjonssvar etter 26 s -- da kommer det HTML fra
+      // gatewayen, ikke JSON. Innlegget kan likevel ha gaatt ut paa serveren,
+      // saa si det, i stedet for aa la knappen nullstille seg i stillhet.
+      let data: any = null
+      try {
+        data = await res.json()
+      } catch {
+        data = null
+      }
+      if (!data) {
+        fail(t('serverNoAnswer'))
+        setPublishResult({ at: Date.now() })
+        return
+      }
 
-      // Instagram uses async processing — poll status endpoint until done
       if (publishPlatform === 'instagram') {
-        if (data.processing && data.results?.length) {
-          setMessage('⏳ Instagram behandler videoen din...')
-          const jobInfo = data.results[0]
-          let attempts = 0
-          while (attempts < 60) {
-            await new Promise((r) => setTimeout(r, 5000))
-            const statusRes = await fetch('/api/publish/instagram/status', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...jobInfo, videoUrl: body.videoUrl }),
-            })
-            const statusData = await statusRes.json()
-            if (statusData.status === 'published') {
-              setMessage(t('published'))
-              setPublishResult(statusData)
-              setPublishSuccess(t('publishedToInstagram'))
-              break
-            }
-            if (statusData.status === 'failed') {
-              setMessage(`❌ Instagram: ${statusData.error}`)
-              break
-            }
-            attempts++
-            if (attempts >= 60) {
-              setMessage('❌ Tidsavbrudd — Instagram brukte for lang tid på å prosessere videoen')
-            }
+        // Ruta oppretter bare containeren og logger raden som 'processing';
+        // Meta bruker 30-60 s paa mediet. Vi spoer serveren til raden er
+        // avgjort, saa brukeren faar en ekte bekreftelse -- og cronen
+        // fullfoerer den uansett om fanen lukkes.
+        const first = data.results?.[0]
+        if (first?.processing && first.publicationId) {
+          setMessage(t('instagramProcessing'))
+          setPublishPending(t('instagramProcessing'))
+          setPublishResult({ at: Date.now() }) // viser den gule raden i historikken
+          const outcome = await pollPendingPublication(first.publicationId)
+          setPublishPending(null)
+          if (outcome.status === 'published') {
+            setMessage(t('published'))
+            setPublishSuccess(t('publishedToInstagram'))
+          } else if (outcome.status === 'failed') {
+            fail(`Instagram: ${outcome.error || t('unknownError')}`)
+          } else {
+            fail(t('instagramTimeout'))
           }
         } else {
           // Container creation failed — surface the actual error from results
-          const firstError = data.results?.[0]?.error || data.error || 'Ukjent feil'
-          setMessage(`❌ Instagram: ${firstError}`)
+          fail(`Instagram: ${first?.error || data.error || t('unknownError')}`)
         }
+        setPublishResult({ at: Date.now() })
       } else {
         setPublishResult(data)
-        setMessage(data.success ? t('published') : `❌ ${data.error}`)
         if (data.success) {
+          setMessage(t('published'))
           setPublishSuccess(t('publishedToChannels', { count: selectedPages.length }))
+        } else {
+          const firstError = data.error || data.results?.find((r: any) => r?.error)?.error || t('unknownError')
+          fail(firstError)
         }
       }
-
-      // Refresh publications
-      const { data: pubs } = await supabase
-        .from('publications')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20)
-      setPublications(pubs || [])
     } catch (err) {
       console.error('[publish] Publish error:', err)
-      setMessage('❌ Error publishing')
+      fail(err instanceof Error ? err.message : t('unknownError'))
     } finally {
       setPublishing(false)
     }
+  }
+
+  // Poller GET /api/publish/instagram/status hvert 5. s i inntil fire
+  // minutter. Hvert kall sjekker containeren hos Meta EN gang og publiserer
+  // hvis den er ferdig. Etter fire minutter gir vi opp her -- cronen
+  // fullfoerer raden i bakgrunnen.
+  const pollPendingPublication = async (
+    publicationId: string
+  ): Promise<{ status: 'published' | 'failed' | 'processing'; error?: string | null }> => {
+    for (let i = 0; i < 48; i++) {
+      await new Promise((r) => setTimeout(r, 5000))
+      try {
+        const res = await fetch(
+          `/api/publish/instagram/status?ids=${publicationId}${userId ? `&userId=${userId}` : ''}`
+        )
+        if (!res.ok) continue
+        const row = ((await res.json()).results ?? []).find((r: any) => r.id === publicationId)
+        if (row && row.status !== 'processing') return { status: row.status, error: row.error }
+      } catch {
+        // nettverksglipp -- proev igjen
+      }
+    }
+    return { status: 'processing' }
   }
 
   // Fetch publications on mount and when publishResult changes
@@ -1003,6 +1036,14 @@ function PublishPage() {
                   <p className="text-sm mt-2 text-center font-medium" style={{ color: '#3F7A4E' }}>
                     {publishSuccess}
                   </p>
+                ) : publishPending ? (
+                  <p className="text-sm mt-2 text-center font-medium" style={{ color: '#B7791F' }}>
+                    {publishPending}
+                  </p>
+                ) : publishError ? (
+                  <p className="text-sm mt-2 text-center font-medium" style={{ color: '#ef4444' }}>
+                    ❌ {publishError}
+                  </p>
                 ) : !ready ? (
                   <p className="text-sm text-gray-500 mt-2 text-center">
                     {publishMode === 'schedule' ? t('toSchedule') : t('toPublish')}: {missing.join(', ')}.
@@ -1101,7 +1142,16 @@ function PublishPage() {
                   <p className="text-xs text-gray-400 mt-1">{p.caption?.slice(0, 60)}...</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs text-green-600 font-medium">{t('published')}</span>
+                  {p.status === 'processing' ? (
+                    <span className="text-xs font-medium" style={{ color: '#B7791F' }}>{t('statusProcessing')}</span>
+                  ) : p.status === 'failed' ? (
+                    <span className="text-xs font-medium" style={{ color: '#ef4444' }} title={p.error || undefined}>{t('statusFailed')}</span>
+                  ) : (
+                    <span className="text-xs text-green-600 font-medium">{t('published')}</span>
+                  )}
+                  {p.status === 'failed' && p.error && (
+                    <p className="text-xs mt-1 max-w-[16rem]" style={{ color: '#ef4444' }}>{p.error}</p>
+                  )}
                   <p className="text-xs text-gray-400 mt-1">
                     {new Date(p.created_at).toLocaleDateString('en-GB', {
                       day: 'numeric',

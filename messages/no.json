@@ -362,7 +362,13 @@
     "needTime": "velg tidspunkt",
     "toSchedule": "For å planlegge",
     "toPublish": "For å publisere",
-    "missingImageAdd": "⚠ Mangler bilde — legg til"
+    "missingImageAdd": "⚠ Mangler bilde — legg til",
+    "instagramProcessing": "⏳ Instagram behandler mediet — det tar vanligvis under et minutt. La siden stå åpen.",
+    "instagramTimeout": "Instagram bekreftet ikke innen fire minutter. Sjekk kontoen og publiseringshistorikken nederst — innlegget kan likevel gå ut.",
+    "serverNoAnswer": "Fikk ikke svar fra serveren. Sjekk publiseringshistorikken nederst — innlegget kan likevel ha gått ut.",
+    "unknownError": "Ukjent feil",
+    "statusProcessing": "⏳ Behandles",
+    "statusFailed": "❌ Feilet"
   },
   "product": {
     "loading": "Laster produkt...",
