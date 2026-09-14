@@ -103,11 +103,30 @@ export async function finishPendingPublications(
       res = { status: 'failed', error: 'Timeout: Instagram did not finish processing within an hour' }
     }
     if (res.status !== 'processing') {
-      const { error: updErr } = await supabase
+      // Klientens polling (hvert 5. s) og cronen (hvert minutt) kan se
+      // FINISHED samtidig og begge kalle media_publish. Meta avviser det
+      // andre kallet -- men uten vilkaaret under ville taperens feil
+      // overskrevet vinnerens 'published'. Bare en rad som fortsatt staar
+      // som 'processing' faar nytt utfall.
+      const { data: updated, error: updErr } = await supabase
         .from('publications')
         .update({ status: res.status, post_id: res.postId ?? null, error: res.error ?? null })
         .eq('id', row.id)
+        .eq('status', 'processing')
+        .select('id, status, post_id, error')
+        .maybeSingle()
       if (updErr) console.error('[instagram] Could not update publication:', updErr.message)
+      if (!updated) {
+        // Noen andre avgjorde raden foerst -- rapporter det som staar i basen.
+        const { data: current } = await supabase
+          .from('publications')
+          .select('status, post_id, error')
+          .eq('id', row.id)
+          .maybeSingle()
+        if (current && current.status !== 'processing') {
+          res = { status: current.status as FinishStatus, postId: current.post_id ?? undefined, error: current.error ?? undefined }
+        }
+      }
     }
     out.push({ id: row.id, pageName: row.page_name, ...res })
   }
