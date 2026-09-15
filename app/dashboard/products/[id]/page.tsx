@@ -1065,167 +1065,175 @@ function FullProductPage() {
           </div>
         </div>
 
-        {/* Bildebiblioteket — pressebilder og artwork, gjenbrukes i produksjonene */}
-        <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">
-            📸 {tenant.vertical === 'music' ? 'Bildene dine' : 'Bildebibliotek'}
-          </h2>
-          <p className="text-sm text-gray-500 mb-4">
-            {tenant.vertical === 'music'
-              ? 'Pressebilder, konsertbilder og utgivelses-artwork — dette er bildene som brukes i videoene dine. Last opp én gang, bruk overalt.'
-              : 'Egne bilder som kan brukes i produksjonene. Last opp én gang, bruk overalt.'}
-          </p>
-          {imgLibError && (
-            <p className="text-sm font-medium text-[var(--ember-deep)] mb-3">{imgLibError}</p>
-          )}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-4">
-            {imageLibrary.map((img) => (
-              <div key={img.url} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
-                <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  title="Slett bildet"
-                  onClick={async () => {
-                    if (!confirm('Slette dette bildet fra biblioteket? Segmenter som alt bruker det, beholder det.')) return
+        {/* Bildebiblioteket og laatbanken. For artister kommer musikken foerst --
+            den er hovedsaken, bildene er stoette (Lars 15/9). Andre vertikaler
+            beholder bilder foerst. */}
+        {(() => {
+          const bilder = (
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                📸 {tenant.vertical === 'music' ? 'Bildene dine' : 'Bildebibliotek'}
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                {tenant.vertical === 'music'
+                  ? 'Pressebilder, konsertbilder og utgivelses-artwork — dette er bildene som brukes i videoene dine. Last opp én gang, bruk overalt.'
+                  : 'Egne bilder som kan brukes i produksjonene. Last opp én gang, bruk overalt.'}
+              </p>
+              {imgLibError && (
+                <p className="text-sm font-medium text-[var(--ember-deep)] mb-3">{imgLibError}</p>
+              )}
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-4">
+                {imageLibrary.map((img) => (
+                  <div key={img.url} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+                    <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      title="Slett bildet"
+                      onClick={async () => {
+                        if (!confirm('Slette dette bildet fra biblioteket? Segmenter som alt bruker det, beholder det.')) return
+                        try {
+                          const { data: sess } = await getSupabase().auth.getSession()
+                          const token = sess?.session?.access_token
+                          const res = await fetch(`/api/products/images?productId=${productId}&name=${encodeURIComponent(img.name)}`, {
+                            method: 'DELETE',
+                            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                          })
+                          if (!res.ok) { setImgLibError('Slettingen feilet — prøv igjen.'); return }
+                          setImgLibError(null)
+                          await refreshImageLibrary()
+                        } catch { setImgLibError('Slettingen feilet — prøv igjen.') }
+                      }}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                {imageLibrary.length === 0 && (
+                  <p className="col-span-full text-sm text-gray-400">Ingen bilder ennå.</p>
+                )}
+              </div>
+              <label className="inline-block cursor-pointer">
+                <span className={`px-4 py-2 rounded-lg text-sm font-medium text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 inline-block ${imgLibUploading ? 'opacity-50' : ''}`}>
+                  {imgLibUploading ? 'Laster opp…' : '+ Last opp bilder'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  className="hidden"
+                  disabled={imgLibUploading}
+                  onChange={async (e) => {
+                    const files = Array.from(e.currentTarget.files || [])
+                    e.currentTarget.value = ''
+                    if (!files.length) return
+                    setImgLibError(null)
+                    setImgLibUploading(true)
                     try {
                       const { data: sess } = await getSupabase().auth.getSession()
                       const token = sess?.session?.access_token
-                      const res = await fetch(`/api/products/images?productId=${productId}&name=${encodeURIComponent(img.name)}`, {
-                        method: 'DELETE',
-                        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-                      })
-                      if (!res.ok) { setImgLibError('Slettingen feilet — prøv igjen.'); return }
-                      setImgLibError(null)
+                      for (const f of files) {
+                        // Skaleres ned i nettleseren foer opplasting; grensen under
+                        // er bare en sikkerhetsventil (se lib/komprimerBilde).
+                        const klar = await komprimerBilde(f)
+                        if (klar.size > MAKS_OPPLASTING) { setImgLibError(`«${f.name}» er for stor. Proev et mindre bilde.`); continue }
+                        const fd = new FormData()
+                        fd.append('file', klar)
+                        fd.append('productId', productId)
+                        const res = await fetch('/api/products/images', {
+                          method: 'POST',
+                          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                          body: fd,
+                        })
+                        if (!res.ok) {
+                          const d = await res.json().catch(() => null)
+                          setImgLibError(d?.error ? `«${f.name}»: ${d.error}` : `«${f.name}» feilet.`)
+                        }
+                      }
                       await refreshImageLibrary()
-                    } catch { setImgLibError('Slettingen feilet — prøv igjen.') }
-                  }}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            {imageLibrary.length === 0 && (
-              <p className="col-span-full text-sm text-gray-400">Ingen bilder ennå.</p>
-            )}
-          </div>
-          <label className="inline-block cursor-pointer">
-            <span className={`px-4 py-2 rounded-lg text-sm font-medium text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 inline-block ${imgLibUploading ? 'opacity-50' : ''}`}>
-              {imgLibUploading ? 'Laster opp…' : '+ Last opp bilder'}
-            </span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              multiple
-              className="hidden"
-              disabled={imgLibUploading}
-              onChange={async (e) => {
-                const files = Array.from(e.currentTarget.files || [])
-                e.currentTarget.value = ''
-                if (!files.length) return
-                setImgLibError(null)
-                setImgLibUploading(true)
-                try {
-                  const { data: sess } = await getSupabase().auth.getSession()
-                  const token = sess?.session?.access_token
-                  for (const f of files) {
-                    // Skaleres ned i nettleseren foer opplasting; grensen under
-                    // er bare en sikkerhetsventil (se lib/komprimerBilde).
-                    const klar = await komprimerBilde(f)
-                    if (klar.size > MAKS_OPPLASTING) { setImgLibError(`«${f.name}» er for stor. Proev et mindre bilde.`); continue }
-                    const fd = new FormData()
-                    fd.append('file', klar)
-                    fd.append('productId', productId)
-                    const res = await fetch('/api/products/images', {
-                      method: 'POST',
-                      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-                      body: fd,
-                    })
-                    if (!res.ok) {
-                      const d = await res.json().catch(() => null)
-                      setImgLibError(d?.error ? `«${f.name}»: ${d.error}` : `«${f.name}» feilet.`)
+                    } finally {
+                      setImgLibUploading(false)
                     }
-                  }
-                  await refreshImageLibrary()
-                } finally {
-                  setImgLibUploading(false)
-                }
-              }}
-            />
-          </label>
-          <span className="text-xs text-gray-400 ml-3">PNG, JPG eller WebP. Store bilder komprimeres automatisk. Velg gjerne flere samtidig.</span>
-        </div>
-
-        {/* Låtbanken — egne låter til bakgrunnsmusikk og medley */}
-        <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">
-            🎵 {tenant.vertical === 'music' ? 'Låtene dine' : 'Musikkbank'}
-          </h2>
-          <p className="text-sm text-gray-500 mb-4">
-            {tenant.vertical === 'music'
-              ? 'Egen musikk, eller musikk du har rett til å bruke — velges som musikk og medley i produksjonene. Sletting her er permanent.'
-              : 'Egen musikk til produksjonene. Sletting her er permanent.'}
-          </p>
-          {trackError && <p className="text-sm font-medium text-[var(--ember-deep)] mb-3">{trackError}</p>}
-          <div className="space-y-2 mb-4">
-            {trackBank.map((t) => (
-              <div key={t.filename} className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg">
-                <span className="text-sm font-medium text-gray-900 truncate flex-1">{t.name}</span>
-                <audio controls preload="none" src={`/api/music/${encodeURIComponent(t.filename)}`} className="h-8 w-56 flex-none" />
-                <button
-                  type="button"
-                  title="Slett låten permanent"
-                  onClick={async () => {
-                    if (!confirm(`Slette «${t.name}» permanent fra låtbanken? Produksjoner som alt bruker den, beholder lyden.`)) return
+                  }}
+                />
+              </label>
+              <span className="text-xs text-gray-400 ml-3">PNG, JPG eller WebP. Store bilder komprimeres automatisk. Velg gjerne flere samtidig.</span>
+            </div>
+          )
+          const laater = (
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                🎵 {tenant.vertical === 'music' ? 'Låtene dine' : 'Musikkbank'}
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                {tenant.vertical === 'music'
+                  ? 'Egen musikk, eller musikk du har rett til å bruke — velges som musikk og medley i produksjonene. Sletting her er permanent.'
+                  : 'Egen musikk til produksjonene. Sletting her er permanent.'}
+              </p>
+              {trackError && <p className="text-sm font-medium text-[var(--ember-deep)] mb-3">{trackError}</p>}
+              <div className="space-y-2 mb-4">
+                {trackBank.map((t) => (
+                  <div key={t.filename} className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg">
+                    <span className="text-sm font-medium text-gray-900 truncate flex-1">{t.name}</span>
+                    <audio controls preload="none" src={`/api/music/${encodeURIComponent(t.filename)}`} className="h-8 w-56 flex-none" />
+                    <button
+                      type="button"
+                      title="Slett låten permanent"
+                      onClick={async () => {
+                        if (!confirm(`Slette «${t.name}» permanent fra låtbanken? Produksjoner som alt bruker den, beholder lyden.`)) return
+                        try {
+                          const { data: sess } = await getSupabase().auth.getSession()
+                          const res = await fetch(`/api/music/${encodeURIComponent(t.filename)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${sess?.session?.access_token || ''}` } })
+                          if (!res.ok) { setTrackError('Slettingen feilet — prøv igjen.'); return }
+                          setTrackError(null)
+                          await refreshTrackBank()
+                        } catch { setTrackError('Slettingen feilet — prøv igjen.') }
+                      }}
+                      className="flex-none text-gray-300 hover:text-red-500 text-sm px-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                {trackBank.length === 0 && <p className="text-sm text-gray-400">Ingen låter ennå.</p>}
+              </div>
+              <label className="inline-block cursor-pointer">
+                <span className={`px-4 py-2 rounded-lg text-sm font-medium text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 inline-block ${trackUploading ? 'opacity-50' : ''}`}>
+                  {trackUploading ? 'Laster opp…' : '+ Last opp låter'}
+                </span>
+                <input
+                  type="file"
+                  accept=".mp3,audio/mpeg"
+                  multiple
+                  className="hidden"
+                  disabled={trackUploading}
+                  onChange={async (e) => {
+                    const files = Array.from(e.currentTarget.files || [])
+                    e.currentTarget.value = ''
+                    if (!files.length) return
+                    setTrackError(null)
+                    setTrackUploading(true)
                     try {
-                      const { data: sess } = await getSupabase().auth.getSession()
-                      const res = await fetch(`/api/music/${encodeURIComponent(t.filename)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${sess?.session?.access_token || ''}` } })
-                      if (!res.ok) { setTrackError('Slettingen feilet — prøv igjen.'); return }
-                      setTrackError(null)
+                      for (const f of files) {
+                        try {
+                          await uploadTrack(f, `tracks-${productId}`)
+                        } catch (err) {
+                          setTrackError(`«${f.name}»: ${err instanceof Error ? err.message : 'feilet'}`)
+                        }
+                      }
                       await refreshTrackBank()
-                    } catch { setTrackError('Slettingen feilet — prøv igjen.') }
-                  }}
-                  className="flex-none text-gray-300 hover:text-red-500 text-sm px-1"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            {trackBank.length === 0 && <p className="text-sm text-gray-400">Ingen låter ennå.</p>}
-          </div>
-          <label className="inline-block cursor-pointer">
-            <span className={`px-4 py-2 rounded-lg text-sm font-medium text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 inline-block ${trackUploading ? 'opacity-50' : ''}`}>
-              {trackUploading ? 'Laster opp…' : '+ Last opp låter'}
-            </span>
-            <input
-              type="file"
-              accept=".mp3,audio/mpeg"
-              multiple
-              className="hidden"
-              disabled={trackUploading}
-              onChange={async (e) => {
-                const files = Array.from(e.currentTarget.files || [])
-                e.currentTarget.value = ''
-                if (!files.length) return
-                setTrackError(null)
-                setTrackUploading(true)
-                try {
-                  for (const f of files) {
-                    try {
-                      await uploadTrack(f, `tracks-${productId}`)
-                    } catch (err) {
-                      setTrackError(`«${f.name}»: ${err instanceof Error ? err.message : 'feilet'}`)
+                    } finally {
+                      setTrackUploading(false)
                     }
-                  }
-                  await refreshTrackBank()
-                } finally {
-                  setTrackUploading(false)
-                }
-              }}
-            />
-          </label>
-          <span className="text-xs text-gray-400 ml-3">MP3 — maks 50 MB per låt. Velg gjerne flere samtidig.</span>
-        </div>
+                  }}
+                />
+              </label>
+              <span className="text-xs text-gray-400 ml-3">MP3 — maks 50 MB per låt. Velg gjerne flere samtidig.</span>
+            </div>
+          )
+          return tenant.vertical === 'music' ? <>{laater}{bilder}</> : <>{bilder}{laater}</>
+        })()}
+
 
         {/* Active jobs */}
         {activeJobs.length > 0 && (
