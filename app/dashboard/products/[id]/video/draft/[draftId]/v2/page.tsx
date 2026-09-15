@@ -433,24 +433,6 @@ export default function DraftV2Page() {
 
   // Slett bilde fra biblioteket (Lars 1/8: «man kan ikke slette bilder»).
   // API-et fantes, men var aldri koblet til noe man kunne trykke paa.
-  const slettBilde = async (img: { url: string; name: string }) => {
-    if (!confirm(`Slette «${img.name}» fra biblioteket? Scener som bruker bildet beholder det til du velger et annet.`)) return
-    try {
-      const { data: sess } = await getSupabase().auth.getSession()
-      const token = sess?.session?.access_token
-      const res = await fetch(`/api/products/images?productId=${productId}&name=${encodeURIComponent(img.name)}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      })
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        throw new Error(d.error || 'Sletting feilet')
-      }
-      await refreshImageLibrary()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Sletting feilet')
-    }
-  }
 
   const lastOppVideo = async (index: number, file: File) => {
     setVideoUploading((p) => ({ ...p, [index]: true }))
@@ -1257,14 +1239,9 @@ export default function DraftV2Page() {
                                     >
                                       <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => slettBilde(img)}
-                                      title="Slett fra biblioteket"
-                                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-[#FFFFFF]/90 border border-black/20 text-black/55 text-[11px] leading-none opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto hover:text-red-600 hover:border-red-300"
-                                    >
-                                      ✕
-                                    </button>
+                                    {/* Ingen slette-X her: velgeren skal bare velge. Sletting
+                                        skjer i bildebiblioteket paa produktsiden, der man ser
+                                        hva man gjoer (Lars 15/9). */}
                                   </div>
                                 ))}
                               </div>
