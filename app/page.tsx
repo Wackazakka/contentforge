@@ -280,7 +280,11 @@ export default function Home() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                   <span style={{ padding: '9px 16px', borderRadius: 999, border: '1px solid #DDD5C6', fontFamily: HANKEN, fontSize: 15, color: '#6B655C' }}>{t('ill2_still')}</span>
                   <span style={{ padding: '9px 16px', borderRadius: 999, border: '1px solid #DDD5C6', fontFamily: HANKEN, fontSize: 15, color: '#6B655C' }}>{t('ill2_move')}</span>
-                  <span style={{ padding: '9px 16px', borderRadius: 999, border: '1px solid #C9D9F4', background: '#E7EEFB', fontFamily: HANKEN, fontSize: 15, color: 'var(--ink)' }}>{t('ill2_talk')} <span style={{ color: '#3B5FA8', fontWeight: 600 }}>{t('ill2_talk_price')}</span></span>
+                  {/* Pillen har fast lys bakgrunn, saa teksten maa ha fast moerk
+                      farge — var(--ink) er nesten hvit hos moerke tenanter
+                      (IndigoBoom), og «Snakk · lip-sync» ble usynlig; bare prisen
+                      sto igjen, skjevt plassert (IndigoBoom 11/9, Lars 15/9). */}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 16px', borderRadius: 999, border: '1px solid #C9D9F4', background: '#E7EEFB', fontFamily: HANKEN, fontSize: 15, color: '#2B2A26' }}>{t('ill2_talk')} <span style={{ color: '#3B5FA8', fontWeight: 600 }}>{t('ill2_talk_price')}</span></span>
                 </div>
 
                 <div className="vb-strip" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 14, background: '#14110F' }}>
