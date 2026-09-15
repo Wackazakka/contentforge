@@ -1129,7 +1129,7 @@ export default function DraftV2Page() {
                               {/* En ny scene har ikke noe bilde aa bytte — «Bytt bilde» paa
                                   en tom scene lovet noe som ikke fantes (IndigoBoom pkt. 10,
                                   Lars 15/9). */}
-                              {seg.image_url ? '📸 Bytt bilde' : '📸 Legg til bilde'}
+                              {seg.image_url ? '📸 Bytt bilde' : '📸 Legg inn bilde'}
                             </button>
                             <label className="flex items-center gap-2 text-[13px] text-gray-600 cursor-pointer ml-auto">
                               <input
