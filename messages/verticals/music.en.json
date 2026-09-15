@@ -84,7 +84,8 @@
     "title": "Create promo video",
     "subtitle": "Tell us what the video is about — you approve everything before anything costs money.",
     "outroLabel": "End with an outro card 🔗",
-    "outroDesc": "A closing frame with your link (website/Linktree), artist image and call to action — e.g. \"Pre-save on Spotify\". Without a jingle ~3 seconds; with a jingle as long as the jingle (up to 10 sec)."
+    "outroDesc": "A closing frame with your link (website/Linktree), artist image and call to action — e.g. \"Pre-save on Spotify\". Without a jingle ~3 seconds; with a jingle as long as the jingle (up to 10 sec).",
+    "musicLabel": "Music"
   },
   "home": {
     "badge": "MVP -- Beta",
@@ -139,5 +140,12 @@
   },
   "articles": {
     "backgroundGraphicsDesc": "Finished article with image can be found under"
+  },
+  "assetApproval": {
+    "musicSection": "Music"
+  },
+  "newCampaign": {
+    "backgroundMusicLabel": "Music",
+    "musicLibraryLabel": "Music"
   }
 }

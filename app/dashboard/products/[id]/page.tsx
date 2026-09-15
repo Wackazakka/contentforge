@@ -1163,7 +1163,7 @@ function FullProductPage() {
           </h2>
           <p className="text-sm text-gray-500 mb-4">
             {tenant.vertical === 'music'
-              ? 'Egen musikk, eller musikk du har rett til å bruke — velges som bakgrunnsmusikk og medley i produksjonene. Sletting her er permanent.'
+              ? 'Egen musikk, eller musikk du har rett til å bruke — velges som musikk og medley i produksjonene. Sletting her er permanent.'
               : 'Egen musikk til produksjonene. Sletting her er permanent.'}
           </p>
           {trackError && <p className="text-sm font-medium text-[var(--ember-deep)] mb-3">{trackError}</p>}

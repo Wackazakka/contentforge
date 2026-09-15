@@ -84,7 +84,8 @@
     "title": "Lag ny promovideo",
     "subtitle": "Fortell hva videoen skal handle om — du godkjenner alt før noe koster penger.",
     "outroLabel": "Avslutt med sluttplakat 🔗",
-    "outroDesc": "Et sluttbilde med lenken din (nettside/Linktree), artistbildet og oppfordringen — f.eks. «Forhåndslagre på Spotify». Uten jingle ca. 3 sekunder; med jingle like lenge som jingelen (opptil 10 sek)."
+    "outroDesc": "Et sluttbilde med lenken din (nettside/Linktree), artistbildet og oppfordringen — f.eks. «Forhåndslagre på Spotify». Uten jingle ca. 3 sekunder; med jingle like lenge som jingelen (opptil 10 sek).",
+    "musicLabel": "Musikk"
   },
   "home": {
     "badge": "MVP — Beta",
@@ -139,5 +140,12 @@
   },
   "articles": {
     "backgroundGraphicsDesc": "Ferdig artikkel med bilde finner du under"
+  },
+  "assetApproval": {
+    "musicSection": "Musikk"
+  },
+  "newCampaign": {
+    "backgroundMusicLabel": "Musikk",
+    "musicLibraryLabel": "Musikk"
   }
 }

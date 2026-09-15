@@ -1795,9 +1795,10 @@ export default function DraftV2Page() {
                 )}
               </SettingRow>
 
-              {/* Bakgrunnsmusikk */}
+              {/* Musikk. For artister er laaten selve innholdet, ikke bakgrunn
+                  (Lars 15/9); haandverkere og festvideoer beholder ordet. */}
               <SettingRow
-                label="Bakgrunnsmusikk"
+                label={tenant.vertical === 'music' ? 'Musikk' : 'Bakgrunnsmusikk'}
                 value={
                   draft.music_file
                     ? `${(musicLibrary.find((m) => m.filename === draft.music_file)?.name) || draft.music_file.split('/').pop()}${musicDur ? ` · ${Math.round(musicDur)} sek` : ''}`
