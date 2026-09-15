@@ -359,9 +359,15 @@ export default function DraftV2Page() {
     setMedleyBuilding(true)
     setMedleyResult(null)
     try {
-      const now = new Date()
-      const type = medleyPicks.length === 1 ? 'utsnitt' : 'medley'
-      const navn = `${type}-${now.toISOString().slice(0, 10)}-kl-${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}.${String(now.getSeconds()).padStart(2, '0')}`
+      // Navnet skal si hva fila ER, ikke naar den ble laget: «utsnitt 2026 09 15
+      // kl 10.08.10» fortalte ingenting (Lars 15/9). Dropleten gjoer navnet til
+      // smaa bokstaver og bindestreker, og viser det med mellomrom -- derfor
+      // ren ASCII og ingen tegn som blir borte.
+      const navnFor = (fn: string) => (musicLibrary.find((m) => m.filename === fn)?.name || fn.split('/').pop() || '').replace(/\.[^.]+$/, '')
+      const start = Math.max(0, Number(medleyStart) || 0)
+      const navn = medleyPicks.length === 1
+        ? `${navnFor(medleyPicks[0])} utsnitt ${medleyClip === 'full' ? `fra ${start}s` : `${start}s til ${start + Number(medleyClip)}s`}`
+        : `medley ${medleyPicks.map(navnFor).join(' ')}`.slice(0, 80)
       const res = await fetch('/api/music/medley', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1844,9 +1850,27 @@ export default function DraftV2Page() {
                 )}
                 {/* Medley-verksted */}
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-[12px] font-medium text-gray-700 mb-1.5">Lag medley av låtene dine</p>
+                  {/* Overskriften foelger valget: verkstedet lager baade utsnitt (en
+                      laat) og medley (to til fem), og «Lag medley» alene gjorde det
+                      uklart at en laat faktisk var valgt (Lars 15/9). */}
                   {(() => {
                     const kandidater = ownTracks(musicLibrary, productId).filter((m) => !isMedleyFile(m.filename))
+                    const valgtNavn = medleyPicks.length === 1 ? (kandidater.find((m) => m.filename === medleyPicks[0])?.name || '') : ''
+                    const overskrift = medleyPicks.length === 0
+                      ? 'Klipp et utsnitt av én låt, eller lag medley av flere'
+                      : medleyPicks.length === 1
+                        ? `Utsnitt av «${valgtNavn}»`
+                        : `Medley av ${medleyPicks.length} låter`
+                    const hint = medleyPicks.length === 0
+                      ? 'Velg én låt for et utsnitt, to til fem for en medley.'
+                      : medleyPicks.length === 1
+                        ? 'Én låt valgt. Velg flere for å lage medley i stedet.'
+                        : 'Rekkefølgen er rekkefølgen du valgte i.'
+                    return (
+                      <>
+                        <p className="text-[12px] font-medium text-gray-700 mb-0.5">{overskrift}</p>
+                        <p className="text-[11.5px] text-gray-400 mb-1.5">{hint}</p>
+                        {(() => {
                     // Én låt holder: da blir det et utsnitt (trimming, 11/9), to
                     // til fem blir medley. Vakten sto på to og gjemte hele
                     // verkstedet for artister med én låt (Lars 15/9).
@@ -1946,6 +1970,9 @@ export default function DraftV2Page() {
                         {medleyResult && (
                           <p className="mt-2 text-[11.5px] text-green-700">✓ {medleyResult.name} er laget og valgt som musikk til videoen.</p>
                         )}
+                      </>
+                    )
+                        })()}
                       </>
                     )
                   })()}
