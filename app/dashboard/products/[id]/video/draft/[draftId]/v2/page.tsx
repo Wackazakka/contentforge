@@ -1846,8 +1846,11 @@ export default function DraftV2Page() {
                   <p className="text-[12px] font-medium text-gray-700 mb-1.5">Lag medley av låtene dine</p>
                   {(() => {
                     const kandidater = ownTracks(musicLibrary, productId).filter((m) => !isMedleyFile(m.filename))
-                    if (kandidater.length < 2) {
-                      return <p className="text-[11.5px] text-gray-400">Du trenger minst to egne låter. Last opp på den gamle siden inntil videre.</p>
+                    // Én låt holder: da blir det et utsnitt (trimming, 11/9), to
+                    // til fem blir medley. Vakten sto på to og gjemte hele
+                    // verkstedet for artister med én låt (Lars 15/9).
+                    if (kandidater.length < 1) {
+                      return <p className="text-[11.5px] text-gray-400">Du har ingen egne låter ennå — last opp på artistsiden, så kan du klippe utsnitt eller lage medley her.</p>
                     }
                     return (
                       <>
