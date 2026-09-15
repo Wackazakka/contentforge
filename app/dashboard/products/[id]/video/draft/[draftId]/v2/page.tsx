@@ -1126,7 +1126,10 @@ export default function DraftV2Page() {
                               onClick={() => setImagePickerFor(imagePickerFor === index ? null : index)}
                               className="px-3 py-2 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400"
                             >
-                              📸 Bytt bilde
+                              {/* En ny scene har ikke noe bilde aa bytte — «Bytt bilde» paa
+                                  en tom scene lovet noe som ikke fantes (IndigoBoom pkt. 10,
+                                  Lars 15/9). */}
+                              {seg.image_url ? '📸 Bytt bilde' : '📸 Legg til bilde'}
                             </button>
                             <label className="flex items-center gap-2 text-[13px] text-gray-600 cursor-pointer ml-auto">
                               <input
