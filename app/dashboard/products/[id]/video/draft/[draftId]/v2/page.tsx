@@ -431,9 +431,6 @@ export default function DraftV2Page() {
   }
   useEffect(() => { if (productId) refreshImageLibrary() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Slett bilde fra biblioteket (Lars 1/8: «man kan ikke slette bilder»).
-  // API-et fantes, men var aldri koblet til noe man kunne trykke paa.
-
   const lastOppVideo = async (index: number, file: File) => {
     setVideoUploading((p) => ({ ...p, [index]: true }))
     try {
