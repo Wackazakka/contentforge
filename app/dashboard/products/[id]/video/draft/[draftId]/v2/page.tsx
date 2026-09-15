@@ -1901,6 +1901,9 @@ export default function DraftV2Page() {
                                 <option value="15">15 sek</option>
                                 <option value="20">20 sek</option>
                                 <option value="30">30 sek</option>
+                                <option value="45">45 sek</option>
+                                <option value="60">60 sek</option>
+                                <option value="90">90 sek</option>
                                 <option value="full">Hele låten</option>
                               </select>
                             </div>
@@ -1941,7 +1944,7 @@ export default function DraftV2Page() {
                           </>
                         )}
                         {medleyResult && (
-                          <p className="mt-2 text-[11.5px] text-green-700">✓ {medleyResult.name} er laget og valgt som bakgrunnsmusikk.</p>
+                          <p className="mt-2 text-[11.5px] text-green-700">✓ {medleyResult.name} er laget og valgt som musikk til videoen.</p>
                         )}
                       </>
                     )
