@@ -8,7 +8,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 // egne verktøy bruke skuespillerstemmene via vårt API — all bruk logges og
 // faktureres. Nøkkelen vises i klartekst kun ved opprettelse.
 
-interface Org { id: string; name: string; tenant_id: string }
+interface Org { id: string; name: string; tenant_id: string; tenant_name?: string | null; owner_email?: string | null; created_at?: string | null }
 interface Key { id: string; key_prefix: string; organization_id: string; scopes: string[]; status: string; last_used_at: string | null; created_at: string }
 
 export default function ApiKeysPage() {
@@ -104,7 +104,14 @@ export default function ApiKeysPage() {
             return (
               <div key={org.id} className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-5">
                 <div className="flex items-center justify-between gap-4 mb-3">
-                  <h2 className="font-semibold text-gray-900">{org.name}</h2>
+                  <div className="min-w-0">
+                    <h2 className="font-semibold text-gray-900">{org.name}</h2>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      {org.tenant_name || 'Ukjent tenant'}
+                      {org.owner_email ? <> · {org.owner_email}</> : <> · <span className="text-gray-400">eier uten e-post</span></>}
+                      {org.created_at ? <> · opprettet {new Date(org.created_at).toLocaleDateString('nb-NO')}</> : null}
+                    </p>
+                  </div>
                   <button onClick={() => createKey(org)} disabled={busy === org.id}
                     className="flex-none px-4 py-2 rounded-lg text-sm font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
                     {busy === org.id ? 'Oppretter …' : '+ Ny nøkkel'}
@@ -122,6 +129,9 @@ export default function ApiKeysPage() {
                             {k.status === 'active' ? 'Aktiv' : 'Tilbakekalt'}
                           </span>
                           <span className="ml-3 text-gray-400">{k.last_used_at ? `sist brukt ${new Date(k.last_used_at).toLocaleDateString('nb-NO')}` : 'aldri brukt'}</span>
+                          <span className="block text-xs text-gray-400 mt-0.5" title="Denne id-en står som api_key_id på hver bruk i hovedboken">
+                            nøkkel-id <code className="font-mono">{k.id}</code>
+                          </span>
                         </div>
                         <button onClick={() => setStatus(k, k.status === 'active' ? 'revoked' : 'active')} disabled={busy === k.id}
                           className={`flex-none px-3 py-1.5 rounded-lg font-medium border ${k.status === 'active' ? 'border-red-300 text-red-600 hover:bg-red-50' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>

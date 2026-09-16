@@ -29,18 +29,41 @@ export async function GET(request: Request) {
 
   // Tenantens eget nivå + direkte underledd (to-lags i v1)
   const { data: subtree } = await supabase
-    .from('tenants').select('id').or(`id.eq.${g.tenant!.id},parent_tenant_id.eq.${g.tenant!.id}`)
+    .from('tenants').select('id, app_name, name, slug').or(`id.eq.${g.tenant!.id},parent_tenant_id.eq.${g.tenant!.id}`)
   const tenantIds = (subtree || []).map((t) => t.id)
+  const tenantName: Record<string, string> = {}
+  for (const t of subtree || []) tenantName[t.id] = (t.app_name || t.name || t.slug) as string
 
   const { data: orgs } = await supabase
-    .from('organizations').select('id, name, tenant_id').in('tenant_id', tenantIds)
+    .from('organizations').select('id, name, tenant_id, owner_id, created_at').in('tenant_id', tenantIds)
   const orgIds = (orgs || []).map((o) => o.id)
+
+  // Organisasjonsnavnet alene skiller ikke (Lars 16/9: fire rader «Lars
+  // Kilevold's Organization»). Tenant + eierens e-post gjør det. E-posten
+  // ligger i auth, ikke i tabellen — ett oppslag per org, som i avregningen.
+  const organizations = await Promise.all((orgs || []).map(async (o) => {
+    let ownerEmail: string | null = null
+    if (o.owner_id) {
+      try {
+        const { data: u } = await supabase.auth.admin.getUserById(o.owner_id as string)
+        ownerEmail = u?.user?.email ?? null
+      } catch { /* slettet bruker → uten e-post */ }
+    }
+    return {
+      id: o.id,
+      name: o.name,
+      tenant_id: o.tenant_id,
+      tenant_name: tenantName[o.tenant_id as string] ?? null,
+      owner_email: ownerEmail,
+      created_at: o.created_at,
+    }
+  }))
 
   const { data: keys } = orgIds.length
     ? await supabase.from('api_keys').select('id, key_prefix, organization_id, scopes, status, last_used_at, created_at').in('organization_id', orgIds)
     : { data: [] }
 
-  return NextResponse.json({ organizations: orgs || [], keys: keys || [] })
+  return NextResponse.json({ organizations, keys: keys || [] })
 }
 
 // Opprett nøkkel for en organisasjon (i tenantens subtre)
