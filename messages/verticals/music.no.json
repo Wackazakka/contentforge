@@ -63,7 +63,8 @@
     "websiteUrlPlaceholder": "f.eks. northernlights.no eller linktr.ee/northernlights",
     "websiteUrlHint": "Vises på sluttplakaten i videoene.",
     "fontFamilyLabel": "Skrifttype (valgfri)",
-    "fontFamilyPlaceholder": "La stå tom hvis du ikke har en egen skrifttype"
+    "fontFamilyPlaceholder": "La stå tom hvis du ikke har en egen skrifttype",
+    "backToDashboard": "← Alle artister"
   },
   "newDraft": {
     "segmentsLabel": "Antall scener",
@@ -147,5 +148,8 @@
   "newCampaign": {
     "backgroundMusicLabel": "Musikk",
     "musicLibraryLabel": "Musikk"
+  },
+  "nav": {
+    "overview": "Artisten min"
   }
 }

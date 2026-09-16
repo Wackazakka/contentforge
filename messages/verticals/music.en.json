@@ -63,7 +63,8 @@
     "websiteUrlPlaceholder": "e.g. northernlights.com or linktr.ee/northernlights",
     "websiteUrlHint": "Shown on the end card in your videos.",
     "fontFamilyLabel": "Typeface (optional)",
-    "fontFamilyPlaceholder": "Leave empty if you don't have your own typeface"
+    "fontFamilyPlaceholder": "Leave empty if you don't have your own typeface",
+    "backToDashboard": "← All artists"
   },
   "newDraft": {
     "segmentsLabel": "Number of scenes",
@@ -147,5 +148,8 @@
   "newCampaign": {
     "backgroundMusicLabel": "Music",
     "musicLibraryLabel": "Music"
+  },
+  "nav": {
+    "overview": "My artist"
   }
 }

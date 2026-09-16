@@ -58,6 +58,15 @@ export default function DashboardPage() {
     return opt ? tModal(opt.labelKey) : value
   }
   const { products, loading: productsLoading, createProduct, deleteProduct } = useProducts(organizationId)
+  // Én artist = ingen liste: fanen «Artisten min» gaar rett til artistsiden.
+  // Null artister viser velkomstkortet, flere viser lista. ?alle=1 viser
+  // lista uansett -- det er veien til «+ Legg til artist» for dem som vil ha
+  // flere (Lars 16/9). Datamodellen er uendret; bare inngangen kollapser.
+  const visAlle = useSearchParams()?.get('alle') === '1'
+  const enArtist = tenant.vertical === 'music' && !visAlle && !loadingOrg && !productsLoading && products.length === 1
+  useEffect(() => {
+    if (enArtist) router.replace(`/dashboard/products/${products[0].id}`)
+  }, [enArtist, products, router])
 
   useEffect(() => {
     if (!session?.user?.id) return
@@ -184,6 +193,8 @@ export default function DashboardPage() {
       </div>
     )
   }
+
+  if (enArtist) return null
 
   return (
     <div>

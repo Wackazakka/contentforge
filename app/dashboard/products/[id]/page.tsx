@@ -706,7 +706,7 @@ function FullProductPage() {
     return (
       <div className="min-h-screen bg-[var(--paper)]">
         <div className="max-w-6xl mx-auto px-6 py-8">
-          <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">
+          <Link href={tenant.vertical === 'music' ? '/dashboard?alle=1' : '/dashboard'} className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">
             {t('backToDashboard')}
           </Link>
           <div className="text-center py-12">
@@ -737,7 +737,7 @@ function FullProductPage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Header */}
         <div className="mb-6">
-          <Link href="/dashboard" className="text-sm font-medium mb-3 inline-block" style={{ color: 'var(--ember-deep)' }}>
+          <Link href={tenant.vertical === 'music' ? '/dashboard?alle=1' : '/dashboard'} className="text-sm font-medium mb-3 inline-block" style={{ color: 'var(--ember-deep)' }}>
             {t('backToDashboard')}
           </Link>
           <div className="flex items-start justify-between gap-4">
