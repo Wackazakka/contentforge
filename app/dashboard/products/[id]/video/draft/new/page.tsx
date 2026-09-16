@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
@@ -145,16 +145,27 @@ export default function NewDraftPage() {
   const [includeOutroCard, setIncludeOutroCard] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Feilen sto oeverst, knappen nederst, og et langt skjema imellom: Lars
+  // trykket «Opprett draft», ingenting skjedde, og han fant «skriv inn
+  // tittel» foerst etter aa ha rullet opp (16/9). Naa rulles feltet som
+  // mangler inn paa skjermen med fokus, og feilen vises ogsaa ved knappen.
+  const titleRef = useRef<HTMLInputElement>(null)
+  const topicRef = useRef<HTMLTextAreaElement>(null)
+  const manglerFelt = (melding: string, el: HTMLElement | null) => {
+    setError(melding)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el?.focus({ preventScroll: true })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title.trim()) {
-      setError(t('errorNoTitle'))
+      manglerFelt(t('errorNoTitle'), titleRef.current)
       return
     }
     if (!topic.trim()) {
-      setError(t('errorNoTopic'))
+      manglerFelt(t('errorNoTopic'), topicRef.current)
       return
     }
 
@@ -262,6 +273,7 @@ export default function NewDraftPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('titleLabel')}</label>
                   <input
+                    ref={titleRef}
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
@@ -274,6 +286,7 @@ export default function NewDraftPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('topicLabel')}</label>
                   <textarea
+                    ref={topicRef}
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
                     placeholder={t('topicPlaceholder')}
@@ -542,6 +555,11 @@ export default function NewDraftPage() {
               </label>
 
             </div>
+
+            {/* Samme feil som i banneret oeverst, men her ved knappen der blikket er */}
+            {error && !loading && (
+              <p className="text-sm font-medium" style={{ color: 'var(--ember-deep)' }}>{error}</p>
+            )}
 
             {/* Buttons */}
             <div className="flex gap-3 pt-4">
