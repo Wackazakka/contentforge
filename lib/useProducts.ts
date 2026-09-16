@@ -119,12 +119,17 @@ export function useProducts(organizationId: string | null) {
   const deleteProduct = async (productId: string): Promise<boolean> => {
     try {
       const supabase = getSupabase()
-      const { error: deleteError } = await supabase
+      // .select() gir radene som faktisk ble slettet. Uten den svarer Supabase
+      // «ingen feil» ogsaa naar RLS stopper slettingen (null rader) -- artisten
+      // forsvant fra skjermen og var tilbake ved neste lasting (Lars 16/9).
+      const { data: slettet, error: deleteError } = await supabase
         .from('products')
         .delete()
         .eq('id', productId)
+        .select('id')
 
       if (deleteError) throw deleteError
+      if (!slettet || slettet.length === 0) throw new Error('Slettingen ble avvist av databasen (ingen rader slettet)')
 
       // Remove from local state
       setProducts((prev) => prev.filter((p) => p.id !== productId))

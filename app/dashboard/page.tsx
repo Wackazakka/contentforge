@@ -182,7 +182,8 @@ export default function DashboardPage() {
 
   const handleDeleteProduct = async (productId: string) => {
     if (confirm(t('deleteConfirm'))) {
-      await deleteProduct(productId)
+      const ok = await deleteProduct(productId)
+      if (!ok) alert('Kunne ikke slette. Prøv igjen — hvis det skjer igjen, si fra til oss.')
     }
   }
 
