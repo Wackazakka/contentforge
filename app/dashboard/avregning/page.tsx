@@ -79,7 +79,9 @@ export default function AvregningPage() {
         headers: { Authorization: `Bearer ${token}` },
       })
       const d = await res.json()
-      if (!res.ok) throw new Error(t('loadError'))
+      // Vis serverens egen grunn når den finnes — «Kunne ikke hente» skjulte
+      // om det var 403, 404 eller 500, og gjorde feilen umulig å diagnostisere.
+      if (!res.ok) throw new Error(d?.error ? `${t('loadError')}: ${d.error}` : t('loadError'))
       setData(d)
     } catch (err) {
       setFeil(err instanceof Error ? err.message : 'Noe gikk galt')

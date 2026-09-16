@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isTenantAdmin } from '@/lib/voiceBank'
+import { getTenant } from '@/lib/tenantServer'
 
 // Avregning (Lars 1/8): hva skylder ContentForge white-labelen for en periode?
 //
@@ -60,15 +61,31 @@ export async function GET(request: Request) {
       tenantNavn = t.name || t.slug
       lostSlug = t.slug
     } else {
-      // Uten slug: tenanten brukeren tilhører
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('tenant_id, tenants(name, slug)')
-        .eq('owner_id', bruker.user.id)
-        .single()
-      tenantId = (org as any)?.tenant_id || null
-      tenantNavn = (org as any)?.tenants?.name || ''
-      lostSlug = (org as any)?.tenants?.slug || null
+      // Uten slug: FØRST vertsnavnet (voicebank.ai → VoiceBank-tenanten), slik
+      // stemmebank-adminen gjør. Før sto her bare et oppslag på brukerens EGEN
+      // organisasjon med .single() — som feilet for en admin med flere
+      // organisasjoner (PGRST116 → «Fant ingen tenant»), og som uansett ga
+      // FEIL tenant for en plattform-admin som besøkte en partners domene
+      // (funnet 16/9: «Kunne ikke hente avregningen» på voicebank.ai).
+      const vert = await getTenant()
+      if (vert.id !== 'root') {
+        tenantId = vert.id
+        tenantNavn = vert.app_name || vert.name || vert.slug
+        lostSlug = vert.slug
+      } else {
+        // På rot-domenet: tenanten brukeren tilhører. maybeSingle + limit —
+        // en bruker kan eie flere organisasjoner, og det skal ikke velte svaret.
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('tenant_id, tenants(name, slug)')
+          .eq('owner_id', bruker.user.id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+        tenantId = (org as any)?.tenant_id || null
+        tenantNavn = (org as any)?.tenants?.name || ''
+        lostSlug = (org as any)?.tenants?.slug || null
+      }
       // Denne grenen manglet ogsaa tilgangssjekk (funnet 7/8). Å tilhøre en
       // tenant er IKKE det samme som å ha rett til å se den: avregningen viser
       // HELE tenantens omsetning og margin, så enhver artist under IndigoBoom
