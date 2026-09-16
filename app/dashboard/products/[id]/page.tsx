@@ -809,7 +809,7 @@ function FullProductPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Artikkellogo (vises på genererte bilder)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{tenant.vertical === 'music' ? 'Artistlogo (vises på genererte bilder)' : 'Artikkellogo (vises på genererte bilder)'}</label>
               <div className="flex gap-2 items-center">
                 <input
                   type="text"
@@ -832,11 +832,11 @@ function FullProductPage() {
               {profileForm.article_logo_url && (
                 <img
                   src={profileForm.article_logo_url}
-                  alt="Artikkellogo preview"
+                  alt={tenant.vertical === 'music' ? 'Artistlogo' : 'Artikkellogo'}
                   className="mt-3 h-12 w-auto object-contain"
                 />
               )}
-              <p className="mt-1 text-xs text-gray-400">Brukes på illustrasjoner i artikler. Hvis ikke satt, brukes standard-logoen.</p>
+              <p className="mt-1 text-xs text-gray-400">{tenant.vertical === 'music' ? 'Brukes på bildene som genereres til promoene. Hvis ikke satt, brukes logoen over.' : 'Brukes på illustrasjoner i artikler. Hvis ikke satt, brukes standard-logoen.'}</p>
             </div>
 
             <div>
