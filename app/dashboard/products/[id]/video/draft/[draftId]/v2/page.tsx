@@ -1838,7 +1838,7 @@ export default function DraftV2Page() {
                     return (
                       <>
                         {medleyer.length > 0 && (
-                          <optgroup label="Medleyene dine">
+                          <optgroup label="Utsnitt og medleyer">
                             {medleyer.map((m) => <option key={m.filename} value={m.filename}>{m.name}</option>)}
                           </optgroup>
                         )}
