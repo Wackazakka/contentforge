@@ -89,6 +89,9 @@ export default function FilmPage() {
   // naar/hvor/ta med/svar. Alle andre typer faar invitasjonsfeltene som foer.
   const DETAIL_KEYS_BY_CATEGORY: Record<string, readonly DetailKey[]> = {
     gratulasjon: ['why', 'extra', 'greeting'],
+    // Valentinsdagen: en hilsen til én person, eventuelt med en middagsavtale —
+    // ingen «ta med», antrekk eller svarfrist
+    valentine: ['who', 'when', 'where', 'extra', 'greeting'],
   }
   const INVITATION_KEYS: readonly DetailKey[] = DETAIL_KEYS.filter((k) => k !== 'why')
   const detailKeysFor = (cat: string | null) => (cat && DETAIL_KEYS_BY_CATEGORY[cat]) || INVITATION_KEYS

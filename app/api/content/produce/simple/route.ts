@@ -48,6 +48,13 @@ const THEME_WORDS: Record<string, string> = {
   firmafest: 'navy blue, warm gold and light grey', bedrift: 'navy blue, warm gold and light grey',
 }
 
+// Hilsener, ikke invitasjoner (16/9): skjemaet spoer annerledes, og prompten
+// maa vite det saa den ikke dikter opp tid, sted og svarfrist.
+const GREETING_NOTE: Record<string, string> = {
+  gratulasjon: 'This is a CONGRATULATION greeting to the person(s) named as the occasion — not an invitation. Do not write about time, place, what to bring or how to reply unless the sender gave it.',
+  valentine: 'This is a personal VALENTINE greeting from the sender to the person named as the occasion — warm and intimate, not a party invitation. Mention a dinner or meeting only if the sender gave time or place.',
+}
+
 const DETAIL_ORDER: Array<[keyof NonNullable<SimpleRequest['details']>, string]> = [
   ['who', 'who it is for / who is hosting'],
   // Gratulasjon (16/9): hilsen, ikke invitasjon — hva det gratuleres med
@@ -96,9 +103,9 @@ async function writeLines(opts: {
 Occasion: "${title}"
 Type: ${category || 'unspecified'}
 What the sender wrote about it: "${description || '(nothing more)'}"
-${category === 'gratulasjon' ? `This is a CONGRATULATION greeting to the person(s) named as the occasion — not an invitation. Do not write about time, place, what to bring or how to reply unless the sender gave it.\n` : ''}
+${GREETING_NOTE[category] ? `${GREETING_NOTE[category]}\n` : ''}
 ${detailBlock}Write exactly ${count} lines in ${lang}, one per scene, in this order:
-1. An opening line that says ${category === 'gratulasjon' ? 'who is being congratulated' : 'what is being celebrated'}.
+1. An opening line that says ${category === 'gratulasjon' ? 'who is being congratulated' : category === 'valentine' ? 'who the greeting is for' : 'what is being celebrated'}.
 2–${count - 1}. ${details && details.length ? 'One line per filled-in field above, in that order — keep the sender\'s facts exactly (names, dates, places), just make each a short punchy poster line.' : 'The essentials, one per line: who it is for, when, where, what to bring or do, and warm personal touches drawn from the sender\'s text. If the sender gave no time or place, do NOT invent them — write a warm line instead.'} Never invent names, dates, addresses or facts.
 ${count}. A closing line: welcome / see you there / a warm wish.
 
@@ -180,7 +187,8 @@ export async function POST(request: NextRequest) {
     // Skjemaet: én plakat per utfylt felt + aapning + avslutning. Uten skjema
     // faller vi tilbake til scenetallet fra sanglengden.
     const details: Array<[string, string]> = DETAIL_ORDER
-      .map(([k, label]) => [label, String(body.details?.[k] || '').trim()] as [string, string])
+      // Valentinsdagen: «Hvem»-feltet er avsenderen, ikke verten
+      .map(([k, label]) => [k === 'who' && product.category === 'valentine' ? 'who the greeting is from' : label, String(body.details?.[k] || '').trim()] as [string, string])
       .filter(([, v]) => v)
     const count = details.length > 0
       ? Math.min(16, details.length + 2)
