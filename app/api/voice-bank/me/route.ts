@@ -33,10 +33,12 @@ function admin() {
 export async function GET(request: Request) {
   try {
     let email: string | null = null
+    let userId: string | null = null
     const auth = request.headers.get('authorization')
     if (auth?.startsWith('Bearer ')) {
       const { data } = await admin().auth.getUser(auth.slice(7))
       email = data?.user?.email ?? null
+      userId = data?.user?.id ?? null
     }
     if (!email) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
 
@@ -53,6 +55,27 @@ export async function GET(request: Request) {
 
     if (actors.length === 0) {
       return NextResponse.json({ tenant: { name: tenant.app_name }, actors: [] })
+    }
+
+    // Er rettighetshaveren OGSÅ kunde her? Innlogging oppretter alltid en
+    // organisasjon, så «har organisasjon» beviser ingenting. Kunde = har
+    // produsert noe eller kjøpt kreditt på dette domenet. En ren
+    // rettighetshaver skal ikke se produksjonsflatene (Lars 16/9).
+    let isCustomer = false
+    if (userId) {
+      try {
+        let oq = supabase.from('organizations').select('id').eq('owner_id', userId)
+        if (tenant.id !== 'root') oq = oq.eq('tenant_id', tenant.id)
+        const { data: orgs } = await oq
+        const orgIds = (orgs || []).map((o) => o.id as string)
+        if (orgIds.length > 0) {
+          const [{ count: prod }, { count: tops }] = await Promise.all([
+            supabase.from('products').select('id', { count: 'exact', head: true }).in('organization_id', orgIds),
+            supabase.from('org_topups').select('id', { count: 'exact', head: true }).in('organization_id', orgIds),
+          ])
+          isCustomer = (prod ?? 0) > 0 || (tops ?? 0) > 0
+        }
+      } catch { /* uvisst → behandles som kunde, som før */ isCustomer = true }
     }
 
     // Byrånavn for «hvem brukte stemmen» — ett oppslag for alle hendelser.
@@ -114,7 +137,7 @@ export async function GET(request: Request) {
       })
     }
 
-    return NextResponse.json({ tenant: { name: tenant.app_name }, actors: out })
+    return NextResponse.json({ tenant: { name: tenant.app_name }, actors: out, isCustomer })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Ukjent feil' }, { status: 500 })
   }

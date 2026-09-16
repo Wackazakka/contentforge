@@ -10,6 +10,7 @@ import { useProducts } from "@/lib/useProducts"
 import { ProductModal, type CreateProductFormInput } from "@/components/ProductModal"
 import { useTranslations, useLocale } from 'next-intl'
 import { verticalConfig } from '@/lib/verticals'
+import { useDashboardRole } from '@/lib/useDashboardRole'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
@@ -67,6 +68,14 @@ export default function DashboardPage() {
   useEffect(() => {
     if (enArtist) router.replace(`/dashboard/products/${products[0].id}`)
   }, [enArtist, products, router])
+
+  // En REN rettighetshaver (forvaltningsavtale her, ikke admin, aldri produsert
+  // eller kjøpt) lander på sin egen hovedbok, ikke på produksjonsdashbordet
+  // (Lars 16/9). Samme rolle-kilde som menyen, så de to aldri spriker.
+  const role = useDashboardRole()
+  useEffect(() => {
+    if (role.actorOnly) router.replace('/min-stemme')
+  }, [role.actorOnly, router])
 
   useEffect(() => {
     if (!session?.user?.id) return
