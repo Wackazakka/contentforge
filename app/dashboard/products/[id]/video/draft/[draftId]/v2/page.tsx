@@ -347,6 +347,17 @@ export default function DraftV2Page() {
 
   // ---- Medley (portert fra gammel side) ----
   const [medleyPicks, setMedleyPicks] = useState<string[]>([])
+  // Laaten valgt i Musikk-menyen er ogsaa den man vil klippe: forhaandsvelg
+  // den i verkstedet, saa start/lengde-kontrollene vises med en gang. Foer
+  // maatte man velge samme laat en gang til i lista under -- Lars fant ikke
+  // utsnittet (16/9). Bare naar ingenting er valgt, saa et aktivt medley-valg
+  // ikke overstyres.
+  useEffect(() => {
+    const fil = draft?.music_file
+    if (!fil || medleyPicks.length > 0) return
+    const erEgen = ownTracks(musicLibrary, productId).some((m) => m.filename === fil && !isMedleyFile(m.filename))
+    if (erEgen) setMedleyPicks([fil])
+  }, [draft?.music_file, musicLibrary]) // eslint-disable-line react-hooks/exhaustive-deps
   const [medleyClip, setMedleyClip] = useState<'full' | '10' | '15' | '20' | '30'>('15')
   // Hvor i laata utsnittet starter. Serveren har stoettet dette siden juli
   // (Lars: «jeg vet jo ikke hvilken del av laata som spilles»), men UI-et

@@ -52,5 +52,11 @@ export function sharedMusic(files: MusicFile[]): MusicFile[] {
 
 // Ferdige medleyer er RESULTATER, ikke råvarer — de skal ikke kunne velges
 // inn i nye medleyer (Lars 30/7: medleyen la seg i sin egen kandidatliste).
-export const isMedleyFile = (filename: string) =>
-  ((filename.split('/').pop() || '').startsWith('medley-'))
+// Avledede filer: medleyer og utsnitt. De skal ikke vaere raastoff for nye
+// utsnitt/medleyer -- utsnitt av et utsnitt gir bare tap (Lars 16/9).
+// Navnene: «medley-...» (foer og naa), «utsnitt-...» (foer 15/9) og
+// «<laat>-utsnitt-5s-til-25s» (naa).
+export const isMedleyFile = (filename: string) => {
+  const base = (filename.split('/').pop() || '').toLowerCase()
+  return base.startsWith('medley-') || /(^|-)utsnitt(-|\.)/.test(base)
+}
