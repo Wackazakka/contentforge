@@ -89,6 +89,7 @@ export async function POST(request: Request) {
         actorId: actor.id, organizationId: auth.organizationId, tenantId: auth.tenantId,
         assetType: 'voice', kind: 'speech', contentUrl: url, detail: text,
         actorRateNok: rate, customerPriceNok: price, timeoutHours: approval.timeoutHours,
+        apiKeyId: auth.keyId,
       })
       if (!pending) return NextResponse.json({ error: 'Kunne ikke opprette godkjenning' }, { status: 500 })
       return NextResponse.json({ status: 'pending_approval', reviewId: pending.id, expiresAt: pending.expiresAt })
@@ -101,7 +102,9 @@ export async function POST(request: Request) {
       actor_rate_nok: rate,
       customer_price_nok: price,
       asset_type: 'voice',
-      meta: { kind: 'speech', source: 'gateway', organization_id: auth.organizationId, chars: text.length },
+      // api_key_id: hvilken av kundens nøkler som ble brukt — organisasjonen alene
+      // skiller dem ikke når en kunde har flere.
+      meta: { kind: 'speech', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, chars: text.length },
     })
 
     // Meter kundens forbruk (trekker forskuddssaldoen) — separat fra royalty-loggen,
@@ -113,7 +116,7 @@ export async function POST(request: Request) {
       event_type: 'gateway_speech',
       cost_nok: price,                 // partner-basis (bankens kundepris)
       customer_cost_nok: customerPrice, // sluttkundens pris (hele kjeden) → trekkes fra saldo
-      meta: { source: 'gateway', asset_id: actor.id, chars: text.length },
+      meta: { source: 'gateway', asset_id: actor.id, api_key_id: auth.keyId, chars: text.length },
     })
 
     return NextResponse.json({ url, format: format || 'mp3', charged_nok: customerPrice })

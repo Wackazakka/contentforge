@@ -63,6 +63,7 @@ export async function POST(request: Request) {
         actorId: actor.id, organizationId: auth.organizationId, tenantId: auth.tenantId,
         assetType: 'face', kind: 'face', contentUrl: url, detail: prompt,
         actorRateNok: rate, customerPriceNok: price, timeoutHours: approval.timeoutHours,
+        apiKeyId: auth.keyId,
       })
       if (!pending) return NextResponse.json({ error: 'Kunne ikke opprette godkjenning' }, { status: 500 })
       return NextResponse.json({ status: 'pending_approval', reviewId: pending.id, expiresAt: pending.expiresAt })
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
       actor_rate_nok: rate,
       customer_price_nok: price,
       asset_type: 'face',
-      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId },
+      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId },
     })
 
     // Meter kundens forbruk (trekker forskuddssaldoen)
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
       event_type: 'gateway_image',
       cost_nok: price,
       customer_cost_nok: customerPrice,
-      meta: { source: 'gateway', asset_id: actor.id },
+      meta: { source: 'gateway', asset_id: actor.id, api_key_id: auth.keyId },
     })
 
     return NextResponse.json({ url, charged_nok: customerPrice })

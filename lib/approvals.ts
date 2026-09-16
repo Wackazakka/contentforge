@@ -51,27 +51,34 @@ export async function createPendingApproval(a: {
   actorRateNok: number
   customerPriceNok: number
   timeoutHours: number
+  // Hvilken API-nøkkel som utløste bruken — følger med til hovedboken ved
+  // godkjenning, så en kunde med flere nøkler kan se hvilken som ble brukt.
+  apiKeyId?: string | null
 }): Promise<{ id: string; expiresAt: string } | null> {
   try {
     const token = generateReviewToken()
     const expiresAt = new Date(Date.now() + a.timeoutHours * 3600_000).toISOString()
-    const { data, error } = await admin()
-      .from('usage_approvals')
-      .insert({
-        actor_id: a.actorId,
-        organization_id: a.organizationId,
-        tenant_id: a.tenantId,
-        asset_type: a.assetType,
-        kind: a.kind,
-        content_url: a.contentUrl,
-        detail: a.detail.slice(0, 1000),
-        actor_rate_nok: a.actorRateNok,
-        customer_price_nok: a.customerPriceNok,
-        review_token: token,
-        expires_at: expiresAt,
-      })
-      .select('id')
-      .single()
+    const row: Record<string, unknown> = {
+      actor_id: a.actorId,
+      organization_id: a.organizationId,
+      tenant_id: a.tenantId,
+      asset_type: a.assetType,
+      kind: a.kind,
+      content_url: a.contentUrl,
+      detail: a.detail.slice(0, 1000),
+      actor_rate_nok: a.actorRateNok,
+      customer_price_nok: a.customerPriceNok,
+      review_token: token,
+      expires_at: expiresAt,
+    }
+    if (a.apiKeyId) row.api_key_id = a.apiKeyId
+    let { data, error } = await admin().from('usage_approvals').insert(row).select('id').single()
+    // Kolonnen kommer i migrasjon 073. Mangler den i prod ennå, skal
+    // godkjenningen fortsatt opprettes — bare uten nøkkel-sporing.
+    if (error && a.apiKeyId && /api_key_id/.test(error.message)) {
+      delete row.api_key_id
+      ;({ data, error } = await admin().from('usage_approvals').insert(row).select('id').single())
+    }
     if (error || !data) return null
     // Varsle skuespilleren (fire-and-forget — velter aldri genereringen)
     sendApprovalEmail(a.actorId, token, a.kind, expiresAt).catch(() => {})
@@ -124,16 +131,18 @@ export async function logApprovedDelivery(row: {
   kind: string
   actor_rate_nok: number
   customer_price_nok: number
+  api_key_id?: string | null
 }): Promise<void> {
   try {
     const supabase = admin()
+    const apiKeyId = row.api_key_id ?? null
     await supabase.from('voice_usage_events').insert({
       actor_id: row.actor_id,
       used_by_tenant_id: row.tenant_id,
       actor_rate_nok: row.actor_rate_nok,
       customer_price_nok: row.customer_price_nok,
       asset_type: row.asset_type,
-      meta: { kind: row.kind, source: 'gateway', organization_id: row.organization_id, approved: true },
+      meta: { kind: row.kind, source: 'gateway', organization_id: row.organization_id, api_key_id: apiKeyId, approved: true },
     })
     const pf = await chainFactorByTenantId(row.tenant_id)
     await supabase.from('usage_events').insert({
@@ -142,7 +151,7 @@ export async function logApprovedDelivery(row: {
       event_type: `gateway_${row.kind}`,
       cost_nok: row.customer_price_nok,
       customer_cost_nok: Math.round(row.customer_price_nok * pf * 100) / 100,
-      meta: { source: 'gateway', asset_id: row.actor_id, approved: true },
+      meta: { source: 'gateway', asset_id: row.actor_id, api_key_id: apiKeyId, approved: true },
     })
   } catch (err) {
     console.warn('[approvals] levering-logging feilet:', err)
