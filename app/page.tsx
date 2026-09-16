@@ -470,6 +470,11 @@ export default function Home() {
               {!erArtist && (
                 <Link href="/white-label" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_whitelabel')}</Link>
               )}
+              {/* Søsterproduktet: TwinLedger er Norditechs eget, og selges bare
+                  fra Norditechs egen forside — aldri fra en partners. */}
+              {tenant.slug === 'centerforge' && (
+                <Link href="/twinledger" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_twinledger')}</Link>
+              )}
               <Link href="/privacy" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_privacy')}</Link>
               <Link href="/terms" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_terms')}</Link>
             </div>
