@@ -55,7 +55,13 @@
     "categoryOtherLabel": "What kind of occasion?",
     "categoryOtherPlaceholder": "e.g. crayfish party",
     "createProduct": "Add the occasion",
-    "errorNameRequired": "Tell us what is being celebrated."
+    "errorNameRequired": "Tell us what is being celebrated.",
+    "productNameLabel_gratulasjon": "Who are we congratulating?",
+    "productNamePlaceholder_gratulasjon": "e.g. “Kenneth and Jorunn”",
+    "descriptionLabel_gratulasjon": "What are we congratulating them on?",
+    "descriptionPlaceholder_gratulasjon": "e.g. “A new house at Solveien 5 — moving in on 1 October!”",
+    "descriptionHint_gratulasjon": "Used when the greeting is created — two sentences will do.",
+    "errorNameRequired_gratulasjon": "Tell us who is being congratulated."
   },
   "newDraft": {
     "backToProduct": "← Back to the occasion",

@@ -55,7 +55,13 @@
     "categoryOtherLabel": "Hva slags anledning?",
     "categoryOtherPlaceholder": "f.eks. krepselag",
     "createProduct": "Legg til anledningen",
-    "errorNameRequired": "Fortell hva som feires."
+    "errorNameRequired": "Fortell hva som feires.",
+    "productNameLabel_gratulasjon": "Hvem skal gratuleres?",
+    "productNamePlaceholder_gratulasjon": "f.eks. «Kenneth og Jorunn»",
+    "descriptionLabel_gratulasjon": "Hva gratulerer vi med?",
+    "descriptionPlaceholder_gratulasjon": "f.eks. «Nytt hus i Solveien 5 — innflytting 1. oktober!»",
+    "descriptionHint_gratulasjon": "Brukes når hilsenen lages — to setninger holder.",
+    "errorNameRequired_gratulasjon": "Fortell hvem som skal gratuleres."
   },
   "newDraft": {
     "backToProduct": "← Tilbake til anledningen",

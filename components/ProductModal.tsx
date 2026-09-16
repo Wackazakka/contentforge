@@ -41,7 +41,9 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, ini
   // Fra forsidekortet: «Hva feires?» forhaandsfylles med anledningens navn
   // (Lars 5/9: tom modal + «Fortell hva som feires» = «ingenting skjer»)
   const initialOpt = initialCategory ? vcfg?.categoryOptions.find((o) => o.value === initialCategory) : undefined
-  const [name, setName] = useState(initialOpt ? t(initialOpt.labelKey) : '')
+  // …men ikke naar anledningen spoer etter en PERSON («Hvem skal gratuleres?»
+  // med svaret «Gratulasjon» gir ingen mening) — da starter feltet tomt.
+  const [name, setName] = useState(initialOpt && !t.has(`productNameLabel_${initialOpt.value}`) ? t(initialOpt.labelKey) : '')
   const [description, setDescription] = useState('')
   // Startverdi fra forsidekortet naar den er gyldig; ellers foerste valg.
   // (Foreldren remonterer modalen via key naar initialCategory endres.)
@@ -54,6 +56,11 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, ini
   // (products.category), så prompt-konteksten får «Genre: shoegaze» i stedet
   // for «Genre: annet». Tomt felt faller tilbake til 'annet'.
   const [customCategory, setCustomCategory] = useState('')
+  // Anledningsspesifikke tekster (Lars 16/9): «Gratulasjon» spoer hvem som
+  // gratuleres og hvorfor, ikke «hva feires». Noekkelen `${key}_${kategori}`
+  // i meldingsfila vinner naar den finnes; ellers gjelder standardteksten.
+  // Foelger nedtrekkslista live, saa teksten skifter idet typen velges.
+  const tc = (key: string) => (vcfg && t.has(`${key}_${category}`) ? t(`${key}_${category}`) : t(key))
   const [serviceArea, setServiceArea] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [phone, setPhone] = useState('')
@@ -84,7 +91,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, ini
     setError(null)
 
     if (!name.trim()) {
-      setError(t('errorNameRequired'))
+      setError(tc('errorNameRequired'))
       return
     }
     if (phone.trim() && !normalizePhone(phone)) {
@@ -175,7 +182,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, ini
         )}
 
         <form onSubmit={handleSubmit}>
-          <label style={labelStyle}>{t('productNameLabel')}</label>
+          <label style={labelStyle}>{tc('productNameLabel')}</label>
           <input
             type="text"
             value={name}
@@ -183,10 +190,10 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, ini
             disabled={isLoading}
             className="cf-input"
             style={{ marginBottom: 20 }}
-            placeholder={t('productNamePlaceholder')}
+            placeholder={tc('productNamePlaceholder')}
           />
 
-          <label style={labelStyle}>{t('descriptionLabel')}</label>
+          <label style={labelStyle}>{tc('descriptionLabel')}</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -194,10 +201,10 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, ini
             className="cf-input"
             style={{ marginBottom: vcfg ? 8 : 20, resize: 'vertical' }}
             rows={3}
-            placeholder={t('descriptionPlaceholder')}
+            placeholder={tc('descriptionPlaceholder')}
           />
           {vcfg && (
-            <p style={{ fontFamily: HANKEN, fontSize: 13, color: '#8C8272', margin: '0 0 20px' }}>{t('descriptionHint')}</p>
+            <p style={{ fontFamily: HANKEN, fontSize: 13, color: '#8C8272', margin: '0 0 20px' }}>{tc('descriptionHint')}</p>
           )}
 
           <label style={labelStyle}>{t('categoryLabel')}</label>

@@ -34,7 +34,7 @@ interface SimpleRequest {
   voiceId?: string | null
   libraryMusic?: string | null
   // Skjemaet (Lars 4/9): ett svar per felt gir én plakat per felt
-  details?: Partial<Record<'who' | 'when' | 'where' | 'bring' | 'dress' | 'extra' | 'rsvp' | 'greeting', string>>
+  details?: Partial<Record<'who' | 'why' | 'when' | 'where' | 'bring' | 'dress' | 'extra' | 'rsvp' | 'greeting', string>>
 }
 
 // Palettord per anledning — speiler THEMES i contentforge-server/festlig.py,
@@ -50,6 +50,8 @@ const THEME_WORDS: Record<string, string> = {
 
 const DETAIL_ORDER: Array<[keyof NonNullable<SimpleRequest['details']>, string]> = [
   ['who', 'who it is for / who is hosting'],
+  // Gratulasjon (16/9): hilsen, ikke invitasjon — hva det gratuleres med
+  ['why', 'what the congratulation is for (the achievement or event)'],
   ['when', 'date and time'],
   ['where', 'place'],
   ['bring', 'what to bring'],
@@ -94,9 +96,9 @@ async function writeLines(opts: {
 Occasion: "${title}"
 Type: ${category || 'unspecified'}
 What the sender wrote about it: "${description || '(nothing more)'}"
-
+${category === 'gratulasjon' ? `This is a CONGRATULATION greeting to the person(s) named as the occasion — not an invitation. Do not write about time, place, what to bring or how to reply unless the sender gave it.\n` : ''}
 ${detailBlock}Write exactly ${count} lines in ${lang}, one per scene, in this order:
-1. An opening line that says what is being celebrated.
+1. An opening line that says ${category === 'gratulasjon' ? 'who is being congratulated' : 'what is being celebrated'}.
 2–${count - 1}. ${details && details.length ? 'One line per filled-in field above, in that order — keep the sender\'s facts exactly (names, dates, places), just make each a short punchy poster line.' : 'The essentials, one per line: who it is for, when, where, what to bring or do, and warm personal touches drawn from the sender\'s text. If the sender gave no time or place, do NOT invent them — write a warm line instead.'} Never invent names, dates, addresses or facts.
 ${count}. A closing line: welcome / see you there / a warm wish.
 
@@ -173,7 +175,7 @@ export async function POST(request: NextRequest) {
 
     const title = (body.title || product.name || '').trim()
     const description = (body.description || product.description || '').trim()
-    if (!title) return NextResponse.json({ error: 'Fortell hva som feires.' }, { status: 400 })
+    if (!title) return NextResponse.json({ error: product.category === 'gratulasjon' ? 'Fortell hvem som skal gratuleres.' : 'Fortell hva som feires.' }, { status: 400 })
 
     // Skjemaet: én plakat per utfylt felt + aapning + avslutning. Uten skjema
     // faller vi tilbake til scenetallet fra sanglengden.
