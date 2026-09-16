@@ -80,12 +80,24 @@ export default function FilmPage() {
   const [category, setCategory] = useState<string | null>(null)
   // Skjemaet (Lars 4/9): ett svar per felt = én plakat i filmen. Lagres i
   // products.description som lesbare linjer («Når: …»), og parses tilbake.
-  const DETAIL_KEYS = ['who', 'when', 'where', 'bring', 'dress', 'extra', 'rsvp', 'greeting'] as const
+  const DETAIL_KEYS = ['who', 'why', 'when', 'where', 'bring', 'dress', 'extra', 'rsvp', 'greeting'] as const
   type DetailKey = typeof DETAIL_KEYS[number]
-  const DETAIL_PREFIX: Record<DetailKey, string> = { who: 'Hvem', when: 'Når', where: 'Hvor', bring: 'Ta med', dress: 'Antrekk', extra: 'Ekstra', rsvp: 'Svar', greeting: 'Hilsen' }
-  const [details, setDetails] = useState<Record<DetailKey, string>>({ who: '', when: '', where: '', bring: '', dress: '', extra: '', rsvp: '', greeting: '' })
-  const parseDetails = (text: string) => {
-    const out: Record<DetailKey, string> = { who: '', when: '', where: '', bring: '', dress: '', extra: '', rsvp: '', greeting: '' }
+  const DETAIL_PREFIX: Record<DetailKey, string> = { who: 'Hvem', why: 'Hvorfor', when: 'Når', where: 'Hvor', bring: 'Ta med', dress: 'Antrekk', extra: 'Ekstra', rsvp: 'Svar', greeting: 'Hilsen' }
+  const EMPTY_DETAILS: Record<DetailKey, string> = { who: '', why: '', when: '', where: '', bring: '', dress: '', extra: '', rsvp: '', greeting: '' }
+  // Skjemaet per anledningstype (Lars 16/9): en gratulasjon er en hilsen, ikke
+  // en invitasjon — den spoer hvem som gratuleres (tittelen) og hvorfor, ikke
+  // naar/hvor/ta med/svar. Alle andre typer faar invitasjonsfeltene som foer.
+  const DETAIL_KEYS_BY_CATEGORY: Record<string, readonly DetailKey[]> = {
+    gratulasjon: ['why', 'extra', 'greeting'],
+    // Valentinsdagen: en hilsen til én person, eventuelt med en middagsavtale —
+    // ingen «ta med», antrekk eller svarfrist
+    valentine: ['who', 'when', 'where', 'extra', 'greeting'],
+  }
+  const INVITATION_KEYS: readonly DetailKey[] = DETAIL_KEYS.filter((k) => k !== 'why')
+  const detailKeysFor = (cat: string | null) => (cat && DETAIL_KEYS_BY_CATEGORY[cat]) || INVITATION_KEYS
+  const [details, setDetails] = useState<Record<DetailKey, string>>(EMPTY_DETAILS)
+  const parseDetails = (text: string, cat: string | null) => {
+    const out: Record<DetailKey, string> = { ...EMPTY_DETAILS }
     const rest: string[] = []
     for (const line of text.split('\n')) {
       const m = /^([^:]{2,12}):\s*(.+)$/.exec(line.trim())
@@ -93,9 +105,15 @@ export default function FilmPage() {
       if (m && key) out[key] = m[2].trim()
       else if (line.trim()) rest.push(line.trim())
     }
-    if (!out.greeting && rest.length) out.greeting = rest.join(' ')
+    // Fritekst fra «Ny anledning» (uten prefiks) lander i det feltet som
+    // spurte etter den: «Hva gratulerer vi med?» for gratulasjon, hilsenen ellers.
+    const restKey: DetailKey = cat === 'gratulasjon' ? 'why' : 'greeting'
+    if (!out[restKey] && rest.length) out[restKey] = rest.join(' ')
     return out
   }
+  // Anledningsspesifikke tekster: `${key}_${kategori}` i meldingsfila vinner
+  // naar den finnes (f.eks. titleLabel_gratulasjon), ellers standardteksten.
+  const tc = (key: string) => (category && t.has(`${key}_${category}`) ? t(`${key}_${category}`) : t(key))
   const compileDescription = (d: Record<DetailKey, string>) =>
     DETAIL_KEYS.filter((k) => d[k].trim()).map((k) => `${DETAIL_PREFIX[k]}: ${d[k].trim()}`).join('\n')
   const [loaded, setLoaded] = useState(false)
@@ -184,7 +202,7 @@ export default function FilmPage() {
         const { data } = await getSupabase().from('products').select('name, description, category').eq('id', productId).single()
         setTitle((data?.name || '').trim())
         setDescription((data?.description || '').trim())
-        setDetails(parseDetails((data?.description || '').trim()))
+        setDetails(parseDetails((data?.description || '').trim(), data?.category || null))
         setCategory(data?.category || null)
         loadedCategory = data?.category || null
       } catch { /* skjemaet fungerer tomt */ } finally { setLoaded(true) }
@@ -269,7 +287,7 @@ export default function FilmPage() {
   const writePosters = async () => {
     if (phase !== 'idle') return
     setError(null); setReview(null)
-    if (!title.trim()) { setError(t('needTitle')); return }
+    if (!title.trim()) { setError(tc('needTitle')); return }
     // Har kunden valgt en sang, maa retten bekreftes foer noe lages —
     // men bytting av sang skal alltid vaere mulig (Lars 5/9)
     if (musicFile && !rightsOk) {
@@ -450,7 +468,7 @@ export default function FilmPage() {
         return
       }
       if (!payRes.ok) throw new Error(pay?.error || t('failed'))
-      if (pay?.url) { window.location.href = pay.url; return }
+      if (pay?.url) { window.location.assign(pay.url); return }
 
       // Bildene lages ETTER betalingen (Lars 5/9) — gratis omgjoering lager dem her
       if (segments.some((sg) => !sg.image_url)) {
@@ -474,7 +492,7 @@ export default function FilmPage() {
       })
       const started = await startRes.json().catch(() => null)
       if (!startRes.ok || !started?.jobId) throw new Error(started?.error || t('failed'))
-      window.location.href = `/dashboard/products/${productId}/video/status/${started.jobId}?format=9%3A16&simple=1`
+      window.location.assign(`/dashboard/products/${productId}/video/status/${started.jobId}?format=9%3A16&simple=1`)
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : t('failed'))
       setPhase('idle')
@@ -639,16 +657,16 @@ export default function FilmPage() {
         <section style={card}>
           <h2 style={h2}><span style={stepNo}>3</span>{t('step3Title')}</h2>
           <p style={hint}>{t('step3Hint')}</p>
-          <label style={{ display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 }}>{t('titleLabel')}</label>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy || !loaded} className="cf-input" placeholder={t('titlePlaceholder')} style={{ marginBottom: 16 }} />
+          <label style={{ display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 8 }}>{tc('titleLabel')}</label>
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy || !loaded} className="cf-input" placeholder={tc('titlePlaceholder')} style={{ marginBottom: 16 }} />
           <p style={{ ...hint, margin: '0 0 12px' }}>{t('formHint')}</p>
-          {DETAIL_KEYS.map((k) => (
+          {detailKeysFor(category).map((k) => (
             <div key={k} style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 6 }}>{t(`field_${k}`)}</label>
-              {k === 'greeting' || k === 'extra' ? (
-                <textarea value={details[k]} onChange={(e) => setDetails((d) => ({ ...d, [k]: e.target.value }))} disabled={busy || !loaded} className="cf-input" rows={2} placeholder={t(`field_${k}_ph`)} style={{ resize: 'vertical' }} />
+              <label style={{ display: 'block', fontFamily: HANKEN, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)', marginBottom: 6 }}>{tc(`field_${k}`)}</label>
+              {k === 'greeting' || k === 'extra' || k === 'why' ? (
+                <textarea value={details[k]} onChange={(e) => setDetails((d) => ({ ...d, [k]: e.target.value }))} disabled={busy || !loaded} className="cf-input" rows={2} placeholder={tc(`field_${k}_ph`)} style={{ resize: 'vertical' }} />
               ) : (
-                <input type="text" value={details[k]} onChange={(e) => setDetails((d) => ({ ...d, [k]: e.target.value }))} disabled={busy || !loaded} className="cf-input" placeholder={t(`field_${k}_ph`)} />
+                <input type="text" value={details[k]} onChange={(e) => setDetails((d) => ({ ...d, [k]: e.target.value }))} disabled={busy || !loaded} className="cf-input" placeholder={tc(`field_${k}_ph`)} />
               )}
             </div>
           ))}
