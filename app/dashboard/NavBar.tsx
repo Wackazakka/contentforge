@@ -9,6 +9,7 @@ import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
 import { isSimpleMode } from '@/lib/verticals'
+import { useDashboardRole } from '@/lib/useDashboardRole'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 
@@ -17,10 +18,12 @@ export default function NavBar() {
   const router = useRouter()
   const { signOut, session } = useAuth()
   const [credits, setCredits] = useState<number | null>(null)
-  const [voiceBankAdmin, setVoiceBankAdmin] = useState(false)
-  // Rettighetshaver-lenken vises kun når den innloggede e-posten har en
-  // forvaltningsavtale i denne banken (avgjøres server-side, som admin-lenken).
-  const [actorLedger, setActorLedger] = useState(false)
+  // Roller avgjøres server-side og deles med dashbord-landingen via én hook:
+  // admin (tenant-admin), actor (forvaltningsavtale i denne banken), customer
+  // (har produsert eller kjøpt her). Se lib/useDashboardRole.ts.
+  const role = useDashboardRole()
+  const voiceBankAdmin = role.admin
+  const actorLedger = role.actor
   const t = useTranslations('nav')
   const tLogin = useTranslations('login')
   const tKonto = useTranslations('account')
@@ -34,8 +37,14 @@ export default function NavBar() {
   // skjuler dem for en hel vertikal; dette flagget gjoer det for én merkevare,
   // og er ment aa kunne skrus tilbake paa uten en ny deploy.
   const publisering = tenant.publishing_enabled !== false
+  // Menyen er tre GRUPPER, ikke én liste (Lars 16/9: «stemme-eier og kunde
+  // blandes sammen»). Hver gruppe eies av én rolle og tegnes med skille:
+  //   produksjon  — kundens verktøy (Oversikt, Publiser, Kalender, Kreditter)
+  //   forvaltning — admin (Stemmebank, Avregning, Påslag, Partnere, API-nøkler)
+  //   meg         — rettighetshaverens egen hovedbok
+  type NavLink = { href: string; label: string }
   // Invoice-tenants (white-label via partner) skal ikke se CenterForge-priser/billing
-  const navLinks = [
+  const produksjon: NavLink[] = [
     { href: '/dashboard', label: t('overview') },
     ...(enkel || !publisering ? [] : [
       { href: '/dashboard/publish', label: t('publish') },
@@ -44,62 +53,36 @@ export default function NavBar() {
     ...(enkel ? [] : tenant.billing_mode === 'invoice'
       ? [{ href: '/dashboard/credits', label: t('buy_credits') }]
       : [{ href: '/dashboard/billing', label: t('billing') }]),
-    // Rettighetshaverens egen hovedbok — utenfor dashbordet, se app/min-stemme.
-    ...(actorLedger ? [{ href: '/min-stemme', label: t('myledger') }] : []),
-    // Admin-lenker (kun tenant-admins — vanlige artister ser dem aldri).
-    // Stemmebanken er skjult for artist-tenanter inntil videre (Lars 1/8):
-    // skuespiller-royalty er ikke tema for IndigoBoom ennå.
-    ...(voiceBankAdmin
-      ? [
-          // Eksplisitt produktflagg — foer utledet av vertical==='music', som var
-          // en tilfeldighet som ventet paa aa bite naar en ny vertikal kom til.
-          ...(tenant.twinledger_enabled === false ? [] : [{ href: '/dashboard/voice-bank', label: t('voicebank') }]),
-          // Partnere og API-nøkler er «avansert admin» og skjules for tjenester
-          // som ikke trenger dem ennå (Lars 3/8: «ikke så overveldende i
-          // starten»). Påslag og Avregning blir stående — de handler om
-          // pengene deres, og dem trenger de fra dag én.
-          ...(tenant.show_advanced_admin !== false
-            ? [{ href: '/dashboard/partners', label: t('partners') }]
-            : []),
-          { href: '/dashboard/paaslag', label: t('markup') },
-          { href: '/dashboard/avregning', label: t('settlement') },
-          ...(tenant.show_advanced_admin !== false
-            ? [{ href: '/dashboard/api-keys', label: t('apikeys') }]
-            : []),
-        ]
-      : []),
   ]
+  // Admin-lenker (kun tenant-admins — vanlige artister ser dem aldri).
+  // Stemmebanken er skjult for artist-tenanter inntil videre (Lars 1/8):
+  // skuespiller-royalty er ikke tema for IndigoBoom ennå.
+  const forvaltning: NavLink[] = voiceBankAdmin
+    ? [
+        // Eksplisitt produktflagg — foer utledet av vertical==='music', som var
+        // en tilfeldighet som ventet paa aa bite naar en ny vertikal kom til.
+        ...(tenant.twinledger_enabled === false ? [] : [{ href: '/dashboard/voice-bank', label: t('voicebank') }]),
+        { href: '/dashboard/avregning', label: t('settlement') },
+        { href: '/dashboard/paaslag', label: t('markup') },
+        // Partnere og API-nøkler er «avansert admin» og skjules for tjenester
+        // som ikke trenger dem ennå (Lars 3/8: «ikke så overveldende i
+        // starten»). Påslag og Avregning blir stående — de handler om
+        // pengene deres, og dem trenger de fra dag én.
+        ...(tenant.show_advanced_admin !== false
+          ? [{ href: '/dashboard/partners', label: t('partners') }, { href: '/dashboard/api-keys', label: t('apikeys') }]
+          : []),
+      ]
+    : []
+  // Rettighetshaverens egen hovedbok — utenfor dashbordet, se app/min-stemme.
+  const meg: NavLink[] = actorLedger ? [{ href: '/min-stemme', label: t('myledger') }] : []
 
-  // Rights-vertikalen (VoiceBank): rettighetsforvaltningen ER hovedforretningen,
-  // saa Stemmebank og Avregning loeftes fremst for admins. Ren omstokking av
-  // allerede-bygde elementer — definisjonene over eies fortsatt ett sted, og
-  // aktiv-markeringen er href-basert og upaavirket. Ikke-admins (byraaets
-  // kunder) og alle andre tenanter beholder produksjonsrekkefoelgen.
-  if (tenant.vertical === 'rights' && voiceBankAdmin) {
-    const foerst = ['/dashboard/voice-bank', '/dashboard/avregning']
-    navLinks.sort((a, b) => {
-      const ia = foerst.indexOf(a.href); const ib = foerst.indexOf(b.href)
-      if (ia !== -1 || ib !== -1) return (ia === -1 ? foerst.length : ia) - (ib === -1 ? foerst.length : ib)
-      return 0 // stabil sort bevarer resten av rekkefoelgen
-    })
-  }
-
-  // Stemmebank-lenken vises kun for tenant-admins (avgjøres server-side)
-  useEffect(() => {
-    const token = session?.access_token
-    if (!token) return
-    fetch('/api/voice-bank/admin', { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => setVoiceBankAdmin(r.ok))
-      .catch(() => {})
-  }, [session])
-
-  useEffect(() => {
-    const token = session?.access_token
-    if (!token) return
-    fetch('/api/voice-bank/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(async (r) => { const d = r.ok ? await r.json() : null; setActorLedger(!!d && Array.isArray(d.actors) && d.actors.length > 0) })
-      .catch(() => {})
-  }, [session])
+  // Rekkefølge: rights-vertikalen (VoiceBank) har forvaltningen som
+  // hovedforretning og får den først; alle andre tenanter har produksjonen
+  // først. En REN rettighetshaver (ikke admin, ikke kunde) ser bare sin egen
+  // hovedbok — produksjonsflatene angår henne ikke.
+  const navGroups: NavLink[][] = role.actorOnly
+    ? [meg]
+    : (tenant.vertical === 'rights' ? [forvaltning, produksjon, meg] : [produksjon, forvaltning, meg]).filter((g) => g.length > 0)
 
   useEffect(() => {
     const userId = session?.user?.id
@@ -132,25 +115,32 @@ export default function NavBar() {
         </Link>
 
         <nav className="cf-nav-links" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
-          {navLinks.map(({ href, label }) => {
-            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-            return (
-              <Link
-                key={href}
-                href={href}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', fontFamily: HANKEN, fontSize: 15,
-                  fontWeight: active ? 600 : 500,
-                  color: active ? 'var(--ember-deep)' : 'var(--text-muted)',
-                  background: active ? 'var(--ember-tint-bg)' : 'transparent',
-                  border: active ? '1px solid var(--ember-tint-border)' : '1px solid transparent',
-                  borderRadius: 999, padding: '8px 16px', textDecoration: 'none',
-                }}
-              >
-                {label}
-              </Link>
-            )
-          })}
+          {navGroups.map((group, gi) => (
+            <span key={gi} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {/* Skillestrek mellom gruppene — det er skillet som forteller at
+                  «Avregning» og «Kreditter» hører til to ulike verdener. */}
+              {gi > 0 && <span aria-hidden="true" style={{ width: 1, height: 18, background: 'var(--ds-border)', margin: '0 6px' }} />}
+              {group.map(({ href, label }) => {
+                const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', fontFamily: HANKEN, fontSize: 15,
+                      fontWeight: active ? 600 : 500,
+                      color: active ? 'var(--ember-deep)' : 'var(--text-muted)',
+                      background: active ? 'var(--ember-tint-bg)' : 'transparent',
+                      border: active ? '1px solid var(--ember-tint-border)' : '1px solid transparent',
+                      borderRadius: 999, padding: '8px 16px', textDecoration: 'none',
+                    }}
+                  >
+                    {label}
+                  </Link>
+                )
+              })}
+            </span>
+          ))}
         </nav>
 
         <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12 }}>

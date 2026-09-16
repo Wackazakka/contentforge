@@ -53,7 +53,12 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
         <div className="ml-auto flex items-center gap-4 text-sm">
           {email && <span className="text-gray-500 hidden sm:inline">{email}</span>}
           {session ? (
-            <button onClick={() => signOut()} className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">Logg ut</button>
+            <>
+              {/* Kontoen (passordbytte) — det eneste utenom hovedboken en ren
+                  rettighetshaver trenger. */}
+              <Link href="/dashboard/konto" className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">Konto</Link>
+              <button onClick={() => signOut()} className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">Logg ut</button>
+            </>
           ) : (
             <Link href="/login" className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">Logg inn</Link>
           )}
