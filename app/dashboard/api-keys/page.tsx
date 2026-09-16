@@ -72,6 +72,9 @@ export default function ApiKeysPage() {
   }
 
   const keysFor = (orgId: string) => keys.filter((k) => k.organization_id === orgId)
+  const medNokkel = orgs.filter((o) => keysFor(o.id).length > 0)
+  const utenNokkel = orgs.filter((o) => keysFor(o.id).length === 0)
+  const [visUten, setVisUten] = useState(false)
 
   return (
     <div className="min-h-screen bg-[var(--paper)]">
@@ -98,10 +101,38 @@ export default function ApiKeysPage() {
           <p className="text-sm text-gray-500">Ingen kunde-organisasjoner i ditt subtre ennå.</p>
         )}
 
+        {/* Organisasjoner MED nøkkel øverst — det er dem siden handler om.
+            Resten (alle kundekontoer i subtreet) ligger i en sammenleggbar
+            seksjon under, så listen ikke er fem tomme kort (Lars 16/9). */}
+        {!loading && orgs.length > 0 && medNokkel.length === 0 && (
+          <p className="text-sm text-gray-500 mb-4">Ingen kunder har API-nøkkel ennå. Åpne listen under for å opprette en.</p>
+        )}
+
         <div className="space-y-4">
-          {orgs.map((org) => {
-            const orgKeys = keysFor(org.id)
-            return (
+          {medNokkel.map(renderOrg)}
+        </div>
+
+        {utenNokkel.length > 0 && (
+          <div className={medNokkel.length > 0 ? 'mt-8' : ''}>
+            <button onClick={() => setVisUten(!visUten)}
+              className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900">
+              <span className="inline-block w-4 text-gray-400">{visUten ? '▾' : '▸'}</span>
+              Organisasjoner uten nøkkel ({utenNokkel.length})
+            </button>
+            {visUten && (
+              <div className="space-y-3 mt-3 pl-6 border-l-2 border-gray-200">
+                {utenNokkel.map(renderOrg)}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  function renderOrg(org: Org) {
+    const orgKeys = keysFor(org.id)
+    return (
               <div key={org.id} className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-5">
                 <div className="flex items-center justify-between gap-4 mb-3">
                   <div className="min-w-0">
@@ -142,10 +173,6 @@ export default function ApiKeysPage() {
                   </div>
                 )}
               </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
+    )
+  }
 }
