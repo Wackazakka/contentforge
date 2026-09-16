@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { getTenant } from '@/lib/tenantServer'
 
 // Norditechs egen dør inn til TwinLedger — produktsiden for partnere som vil
 // lisensiere rettighetsforvaltningen. Ikke en tenant: TwinLedger er et PRODUKT
@@ -22,7 +24,13 @@ const MONO = 'var(--font-cfmono), ui-monospace, SFMono-Regular, Menlo, monospace
 const DISPLAY = 'var(--font-archivo), "Avenir Next", system-ui, sans-serif'
 const SANS = 'var(--font-hanken), "Avenir Next", system-ui, sans-serif'
 
-export default function TwinLedgerPage() {
+export default async function TwinLedgerPage() {
+  // Kun Norditechs egne dører: centerforge.norditech.io og twinledger.norditech.io
+  // (begge løser til rot-tenanten). På et partnerdomene som voicebank.ai skal
+  // siden ikke finnes — VoiceBank er kunden, og skal ikke vise at andre kan
+  // kjøpe det samme (Lars 16/9).
+  const tenant = await getTenant()
+  if (tenant.slug !== 'centerforge') notFound()
   return (
     <div style={{ minHeight: '100vh', background: 'var(--paper)', color: 'var(--ink)', fontFamily: SANS }}>
       <style>{`
