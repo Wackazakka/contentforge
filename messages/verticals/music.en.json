@@ -88,8 +88,8 @@
     "outroDesc": "A closing frame with your link (website/Linktree), artist image and call to action — e.g. \"Pre-save on Spotify\". Without a jingle ~3 seconds; with a jingle as long as the jingle (up to 10 sec).",
     "musicLabel": "Music",
     "topicLabel": "What is the video about? *",
-    "targetAudienceLabel": "Who should see it?",
-    "ctaLabel": "What should viewers do next?"
+    "targetAudienceLabel": "Who should see it? (optional)",
+    "ctaLabel": "What should viewers do next? (optional)"
   },
   "home": {
     "badge": "MVP -- Beta",
