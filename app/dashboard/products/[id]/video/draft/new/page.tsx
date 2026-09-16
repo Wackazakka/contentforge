@@ -137,7 +137,7 @@ export default function NewDraftPage() {
     setTitle(tpl.prefill.title[locale])
     setTopic(tpl.prefill.topic[locale])
     setTargetAudience(tpl.prefill.targetAudience[locale])
-    setProblem(tpl.prefill.problem[locale])
+    setProblem(tenant.vertical === 'music' ? '' : tpl.prefill.problem[locale])
     setCta(tpl.prefill.cta[locale])
   }
   const [videoFormat, setVideoFormat] = useState('9:16')
@@ -317,7 +317,10 @@ export default function NewDraftPage() {
                   />
                 </div>
 
-                {/* Problem */}
+                {/* Problem -- ikke for artister: «Problem som loeses» er byraaspraak,
+                    og et slipp loeser ikke et problem (Lars 16/9). Feltet er valgfritt
+                    i prompten, saa det faller bare bort. */}
+                {tenant.vertical !== 'music' && (
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">{t('problemLabel')}</label>
                   <input
@@ -328,6 +331,7 @@ export default function NewDraftPage() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent"
                   />
                 </div>
+                )}
 
                 {/* CTA */}
                 <div>

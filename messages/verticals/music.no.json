@@ -86,7 +86,10 @@
     "subtitle": "Fortell hva videoen skal handle om — du godkjenner alt før noe koster penger.",
     "outroLabel": "Avslutt med sluttplakat 🔗",
     "outroDesc": "Et sluttbilde med lenken din (nettside/Linktree), artistbildet og oppfordringen — f.eks. «Forhåndslagre på Spotify». Uten jingle ca. 3 sekunder; med jingle like lenge som jingelen (opptil 10 sek).",
-    "musicLabel": "Musikk"
+    "musicLabel": "Musikk",
+    "topicLabel": "Hva skal videoen handle om? *",
+    "targetAudienceLabel": "Hvem skal se den?",
+    "ctaLabel": "Hva vil du at de skal gjøre?"
   },
   "home": {
     "badge": "MVP — Beta",
