@@ -62,10 +62,21 @@ export async function resolveAsset(auth: GatewayAuth, assetId: string): Promise<
   return actors.find((a) => a.id === assetId) || null
 }
 
-// Saldo-vakt: false hvis kunden har en forskuddskonto som er tom.
-export async function hasBalance(organizationId: string): Promise<boolean> {
+// Saldo-vakt for gateway-en. Snudd 16.09.2026 (Lars): «ingen forskuddskonto»
+// betyr STOPP, ikke ubegrenset. Innkjørings-unntaket (null = fri bruk) ga en
+// kunde som aldri hadde betalt fri tilgang med nøkkel. Editoren har sin egen
+// vakt og er uendret. To grunner skilles så kunden får vite hva som mangler.
+export type BalanceCheck = { ok: true } | { ok: false; reason: 'none' | 'empty' }
+export async function checkBalance(organizationId: string): Promise<BalanceCheck> {
   const bal = await getOrgBalance(organizationId)
-  return bal === null || bal > 0 // null = ingen konto opprettet → ubegrenset (innkjøring)
+  if (bal === null) return { ok: false, reason: 'none' }
+  if (bal <= 0) return { ok: false, reason: 'empty' }
+  return { ok: true }
+}
+
+export const BALANCE_REFUSAL: Record<'none' | 'empty', { error: string; code: string }> = {
+  none: { error: 'Kontoen har ingen forskuddssaldo ennå. Kjøp kreditt før API-nøkkelen kan brukes.', code: 'ORG_BALANCE_NONE' },
+  empty: { error: 'Kontoen er tom. Kjøp mer kreditt for å fortsette.', code: 'ORG_BALANCE_EMPTY' },
 }
 
 // Kundepris for en asset/brukstype, ganget med tenantens utpris-kjede.

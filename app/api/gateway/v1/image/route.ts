@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { authenticateKey, resolveAsset, hasBalance, customerPriceFor, generateFaceImage, admin } from '@/lib/gateway'
+import { authenticateKey, resolveAsset, checkBalance, BALANCE_REFUSAL, customerPriceFor, generateFaceImage, admin } from '@/lib/gateway'
 import { ratesForKind } from '@/lib/voiceBank'
 
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
@@ -31,8 +31,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Denne skuespilleren har ikke lisensiert ansikt', code: 'NO_FACE' }, { status: 400 })
     }
 
-    if (!(await hasBalance(auth.organizationId))) {
-      return NextResponse.json({ error: 'Kontoen er tom. Kjøp mer kreditt for å fortsette.', code: 'ORG_BALANCE_EMPTY' }, { status: 402 })
+    const balance = await checkBalance(auth.organizationId)
+    if (!balance.ok) {
+      return NextResponse.json(BALANCE_REFUSAL[balance.reason], { status: 402 })
     }
 
     // Generer bildet med VÅR fal-nøkkel + den ekte LoRA-stien (aldri utlevert)

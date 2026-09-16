@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { authenticateKey, resolveAsset, hasBalance, customerPriceFor, admin } from '@/lib/gateway'
+import { authenticateKey, resolveAsset, checkBalance, BALANCE_REFUSAL, customerPriceFor, admin } from '@/lib/gateway'
 import { ratesForKind } from '@/lib/voiceBank'
 import {
   isVoiceWithdrawn,
@@ -37,8 +37,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Denne skuespilleren har ikke lisensiert stemme', code: 'NO_VOICE' }, { status: 400 })
     }
 
-    if (!(await hasBalance(auth.organizationId))) {
-      return NextResponse.json({ error: 'Kontoen er tom. Kjøp mer kreditt for å fortsette.', code: 'ORG_BALANCE_EMPTY' }, { status: 402 })
+    const balance = await checkBalance(auth.organizationId)
+    if (!balance.ok) {
+      return NextResponse.json(BALANCE_REFUSAL[balance.reason], { status: 402 })
     }
 
     // Generer tale med VÅR ElevenLabs-nøkkel + den ekte voice-ID-en
