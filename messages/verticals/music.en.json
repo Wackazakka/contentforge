@@ -1,6 +1,6 @@
 {
   "productModal": {
-    "title": "Your artist",
+    "title": "My artist",
     "productNameLabel": "Artist/band name *",
     "productNamePlaceholder": "e.g. Northern Lights",
     "descriptionLabel": "About the artist",
@@ -33,7 +33,7 @@
     "logoUploadFailedNonFatal": "Your band was saved, but the image failed to upload. Try again from the band page."
   },
   "dashboard": {
-    "yourProducts": "Your artist",
+    "yourProducts": "My artists",
     "newProduct": "+ Add artist",
     "welcomeSubtitle": "Add your artist or band and we will create promo content for releases, shows and everything you do.",
     "step1Title": "Tell us about the artist",
@@ -41,7 +41,7 @@
     "step2Title": "Get your promo made",
     "step2Desc": "Video with voice, images and copy — you approve everything before it costs anything.",
     "step3Desc": "Download the finished video and post it where your fans are: TikTok, Reels or YouTube.",
-    "createFirstProduct": "+ Add your artist",
+    "createFirstProduct": "+ Add my artist",
     "step3Title": "Download and share"
   },
   "product": {

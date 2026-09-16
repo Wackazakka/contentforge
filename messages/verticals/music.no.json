@@ -1,6 +1,6 @@
 {
   "productModal": {
-    "title": "Artisten din",
+    "title": "Artisten min",
     "productNameLabel": "Artist-/bandnavn *",
     "productNamePlaceholder": "f.eks. Northern Lights",
     "descriptionLabel": "Om artisten",
@@ -33,10 +33,10 @@
     "logoUploadFailedNonFatal": "Bandet er lagret, men bildet ble ikke lastet opp. Prøv igjen fra bandsiden."
   },
   "dashboard": {
-    "yourProducts": "Artisten din",
+    "yourProducts": "Artistene mine",
     "newProduct": "+ Legg til artist",
     "welcomeSubtitle": "Legg inn artisten eller bandet ditt, så lager vi promoinnhold for slipp, konserter og alt dere gjør.",
-    "createFirstProduct": "+ Legg til artisten din",
+    "createFirstProduct": "+ Legg til artisten min",
     "step1Title": "Fortell om artisten",
     "step1Desc": "Navn, sjanger og hvem du eller dere er — to setninger holder.",
     "step2Title": "Få promoinnholdet laget",
