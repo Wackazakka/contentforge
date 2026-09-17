@@ -46,6 +46,10 @@ export default function NavBar() {
   // Invoice-tenants (white-label via partner) skal ikke se CenterForge-priser/billing
   const produksjon: NavLink[] = [
     { href: '/dashboard', label: t('overview') },
+    // Kundens katalog over skuespillerstemmer og ansikter (Lars 17/9). Kun der
+    // rettighetsforvaltningen er på, og ikke i enkel modus (Standard Ropert).
+    // Heter «Stemmer» — tydelig noe annet enn admin-fanen «Stemme- og ansiktsbank».
+    ...(enkel || tenant.twinledger_enabled === false ? [] : [{ href: '/dashboard/stemmer', label: t('voices') }]),
     ...(enkel || !publisering ? [] : [
       { href: '/dashboard/publish', label: t('publish') },
       { href: '/dashboard/calendar', label: t('calendar') },
