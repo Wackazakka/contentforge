@@ -280,6 +280,15 @@ export default function VoiceBankAdminPage() {
               </p>
             )}
 
+            {/* Månedsrutinen: hvem har noe til gode, og før dem som betalt */}
+            <div className="mb-8 -mt-2">
+              <Link href="/dashboard/voice-bank/utbetaling"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 hover:border-[var(--ember-deep)] text-gray-800">
+                Utbetalingsliste →
+              </Link>
+              <span className="ml-3 text-xs text-gray-500">Hva dere skylder rettighetshaverne nå, og føring av det som er betalt.</span>
+            </div>
+
             {/* Skuespillere */}
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-gray-900">Skuespillere</h2>
