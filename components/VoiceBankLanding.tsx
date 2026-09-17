@@ -69,6 +69,7 @@ export default function VoiceBankLanding() {
         </span>
         <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 20 }}>
           <a href="#hovedbok" className="vb-navlenke">Slik virker det</a>
+          <Link href="/stemmer" className="vb-navlenke">Stemmer og ansikter</Link>
           <Link href="/bli-stemme" className="vb-navlenke">For rettighetshavere</Link>
           <Link href="/login" className="vb-ghost" style={{ padding: '9px 18px', fontSize: 14 }}>Logg inn</Link>
         </nav>
@@ -232,6 +233,7 @@ export default function VoiceBankLanding() {
       {/* Footer */}
       <footer className="vb-band" style={{ paddingTop: 40, paddingBottom: 56, display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontFamily: MONO, fontSize: 13, color: DEMPET }}>VoiceBank</span>
+        <Link href="/stemmer" className="vb-navlenke" style={{ fontSize: 14 }}>Stemmer og ansikter</Link>
         <Link href="/for-deg" className="vb-navlenke" style={{ fontSize: 14 }}>Privatperson? Lag noe selv →</Link>
         <Link href="/white-label" className="vb-navlenke" style={{ fontSize: 14 }}>Bli partner</Link>
         <Link href="/login" className="vb-navlenke" style={{ fontSize: 14 }}>Logg inn</Link>

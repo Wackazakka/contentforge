@@ -61,6 +61,7 @@ export default function BadeOgLanding() {
         </span>
         <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 20 }}>
           <a href="#slik" style={{ color: GRA, fontSize: 15, textDecoration: 'none' }}>Slik virker det</a>
+          <Link href="/stemmer" style={{ color: GRA, fontSize: 15, textDecoration: 'none' }}>Stemmene</Link>
           <Link href="/bli-stemme" style={{ color: GRA, fontSize: 15, textDecoration: 'none' }}>For skuespillere</Link>
           <Link href="/login" className="bo-ghost" style={{ padding: '10px 18px', fontSize: 14 }}>Logg inn</Link>
         </nav>
@@ -88,7 +89,9 @@ export default function BadeOgLanding() {
       {/* Avdelingskortene — badeog.no-mønsteret, men om forvaltning */}
       <section className="bo-band" style={{ padding: '72px 28px' }}>
         <div className="bo-kortgrid">
-          <Avdelingskort tittel="Stemmer" href="/login" lenke="Hør utvalget">
+          {/* «Hør utvalget» gikk til innloggingen — et løfte ingen uten konto
+              kunne innløse (Lars 17/9). Galleriet er svaret. */}
+          <Avdelingskort tittel="Stemmer" href="/stemmer" lenke="Hør utvalget">
             Norges mest erfarne reklamestemmer — profesjonelt klonet og klare
             for din produksjon på minutter, ikke uker.
           </Avdelingskort>
