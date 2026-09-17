@@ -1366,6 +1366,7 @@
     "unfinishedHint": "Du betalte for denne filmen, men den ble ikke fullført. Trykk for å lage bildene og starte filmen.",
     "finishFilm": "Fullfør filmen",
     "makeAnotherHint": "Vil du bare endre noe i filmen du har? Bruk «Rediger plakatene» under filmen — det er gratis. Denne knappen starter helt fra begynnelsen.",
-    "yourFilmsHint": "Vil du endre noe? Trykk «Rediger plakatene» — sangen, bildene og skjemaet beholdes, og du går rett til tekstene. Tekstendringer koster ingenting."
+    "yourFilmsHint": "Vil du endre noe? Trykk «Rediger plakatene» — sangen, bildene og skjemaet beholdes, og du går rett til tekstene. Tekstendringer koster ingenting.",
+    "deleteFailed": "Kunne ikke fjerne filmen. Prøv igjen."
   }
 }

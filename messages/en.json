@@ -1366,6 +1366,7 @@
     "unfinishedHint": "You paid for this film but it was not completed. Press to create the pictures and start the film.",
     "finishFilm": "Finish the film",
     "makeAnotherHint": "Just want to change something in the film you have? Use “Edit the posters” under the film — it is free. This button starts from the beginning.",
-    "yourFilmsHint": "Want to change something? Press “Edit the posters” — the song, pictures and form are kept, and you go straight to the texts. Text changes cost nothing."
+    "yourFilmsHint": "Want to change something? Press “Edit the posters” — the song, pictures and form are kept, and you go straight to the texts. Text changes cost nothing.",
+    "deleteFailed": "Could not remove the film. Please try again."
   }
 }

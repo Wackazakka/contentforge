@@ -23,6 +23,9 @@ interface Job {
   video_format: string | null
   ai_parameters: { video_url?: string; r2_url?: string } | null
   created_at: string
+  // Satt naar filmen kommer fra asset_banks (utkast-flyten) og ikke fra
+  // production_jobs -- da er det DEN raden «Fjern» skal slette.
+  assetId?: string
 }
 
 interface Product {
@@ -80,9 +83,39 @@ export default function OccasionSimplePage({ productId }: { productId: string })
             .is('job_id', null)
           if (!stopped && paidDrafts) setUnfinished(paidDrafts as Array<{ id: string; title: string | null }>)
         }
+        // Ferdige filmer fra utkast-flyten ligger i asset_banks, ikke i
+        // production_jobs: startProductionForDraft opprettet aldri en jobbrad,
+        // og dropletens ferdig-webhook OPPDATERER bare en rad som ikke finnes.
+        // «Filmene dine» var derfor alltid tom -- Lars trodde filmene ikke ble
+        // lagret (17/9). asset_banks er samme kilde som den fulle produktsiden
+        // bruker. Jobbradene beholdes for eldre filmer og for «under arbeid».
+        const { data: assets } = await getSupabase()
+          .from('asset_banks')
+          .select('id, job_id, asset_url, name, created_at, metadata')
+          .eq('product_id', productId)
+          .eq('asset_type', 'video')
+          .order('created_at', { ascending: false })
         if (!stopped && data) {
-          setJobs(data as Job[])
-          const ids = (data as Job[]).map((j) => j.id)
+          const jobRows = data as Job[]
+          const harVideo = new Set(jobRows.filter((j) => j.ai_parameters?.video_url || j.ai_parameters?.r2_url).map((j) => j.id))
+          type AssetRow = { id: string; job_id: string | null; asset_url: string | null; name: string | null; created_at: string; metadata: { format?: string; video_format?: string } | null }
+          const fraAssets: Job[] = ((assets || []) as AssetRow[])
+            .filter((a) => a.asset_url && !(a.job_id && harVideo.has(a.job_id)))
+            .map((a) => ({
+              id: a.job_id || a.id,
+              title: a.name || '',
+              status: 'done',
+              content_type: 'video',
+              video_format: a.metadata?.video_format || a.metadata?.format || null,
+              ai_parameters: { video_url: a.asset_url as string },
+              created_at: a.created_at,
+              assetId: a.id,
+            }))
+          const assetJobIds = new Set(fraAssets.map((f) => f.id))
+          const merged = [...fraAssets, ...jobRows.filter((j) => !assetJobIds.has(j.id))]
+            .sort((x, y) => (x.created_at < y.created_at ? 1 : -1))
+          setJobs(merged)
+          const ids = merged.map((j) => j.id)
           if (ids.length) {
             const { data: drafts } = await getSupabase().from('production_drafts').select('id, job_id').in('job_id', ids)
             if (!stopped && drafts) setDraftByJob(Object.fromEntries((drafts as Array<{ id: string; job_id: string }>).map((d) => [d.job_id, d.id])))
@@ -126,8 +159,14 @@ export default function OccasionSimplePage({ productId }: { productId: string })
   const remove = async (j: Job) => {
     if (!confirm(t('deleteConfirm'))) return
     try {
-      const { data: { session } } = await getSupabase().auth.getSession()
-      await fetch(`/api/productions/${j.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token}` } })
+      if (j.assetId) {
+        // .select() fordi RLS-avvisning ellers er stille (null rader, ingen feil)
+        const { data: slettet, error: delErr } = await getSupabase().from('asset_banks').delete().eq('id', j.assetId).select('id')
+        if (delErr || !slettet || slettet.length === 0) { alert(t('deleteFailed')); return }
+      } else {
+        const { data: { session } } = await getSupabase().auth.getSession()
+        await fetch(`/api/productions/${j.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token}` } })
+      }
       setJobs((prev) => prev.filter((x) => x.id !== j.id))
     } catch { /* neste polling viser fasiten */ }
   }
