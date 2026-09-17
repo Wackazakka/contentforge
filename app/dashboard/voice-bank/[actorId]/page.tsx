@@ -435,8 +435,8 @@ export default function VoiceActorPage() {
                   <div className="font-medium text-gray-900 text-sm">{actor.is_public ? '🟢 Publisert' : '⚪ Ikke publisert'}</div>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {actor.is_public
-                      ? <>Visittkortet er åpent — del lenken i innsalg: <a href={`/stemme/${actor.id}`} target="_blank" className="text-[var(--ember-deep)] hover:underline">/stemme/{actor.id.slice(0, 8)}…</a></>
-                      : 'Publiser for å få en delbar side med bilder, lydprøver og bio.'}
+                      ? <>Visittkortet er åpent og vises i <a href="/stemmer" target="_blank" className="text-[var(--ember-deep)] hover:underline">galleriet</a> — del lenken i innsalg: <a href={`/stemme/${actor.id}`} target="_blank" className="text-[var(--ember-deep)] hover:underline">/stemme/{actor.id.slice(0, 8)}…</a></>
+                      : 'Publiser for å få en delbar side med bilder, lydprøver og bio — og plass i det offentlige galleriet.'}
                   </p>
                 </div>
                 <button onClick={togglePublic}
