@@ -18,7 +18,8 @@ import GalleriClient from './GalleriClient'
 export async function generateMetadata(): Promise<Metadata> {
   const tenant = await getTenant()
   return {
-    title: `Stemmer og ansikter — ${tenant.app_name}`,
+    // Layouten legger selv på « · {tenant}» — ikke gjenta navnet her.
+    title: 'Stemmer og ansikter',
     description: `Hør stemmene og se ansiktene ${tenant.app_name} forvalter. Ekte mennesker, lisensiert bruk, betalt for hver gang.`,
   }
 }
