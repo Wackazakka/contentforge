@@ -7,6 +7,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { campaignTemplates, type CampaignTemplate, type Locale } from '@/lib/campaignTemplates'
+import { lesOnsketStemme, fjernOnsketStemme, type OnsketStemme } from '@/lib/onsketStemme'
 
 const VIDEO_FORMATS = [
   { value: '9:16', label: 'Portrait (TikTok)', color: 'blue' },
@@ -59,6 +60,10 @@ export default function NewDraftPage() {
   }, [])
   const [perspective, setPerspective] = useState<'du' | 'jeg' | 'vi'>('du')
   const [perspectiveTouched, setPerspectiveTouched] = useState(false)
+  // Stemme valgt på Stemmer-siden («Bruk denne stemmen»). Leses én gang, vises
+  // så kunden ser hva som skjer, og settes på utkastet i det det fødes — da
+  // finnes det ingen lydfiler å kaste. Se lib/onsketStemme.ts.
+  const [onsketStemme, setOnsketStemme] = useState<OnsketStemme | null>(() => lesOnsketStemme())
   // Artister snakker som seg selv (Lars 31/7): band → vi-form, solo →
   // jeg-form. Gjett fra artistprofilen (navn + beskrivelse); artistens
   // eget valg overstyres aldri.
@@ -200,6 +205,16 @@ export default function NewDraftPage() {
       }
 
       const data = await response.json()
+      // Forhåndsvalgt stemme: settes på det ferske utkastet FØR editoren åpner.
+      // Feiler det, åpner editoren med standardstemmen som før — valget skal
+      // aldri stå i veien for å komme i gang. Brukt én gang, så borte.
+      if (onsketStemme && data.draftId) {
+        try {
+          const { error: vErr } = await getSupabase().from('production_drafts').update({ voice_id: onsketStemme.voiceId }).eq('id', data.draftId)
+          if (vErr) console.error('[draft/new] kunne ikke sette valgt stemme:', vErr.message)
+        } catch (e) { console.error('[draft/new] kunne ikke sette valgt stemme:', e) }
+        fjernOnsketStemme()
+      }
       router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}&format=${encodeURIComponent(videoFormat)}&outro=${includeOutroCard ? '1' : '0'}&character=${encodeURIComponent(character)}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -224,6 +239,14 @@ export default function NewDraftPage() {
         {/* Form */}
         <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-8 space-y-8">
           <form onSubmit={handleSubmit} className="space-y-8">
+            {onsketStemme && (
+              <div className="rounded-lg p-4 text-sm flex flex-wrap items-center gap-x-3 gap-y-1" style={{ background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)' }}>
+                <span>🎙️ Denne videoen starter med <strong>{onsketStemme.name}</strong> som stemme. Du kan bytte i verktøyet.</span>
+                <button type="button" onClick={() => { fjernOnsketStemme(); setOnsketStemme(null) }} className="underline text-[var(--text-muted,#6B6358)] hover:text-[var(--ink,#1C1A16)]">
+                  Bruk standardstemmen i stedet
+                </button>
+              </div>
+            )}
             {/* Error */}
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
