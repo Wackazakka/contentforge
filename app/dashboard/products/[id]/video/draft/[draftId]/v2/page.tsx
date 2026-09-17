@@ -512,19 +512,38 @@ export default function DraftV2Page() {
   const uploadOwnVoice = async (index: number, blob: Blob, mimeType: string, filename: string) => {
     setOwnVoiceBusy((p) => ({ ...p, [index]: true }))
     try {
-      const { data: sess } = await getSupabase().auth.getSession()
-      const fd = new FormData()
-      fd.append('file', new File([blob], filename, { type: mimeType }))
-      fd.append('draftId', draftId)
-      fd.append('productId', productId)
-      fd.append('segmentIndex', String(index))
-      const res = await fetch('/api/content/own-voice', {
-        method: 'POST',
-        headers: sess?.session?.access_token ? { Authorization: `Bearer ${sess.session.access_token}` } : undefined,
-        body: fd,
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Opplastingen feilet')
+      const supabase = getSupabase()
+      const { data: sess } = await supabase.auth.getSession()
+      const authHeader: Record<string, string> = sess?.session?.access_token ? { Authorization: `Bearer ${sess.session.access_token}` } : {}
+      if (blob.size > 20 * 1024 * 1024) throw new Error(`Lydfila er for stor (${(blob.size / 1024 / 1024).toFixed(1)} MB — maks 20 MB). Bruk MP3 i stedet for WAV, eller klipp den ned.`)
+      let res: Response
+      if (blob.size > 4 * 1024 * 1024) {
+        // Store filer gaar rett til Supabase Storage og hentes derfra av ruta:
+        // Netlify kutter forespoersler paa ~6 MB og svarer med tom kropp
+        // («Unexpected end of JSON input», David 17/9).
+        const trygtNavn = filename.toLowerCase().replace(/[^a-z0-9.-]/g, '-')
+        const inboxPath = `own-voice-inbox/${productId}/${crypto.randomUUID()}-${trygtNavn}`
+        const { error: upErr } = await supabase.storage.from('music-inbox').upload(inboxPath, blob, { contentType: mimeType })
+        if (upErr) throw new Error(`Opplastingen feilet: ${upErr.message}`)
+        res = await fetch('/api/content/own-voice', {
+          method: 'POST',
+          headers: { ...authHeader, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inboxPath, draftId, productId, segmentIndex: index, contentType: mimeType }),
+        })
+      } else {
+        const fd = new FormData()
+        fd.append('file', new File([blob], filename, { type: mimeType }))
+        fd.append('draftId', draftId)
+        fd.append('productId', productId)
+        fd.append('segmentIndex', String(index))
+        res = await fetch('/api/content/own-voice', { method: 'POST', headers: authHeader, body: fd })
+      }
+      // Tom eller ikke-JSON-kropp (gateway-feil) skal gi en forstaaelig melding,
+      // ikke en JSON-parserfeil.
+      const raa = await res.text()
+      let data: { url?: string; error?: string } = {}
+      try { data = raa ? JSON.parse(raa) : {} } catch { /* haandteres under */ }
+      if (!res.ok || !data.url) throw new Error(data.error || `Opplastingen feilet (serveren svarte ${res.status}). Prøv igjen, eller bruk en mindre fil.`)
       updateSegment(index, { voiceover_url: data.url, own_voice: true })
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Opplastingen feilet')
