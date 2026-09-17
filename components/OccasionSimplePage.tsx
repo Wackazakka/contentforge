@@ -114,12 +114,19 @@ export default function OccasionSimplePage({ productId }: { productId: string })
           const assetJobIds = new Set(fraAssets.map((f) => f.id))
           const merged = [...fraAssets, ...jobRows.filter((j) => !assetJobIds.has(j.id))]
             .sort((x, y) => (x.created_at < y.created_at ? 1 : -1))
-          setJobs(merged)
           const ids = merged.map((j) => j.id)
+          let titler: Record<string, string> = {}
           if (ids.length) {
-            const { data: drafts } = await getSupabase().from('production_drafts').select('id, job_id').in('job_id', ids)
-            if (!stopped && drafts) setDraftByJob(Object.fromEntries((drafts as Array<{ id: string; job_id: string }>).map((d) => [d.job_id, d.id])))
+            const { data: drafts } = await getSupabase().from('production_drafts').select('id, job_id, title').in('job_id', ids)
+            if (!stopped && drafts) {
+              const rader = drafts as Array<{ id: string; job_id: string; title: string | null }>
+              setDraftByJob(Object.fromEntries(rader.map((d) => [d.job_id, d.id])))
+              titler = Object.fromEntries(rader.filter((d) => d.title).map((d) => [d.job_id, d.title as string]))
+            }
           }
+          // asset_banks kaller alle filmer «Video»; utkastets tittel er den
+          // kunden selv ga filmen.
+          if (!stopped) setJobs(merged.map((j) => (j.assetId ? { ...j, title: titler[j.id] || '' } : j)))
         }
       } catch { /* lista er tom til neste runde */ }
     }
@@ -145,7 +152,7 @@ export default function OccasionSimplePage({ productId }: { productId: string })
     if (!url) return
     try {
       if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({ title: j.title, url })
+        await navigator.share({ title: j.title || product?.name || '', url })
         return
       }
     } catch { /* avbrutt — fall til kopiering */ }
@@ -274,10 +281,10 @@ export default function OccasionSimplePage({ productId }: { productId: string })
                   <div key={j.id} style={{ border: '1px solid var(--ds-border)', borderRadius: 14, overflow: 'hidden', background: 'var(--paper)' }}>
                     <video src={url} controls playsInline preload="metadata" style={{ width: '100%', aspectRatio: landscape ? '16/9' : '9/16', background: '#000', display: 'block' }} />
                     <div style={{ padding: 12 }}>
-                      <div style={{ fontFamily: HANKEN, fontWeight: 600, fontSize: 14.5, color: 'var(--ink)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.title}</div>
+                      <div style={{ fontFamily: HANKEN, fontWeight: 600, fontSize: 14.5, color: 'var(--ink)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.title || product.name}</div>
                       <div style={{ fontFamily: HANKEN, fontSize: 12.5, color: 'var(--text-faint)', marginBottom: 10 }}>{fmtDate(j.created_at)}</div>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <a href={`/api/video-proxy?url=${encodeURIComponent(url)}`} download={`${j.title.replace(/[^\p{L}\p{N}]+/gu, '_')}.mp4`} style={{ ...smallBtn, color: 'var(--on-ember)', background: 'var(--ember-deep)', border: '1.5px solid var(--ember-deep)' }}>{t('download')}</a>
+                        <a href={`/api/video-proxy?url=${encodeURIComponent(url)}`} download={`${(j.title || product?.name || 'film').replace(/[^\p{L}\p{N}]+/gu, '_')}.mp4`} style={{ ...smallBtn, color: 'var(--on-ember)', background: 'var(--ember-deep)', border: '1.5px solid var(--ember-deep)' }}>{t('download')}</a>
                         <button type="button" onClick={() => share(j)} style={smallBtn}>{copied === j.id ? t('copied') : t('share')}</button>
                         {draftByJob[j.id] && (
                           <Link href={`/dashboard/products/${productId}/film?draft=${draftByJob[j.id]}`} style={smallBtn}>{t('editPosters')}</Link>
