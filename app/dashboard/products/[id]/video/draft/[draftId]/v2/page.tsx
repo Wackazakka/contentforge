@@ -515,7 +515,7 @@ export default function DraftV2Page() {
       const supabase = getSupabase()
       const { data: sess } = await supabase.auth.getSession()
       const authHeader: Record<string, string> = sess?.session?.access_token ? { Authorization: `Bearer ${sess.session.access_token}` } : {}
-      if (blob.size > 20 * 1024 * 1024) throw new Error(`Lydfila er for stor (${(blob.size / 1024 / 1024).toFixed(1)} MB — maks 20 MB). Bruk MP3 i stedet for WAV, eller klipp den ned.`)
+      if (blob.size > 50 * 1024 * 1024) throw new Error(`Lydfila er for stor (${(blob.size / 1024 / 1024).toFixed(1)} MB — maks 50 MB). Bruk MP3 i stedet for WAV, eller klipp den ned.`)
       let res: Response
       if (blob.size > 4 * 1024 * 1024) {
         // Store filer gaar rett til Supabase Storage og hentes derfra av ruta:

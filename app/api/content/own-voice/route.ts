@@ -14,7 +14,7 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'contentforge-assets'
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
-const MAX_BYTES = 20 * 1024 * 1024
+const MAX_BYTES = 50 * 1024 * 1024 // som laater og videoklipp (Lars 18/9)
 const EXT_BY_TYPE: Record<string, string> = {
   'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/webm': 'webm',
   'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const baseType = typeRaw.split(';')[0].trim()
     const ext = EXT_BY_TYPE[baseType]
     if (!ext) return NextResponse.json({ error: `Lydformatet «${baseType || 'ukjent'}» støttes ikke — bruk MP3, M4A, WAV eller nettleseropptak` }, { status: 400 })
-    if (file && file.size > MAX_BYTES) return NextResponse.json({ error: 'Fila er for stor (maks 20 MB)' }, { status: 400 })
+    if (file && file.size > MAX_BYTES) return NextResponse.json({ error: 'Fila er for stor (maks 50 MB)' }, { status: 400 })
 
     // Eierskap: brukerens token mot RLS (products er kun synlig for eieren)
     const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
       const inn = await fetch(`${SUPABASE_URL}/storage/v1/object/public/music-inbox/${inboxPath.split('/').map(encodeURIComponent).join('/')}`)
       if (!inn.ok) return NextResponse.json({ error: 'Fant ikke den opplastede fila' }, { status: 400 })
       buffer = Buffer.from(await inn.arrayBuffer())
-      if (buffer.byteLength > MAX_BYTES) return NextResponse.json({ error: 'Fila er for stor (maks 20 MB)' }, { status: 400 })
+      if (buffer.byteLength > MAX_BYTES) return NextResponse.json({ error: 'Fila er for stor (maks 50 MB)' }, { status: 400 })
     }
     const r2 = new S3Client({
       region: 'auto',

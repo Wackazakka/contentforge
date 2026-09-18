@@ -13,11 +13,18 @@
 // så det er rom for høyere utdataoppløsning senere uten å røre dette.
 
 /**
- * Sikkerhetsventil, ikke en bruksgrense. Etter komprimering lander normale
- * fotografier langt under dette; treffer noe taket er det som regel en fil
- * nettleseren ikke klarte aa dekode (HEIC) og som derfor gaar urort gjennom.
+ * Det reelle taket for det som sendes videre til API-et. Opplastingen gaar
+ * gjennom en Netlify-funksjon, og Netlify kutter forespoersler paa ~6 MB
+ * (~4,5 MB for binaert innhold) og svarer med tom kropp -- da kraesjer
+ * klienten paa «Unexpected end of JSON input». Sto paa 25 MB, som ingen
+ * kunne naa (Lars 18/9).
+ *
+ * Normale fotografier lander langt under etter komprimeringen over. Det som
+ * treffer taket er filer nettleseren ikke klarte aa dekode -- typisk HEIC fra
+ * iPhone -- og de avvises uansett av ruta (kun PNG/JPG/WebP). Beskjeden
+ * «bildet er for stort» er da aerligere enn et kraesj.
  */
-export const MAKS_OPPLASTING = 25 * 1024 * 1024
+export const MAKS_OPPLASTING = 4 * 1024 * 1024
 
 const MAKS_KANT = 2048
 const JPEG_KVALITET = 0.85
