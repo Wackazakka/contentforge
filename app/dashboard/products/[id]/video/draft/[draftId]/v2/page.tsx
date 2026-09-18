@@ -1878,6 +1878,15 @@ export default function DraftV2Page() {
                 {draft.music_file && (
                   <audio controls preload="none" src={`/api/music/${encodeURIComponent(draft.music_file)}`} className="mt-2 w-full h-8" />
                 )}
+                {/* Ingen laater ennaa: si HVOR de legges inn. David (IndigoBoom 18/9)
+                    fant ikke musikken, begynte paa scene-voiceoveren og trodde det
+                    var der musikken skulle. Musikk lastes opp paa artistsiden og
+                    gjenbrukes paa tvers av videoer -- lenken tar deg rett dit. */}
+                {ownTracks(musicLibrary, productId).length === 0 && (
+                  <p className="mt-2 text-[12px] text-gray-500">
+                    Du har ingen låter ennå. <Link href={`/dashboard/products/${productId}`} className="underline text-[var(--ember-deep)]">Last opp musikk på artistsiden</Link>, så dukker den opp her. Dette er musikken under hele videoen — ikke det samme som innlest tale per scene.
+                  </p>
+                )}
                 {/* Medley-verksted */}
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   {/* Overskriften foelger valget: verkstedet lager baade utsnitt (en
