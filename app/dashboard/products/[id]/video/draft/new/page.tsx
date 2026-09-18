@@ -8,6 +8,8 @@ import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { campaignTemplates, type CampaignTemplate, type Locale } from '@/lib/campaignTemplates'
 import { lesOnsketStemme, fjernOnsketStemme, type OnsketStemme } from '@/lib/onsketStemme'
+import { fetchMusicLibrary, ownTracks, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
+import { uploadTrack } from '@/lib/uploadTrack'
 
 const VIDEO_FORMATS = [
   { value: '9:16', label: 'Portrait (TikTok)', color: 'blue' },
@@ -64,6 +66,33 @@ export default function NewDraftPage() {
   // så kunden ser hva som skjer, og settes på utkastet i det det fødes — da
   // finnes det ingen lydfiler å kaste. Se lib/onsketStemme.ts.
   const [onsketStemme, setOnsketStemme] = useState<OnsketStemme | null>(() => lesOnsketStemme())
+  // Musikk foerst (David/IndigoBoom 18/9, Lars 18/9): for artister bygges
+  // filmen rundt laaten, saa den velges aller foerst -- her, ikke inne i
+  // redigereren. Valget baeres til det ferske utkastet (music_file), som
+  // onsketStemme. Kun musikk-vertikalen; andre vertikaler har ikke dette.
+  const erMusikk = tenant.vertical === 'music'
+  const [laater, setLaater] = useState<MusicFile[]>([])
+  const [valgtMusikk, setValgtMusikk] = useState<string>('')
+  const [musikkLaster, setMusikkLaster] = useState(false)
+  const [musikkFeil, setMusikkFeil] = useState<string | null>(null)
+  useEffect(() => {
+    if (!erMusikk || !productId) return
+    fetchMusicLibrary().then((lib) => {
+      const egne = ownTracks(lib.files || [], productId).filter((m) => !isMedleyFile(m.filename))
+      setLaater(egne)
+      if (egne.length === 1) setValgtMusikk(egne[0].filename)
+    }).catch(() => {})
+  }, [erMusikk, productId])
+  const lastOppLaat = async (file: File) => {
+    setMusikkFeil(null); setMusikkLaster(true)
+    try {
+      const ny = await uploadTrack(file, tracksFolder(productId))
+      setLaater((p) => [ny, ...p.filter((m) => m.filename !== ny.filename)])
+      setValgtMusikk(ny.filename)
+    } catch (err) {
+      setMusikkFeil(err instanceof Error ? err.message : 'Opplastingen feilet')
+    } finally { setMusikkLaster(false) }
+  }
   // Artister snakker som seg selv (Lars 31/7): band → vi-form, solo →
   // jeg-form. Gjett fra artistprofilen (navn + beskrivelse); artistens
   // eget valg overstyres aldri.
@@ -215,6 +244,12 @@ export default function NewDraftPage() {
         } catch (e) { console.error('[draft/new] kunne ikke sette valgt stemme:', e) }
         fjernOnsketStemme()
       }
+      if (valgtMusikk && data.draftId) {
+        try {
+          const { error: mErr } = await getSupabase().from('production_drafts').update({ music_file: valgtMusikk }).eq('id', data.draftId)
+          if (mErr) console.error('[draft/new] kunne ikke sette musikk:', mErr.message)
+        } catch (e) { console.error('[draft/new] kunne ikke sette musikk:', e) }
+      }
       router.push(`/dashboard/products/${productId}/video/draft/${data.draftId}?imageStyle=${imageStyle}&format=${encodeURIComponent(videoFormat)}&outro=${includeOutroCard ? '1' : '0'}&character=${encodeURIComponent(character)}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -284,6 +319,35 @@ export default function NewDraftPage() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* MUSIKK FOERST -- for artister bygges filmen rundt laaten (Lars 18/9) */}
+            {erMusikk && (
+            <div className="mb-8">
+              <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-2 block">Musikk</h2>
+              <p className="text-xs text-gray-500 mb-3">Filmen bygges rundt låten din. Velg en du har lastet opp, eller last opp en ny nå — du kan bytte eller klippe utsnitt senere.</p>
+              {laater.length > 0 && (
+                <select
+                  value={valgtMusikk}
+                  onChange={(e) => setValgtMusikk(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent mb-2"
+                >
+                  <option value="">Ingen musikk ennå — velg senere</option>
+                  {laater.map((m) => <option key={m.filename} value={m.filename}>{m.name}</option>)}
+                </select>
+              )}
+              <label className="inline-flex items-center gap-2 text-[13px] text-[var(--ember-deep)] underline cursor-pointer">
+                {musikkLaster ? 'Laster opp…' : (laater.length > 0 ? '+ Last opp en ny låt' : '+ Last opp låten din')}
+                <input
+                  type="file"
+                  accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav"
+                  className="hidden"
+                  disabled={musikkLaster}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void lastOppLaat(f); e.currentTarget.value = '' }}
+                />
+              </label>
+              {musikkFeil && <p className="mt-2 text-[12px] text-[var(--ember-deep)]">{musikkFeil}</p>}
+            </div>
             )}
 
             {/* GRUNNINFO Section */}
