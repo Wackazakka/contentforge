@@ -125,7 +125,10 @@ export async function POST(request: NextRequest) {
 </html>`
 
     const { error } = await getResend().emails.send({
-      from: 'CenterForge <hello@centerforge.app>',
+      // send.norditech.io er det verifiserte Resend-domenet (18/9). centerforge.app
+      // var aldri verifisert -- og noekkelen i Netlify var ugyldig, saa ingen av
+      // disse mailene har gaatt ut foer naa.
+      from: 'Norditech <no-reply@send.norditech.io>',
       to: email,
       subject: 'Welcome to CenterForge!',
       html,
