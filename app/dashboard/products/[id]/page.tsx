@@ -11,7 +11,7 @@ import { verticalConfig, offersProduction } from '@/lib/verticals'
 import OccasionSimplePage from '@/components/OccasionSimplePage'
 import { uploadTrack } from '@/lib/uploadTrack'
 import { fetchMusicLibrary } from '@/lib/musicLibrary'
-import { komprimerBilde, MAKS_OPPLASTING } from '@/lib/komprimerBilde'
+import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
 
 function renderMarkdown(text: string) {
   const clean = text.replace(/\n/g, ' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -1136,7 +1136,7 @@ function FullProductPage() {
                         // Skaleres ned i nettleseren foer opplasting; grensen under
                         // er bare en sikkerhetsventil (se lib/komprimerBilde).
                         const klar = await komprimerBilde(f)
-                        if (klar.size > MAKS_OPPLASTING) { setImgLibError(`«${f.name}» er for stor. Proev et mindre bilde.`); continue }
+                        const feil = bildeFeil(f, klar); if (feil) { setImgLibError(feil); continue }
                         const fd = new FormData()
                         fd.append('file', klar)
                         fd.append('productId', productId)

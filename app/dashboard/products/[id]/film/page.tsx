@@ -13,7 +13,7 @@ import { filmPricing } from '@/lib/verticals'
 import { fillMissingImages, type FilmSeg } from '@/lib/filmImages'
 import { defaultTrackFor, trackDisplayName } from '@/lib/filmMusic'
 import { personPromptFor, DRAWING_MAX_TRIES } from '@/lib/filmPersonPrompt'
-import { komprimerBilde, MAKS_OPPLASTING } from '@/lib/komprimerBilde'
+import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
 
 // Den enkle filmflyten (Standard Ropert, Lars 4/9): sang → bilder → tekst →
 // film. Ingen segmentredigering, ingen stemmevalg, ingen taxameter. Sangen
@@ -261,7 +261,7 @@ export default function FilmPage() {
       const tk = await token()
       for (const f of files) {
         const klar = await komprimerBilde(f)
-        if (klar.size > MAKS_OPPLASTING) { setPhotoError(t('photoTooLarge', { name: f.name })); continue }
+        const feil = bildeFeil(f, klar); if (feil) { setPhotoError(feil); continue }
         const fd = new FormData()
         fd.append('file', klar)
         fd.append('productId', productId)

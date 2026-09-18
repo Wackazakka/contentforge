@@ -98,3 +98,26 @@ function lastBilde(url: string): Promise<HTMLImageElement> {
 function bytUtEndelse(navn: string): string {
   return navn.replace(/\.[^.]+$/, '') + '.jpg'
 }
+
+/**
+ * Hvorfor et bilde ikke kan lastes opp, i klartekst -- eller null.
+ * Kalles ETTER komprimerBilde, med originalen og resultatet.
+ *
+ * HEIC/HEIF er iPhones standardformat. Nettleseren kan ikke dekode det, saa
+ * komprimeringen gir originalen tilbake urort, og ruta avviser den uansett
+ * (kun PNG/JPG/WebP). Foer fikk brukeren «for stort» eller et JSON-kraesj
+ * uten aa faa vite hva som var galt (Lars 18/9).
+ */
+export function bildeFeil(original: File, klar: File): string | null {
+  const navn = (original.name || '').toLowerCase()
+  const erHeic = /image\/hei[cf]/.test(original.type || '') || /\.hei[cf]$/.test(navn)
+  if (erHeic) {
+    return `«${original.name}» er i HEIC-format, som nettlesere ikke kan lese. Bruk JPG eller PNG. ` +
+      'På iPhone: Innstillinger → Kamera → Formater → «Mest kompatibelt» — eller del bildet fra Bilder-appen, så sendes det som JPG.'
+  }
+  if (klar.size > MAKS_OPPLASTING) {
+    const mb = (klar.size / 1024 / 1024).toFixed(1)
+    return `«${original.name}» er for stort (${mb} MB, maks 4 MB). Lagre det som JPG, eller velg et mindre bilde.`
+  }
+  return null
+}

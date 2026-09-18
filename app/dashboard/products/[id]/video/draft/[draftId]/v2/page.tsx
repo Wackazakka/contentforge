@@ -18,7 +18,7 @@ import { MOTION_STYLES } from '@/lib/motionStyles'
 import { uploadSegmentVideo, VIDEO_MAX_BYTES } from '@/lib/uploadSegmentVideo'
 import { VOICES as VOICES_FALLBACK, voiceName, type VoiceOption, languageForGroup } from '@/lib/voices'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile, fetchMusicLibrary } from '@/lib/musicLibrary'
-import { komprimerBilde, MAKS_OPPLASTING } from '@/lib/komprimerBilde'
+import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
 
 interface Segment {
   index: number
@@ -485,7 +485,7 @@ export default function DraftV2Page() {
 
   const uploadLibraryImage = async (file: File): Promise<string | null> => {
     const klar = await komprimerBilde(file)
-    if (klar.size > MAKS_OPPLASTING) { alert('Bildet er for stort. Proev et mindre bilde.'); return null }
+    { const feil = bildeFeil(file, klar); if (feil) { alert(feil); return null } }
     setLibUploading(true)
     try {
       const { data: sess } = await getSupabase().auth.getSession()

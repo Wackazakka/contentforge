@@ -12,7 +12,7 @@ import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack } from '@/lib/uploadTrack'
-import { komprimerBilde, MAKS_OPPLASTING } from '@/lib/komprimerBilde'
+import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 
@@ -802,7 +802,7 @@ export default function DraftPage() {
   }
   const uploadLibraryImage = async (file: File): Promise<string | null> => {
     const klar = await komprimerBilde(file)
-    if (klar.size > MAKS_OPPLASTING) { alert('Bildet er for stort. Proev et mindre bilde.'); return null }
+    { const feil = bildeFeil(file, klar); if (feil) { alert(feil); return null } }
     setLibUploading(true)
     try {
       const { data: sess } = await getSupabase().auth.getSession()
