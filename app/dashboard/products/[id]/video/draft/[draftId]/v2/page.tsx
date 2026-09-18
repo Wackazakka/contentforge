@@ -1749,7 +1749,7 @@ export default function DraftV2Page() {
                     {dekning === false && (
                       <p className="mt-1 text-[11.5px] text-red-600">
                         Ikke nok til denne produksjonen.{' '}
-                        <Link href="/for-deg/kreditt" className="underline">Kjøp flere kreditter</Link>
+                        <Link href={tenant.billing_mode === 'invoice' ? '/dashboard/credits' : '/dashboard/billing'} className="underline">Kjøp flere kreditter</Link>
                       </p>
                     )}
                   </>
