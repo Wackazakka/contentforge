@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 export function DecisionButtons({ token }: { token: string }) {
+  const t = useTranslations('approval')
   const [busy, setBusy] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -16,7 +18,7 @@ export function DecisionButtons({ token }: { token: string }) {
         body: JSON.stringify({ token, decision }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Noe gikk galt')
+      if (!res.ok) throw new Error(data.error || t('err_generic'))
       setResult(decision)
     } catch (err: any) {
       setError(err.message)
@@ -28,7 +30,7 @@ export function DecisionButtons({ token }: { token: string }) {
   if (result) {
     return (
       <div className={`p-4 rounded-lg text-sm ${result === 'rejected' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'}`}>
-        {result === 'approved' ? 'Godkjent — kunden kan nå bruke innholdet. Takk!' : 'Avvist — kunden kan ikke bruke innholdet.'}
+        {t(result === 'approved' ? 'done_approved' : 'done_rejected')}
       </div>
     )
   }
@@ -39,11 +41,11 @@ export function DecisionButtons({ token }: { token: string }) {
       <div className="flex gap-3">
         <button onClick={() => decide('approved')} disabled={!!busy}
           className="flex-1 px-5 py-3 rounded-lg font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors">
-          {busy === 'approved' ? 'Godkjenner …' : '✓ Godkjenn'}
+          {busy === 'approved' ? t('approving') : t('approve')}
         </button>
         <button onClick={() => decide('rejected')} disabled={!!busy}
           className="flex-1 px-5 py-3 rounded-lg font-semibold text-red-600 border border-red-300 hover:bg-red-50 disabled:opacity-50 transition-colors">
-          {busy === 'rejected' ? 'Avviser …' : '✕ Avvis'}
+          {busy === 'rejected' ? t('rejecting') : t('reject')}
         </button>
       </div>
     </div>

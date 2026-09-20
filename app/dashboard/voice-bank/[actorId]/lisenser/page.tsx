@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 
 // Lisenser for én rettighetshaver: klareringen ved siden av forbruksmåleren.
@@ -67,42 +68,29 @@ interface Licence {
   steps: Step[]
 }
 
-const MEDIA: Array<[string, string]> = [
-  ['internal', 'Intern / ikke-kringkastet'],
-  ['online', 'Online og sosialt'],
-  ['broadcast', 'Kringkasting og utendørs'],
-]
-const TERRITORY: Array<[string, string]> = [['no', 'Norge'], ['nordic', 'Norden'], ['world', 'Verden']]
-const TERM: Array<[number, string]> = [[3, '3 måneder'], [12, '12 måneder'], [0, 'Evig (buyout)']]
-const EXCL: Array<[string, string]> = [['none', 'Ikke eksklusivt'], ['category', 'Kategori-eksklusivt'], ['full', 'Full buyout']]
-const TIER: Array<[string, string]> = [
-  ['short', 'Kortfilm / student / lavbudsjett'],
-  ['national', 'Norsk spillefilm eller serie'],
-  ['major', 'Stor norsk / strømmeprodusert'],
-  ['international', 'Internasjonal produksjon'],
-]
-const ROLE: Array<[string, string]> = [['line', 'Enkeltreplikk / bakgrunn'], ['supporting', 'Birolle'], ['lead', 'Hovedrolle']]
-const ASSET: Array<[string, string]> = [['voice', 'Stemme'], ['face', 'Ansikt'], ['both', 'Stemme og ansikt']]
-const STATUS_TEKST: Record<string, string> = {
-  quote: 'Tilbud', active: 'Aktiv', expired: 'Utløpt', superseded: 'Erstattet', cancelled: 'Kansellert',
-}
-const COMP: Array<[string, string, string]> = [
-  ['fee', 'Fast honorar', 'Hele honoraret nå. Ingen andel av det utgivelsen tjener.'],
-  ['hybrid', 'Kombinasjon', 'Redusert honorar nå, pluss en andel. Standardvalget for de fleste.'],
-  ['royalty', 'Kun royalty', 'Ingenting nå, alt i andel. Størst oppside, lengst vei til første krone.'],
-]
+// Bare kodeverdiene star i koden — de er API-kontrakt mot basen og lisens-
+// ruta, og skal aldri oversettes. Etikettene slas opp per sprak (licences.*).
+const MEDIA = ['internal', 'online', 'broadcast'] as const
+const TERRITORY = ['no', 'nordic', 'world'] as const
+const TERM = [3, 12, 0] as const
+const EXCL = ['none', 'category', 'full'] as const
+const TIER = ['short', 'national', 'major', 'international'] as const
+const ROLE = ['line', 'supporting', 'lead'] as const
+const ASSET = ['voice', 'face', 'both'] as const
+const COMP = ['fee', 'hybrid', 'royalty'] as const
 // Royalty krever en kanal vi ser inntekten i — ellers er andelen et løfte og
 // ikke et produkt. Håndhevet i basen (migrasjon 079); dette er bare etiketten.
-const KANAL: Array<[string, string]> = [
-  ['trickletracks', 'TrickleTracks'],
-  ['indigoboom', 'IndigoBoom'],
-  ['other', 'Annen distribusjon'],
-]
+const KANAL = ['trickletracks', 'indigoboom', 'other'] as const
 const KONTROLLERT = ['indigoboom', 'trickletracks']
 
-const nok = (n: number) => new Intl.NumberFormat('nb-NO', { maximumFractionDigits: 0 }).format(n) + ' kr'
+const BCP47: Record<string, string> = { no: 'nb-NO', en: 'en-GB' }
+const lagNok = (locale: string) => (n: number) =>
+  new Intl.NumberFormat(BCP47[locale] || 'en-GB', { maximumFractionDigits: 0 }).format(n) + ' kr'
 
 export default function LisenserPage() {
+  const t = useTranslations('licences')
+  const locale = useLocale()
+  const nok = lagNok(locale)
   const { actorId } = useParams<{ actorId: string }>()
   const [licences, setLicences] = useState<Licence[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -143,11 +131,11 @@ export default function LisenserPage() {
         headers: { Authorization: `Bearer ${await token()}` },
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error || 'Kunne ikke hente lisensene'); return }
+      if (!res.ok) { setError(data.error || t('err_fetch')); return }
       setError(null)
       setLicences(data.licences || [])
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ukjent feil')
+      setError(e instanceof Error ? e.message : t('err_unknown'))
     } finally {
       setLaster(false)
     }
@@ -200,7 +188,7 @@ export default function LisenserPage() {
         }),
       })
       const d = await res.json()
-      if (!res.ok) { setError(d.error || 'Kunne ikke opprette'); return }
+      if (!res.ok) { setError(d.error || t('err_create')); return }
       setError(null); setWorkTitle(''); setCustomerLabel(''); setRort(false)
       await refresh()
     } finally { setBusy(false) }
@@ -213,7 +201,7 @@ export default function LisenserPage() {
       body: JSON.stringify({ licenceId, ...patch }),
     })
     if (res.ok) await refresh()
-    else setError((await res.json()).error || 'Kunne ikke endre')
+    else setError((await res.json()).error || t('err_edit'))
   }
 
   const foerAvregning = async (licenceId: string, felt: Record<string, unknown>) => {
@@ -223,7 +211,7 @@ export default function LisenserPage() {
       body: JSON.stringify({ licenceId, ...felt }),
     })
     if (res.ok) { setError(null); await refresh() }
-    else setError((await res.json()).error || 'Kunne ikke føre avregningen')
+    else setError((await res.json()).error || t('err_statement'))
   }
 
   const avvik = liste && Number(feeCustomer) !== liste.listeNok
@@ -232,18 +220,17 @@ export default function LisenserPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      <Link href={`/dashboard/voice-bank/${actorId}`} className="text-sm text-[var(--ember-deep)] hover:underline">← Tilbake til skuespilleren</Link>
-      <h1 className="text-3xl font-bold text-gray-900 mt-3 mb-1">Lisenser</h1>
+      <Link href={`/dashboard/voice-bank/${actorId}`} className="text-sm text-[var(--ember-deep)] hover:underline">{t('back')}</Link>
+      <h1 className="text-3xl font-bold text-gray-900 mt-3 mb-1">{t('h1')}</h1>
       <p className="text-gray-600 mb-8 max-w-2xl">
-        Bruksretten, ved siden av forbruksmåleren. Takstkortet foreslår prisen — den kan
-        overskrives fritt før avtalen inngås, og det avtalte beløpet fryses på raden.
+        {t('intro')}
       </p>
 
       {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       {/* Nytt tilbud */}
       <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-10">
-        <h2 className="font-semibold text-gray-900 mb-4">Nytt tilbud</h2>
+        <h2 className="font-semibold text-gray-900 mb-4">{t('new_h2')}</h2>
 
         <div className="flex gap-2 mb-5">
           {(['campaign', 'work'] as Kind[]).map((k) => (
@@ -252,65 +239,63 @@ export default function LisenserPage() {
               style={kind === k
                 ? { borderColor: 'var(--ember-deep)', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)' }
                 : { borderColor: '#d1d5db', color: '#374151' }}>
-              {k === 'campaign' ? 'Kampanje' : 'Verk'}
+              {t(k === 'campaign' ? 'kind_campaign' : 'kind_work')}
             </button>
           ))}
           <span className="text-xs text-gray-500 self-center ml-2">
-            {kind === 'campaign'
-              ? 'Tidsbegrenset og fornybar — reklame og markedsføring.'
-              : 'Engangssum, evigvarende, bundet til verket — film, serie, spill, lydbok.'}
+            {t(kind === 'campaign' ? 'kind_campaign_hint' : 'kind_work_hint')}
           </span>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4 mb-4">
-          <Felt label="Aktivum">
+          <Felt label={t('f_asset')}>
             <select value={asset} onChange={(e) => { setAsset(e.target.value); setRort(false) }} className={inputCls}>
-              {ASSET.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+              {ASSET.map((v) => <option key={v} value={v}>{t(`asset_${v}`)}</option>)}
             </select>
           </Felt>
-          <Felt label="Kunde (fritekst)">
-            <input value={customerLabel} onChange={(e) => setCustomerLabel(e.target.value)} placeholder="Produsent eller byrå" className={inputCls} />
+          <Felt label={t('f_customer')}>
+            <input value={customerLabel} onChange={(e) => setCustomerLabel(e.target.value)} placeholder={t('f_customer_ph')} className={inputCls} />
           </Felt>
 
           {kind === 'campaign' ? (
             <>
-              <Felt label="Bruksklasse">
+              <Felt label={t('f_media')}>
                 <select value={mediaClass} onChange={(e) => { setMediaClass(e.target.value); setRort(false) }} className={inputCls}>
-                  {MEDIA.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  {MEDIA.map((v) => <option key={v} value={v}>{t(`media_${v}`)}</option>)}
                 </select>
               </Felt>
-              <Felt label="Territorium">
+              <Felt label={t('f_territory')}>
                 <select value={territory} onChange={(e) => { setTerritory(e.target.value); setRort(false) }} className={inputCls}>
-                  {TERRITORY.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  {TERRITORY.map((v) => <option key={v} value={v}>{t(`terr_${v}`)}</option>)}
                 </select>
               </Felt>
-              <Felt label="Periode">
+              <Felt label={t('f_term')}>
                 <select value={termMonths} onChange={(e) => { setTermMonths(Number(e.target.value)); setRort(false) }} className={inputCls}>
-                  {TERM.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  {TERM.map((v) => <option key={v} value={v}>{t(`term_${v}`)}</option>)}
                 </select>
               </Felt>
-              <Felt label="Eksklusivitet">
+              <Felt label={t('f_exclusivity')}>
                 <select value={exclusivity} onChange={(e) => { setExclusivity(e.target.value); setRort(false) }} className={inputCls}>
-                  {EXCL.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  {EXCL.map((v) => <option key={v} value={v}>{t(`excl_${v}`)}</option>)}
                 </select>
               </Felt>
             </>
           ) : (
             <>
-              <Felt label="Verkstittel (påkrevd)">
-                <input value={workTitle} onChange={(e) => setWorkTitle(e.target.value)} placeholder="Filmens eller seriens tittel" className={inputCls} />
+              <Felt label={t('f_work_title')}>
+                <input value={workTitle} onChange={(e) => setWorkTitle(e.target.value)} placeholder={t('f_work_title_ph')} className={inputCls} />
               </Felt>
-              <Felt label="Produksjon">
+              <Felt label={t('f_tier')}>
                 <select value={productionTier} onChange={(e) => { setProductionTier(e.target.value); setRort(false) }} className={inputCls}>
-                  {TIER.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  {TIER.map((v) => <option key={v} value={v}>{t(`tier_${v}`)}</option>)}
                 </select>
               </Felt>
-              <Felt label="Rollens omfang">
+              <Felt label={t('f_role')}>
                 <select value={roleScope} onChange={(e) => { setRoleScope(e.target.value); setRort(false) }} className={inputCls}>
-                  {ROLE.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  {ROLE.map((v) => <option key={v} value={v}>{t(`role_${v}`)}</option>)}
                 </select>
               </Felt>
-              <Felt label="Agent / manager (% av honoraret)">
+              <Felt label={t('f_agent')}>
                 <input value={agentPct} onChange={(e) => setAgentPct(e.target.value)} placeholder="0" inputMode="decimal" className={inputCls} />
               </Felt>
             </>
@@ -318,7 +303,7 @@ export default function LisenserPage() {
         </div>
 
         {kind === 'campaign' && (
-          <Felt label="Agent / manager (% av honoraret)">
+          <Felt label={t('f_agent')}>
             <input value={agentPct} onChange={(e) => setAgentPct(e.target.value)} placeholder="0" inputMode="decimal" className={`${inputCls} max-w-[200px]`} />
           </Felt>
         )}
@@ -327,64 +312,62 @@ export default function LisenserPage() {
             havner på en låt som går — men royalty av en inntekt vi ikke ser er
             et løfte, ikke et produkt. Derfor kanalkravet. */}
         <div className="mt-5 pt-5 border-t border-gray-200">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Oppgjør</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t('f_comp')}</label>
           <div className="flex gap-2 flex-wrap mb-2">
-            {COMP.map(([v, t]) => (
-              <button key={v} onClick={() => setCompModel(v as 'fee' | 'royalty' | 'hybrid')}
+            {COMP.map((v) => (
+              <button key={v} onClick={() => setCompModel(v)}
                 className="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors"
                 style={compModel === v
                   ? { borderColor: 'var(--ember-deep)', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)' }
                   : { borderColor: '#d1d5db', color: '#374151' }}>
-                {t}
+                {t(`comp_${v}_name`)}
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mb-4">{COMP.find(([v]) => v === compModel)?.[2]}</p>
+          <p className="text-xs text-gray-500 mb-4">{t(`comp_${compModel}_hint`)}</p>
 
           {compModel !== 'fee' && (
             <div className="grid sm:grid-cols-3 gap-4">
-              <Felt label="Utgivelsen distribueres av">
+              <Felt label={t('f_channel')}>
                 <select value={releaseChannel} onChange={(e) => setReleaseChannel(e.target.value)} className={inputCls}>
-                  {KANAL.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  {KANAL.map((v) => <option key={v} value={v}>{t(`chan_${v}`)}</option>)}
                 </select>
               </Felt>
-              <Felt label="Artistens andel (%)" hint="Av det vi faktisk mottar">
+              <Felt label={t('f_royalty_pct')} hint={t('f_royalty_pct_hint')}>
                 <input value={royaltyPct} onChange={(e) => setRoyaltyPct(e.target.value)} inputMode="decimal" className={inputCls} />
               </Felt>
-              <Felt label="Utgivelsens tittel">
-                <input value={releaseTitle} onChange={(e) => setReleaseTitle(e.target.value)} placeholder="Låt eller utgivelse" className={inputCls} />
+              <Felt label={t('f_release_title')}>
+                <input value={releaseTitle} onChange={(e) => setReleaseTitle(e.target.value)} placeholder={t('f_release_title_ph')} className={inputCls} />
               </Felt>
             </div>
           )}
 
           {compModel !== 'fee' && !KONTROLLERT.includes(releaseChannel) && (
             <p className="text-sm mt-3 rounded-lg border px-3 py-2" style={{ borderColor: '#fcd34d', background: '#fffbeb', color: '#92400e' }}>
-              Royalty er ikke mulig på annen distribusjon: da ser vi ikke inntekten andelen skal regnes av.
-              Velg TrickleTracks eller IndigoBoom, eller gå for fast honorar.
+              {t('warn_channel')}
             </p>
           )}
 
           {compModel !== 'fee' && KONTROLLERT.includes(releaseChannel) && (
             <p className="text-xs text-gray-500 mt-3">
-              ⚠️ Strømmeinntekter rapporteres 2–3 måneder på etterskudd. Første avregning kommer derfor
-              et kvartal etter utgivelsen — si det til rettighetshaveren nå, ikke når hen spør.
+              {t('note_lag')}
             </p>
           )}
         </div>
 
         {/* Beløpene — forhåndsutfylt, fritt overstyrbare */}
         <div className="grid sm:grid-cols-2 gap-4 mt-5 pt-5 border-t border-gray-200">
-          <Felt label="Kundepris" hint={liste ? `Takstkortet foreslår ${nok(liste.listeNok)}` : undefined}>
+          <Felt label={t('f_price')} hint={liste ? t('f_price_hint', { sum: nok(liste.listeNok) }) : undefined}>
             <input value={feeCustomer} onChange={(e) => { setFeeCustomer(e.target.value); setRort(true) }} inputMode="decimal" className={inputCls} />
           </Felt>
-          <Felt label="Til rettighetshaver (brutto)" hint={liste ? `Forslag ${nok(liste.honorarNok)}` : undefined}>
+          <Felt label={t('f_fee')} hint={liste ? t('f_fee_hint', { sum: nok(liste.honorarNok) }) : undefined}>
             <input value={feeActor} onChange={(e) => { setFeeActor(e.target.value); setRort(true) }} inputMode="decimal" className={inputCls} />
           </Felt>
         </div>
 
         {avvik !== 0 && (
           <p className="text-xs mt-2" style={{ color: avvik < 0 ? '#b45309' : '#047857' }}>
-            {avvik > 0 ? '+' : ''}{avvik} % mot listepris. Avviket lagres, så kortet kan justeres etter virkeligheten.
+            {t('deviation', { sign: avvik > 0 ? '+' : '', pct: avvik })}
           </p>
         )}
 
@@ -393,17 +376,17 @@ export default function LisenserPage() {
         <button onClick={opprett}
           disabled={busy || (kind === 'work' && !workTitle.trim()) || (compModel !== 'fee' && !KONTROLLERT.includes(releaseChannel))}
           className="mt-5 px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
-          {busy ? 'Oppretter …' : 'Opprett tilbud'}
+          {busy ? t('creating') : t('create')}
         </button>
         {kind === 'work' && !workTitle.trim() && (
-          <p className="text-xs text-gray-500 mt-2">Verkstittel mangler — evigheten er bundet til verket, så den kan ikke stå tom.</p>
+          <p className="text-xs text-gray-500 mt-2">{t('need_title')}</p>
         )}
       </div>
 
       {/* Eksisterende */}
-      <h2 className="font-semibold text-gray-900 mb-3">Registrerte lisenser</h2>
-      {laster ? <p className="text-gray-500">Laster …</p>
-        : licences.length === 0 ? <p className="text-gray-500">Ingen lisenser ennå.</p>
+      <h2 className="font-semibold text-gray-900 mb-3">{t('list_h2')}</h2>
+      {laster ? <p className="text-gray-500">{t('loading')}</p>
+        : licences.length === 0 ? <p className="text-gray-500">{t('none')}</p>
         : (
           <div className="space-y-4">
             {licences.map((l) => (
@@ -433,6 +416,8 @@ function Felt({ label, hint, children }: { label: string; hint?: string; childre
  * til byrået — ikke en besparelse for kunden.
  */
 function Forhaandsvisning({ feeCustomer, feeActor, agentPct }: { feeCustomer: number; feeActor: number; agentPct: number }) {
+  const t = useTranslations('licences')
+  const nok = lagNok(useLocale())
   const infra = Math.round(feeCustomer * 0.03 * 100) / 100
   const byraa = Math.round((feeCustomer - feeActor - infra) * 100) / 100
   const agent = Math.round(feeActor * (agentPct / 100) * 100) / 100
@@ -440,24 +425,25 @@ function Forhaandsvisning({ feeCustomer, feeActor, agentPct }: { feeCustomer: nu
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-white/60 p-4 text-sm">
       <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1">
-        <Rad t="Kunden betaler" v={feeCustomer} sterk />
-        <Rad t="Rettighetshaver, brutto" v={feeActor} />
-        <Rad t="Infrastrukturavgift (3 %)" v={infra} />
-        {agent > 0 && <Rad t={`Agent / manager (${agentPct} % av honoraret)`} v={agent} />}
-        <Rad t="Til den som har avtalen" v={byraa} advarsel={byraa < 0} />
-        <Rad t="Rettighetshaver, netto" v={netto} sterk />
+        <Rad tekst={t('pv_customer')} v={feeCustomer} sterk />
+        <Rad tekst={t('pv_actor_gross')} v={feeActor} />
+        <Rad tekst={t('pv_infra')} v={infra} />
+        {agent > 0 && <Rad tekst={t('pv_agent', { pct: agentPct })} v={agent} />}
+        <Rad tekst={t('pv_holder')} v={byraa} advarsel={byraa < 0} />
+        <Rad tekst={t('pv_actor_net')} v={netto} sterk />
       </div>
       {byraa < 0 && (
-        <p className="text-xs text-amber-700 mt-2">Kundeprisen dekker ikke det som er lovet bort.</p>
+        <p className="text-xs text-amber-700 mt-2">{t('pv_negative')}</p>
       )}
     </div>
   )
 }
 
-function Rad({ t, v, sterk, advarsel }: { t: string; v: number; sterk?: boolean; advarsel?: boolean }) {
+function Rad({ tekst, v, sterk, advarsel }: { tekst: string; v: number; sterk?: boolean; advarsel?: boolean }) {
+  const nok = lagNok(useLocale())
   return (
     <div className="flex justify-between gap-4">
-      <span className={sterk ? 'font-medium text-gray-900' : 'text-gray-600'}>{t}</span>
+      <span className={sterk ? 'font-medium text-gray-900' : 'text-gray-600'}>{tekst}</span>
       <span className={`tabular-nums ${advarsel ? 'text-amber-700' : sterk ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{nok(v)}</span>
     </div>
   )
@@ -468,6 +454,8 @@ function LisensKort({ l, onEndre, onAvregning }: {
   onEndre: (id: string, p: Record<string, unknown>) => Promise<void>
   onAvregning: (id: string, p: Record<string, unknown>) => Promise<void>
 }) {
+  const t = useTranslations('licences')
+  const nok = lagNok(useLocale())
   const [rediger, setRediger] = useState(false)
   const [kp, setKp] = useState(String(l.fee_customer_nok))
   const [hp, setHp] = useState(String(l.fee_actor_nok))
@@ -477,9 +465,11 @@ function LisensKort({ l, onEndre, onAvregning }: {
   const [netto, setNetto] = useState('')
 
   const omfang = l.kind === 'campaign'
-    ? [MEDIA.find(([v]) => v === l.media_class)?.[1], TERRITORY.find(([v]) => v === l.territory)?.[1],
-       l.term_end ? `til ${l.term_end}` : 'evig', l.exclusivity !== 'none' ? EXCL.find(([v]) => v === l.exclusivity)?.[1] : null]
-    : [l.work_title, TIER.find(([v]) => v === l.production_tier)?.[1], ROLE.find(([v]) => v === l.role_scope)?.[1], 'evig, bundet til verket']
+    ? [l.media_class ? t(`media_${l.media_class}`) : null, l.territory ? t(`terr_${l.territory}`) : null,
+       l.term_end ? t('scope_until', { date: l.term_end }) : t('scope_perpetual'),
+       l.exclusivity !== 'none' ? t(`excl_${l.exclusivity}`) : null]
+    : [l.work_title, l.production_tier ? t(`tier_${l.production_tier}`) : null,
+       l.role_scope ? t(`role_${l.role_scope}`) : null, t('scope_work_perpetual')]
 
   return (
     <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-5">
@@ -488,10 +478,10 @@ function LisensKort({ l, onEndre, onAvregning }: {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full"
               style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>
-              {l.kind === 'campaign' ? 'Kampanje' : 'Verk'}
+              {t(l.kind === 'campaign' ? 'kind_campaign' : 'kind_work')}
             </span>
             <span className="text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border border-gray-300 text-gray-600">
-              {STATUS_TEKST[l.status] || l.status}
+              {t.has(`status_${l.status}`) ? t(`status_${l.status}`) : l.status}
             </span>
             {l.customer_label && <span className="text-sm text-gray-600">{l.customer_label}</span>}
           </div>
@@ -500,9 +490,9 @@ function LisensKort({ l, onEndre, onAvregning }: {
         <div className="text-right">
           <div className="font-semibold text-gray-900 tabular-nums">{nok(l.fee_customer_nok)}</div>
           <div className="text-xs text-gray-500 tabular-nums">
-            {nok(l.fee_actor_nok)} til rettighetshaver
+            {t('to_holder', { sum: nok(l.fee_actor_nok) })}
             {l.list_fee_customer_nok != null && l.list_fee_customer_nok !== l.fee_customer_nok && (
-              <> · liste {nok(l.list_fee_customer_nok)}</>
+              <>{t('list_price', { sum: nok(l.list_fee_customer_nok) })}</>
             )}
           </div>
         </div>
@@ -514,7 +504,7 @@ function LisensKort({ l, onEndre, onAvregning }: {
             <div key={i} className="flex justify-between gap-4">
               <span className="text-gray-600">
                 {s.party_label || s.party_type}
-                <span className="text-gray-400 text-xs"> · {s.basis === 'actor_fee' ? 'av honoraret' : 'av kundeprisen'}</span>
+                <span className="text-gray-400 text-xs"> · {t(s.basis === 'actor_fee' ? 'basis_actor' : 'basis_customer')}</span>
               </span>
               <span className="tabular-nums text-gray-700">{nok(s.amount_nok)}</span>
             </div>
@@ -527,13 +517,13 @@ function LisensKort({ l, onEndre, onAvregning }: {
         <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="text-gray-700">
-              <strong>{l.comp_model === 'royalty' ? 'Kun royalty' : 'Kombinasjon'}</strong>
-              {' — '}{l.royalty_pct} % av det vi mottar
-              {l.release_channel && <span className="text-gray-500"> · {KANAL.find(([v]) => v === l.release_channel)?.[1]}</span>}
+              <strong>{t(l.comp_model === 'royalty' ? 'comp_royalty' : 'comp_hybrid')}</strong>
+              {t('royalty_of', { pct: l.royalty_pct ?? 0 })}
+              {l.release_channel && <span className="text-gray-500"> · {t.has(`chan_${l.release_channel}`) ? t(`chan_${l.release_channel}`) : l.release_channel}</span>}
               {l.release_title && <span className="text-gray-500"> · {l.release_title}</span>}
             </div>
             <button onClick={() => setAvr((v) => !v)} className="text-sm text-[var(--ember-deep)] hover:underline">
-              {avr ? 'Avbryt' : 'Før avregning'}
+              {avr ? t('stmt_cancel') : t('stmt_open')}
             </button>
           </div>
 
@@ -543,7 +533,7 @@ function LisensKort({ l, onEndre, onAvregning }: {
                 className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm" />
               <input type="date" value={pTil} onChange={(e) => setPTil(e.target.value)}
                 className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm" />
-              <input value={netto} onChange={(e) => setNetto(e.target.value)} inputMode="decimal" placeholder="Mottatt i perioden"
+              <input value={netto} onChange={(e) => setNetto(e.target.value)} inputMode="decimal" placeholder={t('stmt_received_ph')}
                 className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm w-44" />
               <button
                 disabled={!pFra || !pTil || !(Number(netto) >= 0)}
@@ -552,10 +542,10 @@ function LisensKort({ l, onEndre, onAvregning }: {
                   setAvr(false); setPFra(''); setPTil(''); setNetto('')
                 }}
                 className="px-3 py-1.5 rounded-lg text-sm font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] disabled:opacity-50">
-                Før
+                {t('stmt_record')}
               </button>
               <span className="text-xs text-gray-500">
-                Grunnlaget er det vi faktisk mottok, ikke brutto fra tjenestene.
+                {t('stmt_hint')}
               </span>
             </div>
           )}
@@ -565,7 +555,7 @@ function LisensKort({ l, onEndre, onAvregning }: {
               {l.statements.map((s) => (
                 <div key={s.id} className="flex justify-between gap-4 text-gray-600">
                   <span>{s.period_start} – {s.period_end}{s.source ? ` · ${s.source}` : ''}
-                    <span className="text-gray-400"> · grunnlag {nok(s.net_receipts_nok)} · {s.artist_pct} %</span></span>
+                    <span className="text-gray-400">{t('stmt_basis', { sum: nok(s.net_receipts_nok), pct: s.artist_pct })}</span></span>
                   <span className="tabular-nums text-gray-700">{nok(s.artist_nok)}</span>
                 </div>
               ))}
@@ -576,7 +566,7 @@ function LisensKort({ l, onEndre, onAvregning }: {
 
       {l.steps.length > 0 && (
         <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Etterbetaling</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">{t('steps_h')}</div>
           {l.steps.map((s) => (
             <div key={s.id} className="flex justify-between gap-4">
               <span className="text-gray-600">{s.label || s.trigger_kind} <span className="text-gray-400 text-xs">· {s.status}</span></span>
@@ -590,20 +580,20 @@ function LisensKort({ l, onEndre, onAvregning }: {
         {rediger ? (
           <>
             <input value={kp} onChange={(e) => setKp(e.target.value)} inputMode="decimal"
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm w-32" placeholder="Kundepris" />
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm w-32" placeholder={t('edit_price_ph')} />
             <input value={hp} onChange={(e) => setHp(e.target.value)} inputMode="decimal"
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm w-32" placeholder="Honorar" />
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm w-32" placeholder={t('edit_fee_ph')} />
             <button onClick={async () => { await onEndre(l.id, { feeCustomerNok: Number(kp), feeActorNok: Number(hp) }); setRediger(false) }}
-              className="px-3 py-1.5 rounded-lg text-sm font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)]">Lagre</button>
-            <button onClick={() => setRediger(false)} className="text-sm text-gray-500 hover:underline">Avbryt</button>
-            <span className="text-xs text-gray-500">Fordelingen regnes om for alle parter.</span>
+              className="px-3 py-1.5 rounded-lg text-sm font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)]">{t('edit_save')}</button>
+            <button onClick={() => setRediger(false)} className="text-sm text-gray-500 hover:underline">{t('edit_cancel')}</button>
+            <span className="text-xs text-gray-500">{t('edit_note')}</span>
           </>
         ) : (
-          <button onClick={() => setRediger(true)} className="text-sm text-[var(--ember-deep)] hover:underline">Endre beløp</button>
+          <button onClick={() => setRediger(true)} className="text-sm text-[var(--ember-deep)] hover:underline">{t('edit_open')}</button>
         )}
         {l.status === 'quote' && !rediger && (
           <button onClick={() => onEndre(l.id, { status: 'active' })}
-            className="text-sm text-[var(--ember-deep)] hover:underline ml-auto">Marker som inngått</button>
+            className="text-sm text-[var(--ember-deep)] hover:underline ml-auto">{t('mark_active')}</button>
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 
 // Utbetalingslisten (Lars 17/9) — månedsrutinen for å betale rettighetshaverne.
@@ -26,10 +27,14 @@ interface Rad {
   sistUtbetalt: string | null
 }
 
-const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr`
-const dato = (s: string) => new Date(s + (s.length === 10 ? 'T00:00:00' : '')).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' })
+const BCP47: Record<string, string> = { no: 'nb-NO', en: 'en-GB' }
 
 export default function UtbetalingslistePage() {
+  const t = useTranslations('payouts')
+  const locale = useLocale()
+  const bcp = BCP47[locale] || 'en-GB'
+  const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString(bcp, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr`
+  const dato = (s: string) => new Date(s + (s.length === 10 ? 'T00:00:00' : '')).toLocaleDateString(bcp, { day: 'numeric', month: 'short', year: 'numeric' })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tenantName, setTenantName] = useState('')
@@ -64,7 +69,7 @@ export default function UtbetalingslistePage() {
       setRader(d.rader || [])
       setValgt(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunne ikke hente utbetalingslisten')
+      setError(e instanceof Error ? e.message : t('err_fetch'))
     } finally {
       setLoading(false)
     }
@@ -87,15 +92,19 @@ export default function UtbetalingslistePage() {
   // CSV til nettbanken / regnskapet. Semikolon + BOM: åpner riktig i norsk Excel.
   const lastNedCsv = () => {
     const felt = (s: string) => `"${String(s).replace(/"/g, '""')}"`
+    // Norsk Excel forventer semikolon og desimalkomma; engelsk forventer
+    // komma og desimalpunktum. Samme fil i feil form legger alt i én kolonne.
+    const sep = locale === 'no' ? ';' : ','
+    const tall = (n: number) => (locale === 'no' ? n.toFixed(2).replace('.', ',') : n.toFixed(2))
     const linjer = [
-      ['Navn', 'E-post', 'Beløp (kr)', 'Periode fra', 'Periode til', 'Antall bruk totalt'].map(felt).join(';'),
-      ...valgte.map((r) => [r.name, r.email || '', r.dueNok.toFixed(2).replace('.', ','), r.periodeFra, r.periodeTil, String(r.uses)].map(felt).join(';')),
-      ['SUM', '', sumValgt.toFixed(2).replace('.', ','), '', '', ''].map(felt).join(';'),
+      [t('csv_name'), t('csv_email'), t('csv_amount'), t('csv_from'), t('csv_to'), t('csv_uses')].map(felt).join(sep),
+      ...valgte.map((r) => [r.name, r.email || '', tall(r.dueNok), r.periodeFra, r.periodeTil, String(r.uses)].map(felt).join(sep)),
+      [t('csv_sum'), '', tall(sumValgt), '', '', ''].map(felt).join(sep),
     ]
     const blob = new Blob(['﻿' + linjer.join('\r\n')], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `utbetalingsliste-${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `${t('csv_file')}-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -103,8 +112,7 @@ export default function UtbetalingslistePage() {
   const foer = async () => {
     if (valgte.length === 0) return
     const ok = confirm(
-      `Føre ${valgte.length} utbetaling${valgte.length === 1 ? '' : 'er'} på til sammen ${nok(sumValgt)} som BETALT?\n\n` +
-      'Gjør dette først når pengene faktisk er sendt fra nettbanken. Føringen vises straks i rettighetshaverens egen hovedbok.'
+      t(valgte.length === 1 ? 'confirm_one' : 'confirm_many', { n: valgte.length, sum: nok(sumValgt) })
     )
     if (!ok) return
     setBusy(true); setError(null); setKvittering(null)
@@ -117,12 +125,12 @@ export default function UtbetalingslistePage() {
         }),
       })
       const d = await res.json()
-      if (!res.ok) throw new Error(d.error || 'Føringen feilet — ingenting er ført')
-      setKvittering(`Ført ${d.antall} utbetaling${d.antall === 1 ? '' : 'er'}, ${nok(d.sumNok)} til sammen.`)
+      if (!res.ok) throw new Error(d.error || t('err_record'))
+      setKvittering(t(d.antall === 1 ? 'receipt_one' : 'receipt_many', { n: d.antall, sum: nok(d.sumNok) }))
       setNote('')
       await hent()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Føringen feilet — ingenting er ført')
+      setError(e instanceof Error ? e.message : t('err_record'))
     } finally {
       setBusy(false)
     }
@@ -131,20 +139,19 @@ export default function UtbetalingslistePage() {
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Link href="/dashboard/voice-bank" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Stemme- og ansiktsbank</Link>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Utbetalingsliste</h1>
+        <Link href="/dashboard/voice-bank" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">{t('back')}</Link>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('h1')}</h1>
         <p className="text-gray-600 mb-6 max-w-2xl">
-          Hva {tenantName || 'banken'} skylder rettighetshaverne akkurat nå — opptjent minus allerede betalt, summert fra hovedboken.
-          Betal i nettbanken, og før dem som betalt her etterpå. Pengene går ikke gjennom systemet.
+          {t('intro', { tenant: tenantName || t('the_bank') })}
         </p>
 
-        {loading && <p className="text-gray-500">Henter hovedboken …</p>}
+        {loading && <p className="text-gray-500">{t('loading')}</p>}
         {error && <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
         {kvittering && <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-sm text-green-800">{kvittering}</div>}
 
         {!loading && !error && tilGode.length === 0 && (
           <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 text-sm text-gray-600">
-            Ingen har noe til gode. {rader.length === 0 ? 'Banken har ingen rettighetshavere ennå.' : 'Alt som er opptjent, er ført som betalt.'}
+            {t('none_due_a')}{t(rader.length === 0 ? 'none_due_empty' : 'none_due_paid')}
           </div>
         )}
 
@@ -152,9 +159,9 @@ export default function UtbetalingslistePage() {
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
               {[
-                { label: 'Til gode i alt', value: nok(sumAlt) },
-                { label: `Valgt for utbetaling (${valgte.length})`, value: nok(sumValgt) },
-                { label: 'Står til neste gang', value: nok(sumAlt - sumValgt) },
+                { label: t('card_all'), value: nok(sumAlt) },
+                { label: t('card_selected', { n: valgte.length }), value: nok(sumValgt) },
+                { label: t('card_held'), value: nok(sumAlt - sumValgt) },
               ].map((c) => (
                 <div key={c.label} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4">
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>
@@ -165,12 +172,12 @@ export default function UtbetalingslistePage() {
 
             <div className="flex flex-wrap items-end gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Minste beløp (kr)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('threshold')}</label>
                 <input value={terskel} onChange={(e) => { setTerskel(e.target.value); setValgt(null) }} inputMode="decimal"
                   className="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
               </div>
               <p className="text-xs text-gray-500 max-w-md pb-2">
-                Beløp under terskelen blir stående og legges til neste gang. Ingenting går tapt — «til gode» er alltid alt opptjent minus alt betalt.
+                {t('threshold_hint')}
               </p>
             </div>
 
@@ -179,11 +186,11 @@ export default function UtbetalingslistePage() {
                 <thead>
                   <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
                     <th className="px-4 py-2 w-8"></th>
-                    <th className="px-4 py-2">Rettighetshaver</th>
-                    <th className="px-4 py-2">Periode</th>
-                    <th className="px-4 py-2 text-right">Opptjent</th>
-                    <th className="px-4 py-2 text-right">Betalt før</th>
-                    <th className="px-4 py-2 text-right">Til gode</th>
+                    <th className="px-4 py-2">{t('th_holder')}</th>
+                    <th className="px-4 py-2">{t('th_period')}</th>
+                    <th className="px-4 py-2 text-right">{t('th_earned')}</th>
+                    <th className="px-4 py-2 text-right">{t('th_paid')}</th>
+                    <th className="px-4 py-2 text-right">{t('th_due')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -192,13 +199,13 @@ export default function UtbetalingslistePage() {
                     return (
                       <tr key={r.actorId} className={`border-b border-gray-100 last:border-0 ${paa ? '' : 'opacity-55'}`}>
                         <td className="px-4 py-2">
-                          <input type="checkbox" checked={paa} onChange={() => toggle(r)} aria-label={`Ta med ${r.name}`} />
+                          <input type="checkbox" checked={paa} onChange={() => toggle(r)} aria-label={t('include', { name: r.name })} />
                         </td>
                         <td className="px-4 py-2">
                           <Link href={`/dashboard/voice-bank/${r.actorId}`} className="font-medium text-[var(--ember-deep)] hover:underline">{r.name}</Link>
                           <div className="text-xs text-gray-500">
-                            {r.email || <span className="text-amber-700">mangler e-post</span>}
-                            {!r.isActive && <span className="ml-2 text-gray-400">· inaktiv</span>}
+                            {r.email || <span className="text-amber-700">{t('no_email')}</span>}
+                            {!r.isActive && <span className="ml-2 text-gray-400">{t('inactive')}</span>}
                           </div>
                         </td>
                         <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{dato(r.periodeFra)} – {dato(r.periodeTil)}</td>
@@ -214,22 +221,22 @@ export default function UtbetalingslistePage() {
 
             <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-5">
               <ol className="text-sm text-gray-700 space-y-1 mb-4 list-decimal list-inside">
-                <li>Last ned listen og betal beløpene i nettbanken.</li>
-                <li>Kom tilbake hit og før dem som betalt. Da flytter «Utbetalt» og «Til gode» seg i hver enkelts hovedbok.</li>
+                <li>{t('step_1')}</li>
+                <li>{t('step_2')}</li>
               </ol>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notat på føringen (valgfritt)</label>
-              <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder="F.eks. «Månedsoppgjør september, betalt fra DNB 3.10.»"
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('note_label')}</label>
+              <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder={t('note_ph')}
                 className="w-full max-w-xl px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
               <div className="flex flex-wrap gap-3 items-center">
                 <button onClick={lastNedCsv} disabled={valgte.length === 0}
                   className="px-4 py-2.5 rounded-lg text-sm font-semibold border border-gray-300 hover:border-[var(--ember-deep)] disabled:opacity-50">
-                  Last ned liste (CSV)
+                  {t('download')}
                 </button>
                 <button onClick={foer} disabled={busy}
                   className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-60 transition-opacity">
-                  {busy ? 'Fører …' : valgte.length === 0 ? 'Før som betalt' : `Før ${valgte.length} som betalt — ${nok(sumValgt)}`}
+                  {busy ? t('recording') : valgte.length === 0 ? t('record_empty') : t('record_n', { n: valgte.length, sum: nok(sumValgt) })}
                 </button>
-                {valgte.length === 0 && !busy && <span className="text-sm text-amber-700">Ingen er krysset av. Senk terskelen eller kryss av i listen.</span>}
+                {valgte.length === 0 && !busy && <span className="text-sm text-amber-700">{t('none_ticked')}</span>}
               </div>
             </div>
           </>
