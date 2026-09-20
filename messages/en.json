@@ -1487,7 +1487,9 @@
     "stage_still": "Making the still",
     "stage_video": "Rendering film",
     "stage_done": "Done",
-    "stage_failed": "Failed"
+    "stage_failed": "Failed",
+    "meta_title": "Audition",
+    "meta_description": "The same scene, the same line, different performers — hear them read your own script before you decide."
   },
   "twinledger": {
     "meta_title": "TwinLedger — cleared voices and faces for film and advertising",

@@ -1487,7 +1487,9 @@
     "stage_still": "Lager bildet",
     "stage_video": "Rendrer film",
     "stage_done": "Ferdig",
-    "stage_failed": "Feilet"
+    "stage_failed": "Feilet",
+    "meta_title": "Audition",
+    "meta_description": "Samme scene, samme replikk, ulike skuespillere — hør dem lese ditt eget manus før du bestemmer deg."
   },
   "twinledger": {
     "meta_title": "TwinLedger — klarerte stemmer og ansikter til film og reklame",
