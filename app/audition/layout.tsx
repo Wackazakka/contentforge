@@ -7,7 +7,16 @@ import { getTranslations } from 'next-intl/server'
 // er noe av det første en produsent ser; den skal ikke bære feil produktnavn.
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('audition')
-  return { title: t('meta_title'), description: t('meta_description') }
+  return {
+    title: t('meta_title'),
+    description: t('meta_description'),
+    // Auditions koster penger og krever innlogging. Sida er sperret i
+    // robots.txt, men det hindrer bare CRAWLING — en sperret side kan fortsatt
+    // havne i indeksen som naken URL hvis noen lenker til den, og da leses
+    // aldri en noindex vi ikke har satt. Beltet i tillegg til selene, og et
+    // vern mot dagen noen fjerner Disallow-linja.
+    robots: { index: false, follow: false },
+  }
 }
 
 export default function AuditionLayout({ children }: { children: React.ReactNode }) {
