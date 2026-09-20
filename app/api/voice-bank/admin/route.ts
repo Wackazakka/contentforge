@@ -294,6 +294,10 @@ export async function PATCH(request: Request) {
     if (typeof body.isActive === 'boolean') patch.is_active = body.isActive
     if (typeof body.isExclusive === 'boolean') patch.is_exclusive = body.isExclusive
     if (typeof body.isPublic === 'boolean') patch.is_public = body.isPublic
+    // Eksempelprofil: raden merkes som visning, ikke som en bookbar person.
+    // Skal kunne slås AV med ett klikk den dagen en ekte rettighetshaver tar
+    // plassen — uten en ny migrasjon.
+    if (typeof body.isDemo === 'boolean') patch.is_demo = body.isDemo
     if (body.bio !== undefined) patch.bio = body.bio ? String(body.bio).slice(0, 2000) : null
     if (Array.isArray(body.photoUrls)) patch.photo_urls = body.photoUrls.map(String).slice(0, 12)
     if (Array.isArray(body.sampleUrls)) patch.sample_urls = body.sampleUrls.map(String).slice(0, 12)

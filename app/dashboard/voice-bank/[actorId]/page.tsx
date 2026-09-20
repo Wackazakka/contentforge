@@ -19,6 +19,7 @@ interface ActorDetail {
   face_character_id: string | null
   is_exclusive: boolean
   is_public: boolean
+  is_demo: boolean
   bio: string | null
   photo_urls: string[]
   sample_urls: string[]
@@ -202,6 +203,14 @@ export default function VoiceActorPage() {
     if (!actor) return
     try {
       const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, isPublic: !actor.is_public, bio: editBio }) })
+      if (res.ok) await refresh()
+    } catch { /* behold visning */ }
+  }
+
+  const toggleDemo = async () => {
+    if (!actor) return
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, isDemo: !actor.is_demo }) })
       if (res.ok) await refresh()
     } catch { /* behold visning */ }
   }
@@ -442,6 +451,24 @@ export default function VoiceActorPage() {
                 <button onClick={togglePublic}
                   className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                   {actor.is_public ? 'Avpubliser' : 'Publiser siden'}
+                </button>
+              </div>
+
+              {/* Eksempelprofil. Bryteren står her fordi den hører til det
+                  PUBLIKUM ser, og fordi den skal være lett å finne den dagen en
+                  ekte rettighetshaver tar plassen. */}
+              <div className="flex items-center justify-between gap-4 mb-4 pt-4 border-t border-gray-200">
+                <div>
+                  <div className="font-medium text-gray-900 text-sm">{actor.is_demo ? '🎭 Eksempelprofil' : 'Ekte rettighetshaver'}</div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {actor.is_demo
+                      ? 'Merkes «Eksempel» i galleriet og på visittkortet, vises kun på våre egne domener (TwinLedger + rota), og lenker til rekruttering i stedet for kjøp. Slå av når en ekte person tar plassen.'
+                      : 'Kortet presenteres som en person kunder kan bruke i produksjon.'}
+                  </p>
+                </div>
+                <button onClick={toggleDemo}
+                  className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                  {actor.is_demo ? 'Fjern eksempelmerket' : 'Merk som eksempel'}
                 </button>
               </div>
 

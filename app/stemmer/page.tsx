@@ -29,6 +29,10 @@ export default async function StemmerPage() {
   // Tjenester uten rettighetsforvaltning (f.eks. Standard Ropert) har ingen bank å vise.
   if (tenant.twinledger_enabled === false) notFound()
   const actors = await getPublicActors(tenant)
+  // Er alt vi har å vise eksempler, kan ikke ingressen love «ekte mennesker som
+  // har sagt ja» — da lyver hylla. Første ekte publiserte rettighetshaver
+  // snur teksten tilbake av seg selv.
+  const kunEksempler = actors.length > 0 && actors.every((a) => a.isDemo)
 
   return (
     <div className="min-h-screen bg-[var(--paper)] text-[var(--ink,#1C1A16)]">
@@ -44,10 +48,19 @@ export default async function StemmerPage() {
       <main className="max-w-5xl mx-auto px-6 py-12">
         <p className="text-xs font-semibold tracking-[0.16em] uppercase text-[var(--text-faint,#8A8175)] mb-3">{tenant.app_name}</p>
         <h1 className="text-4xl font-bold mb-3" style={{ letterSpacing: '-0.02em' }}>Stemmer og ansikter</h1>
-        <p className="text-lg text-[var(--ink-soft,#4A443B)] max-w-2xl mb-10">
-          Ekte mennesker som har sagt ja til at stemmen eller ansiktet deres kan brukes i din produksjon —
-          og som får betalt hver gang det skjer. Hør prøvene, og gå inn på den du vil vite mer om.
-        </p>
+        {kunEksempler ? (
+          <p className="text-lg text-[var(--ink-soft,#4A443B)] max-w-2xl mb-10">
+            Banken er under oppbygging. Kortet under er en <strong style={{ fontWeight: 600 }}>eksempelprofil</strong> —
+            ikke en skuespiller du kan booke, men en visning av hvordan en rettighetshaver ser ut hos oss:
+            prøver du kan høre, og en hovedbok som fører hver eneste bruk tilbake til mennesket det gjelder.
+            {' '}<Link href="/bli-stemme" className="text-[var(--ember-deep)] hover:underline font-medium">Vil du bli den første ekte?</Link>
+          </p>
+        ) : (
+          <p className="text-lg text-[var(--ink-soft,#4A443B)] max-w-2xl mb-10">
+            Ekte mennesker som har sagt ja til at stemmen eller ansiktet deres kan brukes i din produksjon —
+            og som får betalt hver gang det skjer. Hør prøvene, og gå inn på den du vil vite mer om.
+          </p>
+        )}
 
         {actors.length === 0 ? (
           <div className="rounded-xl border p-8 max-w-xl" style={{ background: 'var(--paper-raised)', borderColor: 'var(--ds-border, #E2D9C8)' }}>
@@ -65,7 +78,11 @@ export default async function StemmerPage() {
         )}
 
         <div className="mt-16 pt-8 text-sm text-[var(--text-muted,#6B6358)] flex flex-wrap gap-x-8 gap-y-3 justify-between" style={{ borderTop: '1px solid var(--ds-border, #E2D9C8)' }}>
-          <span>Vil du bruke en av dem? <Link href="/register" className="text-[var(--ember-deep)] hover:underline font-medium">Opprett konto</Link> — stemmene ligger klare i verktøyet.</span>
+          {kunEksempler ? (
+            <span>Leter du etter en stemme til en produksjon? <Link href="/white-label" className="text-[var(--ember-deep)] hover:underline font-medium">Si fra hva du trenger</Link> — vi rekrutterer nå, og vet da hvem vi skal spørre.</span>
+          ) : (
+            <span>Vil du bruke en av dem? <Link href="/register" className="text-[var(--ember-deep)] hover:underline font-medium">Opprett konto</Link> — stemmene ligger klare i verktøyet.</span>
+          )}
           <span>Er du skuespiller? <Link href="/bli-stemme" className="text-[var(--ember-deep)] hover:underline font-medium">Bli en stemme i banken</Link>.</span>
         </div>
       </main>

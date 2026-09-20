@@ -69,7 +69,10 @@ export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
               <Link href={`/stemme/${a.id}`} className="block" aria-label={`Visittkortet til ${a.name}`}>
                 {a.photos[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={a.photos[0]} alt={a.name} loading="lazy" className="w-full aspect-[4/3] object-cover" />
+                  // object-top: portretter har ansiktet i øvre halvdel, og en
+                  // sentrert 4:3-beskjæring kapper det bort. I en castingkatalog
+                  // ER ansiktet varen.
+                  <img src={a.photos[0]} alt={a.name} loading="lazy" className="w-full aspect-[4/3] object-cover object-top" />
                 ) : (
                   <div className="w-full aspect-[4/3] flex items-center justify-center text-4xl font-bold"
                     style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }} aria-hidden="true">
@@ -83,6 +86,12 @@ export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
                     <Link href={`/stemme/${a.id}`} className="hover:text-[var(--ember-deep)]">{a.name}</Link>
                   </h2>
                   <div className="flex gap-1 flex-none text-[11px] font-semibold uppercase tracking-wide">
+                    {/* Eksempelmerket er bevisst nøytralt, ikke ember: det er en
+                        opplysning om at kortet ikke er en bookbar person, ikke
+                        en egenskap ved stemmen. */}
+                    {a.isDemo && (
+                      <span className="px-2 py-0.5 rounded-full border" style={{ color: 'var(--text-muted, #6B6358)', borderColor: 'var(--ds-border, #E2D9C8)' }}>Eksempel</span>
+                    )}
                     {a.hasVoice && <span className="px-2 py-0.5 rounded-full" style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>Stemme</span>}
                     {a.hasFace && <span className="px-2 py-0.5 rounded-full" style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>Ansikt</span>}
                   </div>

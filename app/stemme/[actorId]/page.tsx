@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ actorId: 
   if (!actor) return { title: 'Ikke funnet' }
   const hva = actor.hasVoice && actor.hasFace ? 'stemme og ansikt' : actor.hasFace ? 'ansikt' : 'stemme'
   return {
-    title: `${actor.name} — ${hva}`,
+    title: actor.isDemo ? `${actor.name} — eksempelprofil` : `${actor.name} — ${hva}`,
     description: actor.bio?.slice(0, 150) || `Hør og se ${actor.name}.`,
   }
 }
@@ -50,6 +50,23 @@ export default async function ActorPresentationPage({ params }: { params: Promis
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-10">
+        {/* Eksempelprofil: si det FØR bildet og navnet. Et visittkort som ser
+            ekte ut, oppdaget som uekte etterpå, koster mer tillit enn en tom
+            hylle gjør. */}
+        {actor.isDemo && (
+          <div className="rounded-xl border p-4 mb-8 text-sm" style={{ ...kant, background: 'var(--paper-raised)' }}>
+            <strong className="font-semibold">Eksempelprofil.</strong>{' '}
+            <span className="text-[var(--ink-soft,#4A443B)]">
+              {actor.name} er ikke en rettighetshaver du kan booke — dette er en visning av hvordan
+              et kort i banken ser ut, lagt ut mens vi rekrutterer de første.
+              {/* Et proveniensprodukt kan ikke vise et generert portrett som om
+                  det var et fotografi. Sies det derimot rett ut, demonstrerer
+                  kortet nettopp det produktet lover. */}
+              {actor.hasFace && ' Portrettene er generert fra ansiktsmodellen, ikke fotografier.'}
+            </span>
+          </div>
+        )}
+
         {/* Hovedbilde + navn */}
         <div className="text-center mb-10">
           {photos[0] && (
@@ -98,18 +115,35 @@ export default async function ActorPresentationPage({ params }: { params: Promis
           </div>
         )}
 
-        {/* Veien videre — et visittkort uten neste steg er en blindvei */}
-        <div className="rounded-xl border p-6 text-center" style={{ ...kant, background: 'var(--paper-raised)' }}>
-          <h2 className="font-semibold text-lg mb-1">Vil du bruke {actor.name.split(' ')[0]} i din produksjon?</h2>
-          <p className="text-sm text-[var(--ink-soft,#4A443B)] mb-4 max-w-md mx-auto">
-            Opprett en konto hos {tenant.app_name}, så ligger {actor.hasVoice ? 'stemmen' : 'ansiktet'} klar i verktøyet.
-            {' '}{actor.name.split(' ')[0]} får betalt for hver bruk, og alt føres i en hovedbok begge parter kan se.
-          </p>
-          <div className="flex gap-3 justify-center flex-wrap">
-            <Link href="/register" className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90">Opprett konto</Link>
-            <Link href="/stemmer" className="px-5 py-2.5 rounded-lg font-semibold border hover:border-[var(--ember-deep)]" style={kant}>Se flere</Link>
+        {/* Veien videre — et visittkort uten neste steg er en blindvei. På en
+            eksempelprofil peker steget mot REKRUTTERING, ikke mot salg: det er
+            det eneste ærlige neste steget så lenge ingen kan bookes. */}
+        {actor.isDemo ? (
+          <div className="rounded-xl border p-6 text-center" style={{ ...kant, background: 'var(--paper-raised)' }}>
+            <h2 className="font-semibold text-lg mb-1">Vil du være den første ekte stemmen i banken?</h2>
+            <p className="text-sm text-[var(--ink-soft,#4A443B)] mb-4 max-w-md mx-auto">
+              Slik ser kortet ditt ut. Prøvene dine ligger åpent, produsenter kan la stemmen lese
+              deres eget manus — og hver eneste bruk, også prøvelyttingen, føres i en hovedbok
+              du selv har innsyn i.
+            </p>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <Link href="/bli-stemme" className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90">Bli en stemme i banken</Link>
+              <Link href="/stemmer" className="px-5 py-2.5 rounded-lg font-semibold border hover:border-[var(--ember-deep)]" style={kant}>Tilbake til galleriet</Link>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-xl border p-6 text-center" style={{ ...kant, background: 'var(--paper-raised)' }}>
+            <h2 className="font-semibold text-lg mb-1">Vil du bruke {actor.name.split(' ')[0]} i din produksjon?</h2>
+            <p className="text-sm text-[var(--ink-soft,#4A443B)] mb-4 max-w-md mx-auto">
+              Opprett en konto hos {tenant.app_name}, så ligger {actor.hasVoice ? 'stemmen' : 'ansiktet'} klar i verktøyet.
+              {' '}{actor.name.split(' ')[0]} får betalt for hver bruk, og alt føres i en hovedbok begge parter kan se.
+            </p>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <Link href="/register" className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90">Opprett konto</Link>
+              <Link href="/stemmer" className="px-5 py-2.5 rounded-lg font-semibold border hover:border-[var(--ember-deep)]" style={kant}>Se flere</Link>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

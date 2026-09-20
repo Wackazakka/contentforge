@@ -10,6 +10,13 @@ import type { Tenant } from '@/lib/tenantServer'
 // med hele plattformen (is_exclusive = false). Et byrå ser altså sine egne og
 // forvalterens — aldri et annet byrås eksklusive.
 //
+// EKSEMPELPROFILER (is_demo) er unntaket: de står KUN i våre egne dører
+// (twinledger + rota), aldri hos en partner. En partner selger i sin egen
+// drakt, og skal ikke ha vårt demomateriale stående som om det var deres
+// portefølje. Flagget følger raden ut hit slik at hver flate kan merke den —
+// et kort som ser ut som en ekte bookbar person, på en side som lover ekte
+// mennesker, er nøyaktig det vi ikke skal lage.
+//
 // Hva som ALDRI sendes ut herfra: satser, kundepriser, e-post, ElevenLabs-id,
 // LoRA-id. Bare det skuespilleren selv har valgt å vise fram.
 //
@@ -31,15 +38,17 @@ export interface PublicActor {
   hasVoice: boolean
   hasFace: boolean
   managedBy: string
+  isDemo: boolean
 }
 
-const FELT = 'id, owner_tenant_id, name, bio, photo_urls, sample_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive'
+const FELT = 'id, owner_tenant_id, name, bio, photo_urls, sample_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo'
 
 type Rad = {
   id: string; owner_tenant_id: string; name: string; bio: string | null
   photo_urls: unknown; sample_urls: unknown; preview_url: string | null
   elevenlabs_voice_id: string | null; face_character_id: string | null
   is_public: boolean; is_active: boolean; is_exclusive: boolean | null
+  is_demo: boolean | null
 }
 
 async function kjedeOpp(tenantId: string): Promise<string[]> {
@@ -67,6 +76,7 @@ function tilPublic(a: Rad, tenantNames: Map<string, string>, fallbackName: strin
     hasVoice: !!(a.elevenlabs_voice_id && String(a.elevenlabs_voice_id).trim()),
     hasFace: !!(a.face_character_id && String(a.face_character_id).trim()),
     managedBy: tenantNames.get(a.owner_tenant_id) ?? fallbackName,
+    isDemo: a.is_demo === true,
   }
 }
 
@@ -79,8 +89,16 @@ async function navnFor(ids: string[]): Promise<Map<string, string>> {
   return m
 }
 
-function synligHer(a: Rad, chain: string[] | null): boolean {
+// Våre egne dører: TwinLedgers eget domene og rota. ROOT_TENANT har slug
+// 'centerforge', så begge formene av rota dekkes av sluggen alene — samme
+// avgrensning som produktsiden i app/twinledger/page.tsx bruker.
+function erEgenDor(tenant: Tenant): boolean {
+  return tenant.slug === 'twinledger' || tenant.slug === 'centerforge'
+}
+
+function synligHer(a: Rad, chain: string[] | null, egenDor: boolean): boolean {
   if (!a.is_public || !a.is_active) return false
+  if (a.is_demo === true && !egenDor) return false
   if (chain === null) return true // rot-domenet ser på tvers
   return chain.includes(a.owner_tenant_id) || a.is_exclusive === false
 }
@@ -92,9 +110,14 @@ export async function getPublicActors(tenant: Tenant): Promise<PublicActor[]> {
       .eq('is_public', true).eq('is_active', true)
       .order('name')
     const chain = tenant.id === 'root' ? null : await kjedeOpp(tenant.id)
-    const rader = ((data || []) as Rad[]).filter((a) => synligHer(a, chain))
+    const egenDor = erEgenDor(tenant)
+    const rader = ((data || []) as Rad[]).filter((a) => synligHer(a, chain, egenDor))
     const navn = await navnFor(rader.map((a) => a.owner_tenant_id))
-    return rader.map((a) => tilPublic(a, navn, tenant.app_name))
+    return rader
+      .map((a) => tilPublic(a, navn, tenant.app_name))
+      // Eksempler sist: så snart én ekte rettighetshaver er publisert, skal
+      // hen stå først i hylla — uten at noen må huske å rydde.
+      .sort((a, b) => Number(a.isDemo) - Number(b.isDemo))
   } catch {
     return []
   }
@@ -106,7 +129,7 @@ export async function getPublicActor(tenant: Tenant, actorId: string): Promise<P
     const a = data as Rad | null
     if (!a) return null
     const chain = tenant.id === 'root' ? null : await kjedeOpp(tenant.id)
-    if (!synligHer(a, chain)) return null
+    if (!synligHer(a, chain, erEgenDor(tenant))) return null
     const navn = await navnFor([a.owner_tenant_id])
     return tilPublic(a, navn, tenant.app_name)
   } catch {
