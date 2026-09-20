@@ -2,22 +2,27 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTenant } from '@/lib/tenantServer'
 
-// Norditechs egen dør inn til TwinLedger — produktsiden for partnere som vil
-// lisensiere rettighetsforvaltningen. Ikke en tenant: TwinLedger er et PRODUKT
-// Norditech selger, og Norditech har allerede sin selgerposisjon i rot-tenanten.
+// Norditechs egen dør inn til TwinLedger.
 //
-// Publikum er operatører — byråer, talentforvaltere, studioer — som forvalter
-// ANDRES stemme og ansikt. Derfor engelsk: markedsbeskyttelsen i
-// VoiceBank-avtalen dekker Norge, og denne døren peker mot alt utenfor.
+// SNUDD 20.09.2026: siden hadde ÉN dør, og den gikk til operatører («Become a
+// partner»). Men produsenten er sluttkunden — byråene er white-labels under
+// oss. Nå har siden to dører, og produsentens står først.
+//
+// Den var dessuten bare om STEMME, mens produktet dekker ansikt, film,
+// casting og audition. Og den påsto at «Norway is currently served through a
+// licensed partner» — det bortfalt da VoiceBank-avtaleutkastet ble lagt bort
+// samme dag.
+//
+// Engelsk med vilje: den peker mot et internasjonalt marked.
 //
 // Bruker husets tokens (--paper/--ink/--ember) slik at siden er et sosken av
 // Norditechs egen forside, ikke et fremmedelement. Hardkodet kopi, samme
 // monster som BombazaLanding og /for-deg.
 
 export const metadata = {
-  title: 'TwinLedger — the rights ledger for synthetic voices and faces',
+  title: 'TwinLedger — cleared voices and faces for film and advertising',
   description:
-    'Licence the infrastructure that records every use of a person’s voice or face, prices it, and settles it back to them. White-label, by Norditech.',
+    'Cast a real person and prove you were allowed to. Every use of a performer’s voice or face is logged against the agreement that permits it, and paid back to them.',
 }
 
 const MONO = 'var(--font-cfmono), ui-monospace, SFMono-Regular, Menlo, monospace'
@@ -85,20 +90,43 @@ export default async function TwinLedgerPage() {
 
       <hr className="tl-rule" />
 
-      {/* Hero */}
+      {/* Hero. Snudd 20.09.2026: produsenten er sluttkunden, og siden dekker
+          nå ansikt like mye som stemme. Den gamle overskriften var bare stemme,
+          og den eneste døra gikk til operatører. */}
       <section className="tl-band" style={{ paddingTop: 72, paddingBottom: 60 }}>
-        <p className="tl-eyebrow">Licensed infrastructure for voice and likeness rights</p>
+        <p className="tl-eyebrow">Cleared voices and faces for film, advertising and games</p>
         <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(34px, 5.2vw, 54px)', lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 22px', maxWidth: 820, textWrap: 'balance' }}>
-          Somebody&apos;s voice was used.<br />Somebody should be paid.
+          Cast a real person.<br />Prove you were allowed to.
         </h1>
         <p className="tl-p" style={{ fontSize: 19, maxWidth: '36em' }}>
-          TwinLedger records every use of a person&apos;s synthetic voice or face at the moment
-          it happens — who it belongs to, what the customer paid, and what is owed back. Run it
-          under your own brand.
+          TwinLedger is where a performer&apos;s voice and face are licensed. Every use is logged
+          against the agreement that permits it, and paid back to the person it belongs to — so
+          the clearance is a record, not a promise.
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 28 }}>
-          <Link href="/white-label" className="tl-cta">Become a partner</Link>
+          <Link href="/stemmer" className="tl-cta">See who is available</Link>
           <a href="#ledger" className="tl-ghost">See the ledger</a>
+        </div>
+      </section>
+
+      {/* For produsenten. Denne fantes ikke — siden hadde bare en dør, og den
+          gikk til operatører. */}
+      <section className="tl-band" style={{ paddingBottom: 72 }}>
+        <p className="tl-eyebrow">If you are casting</p>
+        <h2 className="tl-h2">Hear your own lines, in their voice, before you decide</h2>
+        <div className="tl-g3" style={{ marginTop: 26 }}>
+          <div className="tl-card">
+            <h3>Real people who said yes</h3>
+            <p>Every voice and face in the catalogue belongs to a person who agreed to it, on terms recorded at the moment they agreed.</p>
+          </div>
+          <div className="tl-card">
+            <h3>Audition on your own script</h3>
+            <p>Write one line, pick who reads it, and compare them side by side. Same scene, same framing — only the performer changes. They are paid for the audition.</p>
+          </div>
+          <div className="tl-card">
+            <h3>A licence, not a metered API</h3>
+            <p>Buy the right you actually need: medium, territory, term — or a one-off buyout bound to the work, for film and scripted television.</p>
+          </div>
         </div>
       </section>
 
@@ -107,8 +135,8 @@ export default async function TwinLedgerPage() {
         <p className="tl-eyebrow">The ledger</p>
         <h2 className="tl-h2">One use, one line, written as it happens</h2>
         <p className="tl-p" style={{ marginBottom: 26 }}>
-          Nobody reconstructs afterwards how many times a voice was used. It is in the book —
-          and that is why a performer can say yes without having to trust anyone.
+          Nobody reconstructs afterwards how many times a voice or a face was used. It is in the
+          book — and that is why a performer can say yes without having to trust anyone.
         </p>
         <div className="tl-frame">
           <table className="tl-table">
@@ -116,7 +144,7 @@ export default async function TwinLedgerPage() {
               <tr>
                 <th>Use</th>
                 <th>Asset</th>
-                <th>Sold by</th>
+                <th>Under</th>
                 <th className="tl-num">From customer</th>
                 <th className="tl-num">To rights holder</th>
               </tr>
@@ -125,21 +153,21 @@ export default async function TwinLedgerPage() {
               <tr>
                 <td>Radio spot</td>
                 <td>Voice</td>
-                <td>Agency A</td>
+                <td>Campaign, Norway, 6 mo</td>
                 <td className="tl-num">400.00</td>
                 <td className="tl-num tl-out">150.00</td>
               </tr>
               <tr>
-                <td>Property video</td>
-                <td>Voice</td>
-                <td>Agency B</td>
+                <td>Feature film</td>
+                <td>Voice and face</td>
+                <td>Work licence, perpetual</td>
                 <td className="tl-num">250.00</td>
                 <td className="tl-num tl-out">120.00</td>
               </tr>
               <tr>
                 <td>Campaign image</td>
                 <td>Face</td>
-                <td>Agency A</td>
+                <td>Campaign, Nordics, 12 mo</td>
                 <td className="tl-num">300.00</td>
                 <td className="tl-num tl-out">140.00</td>
               </tr>
@@ -147,7 +175,7 @@ export default async function TwinLedgerPage() {
           </table>
         </div>
         <p style={{ fontFamily: MONO, fontSize: 13, color: 'var(--text-faint)', marginTop: 12 }}>
-          Illustration. Rates are set by whoever holds the agreement with the rights holder.
+          Illustration. Every line points at the licence that permits it — that is what makes this a clearance record and not a usage meter.
         </p>
       </section>
 
@@ -209,12 +237,11 @@ export default async function TwinLedgerPage() {
       <section className="tl-band" style={{ paddingTop: 64, paddingBottom: 80 }}>
         <h2 className="tl-h2">Who this is for</h2>
         <p className="tl-p">
-          Agencies, talent managers and studios that commercialise other people&apos;s voice or
-          likeness and need to account for it — per use, per rights holder, in a form that
+          <strong style={{ fontWeight: 600 }}>Producers and casting directors</strong> who want a
+          performer they can actually clear — and <strong style={{ fontWeight: 600 }}>agencies,
+          talent managers and studios</strong> who commercialise other people&apos;s voice or
+          likeness and need to account for it: per use, per rights holder, in a form that
           survives an audit and a difficult conversation.
-        </p>
-        <p className="tl-p" style={{ fontSize: 15.5 }}>
-          Norway is currently served through a licensed partner. Other markets are open.
         </p>
         <div style={{ marginTop: 26 }}>
           <Link href="/white-label" className="tl-cta">Become a partner</Link>
