@@ -1593,7 +1593,8 @@
     "appearance_consent_text": "I state myself which roles my face can plausibly play, and consent to this being stored and used for casting. I understand that this counts as a special category of personal data, that it is my own assessment and not a classification of me, and that I can withdraw it at any time — upon which the values are deleted.",
     "appearance_hint": "If you do not tick this, nothing is stored in this field.",
     "err_age": "Playing age must be numbers, and from cannot be higher than to.",
-    "err_height": "Height must be between 50 and 260 cm."
+    "err_height": "Height must be between 50 and 260 cm.",
+    "meta_description": "Do you have a voice people listen to? Become a rights holder at {tenant}: you decide who may use your voice and face, every use is recorded in a ledger you can see, and you are paid every time."
   },
   "myLedger": {
     "meta_title": "Your ledger — {tenant}",

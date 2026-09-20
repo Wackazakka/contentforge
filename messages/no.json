@@ -1593,7 +1593,8 @@
     "appearance_consent_text": "Jeg oppgir selv hvilke roller ansiktet mitt plausibelt kan spille, og samtykker til at dette lagres og brukes til casting. Jeg vet at dette regnes som en særlig kategori personopplysninger, at det er min egen vurdering og ikke en klassifisering av meg, og at jeg når som helst kan trekke det tilbake — da slettes verdiene.",
     "appearance_hint": "Krysser du ikke av, lagres ingenting i dette feltet.",
     "err_age": "Spillealder må være tall, og fra kan ikke være høyere enn til.",
-    "err_height": "Høyde må være mellom 50 og 260 cm."
+    "err_height": "Høyde må være mellom 50 og 260 cm.",
+    "meta_description": "Har du en stemme folk hører på? Bli rettighetshaver hos {tenant}: du bestemmer hvem som får bruke stemmen og ansiktet ditt, hver bruk føres i en hovedbok du har innsyn i, og du får betalt hver gang."
   },
   "myLedger": {
     "meta_title": "Din hovedbok — {tenant}",

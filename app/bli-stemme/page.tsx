@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server'
-import { getTenant } from '@/lib/tenantServer'
+import { getTenant, getTenantCanonicalOrigin } from '@/lib/tenantServer'
 import ApplyForm from './ApplyForm'
 
 // «Bli en stemme i banken» — offentlig drop-in-inngang for skuespillere.
@@ -9,9 +9,22 @@ import ApplyForm from './ApplyForm'
 export async function generateMetadata() {
   const tenant = await getTenant()
   const t = await getTranslations('apply')
+  // ÅPNET FOR INDEKSERING 21.09.2026 (Lars). Sto som «deles som lenke, ikke
+  // søkeside» — men rekruttering er nettopp det denne sida er til for, og en
+  // skuespiller som googler «leie ut stemmen min» skal kunne finne den.
+  //
+  // 🔑 MEN BARE NÅR DØRA FAKTISK ER ÅPEN. Er accept_actor_applications av,
+  // viser sida «vi tar ikke imot søknader nå» — og et søkeresultat som fører
+  // til et avslag er verre enn ingen treff. Da skal den ikke indekseres.
+  const aapen = tenant.id !== 'root' && tenant.accept_actor_applications === true
+  const kanIndekseres = aapen && tenant.allow_indexing === true
   return {
     title: t('meta_title', { tenant: tenant.app_name }),
-    robots: { index: false, follow: false }, // deles som lenke, ikke søkeside
+    description: t('meta_description', { tenant: tenant.app_name }),
+    ...(kanIndekseres
+      ? { alternates: { canonical: `${await getTenantCanonicalOrigin(tenant)}/bli-stemme` } }
+      : {}),
+    robots: kanIndekseres ? { index: true, follow: true } : { index: false, follow: false },
   }
 }
 

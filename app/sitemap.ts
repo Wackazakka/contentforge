@@ -40,6 +40,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Katalogen og kortene finnes bare på tjenester med rettighetsforvaltning.
   if (tenant.twinledger_enabled !== false) {
     sider.push({ url: `${origin}/stemmer`, lastModified: naa, changeFrequency: 'daily', priority: 0.9 })
+    // Rekrutteringssida — men bare når døra faktisk er åpen. Er den lukket,
+    // viser den et avslag, og et søketreff som fører dit er verre enn ingen.
+    if (tenant.accept_actor_applications === true) {
+      sider.push({ url: `${origin}/bli-stemme`, lastModified: naa, changeFrequency: 'monthly', priority: 0.7 })
+    }
     try {
       const actors = await getPublicActors(tenant)
       for (const a of actors) {
