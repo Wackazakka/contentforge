@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { getSupabase } from '@/lib/supabaseClient'
+import { useAuth } from '@/lib/authContext'
 
 // Audition: samme scene, samme replikk, ulike skuespillere.
 //
@@ -32,6 +32,9 @@ const STEG: Record<string, string> = {
 }
 
 export default function AuditionPage() {
+  // Auth-konteksten, ikke getSession() direkte: ved foerste rendring er
+  // sesjonen ikke hydrert ennaa, og et kall da ser ut som «ikke innlogget».
+  const { session, loading: authLoading } = useAuth()
   const [kandidater, setKandidater] = useState<Kandidat[]>([])
   const [prisPerTake, setPrisPerTake] = useState(0)
   const [valgte, setValgte] = useState<string[]>([])
@@ -47,13 +50,15 @@ export default function AuditionPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const token = async () => {
-    const { data } = await getSupabase().auth.getSession()
-    const t = data?.session?.access_token
+    const t = session?.access_token
     if (!t) throw new Error('Ikke innlogget')
     return t
   }
 
   useEffect(() => {
+    // Vent til sesjonen er avklart. Uten dette kjoerer foerste hent foer
+    // hydreringen og feiler med «Ikke innlogget» selv naar man ER innlogget.
+    if (authLoading || !session) return
     ;(async () => {
       try {
         const res = await fetch('/api/auditions', { headers: { Authorization: `Bearer ${await token()}` } })
@@ -65,7 +70,8 @@ export default function AuditionPage() {
         setError(e instanceof Error ? e.message : 'Ukjent feil')
       }
     })()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, session])
 
   const poll = useCallback(async (id: string) => {
     try {
@@ -116,7 +122,23 @@ export default function AuditionPage() {
 
         {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-        {!auditionId && (
+        {/* Utlogget er en TILSTAND, ikke en feil. En rød boks som sier «Ikke
+            innlogget» ser ut som noe er i stuss; en lenke sier hva man gjør. */}
+        {!authLoading && !session && (
+          <div className="rounded-xl border p-6" style={{ background: 'var(--paper-raised)', borderColor: 'var(--ds-border, #E2D9C8)' }}>
+            <h2 className="font-semibold text-lg mb-1">Logg inn for å kjøre en audition</h2>
+            <p className="text-sm text-[var(--ink-soft,#4A443B)] mb-4 max-w-md">
+              Auditions koster penger og betaler skuespillerne, så de føres på en konto.
+            </p>
+            <Link href="/login" className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 inline-block">
+              Logg inn
+            </Link>
+          </div>
+        )}
+
+        {authLoading && <p className="text-sm text-[var(--text-muted,#6B6358)]">Laster …</p>}
+
+        {!authLoading && session && !auditionId && (
           <div className="rounded-xl border p-6 mb-8" style={{ background: 'var(--paper-raised)', borderColor: 'var(--ds-border, #E2D9C8)' }}>
             <label className="block text-sm font-medium mb-1">Replikken</label>
             <textarea value={line} onChange={(e) => setLine(e.target.value)} rows={2}
