@@ -14,13 +14,29 @@ interface Usage { id: number; at: string; kind: string; chars: number | null; as
 interface Actor {
   id: string; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
   defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
-  uses: number; earnedNok: number; paidNok: number; dueNok: number
-  payouts: Payout[]; events: Usage[]
+  uses: number; earnedNok: number; meterNok: number; licenceNok: number; paidNok: number; dueNok: number
+  payouts: Payout[]; events: Usage[]; licences: Licence[]
+}
+
+interface Fradrag { label: string; pct: number | null; amountNok: number }
+interface Steg { trigger: string; label: string | null; status: string; toYouNok: number }
+interface Licence {
+  id: string; kind: 'campaign' | 'work'; assetType: string; status: string
+  workTitle: string | null; productionTier: string | null; roleScope: string | null
+  mediaClass: string | null; territory: string | null
+  termStart: string | null; termEnd: string | null; exclusivity: string
+  grossNok: number; deductions: Fradrag[]; netNok: number; steps: Steg[]
 }
 
 const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('nb-NO')} kr`
 const dato = (s: string) => new Date(s).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' })
 const KIND: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt', preview: 'Prøvelytt', ukjent: 'Annet' }
+const MEDIA_T: Record<string, string> = { internal: 'Intern bruk', online: 'Online og sosialt', broadcast: 'Kringkasting og utendørs' }
+const TERR_T: Record<string, string> = { no: 'Norge', nordic: 'Norden', world: 'Verden' }
+const TIER_T: Record<string, string> = { short: 'Kortfilm / lavbudsjett', national: 'Norsk spillefilm eller serie', major: 'Stor produksjon', international: 'Internasjonal produksjon' }
+const ROLE_T: Record<string, string> = { line: 'Enkeltreplikk', supporting: 'Birolle', lead: 'Hovedrolle' }
+const LIC_STATUS: Record<string, string> = { quote: 'Tilbud', active: 'Aktiv', expired: 'Utløpt' }
+const STEG_T: Record<string, string> = { theatrical_release: 'Kinopremiere', international_sale: 'Internasjonalt salg', streamer_pickup: 'Strømmepickup', custom: 'Annet' }
 
 export default function MinStemmeClient({ appName }: { appName: string }) {
   const { session, loading: authLoading, signOut } = useAuth()
@@ -125,6 +141,69 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 </div>
               ))}
             </div>
+            {/* De to leddene betyr helt ulike ting: måleren er småpenger per
+                generering, lisensen er honoraret. Slått sammen i ett tall ville
+                de store pengene vært usynlige. */}
+            {a.licenceNok > 0 && (
+              <p className="text-sm text-gray-500 -mt-6 mb-8">
+                Av det opptjente er <strong className="text-[var(--ink,#1C1A16)]">{nok(a.licenceNok)}</strong> lisenser (bruksrett)
+                og <strong className="text-[var(--ink,#1C1A16)]">{nok(a.meterNok)}</strong> betaling per gang stemmen er brukt.
+              </p>
+            )}
+
+            {/* Lisensene — bruksretten. For en filmavtale er det HER honoraret
+                ligger; måleren under er småpenger per generering. Rettighets-
+                haveren får se omfanget (man kan ikke ha samtykket til en film
+                uten å vite hvilken) og sin egen side av pengene, inkludert
+                fradrag som tas AV honoraret. */}
+            {(a.licences || []).length > 0 && (
+              <>
+                <h2 className="font-semibold mb-2">Lisenser — hva stemmen din er klarert til</h2>
+                <div className="space-y-3 mb-8">
+                  {a.licences.map((l) => {
+                    const omfang = l.kind === 'campaign'
+                      ? [MEDIA_T[l.mediaClass || ''], TERR_T[l.territory || ''],
+                         l.termEnd ? `til ${dato(l.termEnd)}` : 'uten sluttdato',
+                         l.exclusivity === 'category' ? 'kategori-eksklusivt' : l.exclusivity === 'full' ? 'full buyout' : null]
+                      : [TIER_T[l.productionTier || ''], ROLE_T[l.roleScope || ''], 'evig, bundet til verket']
+                    return (
+                      <div key={l.id} className="bg-[var(--paper-raised,#fff)] rounded-lg border border-gray-200 p-4 text-sm">
+                        <div className="flex items-start justify-between gap-4 flex-wrap">
+                          <div>
+                            <div className="font-medium">
+                              {l.kind === 'work' ? (l.workTitle || 'Verk') : 'Kampanje'}
+                              <span className="ml-2 text-xs font-normal text-gray-500">{LIC_STATUS[l.status] || l.status}</span>
+                            </div>
+                            <div className="text-gray-600 mt-0.5">{omfang.filter(Boolean).join(' · ')}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold">{nok(l.netNok)}</div>
+                            <div className="text-xs text-gray-500">til deg</div>
+                          </div>
+                        </div>
+                        {l.deductions.length > 0 && (
+                          <div className="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-600">
+                            <span className="text-gray-500">Av honoraret ({nok(l.grossNok)}) er trukket: </span>
+                            {l.deductions.map((d, i) => (
+                              <span key={i}>{i > 0 && ', '}{d.label}{d.pct != null ? ` ${d.pct} %` : ''} — {nok(d.amountNok)}</span>
+                            ))}
+                          </div>
+                        )}
+                        {l.steps.length > 0 && (
+                          <div className="mt-2 text-xs text-gray-600">
+                            <span className="text-gray-500">Etterbetaling hvis det skjer: </span>
+                            {l.steps.map((s, i) => (
+                              <span key={i}>{i > 0 && ', '}{s.label || STEG_T[s.trigger] || s.trigger} — {nok(s.toYouNok)}
+                                {s.status !== 'pending' && ` (${s.status})`}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
 
             {/* Satser — bare rettighetshaverens egen side */}
             <h2 className="font-semibold mb-2">Det du får per bruk</h2>

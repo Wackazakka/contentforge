@@ -101,6 +101,27 @@ export async function GET(request: Request) {
       const events = ev.data || []
       await nameOf([a.owner_tenant_id as string, ...events.map((e) => e.used_by_tenant_id as string)])
 
+      // Lisensene rettighetshaveren er bundet av. Hen får se OMFANGET — man kan
+      // ikke ha samtykket til en film uten å vite hvilken — og sin egen side av
+      // pengene, inkludert fradrag som tas AV honoraret (agent/manager). Ikke
+      // kundeprisen og ikke kundens navn: byråets forhold, som ellers i
+      // /min-stemme.
+      const { data: lics } = await supabase
+        .from('licences')
+        .select('id, kind, asset_type, status, media_class, territory, term_start, term_end, exclusivity, work_title, production_tier, role_scope, fee_actor_nok, created_at')
+        .eq('actor_id', a.id)
+        .in('status', ['quote', 'active', 'expired'])
+        .order('created_at', { ascending: false })
+      const licIds = (lics || []).map((l) => l.id as string)
+      const [{ data: splits }, { data: steps }] = await Promise.all([
+        licIds.length
+          ? supabase.from('licence_splits').select('licence_id, party_type, party_label, basis, pct, amount_nok').in('licence_id', licIds)
+          : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        licIds.length
+          ? supabase.from('licence_steps').select('licence_id, trigger_kind, label, status, actor_nok').in('licence_id', licIds)
+          : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+      ])
+
       // Kun rettighetshaverens egen side av taksten — aldri kundeprisen.
       const rates: Record<string, number> = {}
       const r = (a.rates || {}) as Record<string, { actor_rate_nok?: number }>
@@ -122,9 +143,48 @@ export async function GET(request: Request) {
         managedBy: tenantNames.get(a.owner_tenant_id as string) ?? tenant.app_name,
         uses: settlement.uses,
         earnedNok: settlement.earnedNok,
+        // Delt opp, fordi de to leddene betyr helt ulike ting for den som eier
+        // stemmen: måleren er småpenger per bruk, lisensen er honoraret.
+        meterNok: settlement.meterNok,
+        licenceNok: settlement.licenceNok,
         paidNok: settlement.paidNok,
         dueNok: settlement.dueNok,
         payouts: settlement.payouts,
+        licences: (lics || []).map((l) => {
+          const fradrag = (splits || [])
+            .filter((s) => s.licence_id === l.id && s.basis === 'actor_fee')
+            .map((s) => ({
+              label: (s.party_label as string) || (s.party_type as string),
+              pct: s.pct != null ? Number(s.pct) : null,
+              amountNok: Number(s.amount_nok),
+            }))
+          const brutto = Number(l.fee_actor_nok)
+          return {
+            id: l.id,
+            kind: l.kind,
+            assetType: l.asset_type,
+            status: l.status,
+            workTitle: l.work_title,
+            productionTier: l.production_tier,
+            roleScope: l.role_scope,
+            mediaClass: l.media_class,
+            territory: l.territory,
+            termStart: l.term_start,
+            termEnd: l.term_end,
+            exclusivity: l.exclusivity,
+            grossNok: brutto,
+            deductions: fradrag,
+            netNok: Math.round((brutto - fradrag.reduce((s, f) => s + f.amountNok, 0)) * 100) / 100,
+            steps: (steps || [])
+              .filter((s) => s.licence_id === l.id)
+              .map((s) => ({
+                trigger: s.trigger_kind,
+                label: s.label,
+                status: s.status,
+                toYouNok: Number(s.actor_nok),
+              })),
+          }
+        }),
         events: events.map((e) => ({
           id: e.id,
           at: e.created_at,

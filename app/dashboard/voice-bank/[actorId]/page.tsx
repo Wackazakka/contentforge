@@ -436,6 +436,21 @@ export default function VoiceActorPage() {
               </div>
             </div>
 
+            {/* Lisenser — klareringen, ved siden av forbruksmåleren over */}
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-5 mb-8 flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <div className="font-medium text-gray-900 text-sm">Lisenser</div>
+                <p className="text-xs text-gray-500 mt-0.5 max-w-xl">
+                  Bruksretten — medium, territorium, periode for kampanjer; verkstittel og rolleomfang for film og serie.
+                  Takstene over dekker generering; lisensen er honoraret.
+                </p>
+              </div>
+              <Link href={`/dashboard/voice-bank/${actorId}/lisenser`}
+                className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                Åpne lisenser
+              </Link>
+            </div>
+
             {/* Presentasjonsside */}
             <h2 className="font-semibold text-gray-900 mb-3">Presentasjonsside</h2>
             <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
