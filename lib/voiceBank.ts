@@ -80,6 +80,13 @@ export async function isTenantAdmin(email: string | null | undefined, tenantId: 
 // Stemmer tilgjengelige for en tenant = aktive stemmer eid av tenanten selv
 // eller noen av dens forfedre (banken «arves» nedover i treet) — pluss
 // IKKE-eksklusive stemmer fra resten av plattformen (eieren har valgt å dele).
+//
+// 🔑 DEMORADER HOLDES UTE (Lars 20.09.2026). En kunde skal ikke kunne velge en
+// oppdiktet testperson — eller en lånt bibliotekstemme eid av en fremmed —
+// inn i en ekte produksjon. Filteret ligger HER og ikke i katalogsiden, fordi
+// denne funksjonen mater både editoren, kundekatalogen og gatewayen; legges
+// regelen bare i UI-et, er de to andre veiene fortsatt åpne.
+// (Audition bruker sin egen spørring og ser demoradene med vilje.)
 export async function getAvailableVoiceActors(tenantId: string): Promise<VoiceActor[]> {
   try {
     const chain = await tenantChainUp(tenantId)
@@ -88,6 +95,7 @@ export async function getAvailableVoiceActors(tenantId: string): Promise<VoiceAc
       .from('voice_actors')
       .select('*')
       .eq('is_active', true)
+      .eq('is_demo', false)
       .or(`owner_tenant_id.in.(${chain.join(',')}),is_exclusive.eq.false,library_enabled.eq.true`)
       .order('name')
     if (!error) return (data || []) as VoiceActor[]

@@ -1,19 +1,20 @@
 {
   "nav": {
     "overview": "Oversikt",
-    "voices": "Stemmer",
+    "voices": "Medvirkende",
     "publish": "Publiser",
     "calendar": "Kalender",
     "billing": "Fakturering",
     "logout": "Logg ut",
     "credits": "{count} kreditter",
-    "voicebank": "Stemme- og ansiktsbank",
+    "voicebank": "Rettighetshavere",
     "buy_credits": "Kreditter",
     "partners": "Partnere",
     "apikeys": "API-nøkler",
     "markup": "Påslag",
     "settlement": "Avregning",
-    "myledger": "Min hovedbok"
+    "myledger": "Min hovedbok",
+    "audition": "Audition"
   },
   "home": {
     "nav_pricing": "Priser",

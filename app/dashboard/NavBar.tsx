@@ -46,10 +46,16 @@ export default function NavBar() {
   // Invoice-tenants (white-label via partner) skal ikke se CenterForge-priser/billing
   const produksjon: NavLink[] = [
     { href: '/dashboard', label: t('overview') },
-    // Kundens katalog over skuespillerstemmer og ansikter (Lars 17/9). Kun der
+    // Kundens katalog over medvirkende (Lars 17/9, omdøpt 20/9). Kun der
     // rettighetsforvaltningen er på, og ikke i enkel modus (Standard Ropert).
-    // Heter «Stemmer» — tydelig noe annet enn admin-fanen «Stemme- og ansiktsbank».
-    ...(enkel || tenant.twinledger_enabled === false ? [] : [{ href: '/dashboard/stemmer', label: t('voices') }]),
+    // Het «Stemmer», men inneholder BÅDE stemmer og ansikter — og navnet var
+    // dessuten valgt for å unngå forveksling med admin-fanen, ikke for å
+    // beskrive innholdet. «Medvirkende» sier hva det er.
+    ...(enkel || tenant.twinledger_enabled === false ? [] : [
+      { href: '/dashboard/stemmer', label: t('voices') },
+      // Audition hørte hjemme her fra dagen den ble bygget; den manglet i menyen.
+      { href: '/audition', label: t('audition') },
+    ]),
     ...(enkel || !publisering ? [] : [
       { href: '/dashboard/publish', label: t('publish') },
       { href: '/dashboard/calendar', label: t('calendar') },

@@ -1,19 +1,20 @@
 {
   "nav": {
     "overview": "Overview",
-    "voices": "Voices",
+    "voices": "Cast",
     "publish": "Publish",
     "calendar": "Calendar",
     "billing": "Billing",
     "logout": "Log out",
     "credits": "{count} credits",
-    "voicebank": "Voice & face bank",
+    "voicebank": "Rights holders",
     "buy_credits": "Credits",
     "partners": "Partners",
     "apikeys": "API keys",
     "markup": "Markup",
     "settlement": "Settlement",
-    "myledger": "My ledger"
+    "myledger": "My ledger",
+    "audition": "Audition"
   },
   "home": {
     "nav_pricing": "Pricing",
