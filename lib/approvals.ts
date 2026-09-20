@@ -136,13 +136,20 @@ export async function logApprovedDelivery(row: {
   try {
     const supabase = admin()
     const apiKeyId = row.api_key_id ?? null
+    // Hjemmelen slås opp ved LEVERING, ikke da godkjenningen ble opprettet:
+    // det er leveringen som er bruken, og en avtale kan ha kommet i mellomtiden.
+    const { finnLisensFor } = await import('@/lib/licenceMatch')
+    const hjemmel = await finnLisensFor({
+      actorId: row.actor_id, organizationId: row.organization_id, assetType: row.asset_type,
+    })
     await supabase.from('voice_usage_events').insert({
       actor_id: row.actor_id,
       used_by_tenant_id: row.tenant_id,
+      licence_id: hjemmel.licenceId,
       actor_rate_nok: row.actor_rate_nok,
       customer_price_nok: row.customer_price_nok,
       asset_type: row.asset_type,
-      meta: { kind: row.kind, source: 'gateway', organization_id: row.organization_id, api_key_id: apiKeyId, approved: true },
+      meta: { kind: row.kind, source: 'gateway', organization_id: row.organization_id, api_key_id: apiKeyId, approved: true, licence_match: hjemmel.match },
     })
     const pf = await chainFactorByTenantId(row.tenant_id)
     await supabase.from('usage_events').insert({

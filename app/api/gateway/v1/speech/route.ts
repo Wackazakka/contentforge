@@ -97,15 +97,20 @@ export async function POST(request: Request) {
     }
 
     // Royalty-hendelse i samme hovedbok (frosne satser, merket som gateway-bruk)
+    const { finnLisensFor } = await import('@/lib/licenceMatch')
+    const hjemmel = await finnLisensFor({
+      actorId: actor.id, organizationId: auth.organizationId, assetType: 'voice',
+    })
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: auth.tenantId,
+      licence_id: hjemmel.licenceId,
       actor_rate_nok: rate,
       customer_price_nok: price,
       asset_type: 'voice',
       // api_key_id: hvilken av kundens nøkler som ble brukt — organisasjonen alene
       // skiller dem ikke når en kunde har flere.
-      meta: { kind: 'speech', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, chars: text.length },
+      meta: { kind: 'speech', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, chars: text.length, licence_match: hjemmel.match },
     })
 
     // Meter kundens forbruk (trekker forskuddssaldoen) — separat fra royalty-loggen,

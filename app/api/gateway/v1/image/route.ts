@@ -71,13 +71,18 @@ export async function POST(request: Request) {
     }
 
     // Royalty-hendelse (frosne face-satser, merket gateway-bruk)
+    const { finnLisensFor } = await import('@/lib/licenceMatch')
+    const hjemmel = await finnLisensFor({
+      actorId: actor.id, organizationId: auth.organizationId, assetType: 'face',
+    })
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: auth.tenantId,
+      licence_id: hjemmel.licenceId,
       actor_rate_nok: rate,
       customer_price_nok: price,
       asset_type: 'face',
-      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId },
+      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, licence_match: hjemmel.match },
     })
 
     // Meter kundens forbruk (trekker forskuddssaldoen)

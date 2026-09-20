@@ -93,7 +93,7 @@ export async function GET(request: Request) {
         actorSettlement(a.id),
         supabase
           .from('voice_usage_events')
-          .select('id, used_by_tenant_id, actor_rate_nok, meta, asset_type, created_at')
+          .select('id, used_by_tenant_id, actor_rate_nok, meta, asset_type, created_at, licence_id')
           .eq('actor_id', a.id)
           .order('created_at', { ascending: false })
           .limit(200),
@@ -193,6 +193,16 @@ export async function GET(request: Request) {
           assetType: e.asset_type || 'voice',
           usedBy: tenantNames.get(e.used_by_tenant_id as string) ?? 'Ukjent',
           toYouNok: Number(e.actor_rate_nok),
+          // Hjemmelen: hvilken avtale denne ene genereringen skjedde under.
+          // Det er dette leddet som gjør hovedboken til et klareringsregister.
+          licenceId: (e.licence_id as string) ?? null,
+          licenceLabel: e.licence_id
+            ? (() => {
+                const l = (lics || []).find((x) => x.id === e.licence_id)
+                if (!l) return null
+                return l.kind === 'work' ? (l.work_title as string) : 'Kampanje'
+              })()
+            : null,
         })),
       })
     }

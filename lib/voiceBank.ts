@@ -178,7 +178,10 @@ export async function logPreviewRoyalty(e: {
       actor_rate_nok: actorNok,
       customer_price_nok: customerNok,
       asset_type: 'voice',
-      meta: { kind: 'preview', chars: e.chars, ...(e.meta ?? {}) },
+      // BEVISST uten licence_id: prøvelytt er utforskning FØR en avtale
+      // finnes. Å kreve hjemmel her ville gjort det umulig å vurdere en
+      // stemme uten først å inngå lisens — og iterasjon skal være billig.
+      meta: { kind: 'preview', chars: e.chars, licence_match: 'preview', ...(e.meta ?? {}) },
     })
     return { actorNok, customerNok }
   } catch {
@@ -208,9 +211,14 @@ export async function logFaceUsage(e: {
     const actor = available.find((a) => (a as { face_character_id?: string | null }).face_character_id === e.characterId) as VoiceActor | undefined
     if (!actor) return
     const { rate, price } = ratesForKind(actor, 'face')
+    const { finnLisensFor } = await import('@/lib/licenceMatch')
+    const hjemmel = await finnLisensFor({
+      actorId: actor.id, organizationId: e.organizationId, assetType: 'face',
+    })
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
+      licence_id: hjemmel.licenceId,
       // Kunden fryses PÅ raden. product_id alene duger ikke: slettes produktet,
       // ryker sporet til hvem som betalte, mens beløpene blir stående.
       organization_id: e.organizationId ?? null,
@@ -220,7 +228,9 @@ export async function logFaceUsage(e: {
       actor_rate_nok: rate,
       customer_price_nok: price,
       asset_type: 'face',
-      meta: { kind: 'face' },
+      // licence_match lagres selv når ingen hjemmel ble funnet: da er hullet
+      // revisjonerbart («ingen avtale» vs «flere avtale-kandidater»).
+      meta: { kind: 'face', licence_match: hjemmel.match },
     })
     console.log(`[voiceBank] Ansikts-royalty: ${actor.name} brukt av tenant ${e.usedByTenantId}`)
   } catch (err) {
@@ -249,9 +259,15 @@ export async function logVoiceUsage(e: {
     if (!actor) return
     // Takst etter brukstype (meta.kind) — fryses på raden
     const { rate, price } = ratesForKind(actor, typeof e.meta?.kind === 'string' ? e.meta.kind : null)
+    const { finnLisensFor } = await import('@/lib/licenceMatch')
+    const hjemmel = await finnLisensFor({
+      actorId: actor.id, organizationId: e.organizationId, assetType: 'voice',
+      licenceId: typeof e.meta?.licence_id === 'string' ? e.meta.licence_id : null,
+    })
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
+      licence_id: hjemmel.licenceId,
       // Kunden fryses PÅ raden. product_id alene duger ikke: slettes produktet,
       // ryker sporet til hvem som betalte, mens beløpene blir stående.
       organization_id: e.organizationId ?? null,
@@ -260,9 +276,9 @@ export async function logVoiceUsage(e: {
       job_id: e.jobId ?? null,
       actor_rate_nok: rate,
       customer_price_nok: price,
-      meta: e.meta ?? {},
+      meta: { ...(e.meta ?? {}), licence_match: hjemmel.match },
     })
-    console.log(`[voiceBank] Royalty-hendelse: ${actor.name} brukt av tenant ${e.usedByTenantId}`)
+    console.log(`[voiceBank] Royalty-hendelse: ${actor.name} brukt av tenant ${e.usedByTenantId} (hjemmel: ${hjemmel.match})`)
   } catch (err) {
     console.warn('[voiceBank] logging feilet (ignoreres):', err)
   }

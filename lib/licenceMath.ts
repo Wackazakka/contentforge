@@ -34,6 +34,22 @@ export interface Fordeling {
 }
 
 /**
+ * Gjelder lisensen på denne datoen? Alle tre som ISO-datoer (YYYY-MM-DD), som
+ * sammenlignes leksikalsk — riktig for det formatet, og uten tidssone-feller.
+ *
+ * null i en ende = ingen grense (evigvarende verk, eller kampanje-buyout).
+ *
+ * 🔑 Grensene er INKLUSIVE: en lisens som utløper i dag gjelder fortsatt i
+ * dag. Den motsatte tolkningen ville gjort siste døgn av hver avtale til en
+ * stille klareringsbrist.
+ */
+export function dekkerPerioden(start: string | null, slutt: string | null, dag: string): boolean {
+  if (start && start > dag) return false
+  if (slutt && slutt < dag) return false
+  return true
+}
+
+/**
  * 🔑 TO BEREGNINGSGRUNNLAG (Lars 20.09.2026).
  *
  * Kutt av KUNDEPRISEN — infrastrukturavgift, byråets margin.

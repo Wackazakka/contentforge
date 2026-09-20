@@ -10,7 +10,7 @@ import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 // Kundepris og kundenavn sendes ikke fra serveren, og vises derfor ikke.
 
 interface Payout { id: string; periode_fra: string; periode_til: string; amount_nok: number; betalt_dato: string; note: string | null }
-interface Usage { id: number; at: string; kind: string; chars: number | null; assetType: string; usedBy: string; toYouNok: number }
+interface Usage { id: number; at: string; kind: string; chars: number | null; assetType: string; usedBy: string; toYouNok: number; licenceId: string | null; licenceLabel: string | null }
 interface Actor {
   id: string; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
   defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
@@ -255,13 +255,20 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
               <div className="bg-[var(--paper-raised,#fff)] rounded-lg border border-gray-200 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="text-left text-xs text-gray-500 border-b border-gray-200">
-                    <th className="px-4 py-2">Når</th><th className="px-4 py-2">Hva</th><th className="px-4 py-2">Brukt av</th><th className="px-4 py-2 text-right">Til deg</th>
+                    <th className="px-4 py-2">Når</th><th className="px-4 py-2">Hva</th><th className="px-4 py-2">Under hvilken avtale</th><th className="px-4 py-2">Brukt av</th><th className="px-4 py-2 text-right">Til deg</th>
                   </tr></thead>
                   <tbody>
                     {a.events.map((e) => (
                       <tr key={e.id} className="border-b border-gray-100 last:border-0">
                         <td className="px-4 py-2 whitespace-nowrap text-gray-600">{dato(e.at)}</td>
                         <td className="px-4 py-2">{KIND[e.kind] || e.kind}{e.kind === 'preview' && e.chars ? <span className="text-gray-400"> · {e.chars} tegn</span> : null}</td>
+                        {/* Hjemmelen. Prøvelytt har ingen med vilje — det er
+                            utforskning før en avtale finnes. */}
+                        <td className="px-4 py-2 text-gray-600">
+                          {e.licenceLabel
+                            ? e.licenceLabel
+                            : <span className="text-gray-400">{e.kind === 'preview' ? 'prøvelytt' : '—'}</span>}
+                        </td>
                         <td className="px-4 py-2">{e.usedBy}</td>
                         <td className="px-4 py-2 text-right font-medium tabular-nums">{nok(e.toYouNok)}</td>
                       </tr>
