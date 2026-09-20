@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import { getTenant } from '@/lib/tenantServer'
 import ApplyForm from './ApplyForm'
 
@@ -7,14 +8,16 @@ import ApplyForm from './ApplyForm'
 
 export async function generateMetadata() {
   const tenant = await getTenant()
+  const t = await getTranslations('apply')
   return {
-    title: `Bli en stemme hos ${tenant.app_name}`,
+    title: t('meta_title', { tenant: tenant.app_name }),
     robots: { index: false, follow: false }, // deles som lenke, ikke søkeside
   }
 }
 
 export default async function BliStemmePage() {
   const tenant = await getTenant()
+  const t = await getTranslations('apply')
   const open = tenant.id !== 'root' && tenant.accept_actor_applications === true
 
   if (!open) {
@@ -22,10 +25,10 @@ export default async function BliStemmePage() {
       <div className="min-h-screen bg-[var(--paper)] flex items-center justify-center px-6">
         <div className="max-w-md text-center">
           <h1 className="text-2xl font-bold text-[var(--ink,#1C1A16)] mb-3">
-            {tenant.app_name} tar ikke imot åpne søknader nå
+            {t('closed_title', { tenant: tenant.app_name })}
           </h1>
           <p className="text-sm text-gray-600">
-            Ta gjerne kontakt direkte hvis du vil tilby stemmen din.
+            {t('closed_body')}
           </p>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import { getTenant } from '@/lib/tenantServer'
 import MinStemmeClient from './MinStemmeClient'
 
@@ -10,8 +11,9 @@ import MinStemmeClient from './MinStemmeClient'
 
 export async function generateMetadata() {
   const tenant = await getTenant()
+  const t = await getTranslations('myLedger')
   return {
-    title: `Din hovedbok — ${tenant.app_name}`,
+    title: t('meta_title', { tenant: tenant.app_name }),
     robots: { index: false, follow: false },
   }
 }

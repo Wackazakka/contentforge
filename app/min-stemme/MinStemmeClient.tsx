@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations, useLocale } from 'next-intl'
 import { useAuth } from '@/lib/authContext'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 
@@ -32,17 +33,19 @@ interface Licence {
 }
 interface Avregning { periodStart: string; periodEnd: string; source: string | null; basisNok: number; pct: number; toYouNok: number }
 
-const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('nb-NO')} kr`
-const dato = (s: string) => new Date(s).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' })
-const KIND: Record<string, string> = { video: 'Video', avatar: 'Avatar', radio: 'Radio', face: 'Ansikt', preview: 'Prøvelytt', ukjent: 'Annet' }
-const MEDIA_T: Record<string, string> = { internal: 'Intern bruk', online: 'Online og sosialt', broadcast: 'Kringkasting og utendørs' }
-const TERR_T: Record<string, string> = { no: 'Norge', nordic: 'Norden', world: 'Verden' }
-const TIER_T: Record<string, string> = { short: 'Kortfilm / lavbudsjett', national: 'Norsk spillefilm eller serie', major: 'Stor produksjon', international: 'Internasjonal produksjon' }
-const ROLE_T: Record<string, string> = { line: 'Enkeltreplikk', supporting: 'Birolle', lead: 'Hovedrolle' }
-const LIC_STATUS: Record<string, string> = { quote: 'Tilbud', active: 'Aktiv', expired: 'Utløpt' }
-const STEG_T: Record<string, string> = { theatrical_release: 'Kinopremiere', international_sale: 'Internasjonalt salg', streamer_pickup: 'Strømmepickup', custom: 'Annet' }
+// Beløp og datoer er språkavhengige: 1 234,50 kr på norsk, 1,234.50 kr på
+// engelsk. Valutaen er NOK uansett språk — det er kroner som utbetales.
+const BCP47: Record<string, string> = { no: 'nb-NO', en: 'en-GB' }
 
 export default function MinStemmeClient({ appName }: { appName: string }) {
+  const t = useTranslations('myLedger')
+  const locale = useLocale()
+  const bcp = BCP47[locale] || 'en-GB'
+  const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString(bcp)} kr`
+  const dato = (s: string) => new Date(s).toLocaleDateString(bcp, { day: 'numeric', month: 'short', year: 'numeric' })
+  // Kodeverdiene er API-kontrakt (de kommer fra basen); bare etikettene oversettes.
+  const ord = (prefix: string, key: string | null | undefined) =>
+    key ? t.has(`${prefix}_${key}`) ? t(`${prefix}_${key}`) : key : ''
   const { session, loading: authLoading, signOut } = useAuth()
   const [fetched, setFetched] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,10 +59,10 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
     fetch('/api/voice-bank/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(async (r) => {
         const d = await r.json()
-        if (!r.ok) throw new Error(d.error || 'Kunne ikke hente hovedboken')
+        if (!r.ok) throw new Error(d.error || t('err_fetch'))
         setActors(d.actors || [])
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Kunne ikke hente hovedboken'))
+      .catch((e) => setError(e instanceof Error ? e.message : t('err_fetch')))
       .finally(() => setFetched(true))
   }, [session])
 
@@ -69,38 +72,37 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
     <div className="min-h-screen bg-[var(--paper)] text-[var(--ink,#1C1A16)]">
       <header className="max-w-4xl mx-auto px-6 pt-6 pb-5 flex items-center gap-4 flex-wrap">
         <CenterForgeLogo size={28} wordmarkSize={18} />
-        <span className="text-xs font-semibold tracking-[0.14em] uppercase text-gray-500">Din hovedbok</span>
+        <span className="text-xs font-semibold tracking-[0.14em] uppercase text-gray-500">{t('header_label')}</span>
         <div className="ml-auto flex items-center gap-4 text-sm">
           {email && <span className="text-gray-500 hidden sm:inline">{email}</span>}
           {session ? (
             <>
               {/* Kontoen (passordbytte) — det eneste utenom hovedboken en ren
                   rettighetshaver trenger. */}
-              <Link href="/dashboard/konto" className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">Konto</Link>
-              <button onClick={() => signOut()} className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">Logg ut</button>
+              <Link href="/dashboard/konto" className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">{t('account')}</Link>
+              <button onClick={() => signOut()} className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">{t('log_out')}</button>
             </>
           ) : (
-            <Link href="/login" className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">Logg inn</Link>
+            <Link href="/login" className="text-gray-600 hover:text-[var(--ink,#1C1A16)]">{t('log_in')}</Link>
           )}
         </div>
       </header>
       <hr className="border-gray-200" />
 
       <main className="max-w-4xl mx-auto px-6 py-10">
-        {loading && <p className="text-gray-500">Henter …</p>}
+        {loading && <p className="text-gray-500">{t('fetching')}</p>}
 
         {!loading && !session && (
           <div className="max-w-lg">
-            <h1 className="text-2xl font-bold mb-3">Se hva stemmen din har tjent</h1>
+            <h1 className="text-2xl font-bold mb-3">{t('signed_out_title')}</h1>
             <p className="text-gray-600 mb-6">
-              Logg inn med den e-postadressen du oppga da vi inngikk avtalen. Da ser du hver eneste
-              gang stemmen eller ansiktet ditt er brukt, hva det ga, og hva som er utbetalt.
+              {t('signed_out_body')}
             </p>
             <div className="flex gap-3 flex-wrap">
-              <Link href="/login" className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90">Logg inn</Link>
-              <Link href="/register" className="px-5 py-2.5 rounded-lg font-semibold border border-gray-300 hover:border-gray-400">Opprett konto</Link>
+              <Link href="/login" className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90">{t('log_in')}</Link>
+              <Link href="/register" className="px-5 py-2.5 rounded-lg font-semibold border border-gray-300 hover:border-gray-400">{t('create_account')}</Link>
             </div>
-            <p className="text-xs text-gray-400 mt-4">Har du ikke konto ennå? Opprett én med samme e-post som står i avtalen — så kobles den automatisk.</p>
+            <p className="text-xs text-gray-400 mt-4">{t('signed_out_note')}</p>
           </div>
         )}
 
@@ -108,10 +110,9 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
 
         {!loading && session && !error && actors.length === 0 && (
           <div className="max-w-lg">
-            <h1 className="text-2xl font-bold mb-3">Ingen avtale er knyttet til {email}</h1>
+            <h1 className="text-2xl font-bold mb-3">{t('no_deal_title', { email: email ?? '' })}</h1>
             <p className="text-gray-600">
-              Hovedboken kobles til e-postadressen i forvaltningsavtalen din. Logget du inn med en annen
-              adresse enn den du ga {appName}? Logg ut og prøv den — eller ta kontakt, så retter vi det.
+              {t('no_deal_body', { tenant: appName })}
             </p>
           </div>
         )}
@@ -123,21 +124,21 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 {a.hasVoice && '🎙️'}{a.hasFace && '🧑'} {a.name}
               </h1>
               <span className={`text-xs px-2 py-1 rounded-full mt-1.5 ${a.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                {a.isActive ? 'Aktiv' : 'Ikke aktiv ennå'}
+                {a.isActive ? t('active') : t('not_active')}
               </span>
             </div>
             <p className="text-sm text-gray-500 mb-6">
-              Forvaltes av {a.managedBy} · avtale siden {dato(a.since)}
-              {a.hasVoice && a.hasFace ? ' · stemme og ansikt' : a.hasFace ? ' · ansikt' : ' · stemme'}
+              {t('managed_since', { tenant: a.managedBy, date: dato(a.since) })}
+              {a.hasVoice && a.hasFace ? t('both') : a.hasFace ? t('only_face') : t('only_voice')}
             </p>
 
             {/* Oppgjøret — det viktigste først */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
               {[
-                { label: 'Ganger brukt', value: String(a.uses) },
-                { label: 'Opptjent totalt', value: nok(a.earnedNok) },
-                { label: 'Utbetalt', value: nok(a.paidNok) },
-                { label: 'Til gode', value: nok(a.dueNok), strong: true },
+                { label: t('card_uses'), value: String(a.uses) },
+                { label: t('card_earned'), value: nok(a.earnedNok) },
+                { label: t('card_paid'), value: nok(a.paidNok) },
+                { label: t('card_due'), value: nok(a.dueNok), strong: true },
               ].map((c) => (
                 <div key={c.label} className={`rounded-lg border p-4 ${c.strong ? 'bg-[var(--ember-tint-bg,#FFF4EC)] border-[var(--ember-tint-border,#F1D9C8)]' : 'bg-[var(--paper-raised,#fff)] border-gray-200'}`}>
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>
@@ -150,9 +151,9 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 de store pengene vært usynlige. */}
             {(a.licenceNok > 0 || a.royaltyNok > 0) && (
               <p className="text-sm text-gray-500 -mt-6 mb-8">
-                Av det opptjente er <strong className="text-[var(--ink,#1C1A16)]">{nok(a.licenceNok)}</strong> lisenser (bruksrett)
-                {a.royaltyNok > 0 && <>, <strong className="text-[var(--ink,#1C1A16)]">{nok(a.royaltyNok)}</strong> royalty fra utgivelser</>}
-                {' '}og <strong className="text-[var(--ink,#1C1A16)]">{nok(a.meterNok)}</strong> betaling per gang stemmen er brukt.
+                {t('split_lead')} <strong className="text-[var(--ink,#1C1A16)]">{nok(a.licenceNok)}</strong> {t('split_licences')}
+                {a.royaltyNok > 0 && <>, <strong className="text-[var(--ink,#1C1A16)]">{nok(a.royaltyNok)}</strong> {t('split_royalty')}</>}
+                {' '}{t('split_and')} <strong className="text-[var(--ink,#1C1A16)]">{nok(a.meterNok)}</strong> {t('split_meter')}
               </p>
             )}
 
@@ -163,32 +164,32 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 fradrag som tas AV honoraret. */}
             {(a.licences || []).length > 0 && (
               <>
-                <h2 className="font-semibold mb-2">Lisenser — hva stemmen din er klarert til</h2>
+                <h2 className="font-semibold mb-2">{t('licences_h2')}</h2>
                 <div className="space-y-3 mb-8">
                   {a.licences.map((l) => {
                     const omfang = l.kind === 'campaign'
-                      ? [MEDIA_T[l.mediaClass || ''], TERR_T[l.territory || ''],
-                         l.termEnd ? `til ${dato(l.termEnd)}` : 'uten sluttdato',
-                         l.exclusivity === 'category' ? 'kategori-eksklusivt' : l.exclusivity === 'full' ? 'full buyout' : null]
-                      : [TIER_T[l.productionTier || ''], ROLE_T[l.roleScope || ''], 'evig, bundet til verket']
+                      ? [ord('media', l.mediaClass), ord('terr', l.territory),
+                         l.termEnd ? t('lic_until', { date: dato(l.termEnd) }) : t('lic_no_end'),
+                         l.exclusivity === 'category' ? t('lic_excl_category') : l.exclusivity === 'full' ? t('lic_excl_full') : null]
+                      : [ord('tier', l.productionTier), ord('role', l.roleScope), t('lic_perpetual')]
                     return (
                       <div key={l.id} className="bg-[var(--paper-raised,#fff)] rounded-lg border border-gray-200 p-4 text-sm">
                         <div className="flex items-start justify-between gap-4 flex-wrap">
                           <div>
                             <div className="font-medium">
-                              {l.kind === 'work' ? (l.workTitle || 'Verk') : 'Kampanje'}
-                              <span className="ml-2 text-xs font-normal text-gray-500">{LIC_STATUS[l.status] || l.status}</span>
+                              {l.kind === 'work' ? (l.workTitle || t('lic_work')) : t('lic_campaign')}
+                              <span className="ml-2 text-xs font-normal text-gray-500">{ord('licstatus', l.status) || l.status}</span>
                             </div>
                             <div className="text-gray-600 mt-0.5">{omfang.filter(Boolean).join(' · ')}</div>
                           </div>
                           <div className="text-right">
                             <div className="font-bold">{nok(l.netNok)}</div>
-                            <div className="text-xs text-gray-500">til deg</div>
+                            <div className="text-xs text-gray-500">{t('to_you')}</div>
                           </div>
                         </div>
                         {l.deductions.length > 0 && (
                           <div className="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-600">
-                            <span className="text-gray-500">Av honoraret ({nok(l.grossNok)}) er trukket: </span>
+                            <span className="text-gray-500">{t('deductions_lead', { gross: nok(l.grossNok) })}</span>
                             {l.deductions.map((d, i) => (
                               <span key={i}>{i > 0 && ', '}{d.label}{d.pct != null ? ` ${d.pct} %` : ''} — {nok(d.amountNok)}</span>
                             ))}
@@ -200,20 +201,23 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                         {l.compModel !== 'fee' && (
                           <div className="mt-3 pt-2 border-t border-gray-100 text-xs">
                             <span className="text-gray-500">
-                              {l.compModel === 'royalty' ? 'Kun royalty' : 'Honorar + royalty'}: {l.royaltyPct} % av det
-                              {l.releaseTitle ? ` «${l.releaseTitle}»` : ' utgivelsen'} gir oss
-                              {l.releaseChannel ? ` via ${l.releaseChannel}` : ''}.
+                              {t('royalty_line', {
+                                model: l.compModel === 'royalty' ? t('comp_royalty_only') : t('comp_hybrid'),
+                                pct: l.royaltyPct ?? 0,
+                                what: l.releaseTitle ? `«${l.releaseTitle}»` : t('royalty_the_release'),
+                                channel: l.releaseChannel ? t('royalty_via', { channel: l.releaseChannel }) : '',
+                              })}
                             </span>
                             {l.statements.length === 0 ? (
                               <p className="text-gray-400 mt-1">
-                                Ingen avregning ennå. Strømmeinntekter rapporteres 2–3 måneder på etterskudd.
+                                {t('no_statement')}
                               </p>
                             ) : (
                               <div className="mt-1 space-y-0.5">
                                 {l.statements.map((s, i) => (
                                   <div key={i} className="flex justify-between gap-3 text-gray-600">
                                     <span>{dato(s.periodStart)} – {dato(s.periodEnd)}
-                                      <span className="text-gray-400"> · grunnlag {nok(s.basisNok)} · {s.pct} %</span></span>
+                                      <span className="text-gray-400">{t('statement_basis', { basis: nok(s.basisNok), pct: s.pct })}</span></span>
                                     <span className="tabular-nums">{nok(s.toYouNok)}</span>
                                   </div>
                                 ))}
@@ -223,9 +227,9 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                         )}
                         {l.steps.length > 0 && (
                           <div className="mt-2 text-xs text-gray-600">
-                            <span className="text-gray-500">Etterbetaling hvis det skjer: </span>
+                            <span className="text-gray-500">{t('steps_lead')}</span>
                             {l.steps.map((s, i) => (
-                              <span key={i}>{i > 0 && ', '}{s.label || STEG_T[s.trigger] || s.trigger} — {nok(s.toYouNok)}
+                              <span key={i}>{i > 0 && ', '}{s.label || ord('step', s.trigger) || s.trigger} — {nok(s.toYouNok)}
                                 {s.status !== 'pending' && ` (${s.status})`}</span>
                             ))}
                           </div>
@@ -238,30 +242,29 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
             )}
 
             {/* Satser — bare rettighetshaverens egen side */}
-            <h2 className="font-semibold mb-2">Det du får per bruk</h2>
+            <h2 className="font-semibold mb-2">{t('rates_h2')}</h2>
             <div className="bg-[var(--paper-raised,#fff)] rounded-lg border border-gray-200 p-4 mb-8 text-sm">
               <div className="flex flex-wrap gap-x-6 gap-y-1">
-                <span><span className="text-gray-500">Standard:</span> <strong>{nok(a.defaultRateNok)}</strong></span>
+                <span><span className="text-gray-500">{t('rate_standard')}</span> <strong>{nok(a.defaultRateNok)}</strong></span>
                 {Object.entries(a.rates).map(([k, v]) => (
-                  <span key={k}><span className="text-gray-500">{KIND[k] || k}:</span> <strong>{nok(v)}</strong></span>
+                  <span key={k}><span className="text-gray-500">{ord('kind', k) || k}:</span> <strong>{nok(v)}</strong></span>
                 ))}
-                <span><span className="text-gray-500">Prøvelytt:</span> <strong>{nok(a.previewRatePer1000)}</strong> <span className="text-gray-500">per 1000 tegn</span></span>
+                <span><span className="text-gray-500">{t('rate_preview')}</span> <strong>{nok(a.previewRatePer1000)}</strong> <span className="text-gray-500">{t('rate_per_1000')}</span></span>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Prøvelytt er når en kunde tester stemmen din på en tekst før de bestiller — hver test gir en liten
-                sum etter tekstlengden. Satsen som gjaldt da bruken skjedde, er den som står i boka — endringer virker bare framover.
+                {t('rates_note')}
               </p>
             </div>
 
             {/* Utbetalinger */}
-            <h2 className="font-semibold mb-2">Utbetalinger</h2>
+            <h2 className="font-semibold mb-2">{t('payouts_h2')}</h2>
             {a.payouts.length === 0 ? (
-              <p className="text-sm text-gray-500 mb-8">Ingen utbetalinger ennå.</p>
+              <p className="text-sm text-gray-500 mb-8">{t('payouts_none')}</p>
             ) : (
               <div className="bg-[var(--paper-raised,#fff)] rounded-lg border border-gray-200 overflow-x-auto mb-8">
                 <table className="w-full text-sm">
                   <thead><tr className="text-left text-xs text-gray-500 border-b border-gray-200">
-                    <th className="px-4 py-2">Periode</th><th className="px-4 py-2">Betalt</th><th className="px-4 py-2 text-right">Beløp</th><th className="px-4 py-2">Notat</th>
+                    <th className="px-4 py-2">{t('th_period')}</th><th className="px-4 py-2">{t('th_paid')}</th><th className="px-4 py-2 text-right">{t('th_amount')}</th><th className="px-4 py-2">{t('th_note')}</th>
                   </tr></thead>
                   <tbody>
                     {a.payouts.map((p) => (
@@ -278,28 +281,28 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
             )}
 
             {/* Hver bruk — hovedboken */}
-            <h2 className="font-semibold mb-2">Hver gang {a.hasFace && !a.hasVoice ? 'ansiktet' : 'stemmen'} din er brukt</h2>
+            <h2 className="font-semibold mb-2">{a.hasFace && !a.hasVoice ? t('uses_h2_face') : t('uses_h2_voice')}</h2>
             {a.events.length === 0 ? (
               <p className="text-sm text-gray-500">
-                Ikke brukt ennå. Hver bruk kommer hit i samme sekund den skjer — ikke rekonstruert i etterkant.
+                {t('uses_none')}
               </p>
             ) : (
               <div className="bg-[var(--paper-raised,#fff)] rounded-lg border border-gray-200 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="text-left text-xs text-gray-500 border-b border-gray-200">
-                    <th className="px-4 py-2">Når</th><th className="px-4 py-2">Hva</th><th className="px-4 py-2">Under hvilken avtale</th><th className="px-4 py-2">Brukt av</th><th className="px-4 py-2 text-right">Til deg</th>
+                    <th className="px-4 py-2">{t('th_when')}</th><th className="px-4 py-2">{t('th_what')}</th><th className="px-4 py-2">{t('th_under')}</th><th className="px-4 py-2">{t('th_by')}</th><th className="px-4 py-2 text-right">{t('th_to_you')}</th>
                   </tr></thead>
                   <tbody>
                     {a.events.map((e) => (
                       <tr key={e.id} className="border-b border-gray-100 last:border-0">
                         <td className="px-4 py-2 whitespace-nowrap text-gray-600">{dato(e.at)}</td>
-                        <td className="px-4 py-2">{KIND[e.kind] || e.kind}{e.kind === 'preview' && e.chars ? <span className="text-gray-400"> · {e.chars} tegn</span> : null}</td>
+                        <td className="px-4 py-2">{ord('kind', e.kind) || e.kind}{e.kind === 'preview' && e.chars ? <span className="text-gray-400">{t('chars', { n: e.chars })}</span> : null}</td>
                         {/* Hjemmelen. Prøvelytt har ingen med vilje — det er
                             utforskning før en avtale finnes. */}
                         <td className="px-4 py-2 text-gray-600">
                           {e.licenceLabel
                             ? e.licenceLabel
-                            : <span className="text-gray-400">{e.kind === 'preview' ? 'prøvelytt' : '—'}</span>}
+                            : <span className="text-gray-400">{e.kind === 'preview' ? t('preview_word') : '—'}</span>}
                         </td>
                         <td className="px-4 py-2">{e.usedBy}</td>
                         <td className="px-4 py-2 text-right font-medium tabular-nums">{nok(e.toYouNok)}</td>
@@ -307,12 +310,12 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                     ))}
                   </tbody>
                 </table>
-                {a.events.length >= 200 && <p className="text-xs text-gray-400 px-4 py-2">Viser de 200 siste. Totalene øverst dekker alt.</p>}
+                {a.events.length >= 200 && <p className="text-xs text-gray-400 px-4 py-2">{t('capped')}</p>}
               </div>
             )}
 
             <p className="text-xs text-gray-400 mt-6">
-              Beløpene er det du får, før skatt. Utbetaling skjer fra {a.managedBy}. Spørsmål om en linje? Ta kontakt med dem.
+              {t('footer_note', { tenant: a.managedBy })}
             </p>
           </section>
         ))}
