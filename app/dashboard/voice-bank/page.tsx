@@ -40,6 +40,14 @@ interface VoiceApplication {
   wants_face: boolean
   status: string
   created_at: string
+  // Castingfeltene soekeren fylte selv (084). Vises i koen slik at den som
+  // godkjenner ser hva hen faktisk sa -- ikke bare navn og lydfil.
+  gender: string | null
+  playing_age_from: number | null
+  playing_age_to: number | null
+  height_cm: number | null
+  attributes: Record<string, string[]> | null
+  appearance_consent_at: string | null
 }
 
 interface Monthly {
@@ -55,6 +63,7 @@ const BCP47: Record<string, string> = { no: 'nb-NO', en: 'en-GB' }
 
 export default function VoiceBankAdminPage() {
   const t = useTranslations('bank')
+  const tc = useTranslations('casting')
   const locale = useLocale()
   const bcp = BCP47[locale] || 'en-GB'
   const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString(bcp)} kr`
@@ -235,6 +244,23 @@ export default function VoiceBankAdminPage() {
       setAppBusy(null)
     }
   }
+
+  // Castingopplysningene fra soeknaden, i samme form som resten av huset.
+  const castinglinje = (a: VoiceApplication) => {
+    const alder = a.playing_age_from != null && a.playing_age_to != null
+      ? tc('plays_age', { from: a.playing_age_from, to: a.playing_age_to })
+      : a.playing_age_from != null ? tc('plays_age_from', { from: a.playing_age_from })
+      : a.playing_age_to != null ? tc('plays_age_to', { to: a.playing_age_to })
+      : null
+    return [
+      a.gender ? tc(`gender_${a.gender}`) : null,
+      alder,
+      a.height_cm ? `${a.height_cm} ${tc('admin_cm')}` : null,
+    ].filter(Boolean).join(' \u00b7 ')
+  }
+  const castingmerker = (a: VoiceApplication) =>
+    Object.entries(a.attributes || {}).flatMap(([f, vs]) =>
+      (vs || []).map((v) => (tc.has(`${f}_${v}`) ? tc(`${f}_${v}`) : v)))
 
   const actorName = (id: string) => actors.find((a) => a.id === id)?.name || t('unknown')
   const totals = monthly.reduce(
@@ -492,6 +518,19 @@ export default function VoiceBankAdminPage() {
                               <div className="font-semibold text-gray-900">{app.name}{app.wants_face && <span className="ml-2 text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-2 py-0.5">{t('apps_plus_face')}</span>}</div>
                               <div className="text-xs text-gray-500">{app.email}{app.phone ? ` · ${app.phone}` : ''} · {String(app.created_at).slice(0, 10)}</div>
                               {app.bio && <p className="text-sm text-gray-600 mt-1">{app.bio}</p>}
+                              {/* Det soekeren selv oppga. Uten dette maatte den
+                                  som godkjenner apne raden etterpaa for a se om
+                                  hen i det hele tatt blir soekbar. */}
+                              {castinglinje(app) && (
+                                <div className="text-xs text-gray-600 mt-1.5">{castinglinje(app)}</div>
+                              )}
+                              {castingmerker(app).length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                  {castingmerker(app).map((m) => (
+                                    <span key={m} className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-600">{m}</span>
+                                  ))}
+                                </div>
+                              )}
                               <div className="flex flex-wrap gap-2 mt-2">
                                 {(app.sample_urls || []).map((u, i) => (
                                   <audio key={i} controls preload="none" src={u} className="h-9" />

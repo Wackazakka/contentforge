@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import {
+  FASETTER, KJOENN, KREVER_SAMTYKKE, VOKABULAR, type Fasett,
+} from '@/lib/castingAttributes'
 
 // Samtykketeksten fryses på søknadsraden (consent_text) — endres formuleringen,
 // vet vi fortsatt nøyaktig hva hver søker samtykket til.
@@ -15,7 +18,11 @@ const AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/x-m4a', 'a
 
 export default function ApplyForm({ appName }: { appName: string }) {
   const t = useTranslations('apply')
+  const tc = useTranslations('casting')
   const consentText = t('consent')
+  // Art. 9-teksten fryses for seg: den daekker noe annet enn stemmesamtykket,
+  // og en soeker kan si ja til det ene og nei til det andre.
+  const appearanceConsentText = t('appearance_consent_text')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -24,10 +31,24 @@ export default function ApplyForm({ appName }: { appName: string }) {
   const [offersVoice, setOffersVoice] = useState(true)
   const [wantsFace, setWantsFace] = useState(false)
   const [consent, setConsent] = useState(false)
+  // Castingfeltene. 🔑 De hoerer hjemme HER og ikke i adminen: et tomt felt er
+  // ikke «alle», det er usynlig — og spilleomraade skal vaere SELVERKLAERT,
+  // ikke satt av en tredjepart om et menneske.
+  const [kjoenn, setKjoenn] = useState('')
+  const [aldFra, setAldFra] = useState('')
+  const [aldTil, setAldTil] = useState('')
+  const [hoyde, setHoyde] = useState('')
+  const [attr, setAttr] = useState<Record<string, string[]>>({})
+  const [appearanceConsent, setAppearanceConsent] = useState(false)
   const [website, setWebsite] = useState('') // honeypot
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const veksle = (f: Fasett, v: string) => setAttr((p) => {
+    const naa = p[f] ?? []
+    return { ...p, [f]: naa.includes(v) ? naa.filter((x) => x !== v) : [...naa, v] }
+  })
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +57,14 @@ export default function ApplyForm({ appName }: { appName: string }) {
     if (!offersVoice && !wantsFace) { setError(t('err_asset')); return }
     if (offersVoice && files.length === 0) { setError(t('err_sample')); return }
     if (!consent) { setError(t('err_consent')); return }
+    const tallOk = (v: string) => v === '' || (/^\d{1,3}$/.test(v))
+    if (!tallOk(aldFra) || !tallOk(aldTil) ||
+        (aldFra !== '' && aldTil !== '' && Number(aldFra) > Number(aldTil))) {
+      setError(t('err_age')); return
+    }
+    if (hoyde !== '' && (!/^\d{2,3}$/.test(hoyde) || Number(hoyde) < 50 || Number(hoyde) > 260)) {
+      setError(t('err_height')); return
+    }
     setBusy(true)
     try {
       const fd = new FormData()
@@ -46,6 +75,14 @@ export default function ApplyForm({ appName }: { appName: string }) {
       fd.append('wantsFace', wantsFace ? '1' : '0')
       fd.append('offersVoice', offersVoice ? '1' : '0')
       fd.append('consentText', consentText)
+      fd.append('gender', kjoenn)
+      fd.append('playingAgeFrom', aldFra)
+      fd.append('playingAgeTo', aldTil)
+      fd.append('heightCm', hoyde)
+      fd.append('attributes', JSON.stringify(attr))
+      fd.append('appearanceConsent', appearanceConsent ? '1' : '0')
+      // Teksten foelger med bare naar den faktisk ble sagt ja til.
+      if (appearanceConsent) fd.append('appearanceConsentText', appearanceConsentText)
       fd.append('website', website) // honeypot
       files.slice(0, 2).forEach((f) => fd.append('samples', f))
       const res = await fetch('/api/voice-bank/apply', { method: 'POST', body: fd })
@@ -133,6 +170,105 @@ export default function ApplyForm({ appName }: { appName: string }) {
               {t('offer_face')}
             </label>
           </div>
+          {/* Castingfeltene. Star her, ikke i adminen: en rettighetshaver som
+              slipper gjennom opptaket uten felt finnes ikke i katalogen. */}
+          <div className="border-t border-gray-200 pt-5">
+            <p className="text-sm font-semibold text-gray-900 mb-1">{t('casting_h')}</p>
+            <p className="text-xs text-gray-500 mb-1">{t('casting_intro')}</p>
+            <p className="text-xs text-gray-400 mb-4">{t('casting_optional')}</p>
+
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="text-sm text-gray-700 w-28">{tc('f_gender')}</span>
+              <select value={kjoenn} onChange={(e) => setKjoenn(e.target.value)} disabled={busy}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                <option value="">—</option>
+                {KJOENN.map((g) => <option key={g} value={g}>{tc(`gender_${g}`)}</option>)}
+              </select>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <span className="text-sm text-gray-700 w-28">{tc('f_age')}</span>
+              <input value={aldFra} onChange={(e) => setAldFra(e.target.value)} disabled={busy}
+                inputMode="numeric" placeholder={tc('age_from')}
+                className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg text-sm" />
+              <span className="text-gray-400">–</span>
+              <input value={aldTil} onChange={(e) => setAldTil(e.target.value)} disabled={busy}
+                inputMode="numeric" placeholder={tc('age_to')}
+                className="w-20 px-2 py-1.5 border border-gray-300 rounded-lg text-sm" />
+            </div>
+            <p className="text-xs text-gray-400 mb-3 ml-28">{t('casting_age_hint')}</p>
+
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="text-sm text-gray-700 w-28">{tc('f_height')}</span>
+              <input value={hoyde} onChange={(e) => setHoyde(e.target.value)} disabled={busy}
+                inputMode="numeric" className="w-24 px-2 py-1.5 border border-gray-300 rounded-lg text-sm" />
+              <span className="text-sm text-gray-500">{tc('admin_cm')}</span>
+            </div>
+
+            {FASETTER.filter((f) => !KREVER_SAMTYKKE.includes(f)).map((f) => (
+              <div key={f} className="mb-3">
+                <p className="text-sm text-gray-700 mb-1.5">{tc(`f_${f}`)}</p>
+                <div className="flex flex-wrap gap-2">
+                  {VOKABULAR[f].map((v) => {
+                    const paa = (attr[f] ?? []).includes(v)
+                    return (
+                      <button key={v} type="button" disabled={busy} onClick={() => veksle(f, v)} aria-pressed={paa}
+                        className="px-3 py-1.5 rounded-full text-sm border transition-colors"
+                        style={paa
+                          ? { borderColor: 'var(--ember-deep)', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', fontWeight: 600 }
+                          : { borderColor: '#d1d5db', color: '#6b7280' }}>
+                        {tc(`${f}_${v}`)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {/* Spilleomraade: EGET samtykke, gitt av soekeren selv. Star for seg
+                fordi det daekker noe annet enn stemmesamtykket, og fordi man
+                skal kunne si ja til det ene og nei til det andre. */}
+            <div className="mt-4 rounded-lg border border-gray-200 p-3">
+              <p className="text-sm text-gray-700 mb-1.5">{t('appearance_h')}</p>
+              <label className="flex items-start gap-2 text-xs text-gray-600 mb-2">
+                <input type="checkbox" checked={appearanceConsent} disabled={busy}
+                  onChange={(e) => {
+                    setAppearanceConsent(e.target.checked)
+                    // Trekkes krysset, forsvinner valgene med det samme — ikke
+                    // forst ved innsending.
+                    if (!e.target.checked) setAttr((p2) => {
+                      const n = { ...p2 }
+                      for (const f of KREVER_SAMTYKKE) delete n[f]
+                      return n
+                    })
+                  }}
+                  className="mt-0.5" />
+                <span>
+                  {t('appearance_consent')}
+                  <span className="block text-gray-500 mt-1">{appearanceConsentText}</span>
+                </span>
+              </label>
+              {appearanceConsent ? (
+                <div className="flex flex-wrap gap-2">
+                  {KREVER_SAMTYKKE.flatMap((f) => VOKABULAR[f].map((v) => {
+                    const paa = (attr[f] ?? []).includes(v)
+                    return (
+                      <button key={`${f}_${v}`} type="button" disabled={busy} onClick={() => veksle(f, v)} aria-pressed={paa}
+                        className="px-3 py-1.5 rounded-full text-sm border transition-colors"
+                        style={paa
+                          ? { borderColor: 'var(--ember-deep)', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', fontWeight: 600 }
+                          : { borderColor: '#d1d5db', color: '#6b7280' }}>
+                        {tc(`${f}_${v}`)}
+                      </button>
+                    )
+                  }))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">{t('appearance_hint')}</p>
+              )}
+            </div>
+          </div>
+
           <label className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-3">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} disabled={busy} className="mt-0.5" />
             <span>{consentText}</span>

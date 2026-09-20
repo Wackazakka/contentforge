@@ -118,6 +118,17 @@ export async function PATCH(request: Request) {
           sample_urls: app.sample_urls || [],
           is_active: false,
           is_exclusive: true,
+          // Castingfeltene foelger soeknaden rett over (084). Uten dette maatte
+          // noen fylt dem paa nytt i adminen -- og en rad uten dem er USYNLIG
+          // i katalogen, ikke bredt tilgjengelig.
+          gender: app.gender ?? null,
+          playing_age_from: app.playing_age_from ?? null,
+          playing_age_to: app.playing_age_to ?? null,
+          height_cm: app.height_cm ?? null,
+          attributes: app.attributes || {},
+          // Art. 9-samtykket foelger MED datoen soekeren faktisk ga det, ikke
+          // datoen vi godkjente. Basen avviser spilleomraade uten (084).
+          appearance_consent_at: app.appearance_consent_at ?? null,
         })
         .select('id')
         .single()

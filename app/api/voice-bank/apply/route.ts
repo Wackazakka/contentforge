@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
 import { getTenant } from '@/lib/tenantServer'
+import { KJOENN, rensAttributter } from '@/lib/castingAttributes'
 
 // «Bli en stemme i banken» — offentlig søknad med lydprøver i ETT multipart-kall
 // (ingen foreldreløse opplastinger). Gate: tenantens accept_actor_applications.
@@ -77,6 +78,37 @@ export async function POST(request: Request) {
       sampleUrls.push(`${R2_PUBLIC_URL}/${key}`)
     }
 
+    // Castingfeltene. Soekeren fyller dem selv -- se 084 for hvorfor det er
+    // det eneste riktige stedet for spilleomraade (art. 9).
+    const tall = (felt: string, min: number, maks: number): number | null | undefined => {
+      const raa = String(form.get(felt) || '').trim()
+      if (!raa) return null
+      const n = Number(raa)
+      if (!Number.isFinite(n) || n < min || n > maks) return undefined // = ugyldig
+      return Math.round(n)
+    }
+    const aldFra = tall('playingAgeFrom', 0, 120)
+    const aldTil = tall('playingAgeTo', 0, 120)
+    const hoyde = tall('heightCm', 50, 260)
+    if (aldFra === undefined || aldTil === undefined || hoyde === undefined) {
+      return NextResponse.json({ error: 'Ugyldig spillealder eller hoyde' }, { status: 400 })
+    }
+    if (aldFra != null && aldTil != null && aldFra > aldTil) {
+      return NextResponse.json({ error: 'Spillealder fra kan ikke vaere hoyere enn til' }, { status: 400 })
+    }
+    const kjoennRaa = String(form.get('gender') || '').trim()
+    if (kjoennRaa && !(KJOENN as readonly string[]).includes(kjoennRaa)) {
+      return NextResponse.json({ error: 'Ukjent kjonnsverdi' }, { status: 400 })
+    }
+    // Art. 9-porten: uten kryss skrives spilleomraade ikke, uansett hva
+    // klienten sendte. rensAttributter fjerner fasetten selv.
+    const harAppearanceSamtykke = String(form.get('appearanceConsent') || '') === '1'
+    let attributter: Record<string, string[]> = {}
+    try {
+      attributter = rensAttributter(JSON.parse(String(form.get('attributes') || '{}')),
+        { harSamtykke: harAppearanceSamtykke })
+    } catch { /* ugyldig JSON = ingen attributter, ikke en feilmelding i ansiktet */ }
+
     const { error } = await admin().from('voice_actor_applications').insert({
       id: applicationId,
       tenant_id: tenant.id,
@@ -88,6 +120,16 @@ export async function POST(request: Request) {
       wants_face: wantsFace,
       offers_voice: offersVoice,
       consent_text: String(form.get('consentText') || '').slice(0, 2000) || null,
+      gender: kjoennRaa || null,
+      playing_age_from: aldFra,
+      playing_age_to: aldTil,
+      height_cm: hoyde,
+      attributes: attributter,
+      // Tidsstempelet ER hjemmelen. Basen haandhever det ogsaa (084).
+      appearance_consent_at: harAppearanceSamtykke ? new Date().toISOString() : null,
+      appearance_consent_text: harAppearanceSamtykke
+        ? String(form.get('appearanceConsentText') || '').slice(0, 2000) || null
+        : null,
     })
     if (error) {
       console.error('[voice-apply] Insert-feil:', error.message)

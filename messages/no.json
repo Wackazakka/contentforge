@@ -1583,7 +1583,17 @@
     "err_too_big": "«{name}» er for stor (maks {mb} MB).",
     "err_type": "«{name}» må være MP3, WAV eller M4A.",
     "sending": "Sender …",
-    "submit": "Send søknad"
+    "submit": "Send søknad",
+    "casting_h": "Slik blir du funnet",
+    "casting_intro": "Dette er det produsenter filtrerer på når de leter etter noen. Lar du feltene stå tomme, kommer du ikke opp i søkene — du blir usynlig, ikke bredt tilgjengelig.",
+    "casting_age_hint": "SPILLEALDER, ikke alderen din: hvilken alder du kan spille. Et bredt spenn gir flere treff.",
+    "casting_optional": "Alt her er frivillig, og kan endres senere.",
+    "appearance_h": "Spilleområde",
+    "appearance_consent": "Jeg vil oppgi hvilke roller ansiktet mitt plausibelt kan spille",
+    "appearance_consent_text": "Jeg oppgir selv hvilke roller ansiktet mitt plausibelt kan spille, og samtykker til at dette lagres og brukes til casting. Jeg vet at dette regnes som en særlig kategori personopplysninger, at det er min egen vurdering og ikke en klassifisering av meg, og at jeg når som helst kan trekke det tilbake — da slettes verdiene.",
+    "appearance_hint": "Krysser du ikke av, lagres ingenting i dette feltet.",
+    "err_age": "Spillealder må være tall, og fra kan ikke være høyere enn til.",
+    "err_height": "Høyde må være mellom 50 og 260 cm."
   },
   "myLedger": {
     "meta_title": "Din hovedbok — {tenant}",
