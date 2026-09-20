@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
+import CastingFelt from './CastingFelt'
 import { useParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
 
@@ -30,6 +31,13 @@ interface ActorDetail {
   discount_tiers: Array<{ from_uses: number; discount_pct: number }>
   is_active: boolean
   created_at: string
+  // Castingfeltene (083). Fylles i CastingFelt, leses av plukkeren i Audition.
+  gender: string | null
+  playing_age_from: number | null
+  playing_age_to: number | null
+  height_cm: number | null
+  attributes: Record<string, string[]> | null
+  appearance_consent_at: string | null
 }
 
 interface Agg { key: string; uses: number; to_actor_nok: number; from_customers_nok: number }
@@ -40,6 +48,7 @@ const KINDS = ['video', 'avatar', 'radio', 'face']
 
 export default function VoiceActorPage() {
   const t = useTranslations('actorAdmin')
+  const tc = useTranslations('casting')
   const locale = useLocale()
   const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString(BCP47[locale] || 'en-GB')} kr`
   const kindLabel = (k: string) => (t.has(`kind_${k}`) ? t(`kind_${k}`) : k)
@@ -605,6 +614,23 @@ export default function VoiceActorPage() {
               </button>
               <p className="text-xs text-gray-400 mt-2">{t('rates_forward')}</p>
             </div>
+
+            {/* Casting — det en regissor filtrerer pa. Star her, rett under
+                takstene, fordi begge beskriver HVA raden er; godkjenning og
+                bibliotek under beskriver hvordan den brukes. */}
+            <h2 className="font-semibold text-gray-900 mb-3">{tc('admin_h2')}</h2>
+            <CastingFelt
+              actorId={actor.id}
+              start={{
+                gender: actor.gender ?? null,
+                playingAgeFrom: actor.playing_age_from ?? null,
+                playingAgeTo: actor.playing_age_to ?? null,
+                heightCm: actor.height_cm ?? null,
+                attributes: actor.attributes || {},
+                appearanceConsentAt: actor.appearance_consent_at ?? null,
+              }}
+              onLagret={refresh}
+            />
 
             {/* Godkjenningskrav per kunde */}
             <h2 className="font-semibold text-gray-900 mb-3">{t('appr_h2')}</h2>

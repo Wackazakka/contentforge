@@ -56,14 +56,57 @@ export async function GET(request: Request) {
     // Hvem kan auditione? Bare de som har BEGGE deler — en audition uten
     // ansikt er en lydfil, og uten stemme et stillbilde.
     const { data: actors } = await admin().from('voice_actors')
-      .select('id, name, is_active, is_demo, elevenlabs_voice_id, face_character_id, owner_tenant_id, photo_urls')
+      .select('id, name, is_active, is_demo, elevenlabs_voice_id, face_character_id, owner_tenant_id, photo_urls, gender, playing_age_from, playing_age_to, height_cm, attributes')
       .eq('is_active', true)
     const klare = (actors || []).filter((a) => a.elevenlabs_voice_id && a.face_character_id)
+
+    // Aldersmodellene (082) hører med i plukkeren: en veteran med modeller på
+    // 30, 40 og 50 skal komme opp på «30» selv om hens eget spenn starter på
+    // 55. Det er hele poenget med aldersmodellene, og et filter som bare så
+    // på personens eget spenn ville skjult dem.
+    //
+    // ⚠️ Kun modeller med klarert treningssett: source_cleared er en PORT
+    // (082), ikke et notat. En modell vi ikke kan selge, skal heller ikke
+    // gjøre noen søkbar.
+    //
+    // Oppslaget er BEVISST tolerant: aldersmodellene beriker plukkeren, de
+    // bærer den ikke. Feiler spørringen, skal utvalget fortsatt komme opp —
+    // en caster som ikke får se noen i det hele tatt er langt verre enn en
+    // som ikke ser aldersmodell-merket.
+    const modellAlder = new Map<string, Array<{ from: number | null; to: number | null }>>()
+    if (klare.length > 0) {
+      const { data: modeller, error: modellFeil } = await admin().from('actor_face_models')
+        .select('actor_id, age_from, age_to, source_cleared')
+        .in('actor_id', klare.map((a) => a.id))
+      if (modellFeil) console.warn('[audition] aldersmodeller utilgjengelig:', modellFeil.message)
+      for (const m of modeller || []) {
+        if (m.source_cleared !== true) continue
+        if (m.age_from == null && m.age_to == null) continue
+        const liste = modellAlder.get(String(m.actor_id)) || []
+        liste.push({ from: m.age_from ?? null, to: m.age_to ?? null })
+        modellAlder.set(String(m.actor_id), liste)
+      }
+    }
+
+    // Hele kandidatsettet går ut i ett svar, og plukkeren filtrerer lokalt:
+    // en caster klikker seg gjennom mange kombinasjoner, og et rundturskall
+    // per klikk ville gjort utvalget tregt å utforske. Raden er liten.
+    // Taket er der så svaret ikke vokser uten grense — nås det, sier
+    // plukkeren fra i stedet for å vise et stille avkuttet utvalg.
+    const TAK = 500
     return NextResponse.json({
-      actors: klare.map((a) => ({
+      actors: klare.slice(0, TAK).map((a) => ({
         id: a.id, name: a.name, isDemo: a.is_demo === true,
         photo: Array.isArray(a.photo_urls) && a.photo_urls.length ? String(a.photo_urls[0]) : null,
+        gender: a.gender ?? null,
+        playingAgeFrom: a.playing_age_from ?? null,
+        playingAgeTo: a.playing_age_to ?? null,
+        heightCm: a.height_cm ?? null,
+        attributes: (a.attributes as Record<string, string[]>) || {},
+        modelAges: modellAlder.get(String(a.id)) || [],
       })),
+      totalt: klare.length,
+      avkuttet: klare.length > TAK,
       prisPerFilm: AUDITION_FILM_NOK,
       prisPerLesning: AUDITION_READ_NOK,
     })

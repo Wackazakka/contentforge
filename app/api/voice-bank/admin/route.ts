@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { KJOENN, KREVER_SAMTYKKE, rensAttributter } from '@/lib/castingAttributes'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { isTenantAdmin, PLATFORM_RIGHTS_FEE_PCT, ACTOR_SUBSCRIPTION_NOK } from '@/lib/voiceBank'
@@ -354,6 +355,79 @@ export async function PATCH(request: Request) {
       }
       patch.face_character_id = fcid
     }
+    // Castingattributter (Lars 20.09.2026). Et rutenett av portretter slutter
+    // aa virke rundt tjue oppfoeringer; en caster maa kunne SOEKE.
+    if (body.gender !== undefined) {
+      const g = body.gender ? String(body.gender) : null
+      if (g && !(KJOENN as readonly string[]).includes(g)) {
+        return NextResponse.json({ error: 'Ukjent kjonnsverdi' }, { status: 400 })
+      }
+      patch.gender = g
+    }
+    // SPILLEALDER, ikke alder. Basen har en check paa fra <= til; vi avviser
+    // her ogsaa, slik at feilen forklares i stedet for aa komme som en
+    // raa constraint-melding.
+    if (body.playingAgeFrom !== undefined || body.playingAgeTo !== undefined) {
+      const tall = (v: unknown) => {
+        if (v === null || v === '' || v === undefined) return null
+        const n = Number(v)
+        return Number.isFinite(n) && n >= 0 && n <= 120 ? Math.round(n) : NaN
+      }
+      const fra = body.playingAgeFrom !== undefined ? tall(body.playingAgeFrom) : undefined
+      const til = body.playingAgeTo !== undefined ? tall(body.playingAgeTo) : undefined
+      if (Number.isNaN(fra) || Number.isNaN(til)) {
+        return NextResponse.json({ error: 'Spillealder maa vaere et tall mellom 0 og 120' }, { status: 400 })
+      }
+      if (fra !== undefined) patch.playing_age_from = fra
+      if (til !== undefined) patch.playing_age_to = til
+      if (typeof fra === 'number' && typeof til === 'number' && fra > til) {
+        return NextResponse.json({ error: 'Spillealder fra kan ikke vaere hoyere enn til' }, { status: 400 })
+      }
+    }
+    if (body.heightCm !== undefined) {
+      if (body.heightCm === null || body.heightCm === '') patch.height_cm = null
+      else {
+        const h = Number(body.heightCm)
+        if (!Number.isFinite(h) || h < 50 || h > 260) {
+          return NextResponse.json({ error: 'Hoyde maa vaere mellom 50 og 260 cm' }, { status: 400 })
+        }
+        patch.height_cm = Math.round(h)
+      }
+    }
+    // Art. 9-porten. Samtykket settes for seg, og maa staa FOER
+    // spilleomraade kan skrives -- rensAttributter fjerner fasetten ellers.
+    let samtykkeNaa: string | null | undefined
+    if (body.appearanceConsent !== undefined) {
+      samtykkeNaa = body.appearanceConsent ? new Date().toISOString() : null
+      patch.appearance_consent_at = samtykkeNaa
+    }
+    if (body.attributes !== undefined) {
+      const { data: naa } = await admin()
+        .from('voice_actors')
+        .select('appearance_consent_at')
+        .eq('id', actorId)
+        .eq('owner_tenant_id', tenant.id)
+        .maybeSingle()
+      const harSamtykke = !!(samtykkeNaa !== undefined ? samtykkeNaa : naa?.appearance_consent_at)
+      patch.attributes = rensAttributter(body.attributes, { harSamtykke })
+      // Trekkes samtykket, skal spilleomraadet BORT samtidig -- ikke ligge
+      // igjen som en rad ingen lenger har hjemmel for.
+      if (samtykkeNaa === null) {
+        const a = patch.attributes as Record<string, string[]>
+        for (const f of KREVER_SAMTYKKE) delete a[f]
+      }
+    } else if (samtykkeNaa === null) {
+      const { data: naa } = await admin()
+        .from('voice_actors')
+        .select('attributes')
+        .eq('id', actorId)
+        .eq('owner_tenant_id', tenant.id)
+        .maybeSingle()
+      const a = { ...((naa?.attributes as Record<string, string[]>) || {}) }
+      for (const f of KREVER_SAMTYKKE) delete a[f]
+      patch.attributes = a
+    }
+
     if (body.rates !== undefined) {
       // Takster per brukstype: {video:{actor_rate_nok,customer_price_nok},…} — kun gyldige tall beholdes
       const clean: Record<string, { actor_rate_nok: number; customer_price_nok: number }> = {}

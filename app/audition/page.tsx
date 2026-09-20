@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/authContext'
+import Plukker from './Plukker'
+import type { Kandidat } from '@/lib/castingAttributes'
 
 // Audition: samme scene, samme replikk, ulike skuespillere.
 //
@@ -16,7 +18,6 @@ import { useAuth } from '@/lib/authContext'
 // Flaten poller selv. Ingen forespørsel venter på en render: hver poll skyver
 // hvert take ett steg videre (se lib/auditions.ts).
 
-interface Kandidat { id: string; name: string; isDemo: boolean; photo: string | null }
 interface Read { id: string; take_id: string; audio_url: string | null; direction: string | null; is_chosen: boolean }
 interface Take { id: string; actor_id: string; stage: string; still_url: string | null; video_url: string | null; feil: string | null; cost_nok: number | null; reads: Read[] }
 
@@ -32,6 +33,8 @@ export default function AuditionPage() {
   // sesjonen ikke hydrert ennaa, og et kall da ser ut som «ikke innlogget».
   const { session, loading: authLoading } = useAuth()
   const [kandidater, setKandidater] = useState<Kandidat[]>([])
+  const [totalt, setTotalt] = useState(0)
+  const [avkuttet, setAvkuttet] = useState(false)
   const [prisFilm, setPrisFilm] = useState(0)
   const [prisLesning, setPrisLesning] = useState(0)
   const [jobber, setJobber] = useState<string | null>(null)
@@ -73,6 +76,8 @@ export default function AuditionPage() {
         const d = await res.json()
         if (!res.ok) { setError(d.error || t('err_actors')); return }
         setKandidater(d.actors || [])
+        setTotalt(Number(d.totalt) || (d.actors || []).length)
+        setAvkuttet(d.avkuttet === true)
         setPrisFilm(Number(d.prisPerFilm) || 0)
         setPrisLesning(Number(d.prisPerLesning) || 0)
       } catch (e) {
@@ -212,33 +217,18 @@ export default function AuditionPage() {
               {t('scene_note')}
             </p>
 
+            {/* Valget av skuespillere gikk fra et rutenett til castingplukkeren
+                (Lars 20/9): «Når vi har flere hundre å velge mellom må vi ha
+                mulighet til å søke.» Maks åtte per runde — samme grense som
+                POST-ruta håndhever. */}
             <label className="block text-sm font-medium mb-2">{t('who', { n: valgte.length })}</label>
             {kandidater.length === 0 ? (
               <p className="text-sm text-[var(--text-muted,#6B6358)] mb-4">
                 {t('none_ready')}
               </p>
             ) : (
-              <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
-                {kandidater.map((k) => {
-                  const paa = valgte.includes(k.id)
-                  return (
-                    <button key={k.id}
-                      onClick={() => setValgte((v) => paa ? v.filter((x) => x !== k.id) : [...v, k.id])}
-                      className="rounded-xl border overflow-hidden text-left transition-colors"
-                      style={{ borderColor: paa ? 'var(--ember-deep)' : 'var(--ds-border, #E2D9C8)', borderWidth: paa ? 2 : 1 }}>
-                      {k.photo
-                        // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={k.photo} alt="" className="w-full aspect-[4/3] object-cover object-top" />
-                        : <div className="w-full aspect-[4/3]" style={{ background: 'var(--ember-tint-bg)' }} />}
-                      <div className="px-3 py-2 text-sm font-medium flex items-center gap-2">
-                        {k.name}
-                        {k.isDemo && <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border"
-                          style={{ borderColor: 'var(--ds-border, #E2D9C8)', color: 'var(--text-muted, #6B6358)' }}>{t('chip_test')}</span>}
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+              <Plukker kandidater={kandidater} valgte={valgte} setValgte={setValgte}
+                totalt={totalt} avkuttet={avkuttet} maks={8} />
             )}
 
             <div className="flex items-center gap-4 flex-wrap">
