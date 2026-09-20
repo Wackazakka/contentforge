@@ -11,7 +11,7 @@ import Script from "next/script";
 import { AuthProvider } from "@/lib/authContext";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getLocale } from "next-intl/server";
-import { getTenant, ROOT_TENANT } from "@/lib/tenantServer";
+import { getTenant, getTenantCanonicalOrigin, ROOT_TENANT } from "@/lib/tenantServer";
 import { produktnavn } from "@/lib/tenantNames";
 import { TenantProvider } from "@/lib/tenantContext";
 import GlobalFooter from "@/components/GlobalFooter";
@@ -110,11 +110,24 @@ export async function generateMetadata(): Promise<Metadata> {
   const beskrivelse = tenant.meta_description?.trim() || (paaEngelsk
     ? `Create professional videos and articles in seconds with ${produkt}.`
     : `Lag profesjonelle videoer og artikler på sekunder med ${produkt}.`)
+  // INDEKSERING (085). Standard AV: en white-label skal ikke konkurrere med
+  // forvalteren i sok. Men TwinLedger er ikke en white-label -- det er
+  // destinasjonen produsenter skal FINNE, og en katalog ingen finner er ingen
+  // katalog. Derfor en bryter per tenant i stedet for et unntak i koden.
+  const indekseres = tenant.allow_indexing === true;
+  // Kanonisk adresse mot tenantens EGNE domene, ikke verten man kom inn paa:
+  // samme TwinLedger kan ligge paa bade twinledger.ai og
+  // twinledger.norditech.io, og uten dette ville Google sett duplikater av hver
+  // eneste rettighetshaver.
+  const kanonisk = await getTenantCanonicalOrigin(tenant);
   return {
     title: { default: tittel, template: `%s · ${produkt}` },
     description: beskrivelse,
     icons: { icon: tenant.icon_url || "/icon.svg" },
-    robots: { index: false, follow: false },
+    ...(indekseres ? { metadataBase: new URL(kanonisk) } : {}),
+    robots: indekseres
+      ? { index: true, follow: true }
+      : { index: false, follow: false },
   };
 }
 

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { OFFENTLIGE_FASETTER } from '@/lib/castingAttributes'
-import { getTenant } from '@/lib/tenantServer'
+import { getTenant, getTenantCanonicalOrigin } from '@/lib/tenantServer'
 import { getPublicActor } from '@/lib/publicActors'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { LangToggle } from '@/components/LangToggle'
@@ -21,9 +21,18 @@ export async function generateMetadata({ params }: { params: Promise<{ actorId: 
   const hva = actor.hasVoice && actor.hasFace
     ? `${t('chip_voice_lc')} ${t('and')} ${t('chip_face_lc')}`
     : actor.hasFace ? t('chip_face_lc') : t('chip_voice_lc')
+  // Kanonisk mot tenantens eget domene: samme kort kan naas fra flere verter,
+  // og uten dette ville Google sett en kopi av hver rettighetshaver per vert.
+  const tenant = await getTenant()
+  const origin = await getTenantCanonicalOrigin(tenant)
   return {
     title: actor.isDemo ? `${actor.name} — ${t('example_word')}` : `${actor.name} — ${hva}`,
     description: actor.bio?.slice(0, 150) || t('meta_fallback', { name: actor.name }),
+    alternates: { canonical: `${origin}/stemme/${actor.id}` },
+    // ⚠️ Eksempelprofiler skal ALDRI i søkeindeksen. Merket står på sida, men
+    // et søkeresultat viser ikke merket — og et kort som ser ut som en ekte
+    // bookbar person er nøyaktig det vi ikke skal lage.
+    ...(actor.isDemo ? { robots: { index: false, follow: false } } : {}),
   }
 }
 

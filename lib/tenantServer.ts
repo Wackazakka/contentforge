@@ -12,6 +12,7 @@ export interface Tenant {
   slug: string
   parent_tenant_id: string | null
   custom_domain?: string | null // eget domene, uten www (f.eks. 'voicebank.ai')
+  allow_indexing?: boolean | null // skal sokemotorer indeksere? Standard av (085)
   name: string
   app_name: string
   product_name?: string | null // tjenestens navn når det avviker fra selskapets — se lib/tenantNames
@@ -143,6 +144,25 @@ async function lookupTenantByDomain(domain: string): Promise<Tenant | null> {
   } catch {
     return null
   }
+}
+
+/**
+ * Tenantens KANONISKE origin — den ene adressen sokemotorer skal se.
+ *
+ * 🔑 FORSKJELLEN FRA getTenantOrigin: den returnerer verten du faktisk kom inn
+ * paa. Denne returnerer verten innholdet SKAL bo paa. Fra 20.09.2026 kan samme
+ * TwinLedger ligge paa bade twinledger.ai og twinledger.norditech.io; uten
+ * dette ville Google indeksert begge og sett duplikater av hver eneste
+ * rettighetshaver.
+ *
+ * Er custom_domain satt, vinner det. Ellers tenantens subdomene, og til slutt
+ * verten vi faktisk star paa.
+ */
+export async function getTenantCanonicalOrigin(tenant?: Tenant): Promise<string> {
+  const t = tenant ?? (await getTenant())
+  if (t.custom_domain) return `https://${t.custom_domain}`
+  if (t.slug && t.slug !== ROOT_TENANT.slug) return `https://${t.slug}.${BASE_DOMAIN}`
+  return getTenantOrigin()
 }
 
 /**

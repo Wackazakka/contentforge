@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
-import { getTenant } from '@/lib/tenantServer'
+import { getTenant, getTenantCanonicalOrigin } from '@/lib/tenantServer'
 import { getPublicActors } from '@/lib/publicActors'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { LangToggle } from '@/components/LangToggle'
@@ -24,6 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
     // Layouten legger selv på « · {tenant}» — ikke gjenta navnet her.
     title: t('title'),
     description: t('meta_description', { tenant: tenant.app_name }),
+    alternates: { canonical: `${await getTenantCanonicalOrigin(tenant)}/stemmer` },
   }
 }
 

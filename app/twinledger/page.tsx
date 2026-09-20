@@ -2,7 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-import { getTenant } from '@/lib/tenantServer'
+import { getTenant, getTenantCanonicalOrigin } from '@/lib/tenantServer'
 import { LangToggle } from '@/components/LangToggle'
 
 // Norditechs egen dør inn til TwinLedger.
@@ -23,7 +23,14 @@ import { LangToggle } from '@/components/LangToggle'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('twinledger')
-  return { title: t('meta_title'), description: t('meta_description') }
+  // Sida serveres paa «/» via omskrivingen i proxy.ts, og skal kanoniseres dit
+  // — ikke til /twinledger, som er en intern sti ingen skal lande paa.
+  const origin = await getTenantCanonicalOrigin()
+  return {
+    title: t('meta_title'),
+    description: t('meta_description'),
+    alternates: { canonical: `${origin}/` },
+  }
 }
 
 const MONO = 'var(--font-cfmono), ui-monospace, SFMono-Regular, Menlo, monospace'
