@@ -59,10 +59,6 @@ export default async function ActorPresentationPage({ params }: { params: Promis
             <span className="text-[var(--ink-soft,#4A443B)]">
               {actor.name} er ikke en rettighetshaver du kan booke — dette er en visning av hvordan
               et kort i banken ser ut, lagt ut mens vi rekrutterer de første.
-              {/* Et proveniensprodukt kan ikke vise et generert portrett som om
-                  det var et fotografi. Sies det derimot rett ut, demonstrerer
-                  kortet nettopp det produktet lover. */}
-              {actor.hasFace && ' Portrettene er generert fra ansiktsmodellen, ikke fotografier.'}
             </span>
           </div>
         )}
@@ -80,6 +76,16 @@ export default async function ActorPresentationPage({ params }: { params: Promis
             {actor.hasFace && <span className="px-2.5 py-1 rounded-full" style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>Ansikt</span>}
           </div>
           <p className="text-sm uppercase tracking-widest text-[var(--text-faint,#8A8175)]">Forvaltes av {actor.managedBy}</p>
+          {/* Ansiktssiden leverer genererte bilder — det er ikke et forbehold,
+              det ER varen: kunden lisensierer MODELLEN, ikke et bildearkiv.
+              Derfor står dette på alle ansiktsprofiler, ikke bare eksempler,
+              og som opplysning framfor advarsel. (AI-åpenheten skal uansett
+              følge en syntetisk frontfigur overalt.) */}
+          {actor.hasFace && (
+            <p className="text-sm text-[var(--text-muted,#6B6358)] mt-3 max-w-md mx-auto">
+              Bildene er laget med ansiktsmodellen i banken. Det er modellen som lisensieres — ikke et bildearkiv.
+            </p>
+          )}
         </div>
 
         {/* Bio */}
