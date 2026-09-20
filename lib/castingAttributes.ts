@@ -56,6 +56,32 @@ export const VOKABULAR: Record<Fasett, readonly string[]> = {
 
 export const FASETTER = Object.keys(VOKABULAR) as Fasett[]
 
+/**
+ * Fasettene som vises på den ÅPNE katalogen (/stemmer).
+ *
+ * 🔑 ART. 9 HOLDES UTENFOR DEN ÅPNE SIDA. Samtykket vi faktisk har innhentet
+ * gjelder casting — og et innlogget castingverktøy ER casting. En åpen
+ * nettside er PUBLISERING, og det er en annen og større eksponering av
+ * særlige kategorier. Skal spilleområde ut i det åpne galleriet, må
+ * onboarding be om det uttrykkelig; den linja finnes ikke i dag.
+ *
+ * Endres dette, er det en samtykkebeslutning — ikke en UI-justering.
+ */
+export const OFFENTLIGE_FASETTER: readonly Fasett[] =
+  FASETTER.filter((f) => !KREVER_SAMTYKKE.includes(f))
+
+/** Attributtene slik de kan vises utenfor innlogging. */
+export function offentligeAttributter(
+  attr: Record<string, string[]> | null | undefined
+): Record<string, string[]> {
+  const ut: Record<string, string[]> = {}
+  for (const f of OFFENTLIGE_FASETTER) {
+    const v = attr?.[f]
+    if (Array.isArray(v) && v.length) ut[f] = v
+  }
+  return ut
+}
+
 /** Én fasetts verdier, eller tom liste hvis fasetten ikke finnes. */
 export function verdierFor(fasett: string): readonly string[] {
   return VOKABULAR[fasett as Fasett] ?? []

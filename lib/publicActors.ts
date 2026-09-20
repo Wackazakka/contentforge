@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Tenant } from '@/lib/tenantServer'
+import { offentligeAttributter } from '@/lib/castingAttributes'
 
 // Det OFFENTLIGE utsnittet av stemme- og ansiktsbanken: det en som ikke er
 // kunde får se. Én kilde for både galleriet (/stemmer) og visittkortet
@@ -16,6 +17,15 @@ import type { Tenant } from '@/lib/tenantServer'
 // portefølje. Flagget følger raden ut hit slik at hver flate kan merke den —
 // et kort som ser ut som en ekte bookbar person, på en side som lover ekte
 // mennesker, er nøyaktig det vi ikke skal lage.
+//
+// CASTINGFELTENE (083) foelger med ut hit, saa en produsent som ikke er kunde
+// kan SOEKE i katalogen og ikke bare bla i den. To grenser:
+//
+//   · SPILLEOMRAADE (art. 9) sendes IKKE ut. Samtykket vi har innhentet
+//     gjelder casting, og et innlogget castingverktoey ER casting -- en aapen
+//     nettside er publisering. Se OFFENTLIGE_FASETTER i castingAttributes.
+//   · Aldersmodellenes spenn foelger med, men bare fra modeller med
+//     `source_cleared`: den kolonnen er en port (082), ikke et notat.
 //
 // Hva som ALDRI sendes ut herfra: satser, kundepriser, e-post, ElevenLabs-id,
 // LoRA-id. Bare det skuespilleren selv har valgt å vise fram.
@@ -40,9 +50,16 @@ export interface PublicActor {
   hasFace: boolean
   managedBy: string
   isDemo: boolean
+  // Castingfeltene. `attributes` er allerede renset for art. 9 her.
+  gender: string | null
+  playingAgeFrom: number | null
+  playingAgeTo: number | null
+  heightCm: number | null
+  attributes: Record<string, string[]>
+  modelAges: Array<{ from: number | null; to: number | null }>
 }
 
-const FELT = 'id, owner_tenant_id, name, bio, photo_urls, sample_urls, video_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo'
+const FELT = 'id, owner_tenant_id, name, bio, photo_urls, sample_urls, video_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo, gender, playing_age_from, playing_age_to, height_cm, attributes'
 
 type Rad = {
   id: string; owner_tenant_id: string; name: string; bio: string | null
@@ -50,6 +67,8 @@ type Rad = {
   elevenlabs_voice_id: string | null; face_character_id: string | null
   is_public: boolean; is_active: boolean; is_exclusive: boolean | null
   is_demo: boolean | null
+  gender: string | null; playing_age_from: number | null; playing_age_to: number | null
+  height_cm: number | null; attributes: Record<string, string[]> | null
 }
 
 async function kjedeOpp(tenantId: string): Promise<string[]> {
@@ -65,7 +84,12 @@ async function kjedeOpp(tenantId: string): Promise<string[]> {
   return chain
 }
 
-function tilPublic(a: Rad, tenantNames: Map<string, string>, fallbackName: string): PublicActor {
+function tilPublic(
+  a: Rad,
+  tenantNames: Map<string, string>,
+  fallbackName: string,
+  modellAlder?: Map<string, Array<{ from: number | null; to: number | null }>>
+): PublicActor {
   const photos = Array.isArray(a.photo_urls) ? (a.photo_urls as unknown[]).map(String) : []
   const egne = Array.isArray(a.sample_urls) ? (a.sample_urls as unknown[]).map(String) : []
   return {
@@ -81,7 +105,38 @@ function tilPublic(a: Rad, tenantNames: Map<string, string>, fallbackName: strin
     hasFace: !!(a.face_character_id && String(a.face_character_id).trim()),
     managedBy: tenantNames.get(a.owner_tenant_id) ?? fallbackName,
     isDemo: a.is_demo === true,
+    gender: a.gender ?? null,
+    playingAgeFrom: a.playing_age_from ?? null,
+    playingAgeTo: a.playing_age_to ?? null,
+    heightCm: a.height_cm ?? null,
+    attributes: offentligeAttributter(a.attributes),
+    modelAges: modellAlder?.get(a.id) ?? [],
   }
+}
+
+/**
+ * Aldersspenn fra klarerte ansiktsmodeller (082), per skuespiller.
+ *
+ * BEVISST TOLERANT: modellene beriker filteret, de bærer det ikke. Feiler
+ * spørringen, skal katalogen fortsatt komme opp — en besøkende som ikke ser
+ * noen i det hele tatt er langt verre enn en som ikke ser aldersmodell-merket.
+ */
+async function modellAlderFor(ids: string[]): Promise<Map<string, Array<{ from: number | null; to: number | null }>>> {
+  const m = new Map<string, Array<{ from: number | null; to: number | null }>>()
+  if (ids.length === 0) return m
+  try {
+    const { data, error } = await admin().from('actor_face_models')
+      .select('actor_id, age_from, age_to, source_cleared').in('actor_id', ids)
+    if (error) { console.warn('[publicActors] aldersmodeller utilgjengelig:', error.message); return m }
+    for (const r of data || []) {
+      if (r.source_cleared !== true) continue
+      if (r.age_from == null && r.age_to == null) continue
+      const liste = m.get(String(r.actor_id)) || []
+      liste.push({ from: r.age_from ?? null, to: r.age_to ?? null })
+      m.set(String(r.actor_id), liste)
+    }
+  } catch { /* se over: berikelse, ikke krav */ }
+  return m
 }
 
 async function navnFor(ids: string[]): Promise<Map<string, string>> {
@@ -116,9 +171,12 @@ export async function getPublicActors(tenant: Tenant): Promise<PublicActor[]> {
     const chain = tenant.id === 'root' ? null : await kjedeOpp(tenant.id)
     const egenDor = erEgenDor(tenant)
     const rader = ((data || []) as Rad[]).filter((a) => synligHer(a, chain, egenDor))
-    const navn = await navnFor(rader.map((a) => a.owner_tenant_id))
+    const [navn, modeller] = await Promise.all([
+      navnFor(rader.map((a) => a.owner_tenant_id)),
+      modellAlderFor(rader.map((a) => a.id)),
+    ])
     return rader
-      .map((a) => tilPublic(a, navn, tenant.app_name))
+      .map((a) => tilPublic(a, navn, tenant.app_name, modeller))
       // Eksempler sist: så snart én ekte rettighetshaver er publisert, skal
       // hen stå først i hylla — uten at noen må huske å rydde.
       .sort((a, b) => Number(a.isDemo) - Number(b.isDemo))
@@ -134,8 +192,11 @@ export async function getPublicActor(tenant: Tenant, actorId: string): Promise<P
     if (!a) return null
     const chain = tenant.id === 'root' ? null : await kjedeOpp(tenant.id)
     if (!synligHer(a, chain, erEgenDor(tenant))) return null
-    const navn = await navnFor([a.owner_tenant_id])
-    return tilPublic(a, navn, tenant.app_name)
+    const [navn, modeller] = await Promise.all([
+      navnFor([a.owner_tenant_id]),
+      modellAlderFor([a.id]),
+    ])
+    return tilPublic(a, navn, tenant.app_name, modeller)
   } catch {
     return null
   }

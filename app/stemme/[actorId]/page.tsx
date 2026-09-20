@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
+import { OFFENTLIGE_FASETTER } from '@/lib/castingAttributes'
 import { getTenant } from '@/lib/tenantServer'
 import { getPublicActor } from '@/lib/publicActors'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
@@ -48,6 +49,23 @@ export default async function ActorPresentationPage({ params }: { params: Promis
   const { photos, samples } = actor
   const kant = { borderColor: 'var(--ds-border, #E2D9C8)' }
 
+  // Castingopplysningene, bygget server-side av samme vokabular som filtrene.
+  const tc = await getTranslations('casting')
+  const alder = actor.playingAgeFrom != null && actor.playingAgeTo != null
+    ? tc('plays_age', { from: actor.playingAgeFrom, to: actor.playingAgeTo })
+    : actor.playingAgeFrom != null ? tc('plays_age_from', { from: actor.playingAgeFrom })
+    : actor.playingAgeTo != null ? tc('plays_age_to', { to: actor.playingAgeTo })
+    : null
+  const castinglinje = [
+    actor.gender ? tc(`gender_${actor.gender}`) : null,
+    alder,
+    actor.heightCm ? `${actor.heightCm} ${tc('admin_cm')}` : null,
+    actor.modelAges.length === 1 ? tc('has_models_one')
+      : actor.modelAges.length > 1 ? tc('has_models', { n: actor.modelAges.length }) : null,
+  ].filter(Boolean).join(' · ')
+  const castingmerker = OFFENTLIGE_FASETTER.flatMap((f) =>
+    (actor.attributes[f] ?? []).map((v) => tc(`${f}_${v}`)))
+
   return (
     <div className="min-h-screen bg-[var(--paper)] text-[var(--ink,#1C1A16)]">
       <header className="max-w-2xl mx-auto px-4 pt-6 pb-2 flex items-center gap-4">
@@ -81,6 +99,20 @@ export default async function ActorPresentationPage({ params }: { params: Promis
             {actor.hasVoice && <span className="px-2.5 py-1 rounded-full" style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>{t('chip_voice')}</span>}
             {actor.hasFace && <span className="px-2.5 py-1 rounded-full" style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>{t('chip_face')}</span>}
           </div>
+          {/* Castinglinja. En regissør leser kjønn, spillealder og høyde før
+              alt annet; uten den må hen gjette eller spørre. Spilleområde
+              (art. 9) står IKKE her — se OFFENTLIGE_FASETTER. */}
+          {castinglinje && (
+            <p className="text-sm text-[var(--ink-soft,#4A443B)] mb-1">{castinglinje}</p>
+          )}
+          {castingmerker.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-1.5 mb-2">
+              {castingmerker.map((m) => (
+                <span key={m} className="text-[11px] px-2 py-0.5 rounded-full border"
+                  style={{ borderColor: 'var(--ds-border, #E2D9C8)', color: 'var(--text-muted,#6B6358)' }}>{m}</span>
+              ))}
+            </div>
+          )}
           <p className="text-sm uppercase tracking-widest text-[var(--text-faint,#8A8175)]">{t('managed_by', { tenant: actor.managedBy })}</p>
           {/* Ansiktssiden leverer genererte bilder — det er ikke et forbehold,
               det ER varen: kunden lisensierer MODELLEN, ikke et bildearkiv.
