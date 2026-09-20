@@ -16,7 +16,8 @@ import { useAuth } from '@/lib/authContext'
 // hvert take ett steg videre (se lib/auditions.ts).
 
 interface Kandidat { id: string; name: string; isDemo: boolean; photo: string | null }
-interface Take { id: string; actor_id: string; stage: string; still_url: string | null; video_url: string | null; feil: string | null }
+interface Read { id: string; take_id: string; audio_url: string | null; direction: string | null; is_chosen: boolean }
+interface Take { id: string; actor_id: string; stage: string; still_url: string | null; video_url: string | null; feil: string | null; cost_nok: number | null; reads: Read[] }
 
 const REGI: Array<[string, string]> = [
   ['noytral', 'Nøytral'],
@@ -28,7 +29,8 @@ const REGI: Array<[string, string]> = [
 ]
 
 const STEG: Record<string, string> = {
-  queued: 'I kø', still: 'Lager bildet', voice: 'Leser replikken', video: 'Rendrer', done: 'Ferdig', failed: 'Feilet',
+  queued: 'Ingen lesning ennå', ready: 'Velg en lesning', still: 'Lager bildet',
+  video: 'Rendrer film', done: 'Ferdig', failed: 'Feilet',
 }
 
 export default function AuditionPage() {
@@ -36,7 +38,9 @@ export default function AuditionPage() {
   // sesjonen ikke hydrert ennaa, og et kall da ser ut som «ikke innlogget».
   const { session, loading: authLoading } = useAuth()
   const [kandidater, setKandidater] = useState<Kandidat[]>([])
-  const [prisPerTake, setPrisPerTake] = useState(0)
+  const [prisFilm, setPrisFilm] = useState(0)
+  const [prisLesning, setPrisLesning] = useState(0)
+  const [jobber, setJobber] = useState<string | null>(null)
   const [valgte, setValgte] = useState<string[]>([])
   const [line, setLine] = useState('')
   const [direction, setDirection] = useState('noytral')
@@ -75,7 +79,8 @@ export default function AuditionPage() {
         const d = await res.json()
         if (!res.ok) { setError(d.error || 'Kunne ikke hente skuespillerne'); return }
         setKandidater(d.actors || [])
-        setPrisPerTake(Number(d.prisPerTake) || 0)
+        setPrisFilm(Number(d.prisPerFilm) || 0)
+        setPrisLesning(Number(d.prisPerLesning) || 0)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Ukjent feil')
       }
@@ -123,11 +128,39 @@ export default function AuditionPage() {
       const d = await res.json()
       if (!res.ok) { setError(d.error || 'Kunne ikke starte'); return }
       setAuditionId(d.id); setTakes([]); setFerdig(false)
+      // Fase 1 starter av seg selv: en lesning per plass, slik at regissøren
+      // har noe å høre på med én gang. Videre takes er hens valg.
+      const r = await fetch(`/api/auditions?id=${d.id}`, { headers: { Authorization: `Bearer ${await token()}` } })
+      const st = await r.json()
+      for (const t of (st.takes || [])) {
+        await fetch('/api/auditions', {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'read', takeId: t.id }),
+        })
+      }
+      await poll(d.id)
     } finally { setBusy(false) }
   }
 
+  const handling = async (body: Record<string, unknown>, merke: string) => {
+    setJobber(merke); setError(null)
+    try {
+      const res = await fetch('/api/auditions', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const d = await res.json()
+      if (!res.ok) { setError(d.error || 'Gikk galt'); return }
+      if (auditionId) await poll(auditionId)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Gikk galt')
+    } finally { setJobber(null) }
+  }
+
   const navn = (id: string) => kandidater.find((k) => k.id === id)?.name || 'Ukjent'
-  const pris = valgte.length * prisPerTake
+  const pris = valgte.length * prisLesning
 
   return (
     <div className="min-h-screen bg-[var(--paper)] text-[var(--ink,#1C1A16)]">
@@ -218,11 +251,11 @@ export default function AuditionPage() {
             <div className="flex items-center gap-4 flex-wrap">
               <button onClick={kjor} disabled={busy || !line.trim() || valgte.length === 0}
                 className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
-                {busy ? 'Starter …' : `Kjør audition${pris ? ` — ${pris} kr` : ''}`}
+                {busy ? 'Starter …' : `Hør dem lese${pris ? ` — ${pris} kr` : ''}`}
               </button>
               {valgte.length > 0 && (
                 <span className="text-sm text-[var(--text-muted,#6B6358)]">
-                  {valgte.length} × {prisPerTake} kr. Skuespillerne får betalt for prøven.
+                  Lesninger koster {prisLesning} kr per skuespiller og kan gjentas. Film bestiller du etterpå, per skuespiller, til {prisFilm} kr.
                 </span>
               )}
             </div>
@@ -238,25 +271,80 @@ export default function AuditionPage() {
               </span>
             </div>
             <div className="grid gap-5 mb-8" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-              {takes.map((t) => (
-                <div key={t.id} className="rounded-xl border overflow-hidden"
-                  style={{ background: 'var(--paper-raised)', borderColor: 'var(--ds-border, #E2D9C8)' }}>
-                  {t.video_url ? (
-                    <video controls preload="metadata" playsInline src={t.video_url} className="w-full" style={{ background: '#000' }} />
-                  ) : t.still_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={t.still_url} alt="" className="w-full aspect-video object-cover object-top opacity-70" />
-                  ) : (
-                    <div className="w-full aspect-video" style={{ background: 'var(--ember-tint-bg)' }} />
-                  )}
-                  <div className="px-4 py-3 flex items-center justify-between gap-3">
-                    <span className="font-medium">{navn(t.actor_id)}</span>
-                    <span className="text-xs text-[var(--text-muted,#6B6358)]">
-                      {t.stage === 'failed' ? (t.feil || 'Feilet') : STEG[t.stage] || t.stage}
-                    </span>
+              {takes.map((t) => {
+                const valgtLesning = t.reads?.find((r) => r.is_chosen) || null
+                const iFase2 = ['still', 'video', 'done'].includes(t.stage)
+                return (
+                  <div key={t.id} className="rounded-xl border overflow-hidden"
+                    style={{ background: 'var(--paper-raised)', borderColor: 'var(--ds-border, #E2D9C8)' }}>
+                    {t.video_url ? (
+                      <video controls preload="metadata" playsInline src={t.video_url} className="w-full" style={{ background: '#000' }} />
+                    ) : t.still_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={t.still_url} alt="" className="w-full aspect-video object-cover object-top opacity-70" />
+                    ) : null}
+
+                    <div className="px-4 py-3">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <span className="font-medium">{navn(t.actor_id)}</span>
+                        <span className="text-xs text-[var(--text-muted,#6B6358)]">
+                          {t.stage === 'failed' ? (t.feil || 'Feilet') : STEG[t.stage] || t.stage}
+                        </span>
+                      </div>
+
+                      {/* FASE 1 — lesningene. Flere takes per skuespiller, fordi
+                          modellen ikke er deterministisk: samme regi gir ulike
+                          lesninger, og «en take til» er en regihandling. */}
+                      {!iFase2 && (
+                        <>
+                          <div className="space-y-2 mb-3">
+                            {(t.reads || []).map((r, i) => (
+                              <div key={r.id} className="flex items-center gap-2">
+                                <span className="text-xs text-[var(--text-faint,#8A8175)] w-14 flex-none">Take {i + 1}</span>
+                                {r.audio_url && <audio controls preload="none" src={r.audio_url} className="flex-1 h-9" />}
+                                <button onClick={() => handling({ action: 'choose', readId: r.id }, r.id)}
+                                  disabled={jobber === r.id}
+                                  className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border flex-none"
+                                  style={r.is_chosen
+                                    ? { borderColor: 'var(--ember-deep)', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)' }
+                                    : { borderColor: 'var(--ds-border, #E2D9C8)' }}>
+                                  {r.is_chosen ? '✓ Valgt' : 'Velg'}
+                                </button>
+                              </div>
+                            ))}
+                            {(t.reads || []).length === 0 && (
+                              <p className="text-xs text-[var(--text-faint,#8A8175)]">Ingen lesning ennå.</p>
+                            )}
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <button onClick={() => handling({ action: 'read', takeId: t.id }, t.id + 'r')}
+                              disabled={jobber === t.id + 'r'}
+                              className="text-sm font-semibold px-3 py-2 rounded-lg border disabled:opacity-50"
+                              style={{ borderColor: 'var(--ds-border, #E2D9C8)' }}>
+                              {jobber === t.id + 'r' ? 'Leser …' : 'En take til'}
+                            </button>
+                            <button onClick={() => handling({ action: 'film', takeId: t.id }, t.id + 'f')}
+                              disabled={!valgtLesning || jobber === t.id + 'f'}
+                              className="text-sm font-semibold px-3 py-2 rounded-lg text-[var(--on-ember)] bg-[var(--ember-deep)] disabled:opacity-50">
+                              {jobber === t.id + 'f' ? 'Starter …' : `Lag film — ${t.cost_nok ?? prisFilm} kr`}
+                            </button>
+                          </div>
+                          {!valgtLesning && (t.reads || []).length > 0 && (
+                            <p className="text-xs text-[var(--text-faint,#8A8175)] mt-2">
+                              Velg en lesning før du bestiller film.
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {/* FASE 2 — filmen bygges på den valgte lesningen. */}
+                      {iFase2 && valgtLesning?.audio_url && t.stage !== 'done' && (
+                        <audio controls preload="none" src={valgtLesning.audio_url} className="w-full h-9" />
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
             <p className="text-xs text-[var(--text-faint,#8A8175)] mb-4">
               Del runden: <code>{typeof window !== 'undefined' ? `${window.location.origin}/audition?id=${auditionId}` : ''}</code>

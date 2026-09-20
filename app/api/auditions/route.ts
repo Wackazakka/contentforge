@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { isTenantAdmin } from '@/lib/voiceBank'
-import { opprettAudition, pollAudition, AUDITION_TAKE_NOK } from '@/lib/auditions'
+import {
+  opprettAudition, pollAudition, lagLesning, velgLesning, startFilm,
+  AUDITION_FILM_NOK, AUDITION_READ_NOK,
+} from '@/lib/auditions'
 
 // Audition-ruten. Tre former:
 //   POST            → opprett en audition med N takes (kjører ikke noe selv)
@@ -61,7 +64,8 @@ export async function GET(request: Request) {
         id: a.id, name: a.name, isDemo: a.is_demo === true,
         photo: Array.isArray(a.photo_urls) && a.photo_urls.length ? String(a.photo_urls[0]) : null,
       })),
-      prisPerTake: AUDITION_TAKE_NOK,
+      prisPerFilm: AUDITION_FILM_NOK,
+      prisPerLesning: AUDITION_READ_NOK,
     })
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })
@@ -92,5 +96,58 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ...res })
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })
+  }
+}
+
+// PUT: de menneskelige handlingene i fase 1 og overgangen til fase 2.
+//   read   — lag én lesning til på en skuespillerplass (billig, gjentakbar)
+//   choose — velg hvilken lesning filmen skal bygges på
+//   film   — start fase 2 for den plassen
+//
+// Alle tre er korte kall. Selve filmen skyves videre av poll-ruten, som før.
+export async function PUT(request: Request) {
+  const { tenant, fail } = await guard(request)
+  if (fail || !tenant) return fail!
+  try {
+    const body = await request.json()
+    const action = String(body.action || '')
+
+    // Plassen må høre til en audition i DENNE banken — ellers kunne en admin
+    // hos én tenant kjørt opp kostnader på en annen.
+    const tilhorer = async (takeId: string) => {
+      const { data } = await admin()
+        .from('audition_takes')
+        .select('id, audition_id, auditions!inner(tenant_id)')
+        .eq('id', takeId).maybeSingle()
+      const t = data as unknown as { auditions?: { tenant_id?: string } } | null
+      return !!t && t.auditions?.tenant_id === tenant.id
+    }
+
+    if (action === 'read') {
+      const takeId = String(body.takeId || '')
+      if (!takeId || !(await tilhorer(takeId))) return NextResponse.json({ error: 'Finnes ikke' }, { status: 404 })
+      const res = await lagLesning(takeId, body.direction ?? null)
+      return NextResponse.json({ ok: true, ...res })
+    }
+
+    if (action === 'choose') {
+      const readId = String(body.readId || '')
+      if (!readId) return NextResponse.json({ error: 'Mangler readId' }, { status: 400 })
+      const { data: r } = await admin().from('audition_reads').select('take_id').eq('id', readId).maybeSingle()
+      if (!r || !(await tilhorer(String(r.take_id)))) return NextResponse.json({ error: 'Finnes ikke' }, { status: 404 })
+      const res = await velgLesning(readId)
+      return NextResponse.json({ ok: true, ...res })
+    }
+
+    if (action === 'film') {
+      const takeId = String(body.takeId || '')
+      if (!takeId || !(await tilhorer(takeId))) return NextResponse.json({ error: 'Finnes ikke' }, { status: 404 })
+      await startFilm(takeId)
+      return NextResponse.json({ ok: true })
+    }
+
+    return NextResponse.json({ error: 'Ukjent handling' }, { status: 400 })
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 400 })
   }
 }

@@ -1,16 +1,24 @@
 import { createClient } from '@supabase/supabase-js'
 import { kr } from '@/lib/rateCard'
 
-// Audition: samme scene, samme replikk, ulike skuespillere.
+// Audition i TO FASER (Lars 20.09.2026).
 //
 // 🔑 DESIGNREGELEN: alt unntatt skuespilleren er identisk. Scene-prompten ligger
-// på AUDITIONEN, ikke på taket, nettopp derfor. Varierer rammen, sammenlikner
-// regissøren bilder; er rammen lik, sammenlikner hen skuespillere.
+// på AUDITIONEN, ikke på taket. Varierer rammen, sammenlikner regissøren
+// bilder; er rammen lik, sammenlikner hen skuespillere.
 //
-// ⚠️ STEGVIS, ikke synkront. Stillbilde ~15 s, Fabric ~60 s — ingen
-// serverless-funksjon rekker det. Hver take bærer leverandørens `request_id`
-// og en `stage`, og `flyttTake` skyver den ett hakk. Uten request_id på raden
-// er et påbegynt (og betalt) steg tapt.
+// 🔑 FASE 1 ER LESNINGER, FASE 2 ER FILM. Den første versjonen gjorde ett kast
+// — bilde, stemme og film i én kjede — og kunden betalte for filmen enten
+// lesningen duget eller ikke. Det er motsatt av hvordan en stemmeøkt foregår:
+// man regisserer lesningen, og forplikter seg til bilde etterpå.
+//
+// At en lesning kan gjentas er en ekte REGIHANDLING her, ikke et
+// parameterspørsmål: modellen er ikke deterministisk, så samme regi gir ulike
+// lesninger. Det er nøyaktig slik en studioøkt fungerer.
+//
+// Lesninger lages SYNKRONT (TTS tar et par sekunder). Bare filmen trenger
+// stegmaskinen, fordi et stillbilde tar ~15 s og en render godt over et minutt
+// — og ingen serverless-funksjon rekker det.
 
 function admin() {
   return createClient(
@@ -19,12 +27,21 @@ function admin() {
   )
 }
 
-/** Justerbare, som takstkortet. Råkost per take ligger rundt 8 kr. */
-export const AUDITION_TAKE_NOK = 39
-export const AUDITION_ACTOR_NOK = 12
+/** Justerbare, som takstkortet. Råkost per film ligger rundt 8 kr. */
+export const AUDITION_FILM_NOK = 39
+/**
+ * Skuespillerens andel som PROSENT, ikke kroner. Et fast beløp betyr at en
+ * prisøkning i stillhet kutter andelen hans — samme feil lisensmodellen unngår
+ * ved å skrive begge beløp eksplisitt.
+ */
+export const AUDITION_ACTOR_PCT = 30
+/** Lesninger går på prøvelytt-nivå: utforskning skal være billig. */
+export const AUDITION_READ_NOK = 2
+
+export const honorarFor = (kundepris: number) => kr((kundepris * AUDITION_ACTOR_PCT) / 100)
 
 /** Regi → stemmeinnstillinger. Husets EMOTION_PRESETS. */
-const REGI: Record<string, { stability: number; style: number }> = {
+export const REGI: Record<string, { stability: number; style: number }> = {
   noytral: { stability: 0.5, style: 0.0 },
   varm: { stability: 0.45, style: 0.4 },
   entusiastisk: { stability: 0.3, style: 0.75 },
@@ -33,8 +50,7 @@ const REGI: Record<string, { stability: number; style: number }> = {
   dramatisk: { stability: 0.25, style: 0.85 },
 }
 
-const FAL = () => process.env.CONTENTFORGE_FAL_KEY || ''
-const falAuth = () => ({ Authorization: 'Key ' + FAL() })
+const falAuth = () => ({ Authorization: 'Key ' + (process.env.CONTENTFORGE_FAL_KEY || '') })
 
 async function jsonEllerNull(r: Response) {
   const t = await r.text()
@@ -42,19 +58,18 @@ async function jsonEllerNull(r: Response) {
   try { return JSON.parse(t) } catch { return null }
 }
 
-/** Submit til fal-køen. Returnerer id-en OG url-ene fra svaret — aldri
- *  selvbygde stier, som er der fal-fella med app-prefikset bor. */
+/** fal legger status under APP-prefikset (to første ledd), ikke hele stien. */
+const appAv = (model: string) => model.split('/').slice(0, 2).join('/')
+
 async function falSubmit(model: string, body: unknown) {
   const r = await fetch(`https://queue.fal.run/${model}`, {
-    method: 'POST', headers: { ...falAuth(), 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    method: 'POST', headers: { ...falAuth(), 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
   const s = await jsonEllerNull(r)
   if (!r.ok || !s?.request_id) throw new Error(`${model} submit ${r.status}: ${JSON.stringify(s).slice(0, 200)}`)
-  return { id: s.request_id as string, statusUrl: s.status_url as string, resultUrl: s.response_url as string }
+  return s.request_id as string
 }
 
-/** Sjekk ETT steg uten å vente: ferdig, feilet, eller fortsatt i arbeid. */
 async function falSjekk(model: string, requestId: string) {
   const st = await jsonEllerNull(await fetch(`https://queue.fal.run/${appAv(model)}/requests/${requestId}/status`, { headers: falAuth() }))
   if (!st) return { ferdig: false as const }
@@ -64,9 +79,6 @@ async function falSjekk(model: string, requestId: string) {
   if (!res) return { ferdig: false as const }
   return { ferdig: true as const, res }
 }
-
-/** fal legger status under APP-prefikset (to første ledd), ikke hele stien. */
-const appAv = (model: string) => model.split('/').slice(0, 2).join('/')
 
 const FLUX = 'fal-ai/flux-lora'
 const FABRIC = 'veed/fabric-1.0'
@@ -108,72 +120,126 @@ export async function opprettAudition(i: AuditionInput) {
   await admin().from('audition_takes').insert(
     i.actorIds.map((actorId) => ({
       audition_id: auditionId, actor_id: actorId, stage: 'queued',
-      cost_nok: AUDITION_TAKE_NOK, actor_nok: AUDITION_ACTOR_NOK,
+      cost_nok: AUDITION_FILM_NOK, actor_nok: honorarFor(AUDITION_FILM_NOK),
     }))
   )
-  return { id: auditionId, takes: i.actorIds.length, prisNok: kr(i.actorIds.length * AUDITION_TAKE_NOK) }
+  return { id: auditionId, takes: i.actorIds.length }
 }
 
 /**
- * Skyv én take ett hakk videre. Kalles av poll-ruten, aldri i en løkke som
- * venter — hele poenget er at ingen forespørsel blir stående og henge.
+ * FASE 1 — lag én lesning. Synkront: TTS tar et par sekunder.
+ * Kan kalles mange ganger på samme plass; hver gang er en ny take.
+ */
+export async function lagLesning(takeId: string, regi?: string | null) {
+  const supabase = admin()
+  const { data: t } = await supabase.from('audition_takes').select('*').eq('id', takeId).maybeSingle()
+  if (!t) throw new Error('Finnes ikke')
+  const { data: a } = await supabase.from('auditions').select('*').eq('id', t.audition_id).single()
+  const { data: actor } = await supabase.from('voice_actors')
+    .select('id, name, elevenlabs_voice_id').eq('id', t.actor_id).single()
+  if (!actor?.elevenlabs_voice_id) throw new Error(`${actor?.name ?? 'Skuespilleren'} har ingen stemme`)
+
+  const valgt = regi || a!.direction || 'noytral'
+  const st = REGI[valgt] || REGI.noytral
+  const tts = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actor.elevenlabs_voice_id}`, {
+    method: 'POST',
+    headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY || '', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: a!.line, model_id: 'eleven_turbo_v2_5', language_code: 'no',
+      apply_text_normalization: 'off', voice_settings: { ...st, similarity_boost: 0.75 },
+    }),
+  })
+  if (!tts.ok) throw new Error(`Stemmen feilet (${tts.status})`)
+  const lyd = Buffer.from(await tts.arrayBuffer())
+  const url = await tilR2(lyd, `auditions/${t.audition_id}/${takeId}-${Date.now()}.mp3`, 'audio/mpeg')
+
+  const { data: read } = await supabase.from('audition_reads').insert({
+    take_id: takeId, audio_url: url, direction: valgt,
+    stability: st.stability, style: st.style, chars: String(a!.line).length,
+  }).select('id').single()
+
+  // En lesning er utforskning FØR en avtale finnes — samme kategori som
+  // prøvelytt. Skuespilleren får betalt, raden står uten hjemmel.
+  await supabase.from('voice_usage_events').insert({
+    actor_id: actor.id,
+    used_by_tenant_id: a!.tenant_id,
+    organization_id: a!.organization_id ?? null,
+    licence_id: null,
+    actor_rate_nok: honorarFor(AUDITION_READ_NOK),
+    customer_price_nok: AUDITION_READ_NOK,
+    asset_type: 'voice',
+    meta: { kind: 'audition_read', audition_id: a!.id, chars: String(a!.line).length, licence_match: 'preview' },
+  })
+
+  await supabase.from('audition_takes').update({ stage: 'ready', updated_at: new Date().toISOString() }).eq('id', takeId)
+  return { id: (read as { id: string }).id, audioUrl: url, direction: valgt }
+}
+
+/** Velg hvilken lesning filmen skal bygges på. Én per plass. */
+export async function velgLesning(readId: string) {
+  const supabase = admin()
+  const { data: r } = await supabase.from('audition_reads').select('id, take_id').eq('id', readId).maybeSingle()
+  if (!r) throw new Error('Lesningen finnes ikke')
+  await supabase.from('audition_reads').update({ is_chosen: false }).eq('take_id', r.take_id)
+  await supabase.from('audition_reads').update({ is_chosen: true }).eq('id', readId)
+  return { takeId: r.take_id as string }
+}
+
+/** FASE 2 — start filmen. Krever en valgt lesning. */
+export async function startFilm(takeId: string) {
+  const supabase = admin()
+  const { data: valgt } = await supabase.from('audition_reads')
+    .select('id, audio_url').eq('take_id', takeId).eq('is_chosen', true).maybeSingle()
+  if (!valgt?.audio_url) throw new Error('Velg en lesning først')
+  await supabase.from('audition_takes')
+    .update({ stage: 'still', request_id: null, audio_url: valgt.audio_url, feil: null, updated_at: new Date().toISOString() })
+    .eq('id', takeId)
+  await flyttTake(takeId)
+}
+
+/**
+ * Stegmaskinen for FASE 2. Kalles av poll-ruten, aldri i en løkke som venter.
+ * Request-id-en ligger på raden, så et påbegynt (og betalt) steg aldri er tapt.
  */
 export async function flyttTake(takeId: string): Promise<void> {
   const supabase = admin()
   const { data: t } = await supabase.from('audition_takes').select('*').eq('id', takeId).maybeSingle()
-  if (!t || t.stage === 'done' || t.stage === 'failed') return
+  // Bare fase 2 skyves. 'queued' og 'ready' venter på en menneskelig handling.
+  if (!t || (t.stage !== 'still' && t.stage !== 'video')) return
 
   const { data: a } = await supabase.from('auditions').select('*').eq('id', t.audition_id).single()
   const { data: actor } = await supabase.from('voice_actors')
-    .select('id, name, elevenlabs_voice_id, face_character_id, owner_tenant_id').eq('id', t.actor_id).single()
-
+    .select('id, name, elevenlabs_voice_id, face_character_id').eq('id', t.actor_id).single()
   const sett = async (felt: Record<string, unknown>) =>
     supabase.from('audition_takes').update({ ...felt, updated_at: new Date().toISOString() }).eq('id', takeId)
 
   try {
-    // 1) Stillbildet — samme scene for alle, kun ansiktsmodellen varierer.
-    if (t.stage === 'queued') {
+    if (t.stage === 'still' && !t.request_id) {
       const { data: ch } = await supabase.from('user_characters')
         .select('trigger_word, lora_url, status').eq('id', actor!.face_character_id).maybeSingle()
       if (!ch?.lora_url || ch.status !== 'ready') throw new Error(`${actor!.name} har ingen ferdig ansiktsmodell`)
       const trig = ch.trigger_word
-      const { id } = await falSubmit(FLUX, {
+      const id = await falSubmit(FLUX, {
         prompt: `${trig}. Use the trained ${trig} LoRA with maximum identity fidelity. ${trig}, natural appearance. Scene: ${a!.scene_prompt}. Photorealistic, cinematic. No text, letters or typography in the image.`,
         loras: [{ path: ch.lora_url, scale: 1.0 }],
         image_size: { width: 1344, height: 768 }, num_images: 1, output_format: 'png',
       })
-      await sett({ stage: 'still', request_id: id })
+      await sett({ request_id: id })
       return
     }
 
-    // 2) Stillbildet ferdig → last opp, lag replikken, start leppesynken.
-    if (t.stage === 'still') {
-      const s = await falSjekk(FLUX, t.request_id!)
+    if (t.stage === 'still' && t.request_id) {
+      const s = await falSjekk(FLUX, t.request_id)
       if (!s.ferdig) return
       const url = s.res?.images?.[0]?.url
       if (!url) throw new Error('ingen stillbilde-url')
       const bilde = Buffer.from(await (await fetch(url)).arrayBuffer())
       const stillUrl = await tilR2(bilde, `auditions/${t.audition_id}/${takeId}-still.png`, 'image/png')
-
-      const st = REGI[a!.direction || 'noytral'] || REGI.noytral
-      const tts = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actor!.elevenlabs_voice_id}`, {
-        method: 'POST',
-        headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY || '', 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: a!.line, model_id: 'eleven_turbo_v2_5', language_code: 'no',
-          apply_text_normalization: 'off', voice_settings: { ...st, similarity_boost: 0.75 },
-        }),
-      })
-      if (!tts.ok) throw new Error(`stemmen feilet (${tts.status})`)
-      const lyd = Buffer.from(await tts.arrayBuffer())
-      const audioUrl = await tilR2(lyd, `auditions/${t.audition_id}/${takeId}-audio.mp3`, 'audio/mpeg')
-
-      const { id } = await falSubmit(FABRIC, { image_url: stillUrl, audio_url: audioUrl, resolution: '720p' })
-      await sett({ stage: 'video', request_id: id, still_url: stillUrl, audio_url: audioUrl })
+      const id = await falSubmit(FABRIC, { image_url: stillUrl, audio_url: t.audio_url, resolution: '720p' })
+      await sett({ stage: 'video', request_id: id, still_url: stillUrl })
       return
     }
 
-    // 3) Videoen ferdig → last opp og før raden i hovedboken.
     if (t.stage === 'video') {
       const s = await falSjekk(FABRIC, t.request_id!)
       if (!s.ferdig) return
@@ -182,16 +248,15 @@ export async function flyttTake(takeId: string): Promise<void> {
       const vid = Buffer.from(await (await fetch(url)).arrayBuffer())
       const videoUrl = await tilR2(vid, `auditions/${t.audition_id}/${takeId}.mp4`, 'video/mp4')
 
-      // En audition er bruk FØR en lisens finnes — samme kategori som
-      // prøvelytt. Derfor uten hjemmel, og merket slik at hullet er tilsiktet
-      // og ikke ser ut som en klareringsbrist ved revisjon.
+      // Filmen er det kunden BESTILTE. Raden skrives først her, så en hengende
+      // kø verken belaster kunden eller krediterer skuespilleren.
       await supabase.from('voice_usage_events').insert({
         actor_id: actor!.id,
         used_by_tenant_id: a!.tenant_id,
         organization_id: a!.organization_id ?? null,
         licence_id: null,
-        actor_rate_nok: Number(t.actor_nok ?? AUDITION_ACTOR_NOK),
-        customer_price_nok: Number(t.cost_nok ?? AUDITION_TAKE_NOK),
+        actor_rate_nok: Number(t.actor_nok ?? honorarFor(AUDITION_FILM_NOK)),
+        customer_price_nok: Number(t.cost_nok ?? AUDITION_FILM_NOK),
         asset_type: 'face',
         meta: { kind: 'audition', audition_id: a!.id, includes_voice: true, licence_match: 'preview' },
       })
@@ -203,17 +268,30 @@ export async function flyttTake(takeId: string): Promise<void> {
   }
 }
 
-/** Skyv alle uferdige takes ett hakk og returner tilstanden. */
+/** Skyv alle takes i fase 2 ett hakk og returner tilstanden med lesninger. */
 export async function pollAudition(auditionId: string) {
   const supabase = admin()
   const { data: takes } = await supabase.from('audition_takes').select('id, stage').eq('audition_id', auditionId)
   await Promise.all((takes || [])
-    .filter((t) => t.stage !== 'done' && t.stage !== 'failed')
+    .filter((t) => t.stage === 'still' || t.stage === 'video')
     .map((t) => flyttTake(t.id as string)))
 
   const { data: etter } = await supabase.from('audition_takes')
-    .select('id, actor_id, stage, still_url, video_url, feil').eq('audition_id', auditionId).order('created_at')
-  const ferdig = (etter || []).every((t) => t.stage === 'done' || t.stage === 'failed')
-  if (ferdig) await supabase.from('auditions').update({ status: 'done' }).eq('id', auditionId)
-  return { takes: etter || [], ferdig }
+    .select('id, actor_id, stage, still_url, video_url, feil, cost_nok').eq('audition_id', auditionId).order('created_at')
+  const ids = (etter || []).map((t) => t.id as string)
+  const { data: reads } = ids.length
+    ? await supabase.from('audition_reads')
+        .select('id, take_id, audio_url, direction, is_chosen, created_at')
+        .in('take_id', ids).order('created_at')
+    : { data: [] as Array<Record<string, unknown>> }
+
+  return {
+    takes: (etter || []).map((t) => ({
+      ...t,
+      reads: (reads || []).filter((r) => r.take_id === t.id),
+    })),
+    // «Ferdig» er nå bare fase 2. Fase 1 venter på et menneske, og skal ikke
+    // få pollingen til å gi seg.
+    ferdig: (etter || []).every((t) => ['done', 'failed', 'queued', 'ready'].includes(String(t.stage))),
+  }
 }
