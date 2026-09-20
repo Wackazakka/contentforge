@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
-import { getAvailableVoiceActors, ratesForKind, actorHasVoice, actorHasFace } from '@/lib/voiceBank'
+import { getAvailableVoiceActors, getDemoVoiceActors, ratesForKind, actorHasVoice, actorHasFace } from '@/lib/voiceBank'
 
 // Kundens katalog (Lars 17/9): alle stemmer og ansikter den innloggede kunden
 // FAKTISK kan bruke på dette domenet, med pris per bruk.
@@ -33,7 +33,15 @@ export async function GET(request: Request) {
 
     const pf = Number(tenant.price_multiplier) || 1
     const pris = (n: number) => Math.round(n * pf * 100) / 100
-    const actors = await getAvailableVoiceActors(tenant.id)
+    // Demorader kommer MED i katalogen, men merket og uten voiceId — de skal
+    // kunne SES (en katalog med én oppføring viser ikke hvordan en katalog ser
+    // ut) og ikke VELGES inn i en produksjon.
+    const [ekte, demo] = await Promise.all([
+      getAvailableVoiceActors(tenant.id),
+      getDemoVoiceActors(tenant.id),
+    ])
+    const actors = [...ekte, ...demo]
+    const erDemo = new Set(demo.map((a) => a.id))
 
     return NextResponse.json({
       tenant: { name: tenant.app_name },
@@ -53,7 +61,10 @@ export async function GET(request: Request) {
           sample: egne[0] ?? a.preview_url ?? null,
           hasVoice,
           hasFace,
-          voiceId: hasVoice ? a.elevenlabs_voice_id : null,
+          isDemo: erDemo.has(a.id),
+          // Uten voiceId kan editoren ikke forhåndsvelge stemmen — det er
+          // sperren, ikke en deaktivert knapp som ser aktiv ut.
+          voiceId: hasVoice && !erDemo.has(a.id) ? a.elevenlabs_voice_id : null,
           // Visittkortet finnes bare for publiserte — ellers ville lenken gi «finnes ikke».
           hasCard: x.is_public === true,
           prices,

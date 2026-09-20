@@ -20,6 +20,7 @@ interface KatalogActor {
   hasFace: boolean
   voiceId: string | null
   hasCard: boolean
+  isDemo: boolean
   prices: Record<string, number>
 }
 
@@ -187,7 +188,11 @@ export default function StemmerPage() {
                   ) : (
                     a.hasVoice && <span className="text-xs text-[var(--text-faint,#8A8175)]">Ingen lydprøve ennå</span>
                   )}
-                  {a.hasVoice && (
+                  {a.isDemo ? (
+                    <span className="text-xs text-[var(--text-muted,#6B6358)]">
+                      Testprofil — kan ikke brukes i en produksjon
+                    </span>
+                  ) : a.hasVoice && (
                     <button onClick={() => (erValgt ? angre() : bruk(a))}
                       className={`px-3 py-2 rounded-lg text-sm font-semibold ${erValgt ? 'border' : 'text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90'}`}
                       style={erValgt ? { borderColor: 'var(--ember-deep)', color: 'var(--ember-deep)' } : undefined}>

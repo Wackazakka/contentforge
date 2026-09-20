@@ -113,6 +113,32 @@ export async function getAvailableVoiceActors(tenantId: string): Promise<VoiceAc
 }
 
 /**
+ * Demoradene som er tilgjengelige for en tenant — samme arveregel som over,
+ * men KUN is_demo.
+ *
+ * De hører hjemme i kundekatalogen som VISNING: en katalog med én oppføring
+ * viser ikke hvordan en katalog ser ut. Men de skal ikke kunne velges inn i en
+ * produksjon, og derfor er de skilt ut i en egen funksjon i stedet for å bli
+ * sluppet inn i den listen som mater editoren og gatewayen.
+ */
+export async function getDemoVoiceActors(tenantId: string): Promise<VoiceActor[]> {
+  try {
+    const chain = await tenantChainUp(tenantId)
+    if (chain.length === 0) return []
+    const { data } = await admin()
+      .from('voice_actors')
+      .select('*')
+      .eq('is_active', true)
+      .eq('is_demo', true)
+      .or(`owner_tenant_id.in.(${chain.join(',')}),is_exclusive.eq.false,library_enabled.eq.true`)
+      .order('name')
+    return (data || []) as VoiceActor[]
+  } catch {
+    return []
+  }
+}
+
+/**
  * Preview-royalty: når kunden EKSPERIMENTERER med en skuespillerstemme i
  * editoren (tester tekster), får skuespilleren en liten tegnbasert betaling —
  * på nivå med ElevenLabs' Voice Library-satser. Per 1000 tegn, forholdsmessig.
