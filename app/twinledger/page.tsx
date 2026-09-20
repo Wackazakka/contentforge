@@ -25,12 +25,17 @@ const DISPLAY = 'var(--font-archivo), "Avenir Next", system-ui, sans-serif'
 const SANS = 'var(--font-hanken), "Avenir Next", system-ui, sans-serif'
 
 export default async function TwinLedgerPage() {
-  // Kun Norditechs egne dører: centerforge.norditech.io og twinledger.norditech.io
-  // (begge løser til rot-tenanten). På et partnerdomene som voicebank.ai skal
-  // siden ikke finnes — VoiceBank er kunden, og skal ikke vise at andre kan
-  // kjøpe det samme (Lars 16/9).
+  // Kun Norditechs egne dører: rot (centerforge.norditech.io) og TwinLedgers
+  // egen tenant (twinledger.norditech.io, fra 20/9 en ekte tenant under
+  // Norditech, ikke bare et vertsnavn). På et partnerdomene skal siden ikke
+  // finnes — partneren er kunden, og skal ikke vise at andre kan kjøpe det
+  // samme (Lars 16/9).
   const tenant = await getTenant()
-  if (tenant.slug !== 'centerforge') notFound()
+  const egenDor = tenant.slug === 'centerforge' || tenant.slug === 'twinledger'
+  if (!egenDor) notFound()
+  // På TwinLedger-tenanten er dette forsiden til en app med rettighetshavere
+  // og admin bak seg — da hører innlogging og utvalget hjemme i toppen.
+  const erApp = tenant.slug === 'twinledger'
   return (
     <div style={{ minHeight: '100vh', background: 'var(--paper)', color: 'var(--ink)', fontFamily: SANS }}>
       <style>{`
@@ -71,6 +76,9 @@ export default async function TwinLedgerPage() {
         </span>
         <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 20 }}>
           <a href="#ledger" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>How it works</a>
+          {erApp && <Link href="/stemmer" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>Voices &amp; faces</Link>}
+          {erApp && <Link href="/bli-stemme" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>For rights holders</Link>}
+          {erApp && <Link href="/login" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>Log in</Link>}
           <Link href="/white-label" className="tl-ghost" style={{ padding: '9px 18px', fontSize: 14 }}>Talk to us</Link>
         </nav>
       </header>
