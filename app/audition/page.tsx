@@ -87,22 +87,30 @@ export default function AuditionPage() {
     try {
       const res = await fetch(`/api/auditions?id=${id}`, { headers: { Authorization: `Bearer ${await token()}` } })
       const d = await res.json()
-      if (!res.ok) return
+      if (!res.ok) {
+        setError(d.error || `Kunne ikke hente runden (${res.status})`)
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+        return
+      }
+      setError(null)
       setTakes(d.takes || [])
       if (d.audition?.line) setRundeLine(d.audition.line)
       if (d.ferdig) {
         setFerdig(true)
         if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
       }
-    } catch { /* prøver igjen ved neste poll */ }
-  }, [])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Kunne ikke hente runden')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session])
 
   useEffect(() => {
-    if (!auditionId || ferdig) return
+    if (!auditionId || ferdig || authLoading || !session) return
     poll(auditionId)
     pollRef.current = setInterval(() => poll(auditionId), 5000)
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [auditionId, ferdig, poll])
+  }, [auditionId, ferdig, poll, authLoading, session])
 
   const kjor = async () => {
     setBusy(true); setError(null)
@@ -221,7 +229,7 @@ export default function AuditionPage() {
           </div>
         )}
 
-        {auditionId && (
+        {!authLoading && session && auditionId && (
           <>
             <div className="flex items-baseline justify-between gap-4 flex-wrap mb-4">
               <h2 className="font-semibold text-lg">{rundeLine ? `«${rundeLine}»` : 'Henter runden …'}</h2>
