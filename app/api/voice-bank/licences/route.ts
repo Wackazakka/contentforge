@@ -5,6 +5,7 @@ import { isTenantAdmin } from '@/lib/voiceBank'
 import {
   opprettLisens, lisenserForSkuespiller, fordelingFor, trinnFor,
   foreslaaPris, skrivFordeling, standardSplits, hentTakstkort,
+  avregningerFor, foerRoyalty, sjekkOppgjoersvalg,
   type LisensInput, type SplitSpec, type LicenceStatus,
 } from '@/lib/licences'
 import { kr } from '@/lib/rateCard'
@@ -77,6 +78,7 @@ export async function GET(request: Request) {
         ...l,
         splits: await fordelingFor(l.id),
         steps: await trinnFor(l.id),
+        statements: await avregningerFor(l.id),
       }))
     )
     const card = await hentTakstkort(tenant.id)
@@ -101,6 +103,10 @@ export async function POST(request: Request) {
       // har kunden i praksis kjøpt modellen.
       return NextResponse.json({ error: 'Verkslisens krever en verkstittel' }, { status: 400 })
     }
+    // Royalty krever en kanal vi kontrollerer. Basen håndhever det også, men
+    // en setning er bedre enn en databasefeil.
+    const oppgjoersfeil = sjekkOppgjoersvalg(body)
+    if (oppgjoersfeil) return NextResponse.json({ error: oppgjoersfeil }, { status: 400 })
     const res = await opprettLisens({
       ...body,
       actorId,
@@ -179,5 +185,44 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, fordeling })
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })
+  }
+}
+
+// PUT: før en royalty-avregning for en periode.
+// Egen metode fordi en avregning ikke endrer lisensen — den legger en periode
+// til den. Beløpet fryses ved føring, som alt annet i hovedboken.
+export async function PUT(request: Request) {
+  const { tenant, email, fail } = await guard(request)
+  if (fail || !tenant) return fail!
+  try {
+    const body = await request.json()
+    const licenceId = String(body.licenceId || '')
+    if (!licenceId) return NextResponse.json({ error: 'Mangler licenceId' }, { status: 400 })
+
+    const { data: lic } = await admin()
+      .from('licences').select('id').eq('id', licenceId).eq('tenant_id', tenant.id).maybeSingle()
+    if (!lic) return NextResponse.json({ error: 'Lisensen finnes ikke i denne banken' }, { status: 404 })
+
+    if (!body.periodStart || !body.periodEnd) {
+      return NextResponse.json({ error: 'Mangler periode' }, { status: 400 })
+    }
+    if (!(Number(body.netReceiptsNok) >= 0)) {
+      return NextResponse.json({ error: 'Ugyldig grunnlag' }, { status: 400 })
+    }
+
+    const res = await foerRoyalty({
+      licenceId,
+      periodStart: String(body.periodStart),
+      periodEnd: String(body.periodEnd),
+      source: body.source ?? null,
+      grossNok: body.grossNok ?? null,
+      netReceiptsNok: Number(body.netReceiptsNok),
+      artistPct: body.artistPct ?? null,
+      note: body.note ?? null,
+      createdBy: email ?? null,
+    })
+    return NextResponse.json({ ok: true, ...res })
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 400 })
   }
 }

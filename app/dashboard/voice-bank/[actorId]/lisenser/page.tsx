@@ -30,11 +30,26 @@ interface Step {
   actor_nok: number
 }
 
+interface Statement {
+  id: string
+  period_start: string
+  period_end: string
+  source: string | null
+  net_receipts_nok: number
+  artist_pct: number
+  artist_nok: number
+}
+
 interface Licence {
   id: string
   kind: Kind
   asset_type: string
   status: string
+  comp_model: 'fee' | 'royalty' | 'hybrid'
+  royalty_pct: number | null
+  release_channel: string | null
+  release_title: string | null
+  statements: Statement[]
   media_class: string | null
   territory: string | null
   term_start: string | null
@@ -71,6 +86,19 @@ const ASSET: Array<[string, string]> = [['voice', 'Stemme'], ['face', 'Ansikt'],
 const STATUS_TEKST: Record<string, string> = {
   quote: 'Tilbud', active: 'Aktiv', expired: 'Utløpt', superseded: 'Erstattet', cancelled: 'Kansellert',
 }
+const COMP: Array<[string, string, string]> = [
+  ['fee', 'Fast honorar', 'Hele honoraret nå. Ingen andel av det utgivelsen tjener.'],
+  ['hybrid', 'Kombinasjon', 'Redusert honorar nå, pluss en andel. Standardvalget for de fleste.'],
+  ['royalty', 'Kun royalty', 'Ingenting nå, alt i andel. Størst oppside, lengst vei til første krone.'],
+]
+// Royalty krever en kanal vi ser inntekten i — ellers er andelen et løfte og
+// ikke et produkt. Håndhevet i basen (migrasjon 079); dette er bare etiketten.
+const KANAL: Array<[string, string]> = [
+  ['trickletracks', 'TrickleTracks'],
+  ['indigoboom', 'IndigoBoom'],
+  ['other', 'Annen distribusjon'],
+]
+const KONTROLLERT = ['indigoboom', 'trickletracks']
 
 const nok = (n: number) => new Intl.NumberFormat('nb-NO', { maximumFractionDigits: 0 }).format(n) + ' kr'
 
@@ -92,6 +120,10 @@ export default function LisenserPage() {
   const [workTitle, setWorkTitle] = useState('')
   const [customerLabel, setCustomerLabel] = useState('')
   const [agentPct, setAgentPct] = useState('')
+  const [compModel, setCompModel] = useState<'fee' | 'royalty' | 'hybrid'>('fee')
+  const [royaltyPct, setRoyaltyPct] = useState('3')
+  const [releaseChannel, setReleaseChannel] = useState('trickletracks')
+  const [releaseTitle, setReleaseTitle] = useState('')
   const [feeCustomer, setFeeCustomer] = useState('')
   const [feeActor, setFeeActor] = useState('')
   const [liste, setListe] = useState<{ listeNok: number; honorarNok: number } | null>(null)
@@ -160,6 +192,10 @@ export default function LisenserPage() {
         body: JSON.stringify({
           actorId, kind, asset, mediaClass, territory, termMonths, exclusivity,
           productionTier, roleScope, workTitle, customerLabel,
+          compModel,
+          royaltyPct: compModel === 'fee' ? null : Number(royaltyPct),
+          releaseChannel: compModel === 'fee' ? null : releaseChannel,
+          releaseTitle: releaseTitle || null,
           feeCustomerNok: Number(feeCustomer), feeActorNok: Number(feeActor), splits,
         }),
       })
@@ -178,6 +214,16 @@ export default function LisenserPage() {
     })
     if (res.ok) await refresh()
     else setError((await res.json()).error || 'Kunne ikke endre')
+  }
+
+  const foerAvregning = async (licenceId: string, felt: Record<string, unknown>) => {
+    const res = await fetch('/api/voice-bank/licences', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ licenceId, ...felt }),
+    })
+    if (res.ok) { setError(null); await refresh() }
+    else setError((await res.json()).error || 'Kunne ikke føre avregningen')
   }
 
   const avvik = liste && Number(feeCustomer) !== liste.listeNok
@@ -277,6 +323,55 @@ export default function LisenserPage() {
           </Felt>
         )}
 
+        {/* Oppgjørsvalg. For en vokalist ligger den store pengen i at stemmen
+            havner på en låt som går — men royalty av en inntekt vi ikke ser er
+            et løfte, ikke et produkt. Derfor kanalkravet. */}
+        <div className="mt-5 pt-5 border-t border-gray-200">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Oppgjør</label>
+          <div className="flex gap-2 flex-wrap mb-2">
+            {COMP.map(([v, t]) => (
+              <button key={v} onClick={() => setCompModel(v as 'fee' | 'royalty' | 'hybrid')}
+                className="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors"
+                style={compModel === v
+                  ? { borderColor: 'var(--ember-deep)', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)' }
+                  : { borderColor: '#d1d5db', color: '#374151' }}>
+                {t}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mb-4">{COMP.find(([v]) => v === compModel)?.[2]}</p>
+
+          {compModel !== 'fee' && (
+            <div className="grid sm:grid-cols-3 gap-4">
+              <Felt label="Utgivelsen distribueres av">
+                <select value={releaseChannel} onChange={(e) => setReleaseChannel(e.target.value)} className={inputCls}>
+                  {KANAL.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                </select>
+              </Felt>
+              <Felt label="Artistens andel (%)" hint="Av det vi faktisk mottar">
+                <input value={royaltyPct} onChange={(e) => setRoyaltyPct(e.target.value)} inputMode="decimal" className={inputCls} />
+              </Felt>
+              <Felt label="Utgivelsens tittel">
+                <input value={releaseTitle} onChange={(e) => setReleaseTitle(e.target.value)} placeholder="Låt eller utgivelse" className={inputCls} />
+              </Felt>
+            </div>
+          )}
+
+          {compModel !== 'fee' && !KONTROLLERT.includes(releaseChannel) && (
+            <p className="text-sm mt-3 rounded-lg border px-3 py-2" style={{ borderColor: '#fcd34d', background: '#fffbeb', color: '#92400e' }}>
+              Royalty er ikke mulig på annen distribusjon: da ser vi ikke inntekten andelen skal regnes av.
+              Velg TrickleTracks eller IndigoBoom, eller gå for fast honorar.
+            </p>
+          )}
+
+          {compModel !== 'fee' && KONTROLLERT.includes(releaseChannel) && (
+            <p className="text-xs text-gray-500 mt-3">
+              ⚠️ Strømmeinntekter rapporteres 2–3 måneder på etterskudd. Første avregning kommer derfor
+              et kvartal etter utgivelsen — si det til rettighetshaveren nå, ikke når hen spør.
+            </p>
+          )}
+        </div>
+
         {/* Beløpene — forhåndsutfylt, fritt overstyrbare */}
         <div className="grid sm:grid-cols-2 gap-4 mt-5 pt-5 border-t border-gray-200">
           <Felt label="Kundepris" hint={liste ? `Takstkortet foreslår ${nok(liste.listeNok)}` : undefined}>
@@ -295,7 +390,8 @@ export default function LisenserPage() {
 
         <Forhaandsvisning feeCustomer={Number(feeCustomer) || 0} feeActor={Number(feeActor) || 0} agentPct={Number(agentPct) || 0} />
 
-        <button onClick={opprett} disabled={busy || (kind === 'work' && !workTitle.trim())}
+        <button onClick={opprett}
+          disabled={busy || (kind === 'work' && !workTitle.trim()) || (compModel !== 'fee' && !KONTROLLERT.includes(releaseChannel))}
           className="mt-5 px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
           {busy ? 'Oppretter …' : 'Opprett tilbud'}
         </button>
@@ -311,7 +407,7 @@ export default function LisenserPage() {
         : (
           <div className="space-y-4">
             {licences.map((l) => (
-              <LisensKort key={l.id} l={l} onEndre={endre} />
+              <LisensKort key={l.id} l={l} onEndre={endre} onAvregning={foerAvregning} />
             ))}
           </div>
         )}
@@ -367,10 +463,18 @@ function Rad({ t, v, sterk, advarsel }: { t: string; v: number; sterk?: boolean;
   )
 }
 
-function LisensKort({ l, onEndre }: { l: Licence; onEndre: (id: string, p: Record<string, unknown>) => Promise<void> }) {
+function LisensKort({ l, onEndre, onAvregning }: {
+  l: Licence
+  onEndre: (id: string, p: Record<string, unknown>) => Promise<void>
+  onAvregning: (id: string, p: Record<string, unknown>) => Promise<void>
+}) {
   const [rediger, setRediger] = useState(false)
   const [kp, setKp] = useState(String(l.fee_customer_nok))
   const [hp, setHp] = useState(String(l.fee_actor_nok))
+  const [avr, setAvr] = useState(false)
+  const [pFra, setPFra] = useState('')
+  const [pTil, setPTil] = useState('')
+  const [netto, setNetto] = useState('')
 
   const omfang = l.kind === 'campaign'
     ? [MEDIA.find(([v]) => v === l.media_class)?.[1], TERRITORY.find(([v]) => v === l.territory)?.[1],
@@ -415,6 +519,58 @@ function LisensKort({ l, onEndre }: { l: Licence; onEndre: (id: string, p: Recor
               <span className="tabular-nums text-gray-700">{nok(s.amount_nok)}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Royalty: oppgjørsform, kanal, og avregningene som er ført */}
+      {l.comp_model !== 'fee' && (
+        <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-gray-700">
+              <strong>{l.comp_model === 'royalty' ? 'Kun royalty' : 'Kombinasjon'}</strong>
+              {' — '}{l.royalty_pct} % av det vi mottar
+              {l.release_channel && <span className="text-gray-500"> · {KANAL.find(([v]) => v === l.release_channel)?.[1]}</span>}
+              {l.release_title && <span className="text-gray-500"> · {l.release_title}</span>}
+            </div>
+            <button onClick={() => setAvr((v) => !v)} className="text-sm text-[var(--ember-deep)] hover:underline">
+              {avr ? 'Avbryt' : 'Før avregning'}
+            </button>
+          </div>
+
+          {avr && (
+            <div className="mt-3 flex gap-2 flex-wrap items-center">
+              <input type="date" value={pFra} onChange={(e) => setPFra(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm" />
+              <input type="date" value={pTil} onChange={(e) => setPTil(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm" />
+              <input value={netto} onChange={(e) => setNetto(e.target.value)} inputMode="decimal" placeholder="Mottatt i perioden"
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm w-44" />
+              <button
+                disabled={!pFra || !pTil || !(Number(netto) >= 0)}
+                onClick={async () => {
+                  await onAvregning(l.id, { periodStart: pFra, periodEnd: pTil, netReceiptsNok: Number(netto), source: l.release_channel })
+                  setAvr(false); setPFra(''); setPTil(''); setNetto('')
+                }}
+                className="px-3 py-1.5 rounded-lg text-sm font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] disabled:opacity-50">
+                Før
+              </button>
+              <span className="text-xs text-gray-500">
+                Grunnlaget er det vi faktisk mottok, ikke brutto fra tjenestene.
+              </span>
+            </div>
+          )}
+
+          {l.statements?.length > 0 && (
+            <div className="mt-3">
+              {l.statements.map((s) => (
+                <div key={s.id} className="flex justify-between gap-4 text-gray-600">
+                  <span>{s.period_start} – {s.period_end}{s.source ? ` · ${s.source}` : ''}
+                    <span className="text-gray-400"> · grunnlag {nok(s.net_receipts_nok)} · {s.artist_pct} %</span></span>
+                  <span className="tabular-nums text-gray-700">{nok(s.artist_nok)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

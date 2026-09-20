@@ -20,6 +20,7 @@ export const kr = (n: number) => Math.round(n * 100) / 100
 export async function actorEarnings(actorId: string): Promise<{
   uses: number; toActorNok: number; fromCustomersNok: number
   licences: number; licenceToActorNok: number; licenceFromCustomersNok: number
+  royaltyPeriods: number; royaltyToActorNok: number
 }> {
   const { data } = await admin().rpc('actor_earnings', { p_actor: actorId })
   const row = Array.isArray(data) ? data[0] : data
@@ -32,6 +33,9 @@ export async function actorEarnings(actorId: string): Promise<{
     licences: Number(row?.licences ?? 0),
     licenceToActorNok: Number(row?.licence_to_actor_nok ?? 0),
     licenceFromCustomersNok: Number(row?.licence_from_customers_nok ?? 0),
+    // Royalty-leddet (migrasjon 079): andel av det utgivelsen faktisk tjente.
+    royaltyPeriods: Number(row?.royalty_periods ?? 0),
+    royaltyToActorNok: Number(row?.royalty_to_actor_nok ?? 0),
   }
 }
 
@@ -58,18 +62,21 @@ export async function actorPayouts(actorId: string): Promise<{ payouts: ActorPay
 
 // Oppgjørsstatus i ett kall: opptjent − betalt = til gode.
 //
-// «Opptjent» er summen av BEGGE ledd: måleren (per generering) og lisensene
-// (bruksretten). Uten lisensleddet ville /min-stemme vist et honorar på noen
-// kroner mens de store pengene var usynlige — og det er nettopp lisensen som
-// er honoraret i en filmavtale.
+// «Opptjent» er summen av ALLE TRE ledd: måleren (per generering), lisensene
+// (bruksretten) og royalty (andel av det utgivelsen faktisk tjente). Uten
+// lisens- og royaltyleddet ville /min-stemme vist et honorar på noen kroner
+// mens de store pengene var usynlige — og for en vokalist er det nettopp
+// royaltyen som er oppsiden.
 export async function actorSettlement(actorId: string) {
   const [earned, paid] = await Promise.all([actorEarnings(actorId), actorPayouts(actorId)])
-  const totalEarned = earned.toActorNok + earned.licenceToActorNok
+  const totalEarned = earned.toActorNok + earned.licenceToActorNok + earned.royaltyToActorNok
   return {
     uses: earned.uses,
     meterNok: kr(earned.toActorNok),
     licences: earned.licences,
     licenceNok: kr(earned.licenceToActorNok),
+    royaltyPeriods: earned.royaltyPeriods,
+    royaltyNok: kr(earned.royaltyToActorNok),
     earnedNok: kr(totalEarned),
     paidNok: kr(paid.totalPaidNok),
     dueNok: kr(Math.max(0, totalEarned - paid.totalPaidNok)),

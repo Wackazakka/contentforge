@@ -14,7 +14,7 @@ interface Usage { id: number; at: string; kind: string; chars: number | null; as
 interface Actor {
   id: string; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
   defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
-  uses: number; earnedNok: number; meterNok: number; licenceNok: number; paidNok: number; dueNok: number
+  uses: number; earnedNok: number; meterNok: number; licenceNok: number; royaltyNok: number; paidNok: number; dueNok: number
   payouts: Payout[]; events: Usage[]; licences: Licence[]
 }
 
@@ -26,7 +26,11 @@ interface Licence {
   mediaClass: string | null; territory: string | null
   termStart: string | null; termEnd: string | null; exclusivity: string
   grossNok: number; deductions: Fradrag[]; netNok: number; steps: Steg[]
+  compModel: 'fee' | 'royalty' | 'hybrid'
+  royaltyPct: number | null; releaseChannel: string | null; releaseTitle: string | null
+  statements: Avregning[]
 }
+interface Avregning { periodStart: string; periodEnd: string; source: string | null; basisNok: number; pct: number; toYouNok: number }
 
 const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString('nb-NO')} kr`
 const dato = (s: string) => new Date(s).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -144,10 +148,11 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
             {/* De to leddene betyr helt ulike ting: måleren er småpenger per
                 generering, lisensen er honoraret. Slått sammen i ett tall ville
                 de store pengene vært usynlige. */}
-            {a.licenceNok > 0 && (
+            {(a.licenceNok > 0 || a.royaltyNok > 0) && (
               <p className="text-sm text-gray-500 -mt-6 mb-8">
                 Av det opptjente er <strong className="text-[var(--ink,#1C1A16)]">{nok(a.licenceNok)}</strong> lisenser (bruksrett)
-                og <strong className="text-[var(--ink,#1C1A16)]">{nok(a.meterNok)}</strong> betaling per gang stemmen er brukt.
+                {a.royaltyNok > 0 && <>, <strong className="text-[var(--ink,#1C1A16)]">{nok(a.royaltyNok)}</strong> royalty fra utgivelser</>}
+                {' '}og <strong className="text-[var(--ink,#1C1A16)]">{nok(a.meterNok)}</strong> betaling per gang stemmen er brukt.
               </p>
             )}
 
@@ -187,6 +192,33 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                             {l.deductions.map((d, i) => (
                               <span key={i}>{i > 0 && ', '}{d.label}{d.pct != null ? ` ${d.pct} %` : ''} — {nok(d.amountNok)}</span>
                             ))}
+                          </div>
+                        )}
+                        {/* Royalty: satsen, og hver avregning med grunnlaget
+                            den er regnet av. Uten grunnlaget er andelen et
+                            tall man må stole på. */}
+                        {l.compModel !== 'fee' && (
+                          <div className="mt-3 pt-2 border-t border-gray-100 text-xs">
+                            <span className="text-gray-500">
+                              {l.compModel === 'royalty' ? 'Kun royalty' : 'Honorar + royalty'}: {l.royaltyPct} % av det
+                              {l.releaseTitle ? ` «${l.releaseTitle}»` : ' utgivelsen'} gir oss
+                              {l.releaseChannel ? ` via ${l.releaseChannel}` : ''}.
+                            </span>
+                            {l.statements.length === 0 ? (
+                              <p className="text-gray-400 mt-1">
+                                Ingen avregning ennå. Strømmeinntekter rapporteres 2–3 måneder på etterskudd.
+                              </p>
+                            ) : (
+                              <div className="mt-1 space-y-0.5">
+                                {l.statements.map((s, i) => (
+                                  <div key={i} className="flex justify-between gap-3 text-gray-600">
+                                    <span>{dato(s.periodStart)} – {dato(s.periodEnd)}
+                                      <span className="text-gray-400"> · grunnlag {nok(s.basisNok)} · {s.pct} %</span></span>
+                                    <span className="tabular-nums">{nok(s.toYouNok)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
                         {l.steps.length > 0 && (

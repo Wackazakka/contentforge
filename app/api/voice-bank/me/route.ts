@@ -108,17 +108,26 @@ export async function GET(request: Request) {
       // /min-stemme.
       const { data: lics } = await supabase
         .from('licences')
-        .select('id, kind, asset_type, status, media_class, territory, term_start, term_end, exclusivity, work_title, production_tier, role_scope, fee_actor_nok, created_at')
+        .select('id, kind, asset_type, status, media_class, territory, term_start, term_end, exclusivity, work_title, production_tier, role_scope, fee_actor_nok, comp_model, royalty_pct, release_channel, release_title, created_at')
         .eq('actor_id', a.id)
         .in('status', ['quote', 'active', 'expired'])
         .order('created_at', { ascending: false })
       const licIds = (lics || []).map((l) => l.id as string)
-      const [{ data: splits }, { data: steps }] = await Promise.all([
+      const [{ data: splits }, { data: steps }, { data: stmts }] = await Promise.all([
         licIds.length
           ? supabase.from('licence_splits').select('licence_id, party_type, party_label, basis, pct, amount_nok').in('licence_id', licIds)
           : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
         licIds.length
           ? supabase.from('licence_steps').select('licence_id, trigger_kind, label, status, actor_nok').in('licence_id', licIds)
+          : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        // Royalty-avregningene. Rettighetshaveren får se grunnlaget — hva vi
+        // mottok for utgivelsen — fordi en andel uten synlig grunnlag er et
+        // tall man må stole på, og det er nettopp det hovedboken finnes for
+        // å slippe.
+        licIds.length
+          ? supabase.from('royalty_statements')
+              .select('licence_id, period_start, period_end, source, net_receipts_nok, artist_pct, artist_nok')
+              .in('licence_id', licIds).order('period_start', { ascending: false })
           : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
       ])
 
@@ -147,6 +156,7 @@ export async function GET(request: Request) {
         // stemmen: måleren er småpenger per bruk, lisensen er honoraret.
         meterNok: settlement.meterNok,
         licenceNok: settlement.licenceNok,
+        royaltyNok: settlement.royaltyNok,
         paidNok: settlement.paidNok,
         dueNok: settlement.dueNok,
         payouts: settlement.payouts,
@@ -173,6 +183,20 @@ export async function GET(request: Request) {
             termEnd: l.term_end,
             exclusivity: l.exclusivity,
             grossNok: brutto,
+            compModel: l.comp_model || 'fee',
+            royaltyPct: l.royalty_pct != null ? Number(l.royalty_pct) : null,
+            releaseChannel: l.release_channel,
+            releaseTitle: l.release_title,
+            statements: (stmts || [])
+              .filter((s) => s.licence_id === l.id)
+              .map((s) => ({
+                periodStart: s.period_start,
+                periodEnd: s.period_end,
+                source: s.source,
+                basisNok: Number(s.net_receipts_nok),
+                pct: Number(s.artist_pct),
+                toYouNok: Number(s.artist_nok),
+              })),
             deductions: fradrag,
             netNok: Math.round((brutto - fradrag.reduce((s, f) => s + f.amountNok, 0)) * 100) / 100,
             steps: (steps || [])

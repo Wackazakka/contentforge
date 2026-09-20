@@ -79,6 +79,43 @@ export interface LisensInput {
   splits?: SplitSpec[]
   notes?: string | null
   createdBy?: string | null
+  // oppgjørsvalg (079): fast honorar, royalty, eller begge
+  compModel?: CompModel
+  royaltyPct?: number | null
+  releaseChannel?: ReleaseChannel | null
+  releaseTitle?: string | null
+}
+
+export type CompModel = 'fee' | 'royalty' | 'hybrid'
+export type ReleaseChannel = 'indigoboom' | 'trickletracks' | 'other'
+
+/**
+ * Royalty krever en kanal vi kontrollerer. Regelen står også som en
+ * check-constraint i basen (079) — dette er bare den vennlige varianten, så
+ * brukeren får en setning i stedet for en databasefeil.
+ *
+ * Grunnen: royalty av en masterinntekt vi ikke ser er et løfte, ikke et
+ * produkt. Går utgivelsen gjennom IndigoBoom eller TrickleTracks, passerer
+ * pengene vårt eget rør.
+ */
+export const KONTROLLERTE_KANALER: ReleaseChannel[] = ['indigoboom', 'trickletracks']
+
+export function royaltyErMulig(kanal: ReleaseChannel | null | undefined): boolean {
+  return !!kanal && KONTROLLERTE_KANALER.includes(kanal)
+}
+
+export function sjekkOppgjoersvalg(i: {
+  compModel?: CompModel
+  royaltyPct?: number | null
+  releaseChannel?: ReleaseChannel | null
+}): string | null {
+  const m = i.compModel ?? 'fee'
+  if (m === 'fee') return null
+  if (!royaltyErMulig(i.releaseChannel)) {
+    return 'Royalty krever at utgivelsen går gjennom IndigoBoom eller TrickleTracks — ellers kan vi ikke se inntekten den skal regnes av.'
+  }
+  if (!(Number(i.royaltyPct) > 0)) return 'Royalty krever en sats over null.'
+  return null
 }
 
 /** Listepris etter kortet, uten å lagre noe. Brukes til å forhåndsutfylle. */
@@ -108,6 +145,8 @@ function sluttdato(start: string | null | undefined, months: number | null | und
 }
 
 export async function opprettLisens(i: LisensInput) {
+  const feil = sjekkOppgjoersvalg(i)
+  if (feil) throw new Error(feil)
   const { card, listeNok, honorarNok } = await foreslaaPris(i)
   const feeCustomer = kr(Number(i.feeCustomerNok ?? listeNok))
   const feeActor = kr(Number(i.feeActorNok ?? foreslaattHonorar(card, feeCustomer)))
@@ -135,6 +174,10 @@ export async function opprettLisens(i: LisensInput) {
     status: 'quote' as LicenceStatus,
     notes: i.notes ?? null,
     created_by: i.createdBy ?? null,
+    comp_model: i.compModel ?? 'fee',
+    royalty_pct: i.compModel && i.compModel !== 'fee' ? Number(i.royaltyPct) : null,
+    release_channel: i.releaseChannel ?? null,
+    release_title: i.releaseTitle ?? null,
   }
 
   const { data, error } = await admin().from('licences').insert(rad).select('id').single()
@@ -207,4 +250,61 @@ export async function fordelingFor(licenceId: string) {
 export async function trinnFor(licenceId: string) {
   const { data } = await admin().from('licence_steps').select('*').eq('licence_id', licenceId).order('created_at')
   return data || []
+}
+
+export async function avregningerFor(licenceId: string) {
+  const { data } = await admin()
+    .from('royalty_statements').select('*')
+    .eq('licence_id', licenceId)
+    .order('period_start', { ascending: false })
+  return data || []
+}
+
+/**
+ * Før en royalty-avregning for en periode.
+ *
+ * Grunnlaget er `netReceiptsNok` — det TwinLedger FAKTISK mottok for
+ * utgivelsen, ikke brutto fra strømmetjenestene. Brutto lagres ved siden av
+ * som opplysning, så fradragskjeden er synlig for den som spør.
+ *
+ * ⚠️ Kadensen: DSP-ene rapporterer 2–3 måneder på etterskudd via
+ * distributøren. En avregning er derfor alltid bakover i tid, og det skal stå
+ * i avtalen med rettighetshaveren — ikke oppdages av vedkommende.
+ */
+export async function foerRoyalty(e: {
+  licenceId: string
+  periodStart: string
+  periodEnd: string
+  source?: string | null
+  grossNok?: number | null
+  netReceiptsNok: number
+  /** Utelatt = satsen som står på lisensen. */
+  artistPct?: number | null
+  note?: string | null
+  createdBy?: string | null
+}) {
+  const { data: lic } = await admin()
+    .from('licences').select('id, comp_model, royalty_pct').eq('id', e.licenceId).maybeSingle()
+  if (!lic) throw new Error('Lisensen finnes ikke')
+  if (lic.comp_model === 'fee') throw new Error('Lisensen har fast honorar — ingen royalty å avregne')
+
+  const pct = Number(e.artistPct ?? lic.royalty_pct)
+  if (!(pct > 0)) throw new Error('Mangler royalty-sats')
+  const netto = kr(Number(e.netReceiptsNok))
+  const artistNok = kr((netto * pct) / 100)
+
+  const { data, error } = await admin().from('royalty_statements').insert({
+    licence_id: e.licenceId,
+    period_start: e.periodStart,
+    period_end: e.periodEnd,
+    source: e.source ?? null,
+    gross_nok: e.grossNok != null ? kr(Number(e.grossNok)) : null,
+    net_receipts_nok: netto,
+    artist_pct: pct,
+    artist_nok: artistNok,
+    note: e.note ?? null,
+    created_by: e.createdBy ?? null,
+  }).select('id').single()
+  if (error) throw new Error(error.message)
+  return { id: (data as { id: string }).id, artistNok, pct, netto }
 }
