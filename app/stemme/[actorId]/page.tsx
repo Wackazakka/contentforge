@@ -24,7 +24,9 @@ export async function generateMetadata({ params }: { params: Promise<{ actorId: 
 export default async function ActorPresentationPage({ params }: { params: Promise<{ actorId: string }> }) {
   const { actorId } = await params
   const tenant = await getTenant()
-  const actor = await getPublicActor(tenant, actorId)
+  // Tjenester uten rettighetsforvaltning har ingen visittkort å vise — selv
+  // om en delt skuespiller teknisk sett er tilgjengelig i editoren der.
+  const actor = tenant.twinledger_enabled === false ? null : await getPublicActor(tenant, actorId)
 
   if (!actor) {
     return (

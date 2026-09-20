@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl'
 import { CenterForgeMark, CenterForgeLogo } from '@/components/CenterForgeLogo'
 import BombazaLanding from '@/components/BombazaLanding'
 import BadeOgLanding from '@/components/BadeOgLanding'
-import VoiceBankLanding from '@/components/VoiceBankLanding'
 import StandardRopertLanding from '@/components/StandardRopertLanding'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
@@ -59,9 +58,9 @@ export default function Home() {
   if (tenant.slug === 'bombaza') return <BombazaLanding />
   // Både Og: stemmeforvaltning i front (badeog.no-uttrykket), ikke innholdsproduksjon
   if (tenant.slug === 'badeog') return <BadeOgLanding />
-  // VoiceBank: rettighetsforvaltning i front. Malgruppen er BYRAER som skal
-  // lisensiere plattformen, ikke sluttkunder — de ser byraets merke, ikke dette.
-  if (tenant.slug === 'voicebank') return <VoiceBankLanding />
+  // VoiceBank hadde egen rettighetsforside fram til 20/9. Rettighetsforvaltningen
+  // ble da flyttet til TwinLedger-tenanten under Norditech (migrasjon 075), og
+  // VoiceBank er en generell CenterForge-tjeneste — plattform-landingen under.
   // Standard Ropert: Standard Festmagasins white-label av Studio — invitasjoner,
   // gratulasjoner og kunngjoeringer. Kun produksjon; stemmebanken er skjult
   // via twinledger_enabled=false paa tenant-raden.
