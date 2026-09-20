@@ -45,6 +45,9 @@ export default function AuditionPage() {
   const [auditionId, setAuditionId] = useState<string | null>(null)
   const [takes, setTakes] = useState<Take[]>([])
   const [ferdig, setFerdig] = useState(false)
+  // Runden sin EGEN replikk. Åpnes en delt lenke, er skjemaet tomt — da må
+  // overskriften komme fra auditionen og ikke fra det man selv har skrevet.
+  const [rundeLine, setRundeLine] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -54,6 +57,13 @@ export default function AuditionPage() {
     if (!t) throw new Error('Ikke innlogget')
     return t
   }
+
+  // En audition skal kunne DELES. En casting-ansvarlig sender runden til
+  // produsenten, og da må lenken åpne den samme runden — ikke et tomt skjema.
+  useEffect(() => {
+    const fra = new URLSearchParams(window.location.search).get('id')
+    if (fra) setAuditionId(fra)
+  }, [])
 
   useEffect(() => {
     // Vent til sesjonen er avklart. Uten dette kjoerer foerste hent foer
@@ -79,6 +89,7 @@ export default function AuditionPage() {
       const d = await res.json()
       if (!res.ok) return
       setTakes(d.takes || [])
+      if (d.audition?.line) setRundeLine(d.audition.line)
       if (d.ferdig) {
         setFerdig(true)
         if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
@@ -213,7 +224,7 @@ export default function AuditionPage() {
         {auditionId && (
           <>
             <div className="flex items-baseline justify-between gap-4 flex-wrap mb-4">
-              <h2 className="font-semibold text-lg">«{line}»</h2>
+              <h2 className="font-semibold text-lg">{rundeLine ? `«${rundeLine}»` : 'Henter runden …'}</h2>
               <span className="text-sm text-[var(--text-muted,#6B6358)]">
                 {ferdig ? 'Ferdig' : `${takes.filter((t) => t.stage === 'done').length} av ${takes.length} klare`}
               </span>
@@ -239,7 +250,10 @@ export default function AuditionPage() {
                 </div>
               ))}
             </div>
-            <button onClick={() => { setAuditionId(null); setTakes([]); setFerdig(false) }}
+            <p className="text-xs text-[var(--text-faint,#8A8175)] mb-4">
+              Del runden: <code>{typeof window !== 'undefined' ? `${window.location.origin}/audition?id=${auditionId}` : ''}</code>
+            </p>
+            <button onClick={() => { setAuditionId(null); setTakes([]); setFerdig(false); window.history.replaceState(null, '', '/audition') }}
               className="px-5 py-2.5 rounded-lg font-semibold border hover:border-[var(--ember-deep)]"
               style={{ borderColor: 'var(--ds-border, #E2D9C8)' }}>
               Ny audition
