@@ -35,17 +35,18 @@ export interface PublicActor {
   bio: string | null
   photos: string[]
   samples: string[]
+  videos: string[]
   hasVoice: boolean
   hasFace: boolean
   managedBy: string
   isDemo: boolean
 }
 
-const FELT = 'id, owner_tenant_id, name, bio, photo_urls, sample_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo'
+const FELT = 'id, owner_tenant_id, name, bio, photo_urls, sample_urls, video_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo'
 
 type Rad = {
   id: string; owner_tenant_id: string; name: string; bio: string | null
-  photo_urls: unknown; sample_urls: unknown; preview_url: string | null
+  photo_urls: unknown; sample_urls: unknown; video_urls: unknown; preview_url: string | null
   elevenlabs_voice_id: string | null; face_character_id: string | null
   is_public: boolean; is_active: boolean; is_exclusive: boolean | null
   is_demo: boolean | null
@@ -73,6 +74,9 @@ function tilPublic(a: Rad, tenantNames: Map<string, string>, fallbackName: strin
     bio: a.bio,
     photos,
     samples: egne.length > 0 ? egne : (a.preview_url ? [a.preview_url] : []),
+    // Film veier tyngst for en regissoer: stillbilder sier ingenting om
+    // hvordan ansiktet oppfoerer seg i bevegelse.
+    videos: Array.isArray(a.video_urls) ? (a.video_urls as unknown[]).map(String) : [],
     hasVoice: !!(a.elevenlabs_voice_id && String(a.elevenlabs_voice_id).trim()),
     hasFace: !!(a.face_character_id && String(a.face_character_id).trim()),
     managedBy: tenantNames.get(a.owner_tenant_id) ?? fallbackName,

@@ -93,6 +93,22 @@ export default async function ActorPresentationPage({ params }: { params: Promis
           <p className="text-lg leading-relaxed text-[var(--ink-soft,#4A443B)] mb-10 whitespace-pre-line">{actor.bio}</p>
         )}
 
+        {/* Film — øverst av prøvene. En regissør vurderer hvordan ansiktet
+            oppfører seg i bevegelse og om stemmen og ansiktet hører sammen;
+            stillbilder svarer ikke på noen av delene. */}
+        {actor.videos.length > 0 && (
+          <div className="mb-10">
+            <h2 className="font-semibold mb-3">Se og hør</h2>
+            <div className="space-y-4">
+              {actor.videos.map((url, i) => (
+                <video key={url} controls preload="metadata" playsInline src={url}
+                  className="w-full rounded-xl border" style={{ ...kant, background: '#000' }}
+                  aria-label={`Film ${i + 1} med ${actor.name}`} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Lydprøver */}
         {samples.length > 0 && (
           <div className="mb-10">
