@@ -1,6 +1,9 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { getTenant } from '@/lib/tenantServer'
+import { LangToggle } from '@/components/LangToggle'
 
 // Norditechs egen dør inn til TwinLedger.
 //
@@ -13,16 +16,14 @@ import { getTenant } from '@/lib/tenantServer'
 // licensed partner» — det bortfalt da VoiceBank-avtaleutkastet ble lagt bort
 // samme dag.
 //
-// Engelsk med vilje: den peker mot et internasjonalt marked.
-//
-// Bruker husets tokens (--paper/--ink/--ember) slik at siden er et sosken av
-// Norditechs egen forside, ikke et fremmedelement. Hardkodet kopi, samme
-// monster som BombazaLanding og /for-deg.
+// TOSPRAKLIG 20.09.2026: kopien var hardkodet engelsk mens resten av tenanten
+// er norsk — samme trakt i to sprak, og <html lang> loy. Na ligger den i
+// messages/*.json under 'twinledger', og sprakvelgeren star i toppen: uten
+// den kan en engelsk leser ikke komme seg ut av en norsk forside.
 
-export const metadata = {
-  title: 'TwinLedger — cleared voices and faces for film and advertising',
-  description:
-    'Cast a real person and prove you were allowed to. Every use of a performer’s voice or face is logged against the agreement that permits it, and paid back to them.',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('twinledger')
+  return { title: t('meta_title'), description: t('meta_description') }
 }
 
 const MONO = 'var(--font-cfmono), ui-monospace, SFMono-Regular, Menlo, monospace'
@@ -36,6 +37,7 @@ export default async function TwinLedgerPage() {
   // finnes — partneren er kunden, og skal ikke vise at andre kan kjøpe det
   // samme (Lars 16/9).
   const tenant = await getTenant()
+  const t = await getTranslations('twinledger')
   const egenDor = tenant.slug === 'centerforge' || tenant.slug === 'twinledger'
   if (!egenDor) notFound()
   // På TwinLedger-tenanten er dette forsiden til en app med rettighetshavere
@@ -77,14 +79,15 @@ export default async function TwinLedgerPage() {
           TwinLedger
         </Link>
         <span style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', borderRadius: 3, padding: '5px 9px' }}>
-          by Norditech
+          {t('by_norditech')}
         </span>
         <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 20 }}>
-          <a href="#ledger" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>How it works</a>
-          {erApp && <Link href="/stemmer" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>Voices &amp; faces</Link>}
-          {erApp && <Link href="/bli-stemme" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>For rights holders</Link>}
-          {erApp && <Link href="/login" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>Log in</Link>}
-          <Link href="/white-label" className="tl-ghost" style={{ padding: '9px 18px', fontSize: 14 }}>Talk to us</Link>
+          <a href="#ledger" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>{t('nav_how')}</a>
+          {erApp && <Link href="/stemmer" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>{t('nav_cast')}</Link>}
+          {erApp && <Link href="/bli-stemme" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>{t('nav_rights')}</Link>}
+          {erApp && <Link href="/login" style={{ color: 'var(--ink-soft)', fontSize: 15, textDecoration: 'none' }}>{t('nav_login')}</Link>}
+          <Link href="/white-label" className="tl-ghost" style={{ padding: '9px 18px', fontSize: 14 }}>{t('nav_talk')}</Link>
+          {tenant.show_language_toggle !== false && <LangToggle />}
         </nav>
       </header>
 
@@ -94,80 +97,77 @@ export default async function TwinLedgerPage() {
           nå ansikt like mye som stemme. Den gamle overskriften var bare stemme,
           og den eneste døra gikk til operatører. */}
       <section className="tl-band" style={{ paddingTop: 72, paddingBottom: 60 }}>
-        <p className="tl-eyebrow">Cleared voices and faces for film, advertising and games</p>
+        <p className="tl-eyebrow">{t('hero_eyebrow')}</p>
         <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(34px, 5.2vw, 54px)', lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 22px', maxWidth: 820, textWrap: 'balance' }}>
-          Cast a real person.<br />Prove you were allowed to.
+          {t('hero_h1_a')}<br />{t('hero_h1_b')}
         </h1>
         <p className="tl-p" style={{ fontSize: 19, maxWidth: '36em' }}>
-          TwinLedger is where a performer&apos;s voice and face are licensed. Every use is logged
-          against the agreement that permits it, and paid back to the person it belongs to — so
-          the clearance is a record, not a promise.
+          {t('hero_body')}
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 28 }}>
-          <Link href="/stemmer" className="tl-cta">See who is available</Link>
-          <a href="#ledger" className="tl-ghost">See the ledger</a>
+          <Link href="/stemmer" className="tl-cta">{t('hero_cta')}</Link>
+          <a href="#ledger" className="tl-ghost">{t('hero_ghost')}</a>
         </div>
       </section>
 
       {/* For produsenten. Denne fantes ikke — siden hadde bare en dør, og den
           gikk til operatører. */}
       <section className="tl-band" style={{ paddingBottom: 72 }}>
-        <p className="tl-eyebrow">If you are casting</p>
-        <h2 className="tl-h2">Hear your own lines, in their voice, before you decide</h2>
+        <p className="tl-eyebrow">{t('casting_eyebrow')}</p>
+        <h2 className="tl-h2">{t('casting_h2')}</h2>
         <div className="tl-g3" style={{ marginTop: 26 }}>
           <div className="tl-card">
-            <h3>Real people who said yes</h3>
-            <p>Every voice and face in the catalogue belongs to a person who agreed to it, on terms recorded at the moment they agreed.</p>
+            <h3>{t('c1_h')}</h3>
+            <p>{t('c1_p')}</p>
           </div>
           <div className="tl-card">
-            <h3>Audition on your own script</h3>
-            <p>Write one line, pick who reads it, and compare them side by side. Same scene, same framing — only the performer changes. They are paid for the audition.</p>
+            <h3>{t('c2_h')}</h3>
+            <p>{t('c2_p')}</p>
           </div>
           <div className="tl-card">
-            <h3>A licence, not a metered API</h3>
-            <p>Buy the right you actually need: medium, territory, term — or a one-off buyout bound to the work, for film and scripted television.</p>
+            <h3>{t('c3_h')}</h3>
+            <p>{t('c3_p')}</p>
           </div>
         </div>
       </section>
 
       {/* Hovedboken */}
       <section id="ledger" className="tl-band" style={{ paddingBottom: 72 }}>
-        <p className="tl-eyebrow">The ledger</p>
-        <h2 className="tl-h2">One use, one line, written as it happens</h2>
+        <p className="tl-eyebrow">{t('ledger_eyebrow')}</p>
+        <h2 className="tl-h2">{t('ledger_h2')}</h2>
         <p className="tl-p" style={{ marginBottom: 26 }}>
-          Nobody reconstructs afterwards how many times a voice or a face was used. It is in the
-          book — and that is why a performer can say yes without having to trust anyone.
+          {t('ledger_body')}
         </p>
         <div className="tl-frame">
           <table className="tl-table">
             <thead>
               <tr>
-                <th>Use</th>
-                <th>Asset</th>
-                <th>Under</th>
-                <th className="tl-num">From customer</th>
-                <th className="tl-num">To rights holder</th>
+                <th>{t('th_use')}</th>
+                <th>{t('th_asset')}</th>
+                <th>{t('th_under')}</th>
+                <th className="tl-num">{t('th_from')}</th>
+                <th className="tl-num">{t('th_to')}</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>Radio spot</td>
-                <td>Voice</td>
-                <td>Campaign, Norway, 6 mo</td>
+                <td>{t('r1_use')}</td>
+                <td>{t('r1_asset')}</td>
+                <td>{t('r1_under')}</td>
                 <td className="tl-num">400.00</td>
                 <td className="tl-num tl-out">150.00</td>
               </tr>
               <tr>
-                <td>Feature film</td>
-                <td>Voice and face</td>
-                <td>Work licence, perpetual</td>
+                <td>{t('r2_use')}</td>
+                <td>{t('r2_asset')}</td>
+                <td>{t('r2_under')}</td>
                 <td className="tl-num">250.00</td>
                 <td className="tl-num tl-out">120.00</td>
               </tr>
               <tr>
-                <td>Campaign image</td>
-                <td>Face</td>
-                <td>Campaign, Nordics, 12 mo</td>
+                <td>{t('r3_use')}</td>
+                <td>{t('r3_asset')}</td>
+                <td>{t('r3_under')}</td>
                 <td className="tl-num">300.00</td>
                 <td className="tl-num tl-out">140.00</td>
               </tr>
@@ -175,7 +175,7 @@ export default async function TwinLedgerPage() {
           </table>
         </div>
         <p style={{ fontFamily: MONO, fontSize: 13, color: 'var(--text-faint)', marginTop: 12 }}>
-          Illustration. Every line points at the licence that permits it — that is what makes this a clearance record and not a usage meter.
+          {t('ledger_note')}
         </p>
       </section>
 
@@ -183,20 +183,20 @@ export default async function TwinLedgerPage() {
 
       {/* Hva du får */}
       <section className="tl-band" style={{ paddingTop: 72, paddingBottom: 72 }}>
-        <p className="tl-eyebrow">What you licence</p>
-        <h2 className="tl-h2">The part nobody wants to build twice</h2>
+        <p className="tl-eyebrow">{t('what_eyebrow')}</p>
+        <h2 className="tl-h2">{t('what_h2')}</h2>
         <div className="tl-g3" style={{ marginTop: 26 }}>
           <div className="tl-card">
-            <h3>Rights bank</h3>
-            <p>Agreements, frozen consent, rates per use type and per rights holder, approval flow with agreed deadlines.</p>
+            <h3>{t('w1_h')}</h3>
+            <p>{t('w1_p')}</p>
           </div>
           <div className="tl-card">
-            <h3>Ledger and settlement</h3>
-            <p>Every use logged with amounts on both sides. Statements per rights holder, ready for payout.</p>
+            <h3>{t('w2_h')}</h3>
+            <p>{t('w2_p')}</p>
           </div>
           <div className="tl-card">
-            <h3>Your brand, your chain</h3>
-            <p>White-label across four generations. You set your prices and your own resellers&apos; terms.</p>
+            <h3>{t('w3_h')}</h3>
+            <p>{t('w3_p')}</p>
           </div>
         </div>
       </section>
@@ -205,29 +205,26 @@ export default async function TwinLedgerPage() {
 
       {/* Avgrensningen — hva det IKKE er */}
       <section className="tl-band" style={{ paddingTop: 72, paddingBottom: 72 }}>
-        <p className="tl-eyebrow">Where the line runs</p>
-        <h2 className="tl-h2">Rights management, not voice cloning</h2>
+        <p className="tl-eyebrow">{t('line_eyebrow')}</p>
+        <h2 className="tl-h2">{t('line_h2')}</h2>
         <div className="tl-g2" style={{ marginTop: 26 }}>
           <div className="tl-card">
-            <h3>This is TwinLedger</h3>
+            <h3>{t('is_h')}</h3>
             <p>
-              Someone other than the person uses their voice or face, and that person is paid for
-              it. Those two things together are what makes a ledger necessary at all.
+              {t('is_p')}
             </p>
           </div>
           <div className="tl-card">
-            <h3>This is not</h3>
+            <h3>{t('isnot_h')}</h3>
             <p>
-              A person using their own voice in their own material. No third party, no royalty,
-              nothing owed — and no ledger needed. That is ordinary production, and it is what{' '}
-              <Link href="/" style={{ color: 'var(--ember-deep)' }}>CenterForge</Link> does.
+              {t.rich('isnot_p', {
+                cf: (c) => <Link href="/" style={{ color: 'var(--ember-deep)' }}>{c}</Link>,
+              })}
             </p>
           </div>
         </div>
         <p className="tl-p" style={{ marginTop: 22, fontSize: 15.5 }}>
-          The two products run on the same platform and are sold separately. Partners who only
-          produce content do not need a ledger — and should not inherit the obligations that come
-          with one.
+          {t('line_body')}
         </p>
       </section>
 
@@ -235,23 +232,21 @@ export default async function TwinLedgerPage() {
 
       {/* CTA */}
       <section className="tl-band" style={{ paddingTop: 64, paddingBottom: 80 }}>
-        <h2 className="tl-h2">Who this is for</h2>
+        <h2 className="tl-h2">{t('who_h2')}</h2>
         <p className="tl-p">
-          <strong style={{ fontWeight: 600 }}>Producers and casting directors</strong> who want a
-          performer they can actually clear — and <strong style={{ fontWeight: 600 }}>agencies,
-          talent managers and studios</strong> who commercialise other people&apos;s voice or
-          likeness and need to account for it: per use, per rights holder, in a form that
-          survives an audit and a difficult conversation.
+          {t.rich('who_p', {
+            b: (c) => <strong style={{ fontWeight: 600 }}>{c}</strong>,
+          })}
         </p>
         <div style={{ marginTop: 26 }}>
-          <Link href="/white-label" className="tl-cta">Become a partner</Link>
+          <Link href="/white-label" className="tl-cta">{t('who_cta')}</Link>
         </div>
       </section>
 
       <footer className="tl-band" style={{ paddingTop: 28, paddingBottom: 56, borderTop: '1px solid var(--ember-tint-border)', display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontFamily: MONO, fontSize: 13, color: 'var(--text-faint)' }}>TwinLedger — by Norditech</span>
-        <Link href="/" style={{ color: 'var(--ink-soft)', fontSize: 14, textDecoration: 'none' }}>CenterForge</Link>
-        <Link href="/white-label" style={{ color: 'var(--ink-soft)', fontSize: 14, textDecoration: 'none' }}>Partner</Link>
+        <span style={{ fontFamily: MONO, fontSize: 13, color: 'var(--text-faint)' }}>{t('foot_brand')}</span>
+        <Link href="/" style={{ color: 'var(--ink-soft)', fontSize: 14, textDecoration: 'none' }}>{t('foot_centerforge')}</Link>
+        <Link href="/white-label" style={{ color: 'var(--ink-soft)', fontSize: 14, textDecoration: 'none' }}>{t('foot_partner')}</Link>
       </footer>
     </div>
   )

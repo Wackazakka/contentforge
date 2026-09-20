@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import type { PublicActor } from '@/lib/publicActors'
 
 // Filter + avspilling. Én lyd om gangen: starter du en ny prøve, stopper den
@@ -12,6 +13,7 @@ type Filter = 'alle' | 'stemme' | 'ansikt'
 const initialer = (navn: string) => navn.split(/\s+/).filter(Boolean).slice(0, 2).map((d) => d[0]?.toUpperCase() ?? '').join('')
 
 export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
+  const t = useTranslations('gallery')
   const [filter, setFilter] = useState<Filter>('alle')
   const [spiller, setSpiller] = useState<string | null>(null)
   const audio = useRef<HTMLAudioElement | null>(null)
@@ -42,8 +44,8 @@ export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
   return (
     <>
       {visFilter && (
-        <div className="flex gap-2 mb-8 flex-wrap" role="tablist" aria-label="Vis">
-          {([['alle', 'Alle'], ['stemme', 'Stemmer'], ['ansikt', 'Ansikter']] as Array<[Filter, string]>).map(([k, label]) => {
+        <div className="flex gap-2 mb-8 flex-wrap" role="tablist" aria-label={t('filter_label')}>
+          {([['alle', t('filter_all')], ['stemme', t('filter_voice')], ['ansikt', t('filter_face')]] as Array<[Filter, string]>).map(([k, label]) => {
             const paa = filter === k
             return (
               <button key={k} role="tab" aria-selected={paa} onClick={() => setFilter(k)}
@@ -66,7 +68,7 @@ export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
           return (
             <article key={a.id} className="rounded-xl border overflow-hidden flex flex-col"
               style={{ background: 'var(--paper-raised)', borderColor: 'var(--ds-border, #E2D9C8)' }}>
-              <Link href={`/stemme/${a.id}`} className="block" aria-label={`Visittkortet til ${a.name}`}>
+              <Link href={`/stemme/${a.id}`} className="block" aria-label={a.name}>
                 {a.photos[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   // object-top: portretter har ansiktet i øvre halvdel, og en
@@ -90,10 +92,10 @@ export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
                         opplysning om at kortet ikke er en bookbar person, ikke
                         en egenskap ved stemmen. */}
                     {a.isDemo && (
-                      <span className="px-2 py-0.5 rounded-full border" style={{ color: 'var(--text-muted, #6B6358)', borderColor: 'var(--ds-border, #E2D9C8)' }}>Eksempel</span>
+                      <span className="px-2 py-0.5 rounded-full border" style={{ color: 'var(--text-muted, #6B6358)', borderColor: 'var(--ds-border, #E2D9C8)' }}>{t('chip_example')}</span>
                     )}
-                    {a.hasVoice && <span className="px-2 py-0.5 rounded-full" style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>Stemme</span>}
-                    {a.hasFace && <span className="px-2 py-0.5 rounded-full" style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>Ansikt</span>}
+                    {a.hasVoice && <span className="px-2 py-0.5 rounded-full" style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>{t('chip_voice')}</span>}
+                    {a.hasFace && <span className="px-2 py-0.5 rounded-full" style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }}>{t('chip_face')}</span>}
                   </div>
                 </div>
                 {a.bio && (
@@ -103,12 +105,12 @@ export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
                   {a.samples[0] ? (
                     <button onClick={() => toggle(a)} aria-pressed={erPaa}
                       className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90">
-                      <span aria-hidden="true">{erPaa ? '■' : '▶'}</span>{erPaa ? 'Stopp' : 'Hør prøve'}
+                      <span aria-hidden="true">{erPaa ? '■' : '▶'}</span>{erPaa ? t('stop') : t('play')}
                     </button>
                   ) : (
-                    <span className="text-xs text-[var(--text-faint,#8A8175)]">Ingen lydprøve ennå</span>
+                    <span className="text-xs text-[var(--text-faint,#8A8175)]">{t('no_sample')}</span>
                   )}
-                  <Link href={`/stemme/${a.id}`} className="text-sm font-medium text-[var(--ember-deep)] hover:underline ml-auto">Se mer →</Link>
+                  <Link href={`/stemme/${a.id}`} className="text-sm font-medium text-[var(--ember-deep)] hover:underline ml-auto">{t('see_more')}</Link>
                 </div>
               </div>
             </article>

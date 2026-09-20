@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/authContext'
 
 // Audition: samme scene, samme replikk, ulike skuespillere.
@@ -19,21 +20,14 @@ interface Kandidat { id: string; name: string; isDemo: boolean; photo: string | 
 interface Read { id: string; take_id: string; audio_url: string | null; direction: string | null; is_chosen: boolean }
 interface Take { id: string; actor_id: string; stage: string; still_url: string | null; video_url: string | null; feil: string | null; cost_nok: number | null; reads: Read[] }
 
-const REGI: Array<[string, string]> = [
-  ['noytral', 'Nøytral'],
-  ['varm', 'Varm'],
-  ['entusiastisk', 'Entusiastisk'],
-  ['rolig', 'Rolig'],
-  ['trist', 'Trist'],
-  ['dramatisk', 'Dramatisk'],
-]
-
-const STEG: Record<string, string> = {
-  queued: 'Ingen lesning ennå', ready: 'Velg en lesning', still: 'Lager bildet',
-  video: 'Rendrer film', done: 'Ferdig', failed: 'Feilet',
-}
+// Bare verdiene ligger i koden; etikettene hentes per språk. Verdiene er
+// API-kontrakt (de går til ElevenLabs-presetene og til basen) og skal aldri
+// oversettes — det er derfor de står adskilt fra teksten.
+const REGI = ['noytral', 'varm', 'entusiastisk', 'rolig', 'trist', 'dramatisk'] as const
+const STEG = ['queued', 'ready', 'still', 'video', 'done', 'failed'] as const
 
 export default function AuditionPage() {
+  const t = useTranslations('audition')
   // Auth-konteksten, ikke getSession() direkte: ved foerste rendring er
   // sesjonen ikke hydrert ennaa, og et kall da ser ut som «ikke innlogget».
   const { session, loading: authLoading } = useAuth()
@@ -57,9 +51,9 @@ export default function AuditionPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const token = async () => {
-    const t = session?.access_token
-    if (!t) throw new Error('Ikke innlogget')
-    return t
+    const tok = session?.access_token
+    if (!tok) throw new Error(t('err_not_logged_in'))
+    return tok
   }
 
   // En audition skal kunne DELES. En casting-ansvarlig sender runden til
@@ -77,12 +71,12 @@ export default function AuditionPage() {
       try {
         const res = await fetch('/api/auditions', { headers: { Authorization: `Bearer ${await token()}` } })
         const d = await res.json()
-        if (!res.ok) { setError(d.error || 'Kunne ikke hente skuespillerne'); return }
+        if (!res.ok) { setError(d.error || t('err_actors')); return }
         setKandidater(d.actors || [])
         setPrisFilm(Number(d.prisPerFilm) || 0)
         setPrisLesning(Number(d.prisPerLesning) || 0)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Ukjent feil')
+        setError(e instanceof Error ? e.message : t('err_unknown'))
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,7 +87,7 @@ export default function AuditionPage() {
       const res = await fetch(`/api/auditions?id=${id}`, { headers: { Authorization: `Bearer ${await token()}` } })
       const d = await res.json()
       if (!res.ok) {
-        setError(d.error || `Kunne ikke hente runden (${res.status})`)
+        setError(d.error || t('err_round_status', { status: res.status }))
         if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
         return
       }
@@ -105,7 +99,7 @@ export default function AuditionPage() {
         if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kunne ikke hente runden')
+      setError(e instanceof Error ? e.message : t('err_round'))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session])
@@ -126,17 +120,17 @@ export default function AuditionPage() {
         body: JSON.stringify({ line, direction, scenePrompt: scene, actorIds: valgte, title: tittel || null }),
       })
       const d = await res.json()
-      if (!res.ok) { setError(d.error || 'Kunne ikke starte'); return }
+      if (!res.ok) { setError(d.error || t('err_start')); return }
       setAuditionId(d.id); setTakes([]); setFerdig(false)
       // Fase 1 starter av seg selv: en lesning per plass, slik at regissøren
       // har noe å høre på med én gang. Videre takes er hens valg.
       const r = await fetch(`/api/auditions?id=${d.id}`, { headers: { Authorization: `Bearer ${await token()}` } })
       const st = await r.json()
-      for (const t of (st.takes || [])) {
+      for (const take of (st.takes || [])) {
         await fetch('/api/auditions', {
           method: 'PUT',
           headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'read', takeId: t.id }),
+          body: JSON.stringify({ action: 'read', takeId: take.id }),
         })
       }
       await poll(d.id)
@@ -152,24 +146,23 @@ export default function AuditionPage() {
         body: JSON.stringify(body),
       })
       const d = await res.json()
-      if (!res.ok) { setError(d.error || 'Gikk galt'); return }
+      if (!res.ok) { setError(d.error || t('err_generic')); return }
       if (auditionId) await poll(auditionId)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Gikk galt')
+      setError(e instanceof Error ? e.message : t('err_generic'))
     } finally { setJobber(null) }
   }
 
-  const navn = (id: string) => kandidater.find((k) => k.id === id)?.name || 'Ukjent'
+  const navn = (id: string) => kandidater.find((k) => k.id === id)?.name || t('unknown_actor')
   const pris = valgte.length * prisLesning
 
   return (
     <div className="min-h-screen bg-[var(--paper)] text-[var(--ink,#1C1A16)]">
       <div className="max-w-5xl mx-auto px-6 py-10">
-        <Link href="/stemmer" className="text-sm text-[var(--ember-deep)] hover:underline">← Stemmer og ansikter</Link>
-        <h1 className="text-4xl font-bold mt-3 mb-2" style={{ letterSpacing: '-0.02em' }}>Audition</h1>
+        <Link href="/stemmer" className="text-sm text-[var(--ember-deep)] hover:underline">{t('back')}</Link>
+        <h1 className="text-4xl font-bold mt-3 mb-2" style={{ letterSpacing: '-0.02em' }}>{t('title')}</h1>
         <p className="text-lg text-[var(--ink-soft,#4A443B)] max-w-2xl mb-8">
-          Skriv replikken én gang, velg hvem som skal lese den, og se dem ved siden av hverandre.
-          Alt unntatt skuespilleren er likt — det er det som gjør at du sammenlikner mennesker og ikke bilder.
+          {t('intro')}
         </p>
 
         {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -178,51 +171,51 @@ export default function AuditionPage() {
             innlogget» ser ut som noe er i stuss; en lenke sier hva man gjør. */}
         {!authLoading && !session && (
           <div className="rounded-xl border p-6" style={{ background: 'var(--paper-raised)', borderColor: 'var(--ds-border, #E2D9C8)' }}>
-            <h2 className="font-semibold text-lg mb-1">Logg inn for å kjøre en audition</h2>
+            <h2 className="font-semibold text-lg mb-1">{t('login_title')}</h2>
             <p className="text-sm text-[var(--ink-soft,#4A443B)] mb-4 max-w-md">
-              Auditions koster penger og betaler skuespillerne, så de føres på en konto.
+              {t('login_body')}
             </p>
             <Link href="/login" className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 inline-block">
-              Logg inn
+              {t('login_cta')}
             </Link>
           </div>
         )}
 
-        {authLoading && <p className="text-sm text-[var(--text-muted,#6B6358)]">Laster …</p>}
+        {authLoading && <p className="text-sm text-[var(--text-muted,#6B6358)]">{t('loading')}</p>}
 
         {!authLoading && session && !auditionId && (
           <div className="rounded-xl border p-6 mb-8" style={{ background: 'var(--paper-raised)', borderColor: 'var(--ds-border, #E2D9C8)' }}>
-            <label className="block text-sm font-medium mb-1">Replikken</label>
+            <label className="block text-sm font-medium mb-1">{t('field_line')}</label>
             <textarea value={line} onChange={(e) => setLine(e.target.value)} rows={2}
-              placeholder="Én replikk, slik den står i manus."
+              placeholder={t('line_placeholder')}
               className="w-full px-3 py-2 border rounded-lg text-sm mb-4" style={{ borderColor: 'var(--ds-border, #E2D9C8)' }} />
 
             <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Regi</label>
+                <label className="block text-sm font-medium mb-1">{t('field_direction')}</label>
                 <select value={direction} onChange={(e) => setDirection(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--ds-border, #E2D9C8)' }}>
-                  {REGI.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+                  {REGI.map((v) => <option key={v} value={v}>{t(`dir_${v}`)}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Tittel (valgfritt)</label>
-                <input value={tittel} onChange={(e) => setTittel(e.target.value)} placeholder="Scene 14, kjøkkenet"
+                <label className="block text-sm font-medium mb-1">{t('field_title')}</label>
+                <input value={tittel} onChange={(e) => setTittel(e.target.value)} placeholder={t('title_placeholder')}
                   className="w-full px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--ds-border, #E2D9C8)' }} />
               </div>
             </div>
 
-            <label className="block text-sm font-medium mb-1">Scenen</label>
+            <label className="block text-sm font-medium mb-1">{t('field_scene')}</label>
             <input value={scene} onChange={(e) => setScene(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm mb-1" style={{ borderColor: 'var(--ds-border, #E2D9C8)' }} />
             <p className="text-xs text-[var(--text-faint,#8A8175)] mb-5">
-              Samme scene for alle. Endrer du den, endres den for hele runden — poenget er at bare ansiktet skal variere.
+              {t('scene_note')}
             </p>
 
-            <label className="block text-sm font-medium mb-2">Hvem skal lese den? ({valgte.length} valgt)</label>
+            <label className="block text-sm font-medium mb-2">{t('who', { n: valgte.length })}</label>
             {kandidater.length === 0 ? (
               <p className="text-sm text-[var(--text-muted,#6B6358)] mb-4">
-                Ingen er klare ennå. En audition krever at skuespilleren har både stemme og ansiktsmodell.
+                {t('none_ready')}
               </p>
             ) : (
               <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
@@ -240,7 +233,7 @@ export default function AuditionPage() {
                       <div className="px-3 py-2 text-sm font-medium flex items-center gap-2">
                         {k.name}
                         {k.isDemo && <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border"
-                          style={{ borderColor: 'var(--ds-border, #E2D9C8)', color: 'var(--text-muted, #6B6358)' }}>Test</span>}
+                          style={{ borderColor: 'var(--ds-border, #E2D9C8)', color: 'var(--text-muted, #6B6358)' }}>{t('chip_test')}</span>}
                       </div>
                     </button>
                   )
@@ -251,11 +244,11 @@ export default function AuditionPage() {
             <div className="flex items-center gap-4 flex-wrap">
               <button onClick={kjor} disabled={busy || !line.trim() || valgte.length === 0}
                 className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
-                {busy ? 'Starter …' : `Hør dem lese${pris ? ` — ${pris} kr` : ''}`}
+                {busy ? t('starting') : (pris ? t('hear_them_price', { pris }) : t('hear_them'))}
               </button>
               {valgte.length > 0 && (
                 <span className="text-sm text-[var(--text-muted,#6B6358)]">
-                  Lesninger koster {prisLesning} kr per skuespiller og kan gjentas. Film bestiller du etterpå, per skuespiller, til {prisFilm} kr.
+                  {t('price_note', { lesning: prisLesning, film: prisFilm })}
                 </span>
               )}
             </div>
@@ -265,30 +258,31 @@ export default function AuditionPage() {
         {!authLoading && session && auditionId && (
           <>
             <div className="flex items-baseline justify-between gap-4 flex-wrap mb-4">
-              <h2 className="font-semibold text-lg">{rundeLine ? `«${rundeLine}»` : 'Henter runden …'}</h2>
+              <h2 className="font-semibold text-lg">{rundeLine ? `«${rundeLine}»` : t('fetching_round')}</h2>
               <span className="text-sm text-[var(--text-muted,#6B6358)]">
-                {ferdig ? 'Ferdig' : `${takes.filter((t) => t.stage === 'done').length} av ${takes.length} klare`}
+                {ferdig ? t('stage_done') : t('progress', { done: takes.filter((x) => x.stage === 'done').length, total: takes.length })}
               </span>
             </div>
             <div className="grid gap-5 mb-8" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-              {takes.map((t) => {
-                const valgtLesning = t.reads?.find((r) => r.is_chosen) || null
-                const iFase2 = ['still', 'video', 'done'].includes(t.stage)
+              {takes.map((take) => {
+                const valgtLesning = take.reads?.find((r) => r.is_chosen) || null
+                const iFase2 = ['still', 'video', 'done'].includes(take.stage)
                 return (
-                  <div key={t.id} className="rounded-xl border overflow-hidden"
+                  <div key={take.id} className="rounded-xl border overflow-hidden"
                     style={{ background: 'var(--paper-raised)', borderColor: 'var(--ds-border, #E2D9C8)' }}>
-                    {t.video_url ? (
-                      <video controls preload="metadata" playsInline src={t.video_url} className="w-full" style={{ background: '#000' }} />
-                    ) : t.still_url ? (
+                    {take.video_url ? (
+                      <video controls preload="metadata" playsInline src={take.video_url} className="w-full" style={{ background: '#000' }} />
+                    ) : take.still_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={t.still_url} alt="" className="w-full aspect-video object-cover object-top opacity-70" />
+                      <img src={take.still_url} alt="" className="w-full aspect-video object-cover object-top opacity-70" />
                     ) : null}
 
                     <div className="px-4 py-3">
                       <div className="flex items-center justify-between gap-3 mb-2">
-                        <span className="font-medium">{navn(t.actor_id)}</span>
+                        <span className="font-medium">{navn(take.actor_id)}</span>
                         <span className="text-xs text-[var(--text-muted,#6B6358)]">
-                          {t.stage === 'failed' ? (t.feil || 'Feilet') : STEG[t.stage] || t.stage}
+                          {take.stage === 'failed' ? (take.feil || t('stage_failed'))
+                            : (STEG as readonly string[]).includes(take.stage) ? t(`stage_${take.stage}`) : take.stage}
                         </span>
                       </div>
 
@@ -298,9 +292,9 @@ export default function AuditionPage() {
                       {!iFase2 && (
                         <>
                           <div className="space-y-2 mb-3">
-                            {(t.reads || []).map((r, i) => (
+                            {(take.reads || []).map((r, i) => (
                               <div key={r.id} className="flex items-center gap-2">
-                                <span className="text-xs text-[var(--text-faint,#8A8175)] w-14 flex-none">Take {i + 1}</span>
+                                <span className="text-xs text-[var(--text-faint,#8A8175)] w-14 flex-none">{t('take_n', { n: i + 1 })}</span>
                                 {r.audio_url && <audio controls preload="none" src={r.audio_url} className="flex-1 h-9" />}
                                 <button onClick={() => handling({ action: 'choose', readId: r.id }, r.id)}
                                   disabled={jobber === r.id}
@@ -308,37 +302,37 @@ export default function AuditionPage() {
                                   style={r.is_chosen
                                     ? { borderColor: 'var(--ember-deep)', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)' }
                                     : { borderColor: 'var(--ds-border, #E2D9C8)' }}>
-                                  {r.is_chosen ? '✓ Valgt' : 'Velg'}
+                                  {r.is_chosen ? t('chosen') : t('choose')}
                                 </button>
                               </div>
                             ))}
-                            {(t.reads || []).length === 0 && (
-                              <p className="text-xs text-[var(--text-faint,#8A8175)]">Ingen lesning ennå.</p>
+                            {(take.reads || []).length === 0 && (
+                              <p className="text-xs text-[var(--text-faint,#8A8175)]">{t('no_read')}</p>
                             )}
                           </div>
                           <div className="flex gap-2 flex-wrap">
-                            <button onClick={() => handling({ action: 'read', takeId: t.id }, t.id + 'r')}
-                              disabled={jobber === t.id + 'r'}
+                            <button onClick={() => handling({ action: 'read', takeId: take.id }, take.id + 'r')}
+                              disabled={jobber === take.id + 'r'}
                               className="text-sm font-semibold px-3 py-2 rounded-lg border disabled:opacity-50"
                               style={{ borderColor: 'var(--ds-border, #E2D9C8)' }}>
-                              {jobber === t.id + 'r' ? 'Leser …' : 'En take til'}
+                              {jobber === take.id + 'r' ? t('reading') : t('one_more')}
                             </button>
-                            <button onClick={() => handling({ action: 'film', takeId: t.id }, t.id + 'f')}
-                              disabled={!valgtLesning || jobber === t.id + 'f'}
+                            <button onClick={() => handling({ action: 'film', takeId: take.id }, take.id + 'f')}
+                              disabled={!valgtLesning || jobber === take.id + 'f'}
                               className="text-sm font-semibold px-3 py-2 rounded-lg text-[var(--on-ember)] bg-[var(--ember-deep)] disabled:opacity-50">
-                              {jobber === t.id + 'f' ? 'Starter …' : `Lag film — ${t.cost_nok ?? prisFilm} kr`}
+                              {jobber === take.id + 'f' ? t('starting') : t('make_film', { pris: take.cost_nok ?? prisFilm })}
                             </button>
                           </div>
-                          {!valgtLesning && (t.reads || []).length > 0 && (
+                          {!valgtLesning && (take.reads || []).length > 0 && (
                             <p className="text-xs text-[var(--text-faint,#8A8175)] mt-2">
-                              Velg en lesning før du bestiller film.
+                              {t('choose_first')}
                             </p>
                           )}
                         </>
                       )}
 
                       {/* FASE 2 — filmen bygges på den valgte lesningen. */}
-                      {iFase2 && valgtLesning?.audio_url && t.stage !== 'done' && (
+                      {iFase2 && valgtLesning?.audio_url && take.stage !== 'done' && (
                         <audio controls preload="none" src={valgtLesning.audio_url} className="w-full h-9" />
                       )}
                     </div>
@@ -347,12 +341,12 @@ export default function AuditionPage() {
               })}
             </div>
             <p className="text-xs text-[var(--text-faint,#8A8175)] mb-4">
-              Del runden: <code>{typeof window !== 'undefined' ? `${window.location.origin}/audition?id=${auditionId}` : ''}</code>
+              {t('share')} <code>{typeof window !== 'undefined' ? `${window.location.origin}/audition?id=${auditionId}` : ''}</code>
             </p>
             <button onClick={() => { setAuditionId(null); setTakes([]); setFerdig(false); window.history.replaceState(null, '', '/audition') }}
               className="px-5 py-2.5 rounded-lg font-semibold border hover:border-[var(--ember-deep)]"
               style={{ borderColor: 'var(--ds-border, #E2D9C8)' }}>
-              Ny audition
+              {t('new_round')}
             </button>
           </>
         )}
