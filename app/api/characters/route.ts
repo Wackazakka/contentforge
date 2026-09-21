@@ -12,7 +12,7 @@ const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
  * Feiler stille: modellen staar som `pending`, altsaa STENGT. Det verste en
  * mislykket e-post kan gjoere er aa utsette et ja -- ikke aa slippe noe gjennom.
  */
-async function varsleOmGodkjenning(til: string, token: string, navn: string | null): Promise<void> {
+async function varsleOmGodkjenning(karakterId: string, til: string, token: string, navn: string | null): Promise<void> {
   try {
     if (!process.env.RESEND_API_KEY) return
     const { getTenant } = await import('@/lib/tenantServer')
@@ -33,6 +33,11 @@ async function varsleOmGodkjenning(til: string, token: string, navn: string | nu
         <p style="color:#6B6358;font-size:14px">Til du svarer, er modellen stengt og kan ikke brukes. Du kan ombestemme deg senere uansett hva du svarer naa.</p>
       </div>`,
     })
+    // ⚠️ Tidsstempelet settes FOERST NAAR e-posten faktisk gikk. Sto det ved
+    // innsetting, ville purresveipet (092) talt dager fra et varsel som
+    // kanskje aldri ble sendt -- og purret paa noe hun ikke har faatt.
+    const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    await db.from('user_characters').update({ approval_sent_at: new Date().toISOString() }).eq('id', karakterId)
   } catch { /* se over */ }
 }
 
@@ -85,7 +90,7 @@ export async function GET(request: Request) {
             // stengt. Det verste en mislykket e-post kan gjøre er å utsette
             // et ja — ikke å slippe noe gjennom.
             if (row.approval_status === 'pending' && row.subject_email && row.approval_token) {
-              varsleOmGodkjenning(row.subject_email, row.approval_token, row.name).catch(() => {})
+              varsleOmGodkjenning(row.id, row.subject_email, row.approval_token, row.name).catch(() => {})
             }
           }
         } else if (st.status === 'FAILED' || st.status === 'ERROR') {
