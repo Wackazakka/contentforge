@@ -62,7 +62,7 @@ export default function VoiceActorPage() {
   // skuespillerraden, og hentes derfor som eget felt. Se lib/faceWithdrawal.
   const [faceWithdrawnAt, setFaceWithdrawnAt] = useState<string | null>(null)
   // Erklaeringen fra LoRA-treningen (089): hvem gikk god for ansiktet.
-  const [faceConsent, setFaceConsent] = useState<{ subject: string | null; at: string | null } | null>(null)
+  const [faceConsent, setFaceConsent] = useState<{ subject: string | null; at: string | null; trainingSet?: string | null } | null>(null)
   const [events, setEvents] = useState<Array<{ id: number; actor_rate_nok: number; customer_price_nok: number; meta: { kind?: string }; created_at: string }>>([])
   const [byMonth, setByMonth] = useState<Agg[]>([])
   const [byKind, setByKind] = useState<Agg[]>([])
@@ -519,6 +519,16 @@ export default function VoiceActorPage() {
                       {faceConsent.at && ` — ${new Date(faceConsent.at).toLocaleDateString('nb-NO')}`}
                     </p>
                   )}
+                  {/* Grunnlaget (094). «Hvilke bilder ble modellen laget fra?»
+                      skal kunne besvares her, ikke i en sesjonslogg. Mangler
+                      den, staar det — en tom plass er et aerlig hull. */}
+                  <p className="text-xs mt-1" style={{ color: faceConsent?.trainingSet ? 'var(--text-muted, #5E564A)' : 'var(--ember-deep)' }}>
+                    {faceConsent?.trainingSet ? (
+                      <a href={faceConsent.trainingSet} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                        Treningsbildene modellen ble laget fra →
+                      </a>
+                    ) : '⚠️ Treningsbildene er ikke sporet — modellen kan ikke trenes på nytt eller revideres'}
+                  </p>
                 </div>
                 <button onClick={toggleFaceWithdrawn}
                   className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">

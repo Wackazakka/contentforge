@@ -142,6 +142,11 @@ export async function POST(request: Request) {
         // Maaleinstrumentet (093): uten dette kan to modeller se ulike ut
         // uten at noen kan si hvorfor.
         trainer: valgt.endepunkt,
+        // 🔑 GRUNNLAGET (094). Uten denne finnes modellen, men ikke bildene
+        // den ble laget fra: ingen retrening, ingen revisjon, og «slett
+        // grunnlaget» blir noe vi ikke kan utføre. En av-bryter på modellen
+        // mens kildebildene ligger et sted ingen vet, er en halv rettighet.
+        training_set_url: zipUrl,
         consent_subject: consentSubject,
         consent_declared_at: new Date().toISOString(),
         consent_declared_by: u.user.id,
