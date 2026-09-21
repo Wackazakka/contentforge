@@ -91,7 +91,17 @@ export default function NavBar() {
   // hovedforretning og får den først; alle andre tenanter har produksjonen
   // først. En REN rettighetshaver (ikke admin, ikke kunde) ser bare sin egen
   // hovedbok — produksjonsflatene angår henne ikke.
-  const navGroups: NavLink[][] = role.actorOnly
+  // ⚠️ VENT PÅ ROLLEN FØR NOE TEGNES. `role.admin` er usann mens oppslaget
+  // pågår, så uten denne vakta tegnes menyen først uten «Forvaltning» og så
+  // med — admin-menyen POPPER INN etter to nettverkskall. I det halvsekundet
+  // ser en admin et dashbord uten admin-meny, og en ren rettighetshaver ser
+  // produksjonsmenyen blinke før den kollapser til bare «Meg».
+  //
+  // Tomt er ærligere enn feil: rammen, logoen og utloggingen står, og lenkene
+  // kommer samlet når vi vet hvem som spør.
+  const navGroups: NavLink[][] = !role.loaded
+    ? []
+    : role.actorOnly
     ? [meg]
     : (tenant.vertical === 'rights' ? [forvaltning, produksjon, meg] : [produksjon, forvaltning, meg]).filter((g) => g.length > 0)
 
