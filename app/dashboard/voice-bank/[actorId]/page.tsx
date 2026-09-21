@@ -61,6 +61,8 @@ export default function VoiceActorPage() {
   // Av-bryteren paa ansiktet (088). Ligger paa user_characters, ikke paa
   // skuespillerraden, og hentes derfor som eget felt. Se lib/faceWithdrawal.
   const [faceWithdrawnAt, setFaceWithdrawnAt] = useState<string | null>(null)
+  // Erklaeringen fra LoRA-treningen (089): hvem gikk god for ansiktet.
+  const [faceConsent, setFaceConsent] = useState<{ subject: string | null; at: string | null } | null>(null)
   const [events, setEvents] = useState<Array<{ id: number; actor_rate_nok: number; customer_price_nok: number; meta: { kind?: string }; created_at: string }>>([])
   const [byMonth, setByMonth] = useState<Agg[]>([])
   const [byKind, setByKind] = useState<Agg[]>([])
@@ -118,6 +120,7 @@ export default function VoiceActorPage() {
       setOrigin(window.location.origin)
       setActor(data.actor)
       setFaceWithdrawnAt(data.faceWithdrawnAt ?? null)
+      setFaceConsent(data.faceConsent ?? null)
       setEvents(data.events || [])
       setByMonth(data.byMonth || [])
       setByKind(data.byKind || [])
@@ -504,6 +507,18 @@ export default function VoiceActorPage() {
                       ? t('face_withdrawn_note_on', { date: new Date(faceWithdrawnAt).toLocaleDateString('nb-NO') })
                       : t('face_withdrawn_note_off')}
                   </p>
+                  {/* Erklæringen fra treningen (089). Står her fordi det er her
+                      spørsmålet stilles: «hvem gikk god for dette ansiktet?»
+                      `legacy_undeclared` skjules ikke — en rad fra før porten
+                      skal SES som det den er, ikke se ut som en erklæring. */}
+                  {faceConsent?.subject && (
+                    <p className="text-xs mt-1.5 max-w-xl" style={{
+                      color: faceConsent.subject === 'legacy_undeclared' ? 'var(--ember-deep)' : 'var(--text-muted, #5E564A)',
+                    }}>
+                      {t(`face_consent_${faceConsent.subject}`)}
+                      {faceConsent.at && ` — ${new Date(faceConsent.at).toLocaleDateString('nb-NO')}`}
+                    </p>
+                  )}
                 </div>
                 <button onClick={toggleFaceWithdrawn}
                   className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">

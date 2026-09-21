@@ -16,7 +16,8 @@ export default function CharactersPage() {
   const [chars, setChars] = useState<UserCharacter[]>([])
   const [name, setName] = useState('')
   const [files, setFiles] = useState<FileList | null>(null)
-  const [consent, setConsent] = useState(false)
+  // null = ingen erklaering avgitt ennaa. Se samtykkeporten lenger nede.
+  const [consent, setConsent] = useState<'self' | 'other_consented' | 'not_a_person' | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,7 +45,7 @@ export default function CharactersPage() {
     if (!name.trim()) { setError('Gi karakteren et navn.'); return }
     if (!files || files.length < 5) { setError('Last opp minst 5 bilder (gjerne 10-15).'); return }
     if (files.length > 20) { setError('Maks 20 bilder.'); return }
-    if (!consent) { setError('Du må bekrefte at du har rett til å bruke bildene.'); return }
+    if (!consent) { setError('Velg hvem bildene viser før du starter treningen.'); return }
 
     try {
       setBusy('Pakker bilder…')
@@ -66,12 +67,12 @@ export default function CharactersPage() {
       const res = await fetch('/api/characters/train', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ name, zipUrl: publicUrl }),
+        body: JSON.stringify({ name, zipUrl: publicUrl, consentSubject: consent }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Trening feilet')
 
-      setName(''); setFiles(null); setConsent(false)
+      setName(''); setFiles(null); setConsent(null)
       await refresh()
     } catch (err: any) {
       setError(err.message)
@@ -108,10 +109,34 @@ export default function CharactersPage() {
           />
           <p className="text-xs text-gray-400 mb-4">Tips: 10-15 skarpe bilder av samme person, ulike vinkler og uttrykk, helst uten andre personer i bildet.</p>
 
-          <label className="flex items-start gap-2 mb-4 text-sm text-gray-700 cursor-pointer">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4" />
-            <span>Jeg bekrefter at jeg har rett til å bruke disse bildene, og at personen på bildene har samtykket til at det lages en AI-karakter av dem.</span>
-          </label>
+          {/* Samtykkeporten (089). Var ett avkryss som aldri forlot nettleseren.
+              Nå er det tre valg, fordi «har du lov?» er ett spørsmål med tre
+              helt ulike begrunnelser — og svaret lagres på karakteren med navn
+              og dato. Det siste er ikke pynt: en erklæring som ikke beholdes,
+              er ingen erklæring. */}
+          <fieldset className="mb-4">
+            <legend className="text-sm font-medium text-gray-700 mb-2">Hvem viser bildene?</legend>
+            {([
+              ['self', 'Meg selv'],
+              ['other_consented', 'En annen person, som har sagt ja til at det lages en AI-modell av ansiktet'],
+              ['not_a_person', 'Ingen virkelig person — fiktiv eller generert'],
+            ] as const).map(([verdi, tekst]) => (
+              <label key={verdi} className="flex items-start gap-2 mb-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="radio"
+                  name="consentSubject"
+                  checked={consent === verdi}
+                  onChange={() => setConsent(verdi)}
+                  className="mt-0.5 h-4 w-4"
+                />
+                <span>{tekst}</span>
+              </label>
+            ))}
+            <p className="text-xs text-gray-500 mt-2">
+              Svaret lagres på karakteren sammen med hvem som avga det og når. Er
+              ansiktet en annen persons, kan hen når som helst be om at det stenges.
+            </p>
+          </fieldset>
 
           {error && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
 

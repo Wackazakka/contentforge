@@ -122,16 +122,23 @@ export async function GET(request: Request) {
       // hentes ved siden av — adminen skal kunne se at ansiktet er stengt uten
       // å gå til databasen.
       let faceWithdrawnAt: string | null = null
+      // Erklæringen fra treningen (089). «Hvem gikk god for dette ansiktet?»
+      // skal kunne besvares der ansiktet forvaltes — ikke bare ligge i basen.
+      let faceConsent: { subject: string | null; at: string | null } | null = null
       const fcid = (actor as { face_character_id?: string | null }).face_character_id
       if (fcid) {
         const { data: ch } = await supabase
-          .from('user_characters').select('withdrawn_at').eq('id', fcid).maybeSingle()
-        faceWithdrawnAt = (ch as { withdrawn_at?: string | null } | null)?.withdrawn_at ?? null
+          .from('user_characters')
+          .select('withdrawn_at, consent_subject, consent_declared_at').eq('id', fcid).maybeSingle()
+        const c = ch as { withdrawn_at?: string | null; consent_subject?: string | null; consent_declared_at?: string | null } | null
+        faceWithdrawnAt = c?.withdrawn_at ?? null
+        faceConsent = c ? { subject: c.consent_subject ?? null, at: c.consent_declared_at ?? null } : null
       }
       return NextResponse.json({
         tenant: { id: tenant.id, name: tenant.app_name },
         actor,
         faceWithdrawnAt,
+        faceConsent,
         events: events.slice(0, 200),
         byMonth: agg((e) => String(e.created_at).slice(0, 7)).sort((a, b) => b.key.localeCompare(a.key)),
         byKind: agg((e) => e.meta?.kind || 'ukjent'),

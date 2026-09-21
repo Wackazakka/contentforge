@@ -7,9 +7,29 @@ const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
 // (samme trener som Lawrence — bevist god ansiktslikhet). Steps/lr fra den beviste kjøringen.
 export async function POST(request: Request) {
   try {
-    const { name, zipUrl } = await request.json()
+    const { name, zipUrl, consentSubject } = await request.json()
     if (!name?.trim() || !zipUrl) {
       return NextResponse.json({ error: 'Mangler navn eller zipUrl' }, { status: 400 })
+    }
+
+    // 🔑 SAMTYKKEPORTEN (089). Skjemaet hadde lenge en avkryssing med riktig
+    // tekst, men den ble aldri sendt hit — kallet var {name, zipUrl}. Boksen
+    // gatet en knapp i nettleseren og forsvant, så «samtykket denne personen?»
+    // hadde ingen kilde. ElevenLabs gater proff-kloning med en innspilt
+    // erklæring; også selverklært, men LAGRET. Det er forskjellen vi kopierer.
+    //
+    // Tre svar, ikke ja/nei: begrunnelsene har ulik risiko, og en boolean ville
+    // slått dem sammen og gjort loggen ubrukelig.
+    //
+    // ⚠️ AVVISES HER, IKKE BARE I SKJEMAET. Ruta er et offentlig endepunkt —
+    // en klient som ikke sender feltet skal ikke få trent, uansett hvilket
+    // grensesnitt den kom fra.
+    const LOVLIGE = ['self', 'other_consented', 'not_a_person'] as const
+    if (!LOVLIGE.includes(consentSubject)) {
+      return NextResponse.json({
+        error: 'Treningen krever en erklæring om hvem bildene viser, og at personen har samtykket.',
+        code: 'CONSENT_REQUIRED',
+      }, { status: 400 })
     }
     // Sikring (2026-07-29): kun innloggede kan trene, og karakteren eies av host-tenanten
     const { getTenant } = await import('@/lib/tenantServer')
@@ -51,6 +71,11 @@ export async function POST(request: Request) {
         // Pre-migrasjon feiler insert på ukjente kolonner; bedre enn eierløse rader.
         ...(/^[0-9a-f-]{36}$/i.test(tenant.id) ? { owner_tenant_id: tenant.id } : {}),
         created_by: u.user.id,
+        // Erklæringen lagres på raden, ikke i en logg ved siden av: spørsmålet
+        // «hvem gikk god for dette ansiktet?» skal besvares der ansiktet er.
+        consent_subject: consentSubject,
+        consent_declared_at: new Date().toISOString(),
+        consent_declared_by: u.user.id,
       })
       .select()
       .single()
