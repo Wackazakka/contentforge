@@ -2,122 +2,138 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import CastingFiltre, { useCastingFiltre, useKandidatlinje } from '@/components/CastingFiltre'
-import type { Kandidat } from '@/lib/castingAttributes'
+import { filtrer, type Kandidat } from '@/lib/castingAttributes'
 
-// Castingplukkeren (Lars 20.09.2026).
+// Plukkeren i auditionoppsettet (Claude Design 6A, 21.09.2026).
 //
-// 🔑 HVORFOR DEN ERSTATTET RUTENETTET: «Når vi har flere hundre å velge mellom
-// må vi ha mulighet til å søke.» Et rutenett av portretter slutter å virke rundt
-// tjue oppføringer — da leter man ikke lenger, man bare blar.
+// 🔑 ET RUTENETT MED FASTE KOLONNER, IKKE KORT AV ULIK HØYDE. Hele Audition
+// hviler på at alt unntatt skuespilleren er likt — varierer rammen,
+// sammenlikner regissøren bilder i stedet for mennesker. Et rutenett av kort
+// som spriker i høyde bryter med det allerede i utvalget.
 //
-// Filterlinja er delt med det åpne galleriet (components/CastingFiltre), så de
-// to flatene av samme bank aldri finner ulike folk. Her er forskjellen at man
-// PLUKKER inntil åtte; i galleriet blar man.
+// Søkefeltet søker på NAVN, DIALEKT OG SPILLEALDER i ett felt. En caster
+// skriver «bergensk 40» før hen finner fram til et filterpanel, og da skal det
+// virke.
 //
-// Filtreringen skjer LOKALT over hele kandidatsettet (ruta sender det i ett
-// svar). En caster klikker seg gjennom mange kombinasjoner på få sekunder;
-// et rundturskall per klikk ville gjort utvalget tregt å utforske.
-//
-// Bevisst, ikke en forglemmelse: allerede valgte skuespillere vises alltid,
-// også når de faller utenfor filteret. Ellers forsvinner noen du har krysset
-// av, uten et ord — og runden starter med færre enn du trodde.
+// Lista klippes til åtte med «Vis alle N». Et fullt rutenett skyver
+// prissammendraget og «Hør dem lese» under skjermkanten.
 
-const kant = { borderColor: 'var(--ds-border, #E2D9C8)' }
-const initialer = (n: string) =>
-  n.split(/\s+/).filter(Boolean).slice(0, 2).map((d) => d[0]?.toUpperCase() ?? '').join('')
+const MONO = 'var(--font-cfmono), ui-monospace, monospace'
+const DISPLAY = 'var(--font-archivo), system-ui, sans-serif'
+const SYNLIGE = 8
 
-export default function Plukker({ kandidater, valgte, setValgte, totalt, avkuttet, maks = 8 }: {
+export default function Plukker({ kandidater, valgte, setValgte, maks = 8 }: {
   kandidater: Kandidat[]
   valgte: string[]
   setValgte: (ids: string[]) => void
-  totalt?: number
-  avkuttet?: boolean
   maks?: number
 }) {
-  const t = useTranslations('casting')
-  const linje = useKandidatlinje()
-  // Det innloggede castingverktøyet ser ALLE fasetter, spilleområde inkludert:
-  // samtykket vi har innhentet gjelder nettopp casting. Den åpne katalogen ser
-  // et snevrere sett (OFFENTLIGE_FASETTER).
-  const s = useCastingFiltre(kandidater)
-  const [kunValgte, setKunValgte] = useState(false)
+  const t = useTranslations('audition')
+  const tc = useTranslations('casting')
+  const [q, setQ] = useState('')
+  const [alle, setAlle] = useState(false)
 
-  const synlige = useMemo(() => {
-    const iTreff = new Set(s.treff.map((k) => k.id))
-    const bortfiltrertValgt = kandidater.filter((k) => valgte.includes(k.id) && !iTreff.has(k.id))
-    const alle = [...s.treff, ...bortfiltrertValgt]
-    return kunValgte ? alle.filter((k) => valgte.includes(k.id)) : alle
-  }, [s.treff, kandidater, valgte, kunValgte])
+  // Kompakt linje: spillealder · dialekt. Kjønn og høyde er utelatt her med
+  // vilje — i en fire-kolonners rute er det de to som skiller stemmer.
+  const linje = (k: Kandidat) => {
+    const alder = k.playingAgeFrom != null && k.playingAgeTo != null ? `${k.playingAgeFrom}–${k.playingAgeTo}`
+      : k.playingAgeFrom != null ? `${k.playingAgeFrom}+`
+      : k.playingAgeTo != null ? `–${k.playingAgeTo}` : null
+    const dialekt = (k.attributes.dialects ?? []).map((v) => tc(`dialects_${v}`))[0] ?? null
+    return [alder, dialekt].filter(Boolean).join(' · ')
+  }
 
-  const vekslValgt = (id: string) =>
+  // Fritekst treffer navn, dialekt og alder i ett. `filtrer` tar bare navn, så
+  // resten legges på her — den er delt med katalogen og skal ikke vite om
+  // dette feltet.
+  const treff = useMemo(() => {
+    const s = q.trim().toLowerCase()
+    if (!s) return kandidater
+    const tall = s.match(/\d+/)?.[0]
+    return filtrer(kandidater, {}).filter((k) => {
+      if (k.name.toLowerCase().includes(s)) return true
+      if ((k.attributes.dialects ?? []).some((d) => tc(`dialects_${d}`).toLowerCase().includes(s))) return true
+      if (tall) {
+        const n = Number(tall)
+        const fra = k.playingAgeFrom ?? 0, til = k.playingAgeTo ?? 120
+        if (n >= fra && n <= til) return true
+      }
+      return false
+    })
+  }, [kandidater, q, tc])
+
+  const vis = alle ? treff : treff.slice(0, SYNLIGE)
+  const veksl = (id: string) =>
     setValgte(valgte.includes(id) ? valgte.filter((x) => x !== id) : [...valgte, id])
 
   return (
     <div>
-      <CastingFiltre tilstand={s} totaltAntall={kandidater.length} />
+      <style>{`
+        .au-pick { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--ds-border-strong); border-left: 1px solid var(--ds-border-strong); }
+        .au-pick > button { border-right: 1px solid var(--ds-border-strong); border-bottom: 1px solid var(--ds-border-strong); }
+        @media (max-width: 720px) { .au-pick { grid-template-columns: repeat(2, 1fr); } }
+      `}</style>
 
-      <div className="flex flex-wrap items-center gap-3 mb-3">
-        <span className="text-sm font-medium">{t('selected_n', { n: valgte.length })}</span>
-        {valgte.length > 0 && (
-          <button type="button" onClick={() => setKunValgte((v) => !v)}
-            className="text-sm text-[var(--ember-deep)] hover:underline">
-            {kunValgte ? t('show_all') : t('show_selected')}
-          </button>
-        )}
-        {/* Uten denne linja blir resten av kortene bare grå, og ingen får vite
-            hvorfor. En deaktivert flate som ikke forklarer seg, ser ut som en
-            feil. */}
-        {valgte.length >= maks && (
-          <span className="text-sm text-amber-700">{t('max_reached', { n: maks })}</span>
-        )}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 17, letterSpacing: '-0.02em' }}>{t('who_h')}</span>
+        <span style={{ fontFamily: MONO, fontSize: 11, color: 'var(--text-faint)', marginLeft: 'auto' }}>
+          {t('of_max', { n: valgte.length, max: maks })}
+        </span>
       </div>
 
-      {avkuttet && (
-        <p className="text-xs text-[var(--text-faint,#8A8175)] mb-3">
-          {t('truncated', { n: kandidater.length, total: totalt ?? kandidater.length })}
-        </p>
-      )}
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('search_ph')}
+        style={{ width: '100%', padding: '12px 14px', fontSize: 14.5, border: '1px solid var(--ds-border-strong)', background: 'var(--paper-raised)', color: 'var(--ink)', marginBottom: 14, fontFamily: 'inherit' }} />
 
-      {synlige.length === 0 ? (
-        <p className="text-sm text-[var(--text-muted,#6B6358)] mb-4">{t('no_hits_body')}</p>
+      {treff.length === 0 ? (
+        <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>{tc('no_hits_body')}</p>
       ) : (
-        <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-          {synlige.map((k) => {
-            const paa = valgte.includes(k.id)
-            // Fullt utvalg låser ikke de valgte — man skal alltid kunne ta noen av.
-            const sperret = !paa && valgte.length >= maks
-            return (
-              <button key={k.id} type="button" onClick={() => vekslValgt(k.id)} disabled={sperret}
-                aria-pressed={paa}
-                className="rounded-xl border overflow-hidden text-left transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ borderColor: paa ? 'var(--ember-deep)' : 'var(--ds-border, #E2D9C8)', borderWidth: paa ? 2 : 1 }}>
-                {k.photo
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={k.photo} alt="" loading="lazy" className="w-full aspect-[4/3] object-cover object-top" />
-                  : <div className="w-full aspect-[4/3] flex items-center justify-center text-3xl font-bold"
-                      style={{ background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)' }} aria-hidden="true">
-                      {initialer(k.name)}
-                    </div>}
-                <div className="px-3 py-2">
-                  <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
-                    {k.name}
+        <>
+          <div className="au-pick">
+            {vis.map((k) => {
+              const paa = valgte.includes(k.id)
+              const sperret = !paa && valgte.length >= maks
+              return (
+                <button key={k.id} type="button" onClick={() => veksl(k.id)} disabled={sperret} aria-pressed={paa}
+                  style={{
+                    textAlign: 'left', padding: 0, cursor: sperret ? 'default' : 'pointer',
+                    background: paa ? 'var(--ember-tint-bg)' : 'var(--paper-raised)',
+                    opacity: sperret ? 0.4 : 1, border: 'none', font: 'inherit',
+                  }}>
+                  {k.photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={k.photo} alt="" loading="lazy" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', objectPosition: 'top', display: 'block' }} />
+                  ) : (
+                    <div style={{ aspectRatio: '4/3', background: '#E4E4E0' }} />
+                  )}
+                  <div style={{ padding: '10px 12px 12px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: DISPLAY, fontWeight: 700, fontSize: 14.5, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+                      {k.name}
+                      {paa && <span style={{ color: 'var(--ember-deep)' }} aria-hidden="true">✓</span>}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2 }}>{linje(k)}</span>
                     {k.isDemo && (
-                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full border"
-                        style={{ ...kant, color: 'var(--text-muted, #6B6358)' }}>Test</span>
+                      <span style={{ display: 'inline-block', marginTop: 6, fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', border: '1px solid var(--ds-border-strong)', padding: '2px 5px' }}>
+                        {t('chip_test')}
+                      </span>
                     )}
                   </div>
-                  <div className="text-xs text-[var(--text-faint,#8A8175)] mt-0.5">{linje(k)}</div>
-                  {k.modelAges.length > 0 && (
-                    <div className="text-xs text-[var(--ember-deep)] mt-0.5">
-                      {k.modelAges.length === 1 ? t('has_models_one') : t('has_models', { n: k.modelAges.length })}
-                    </div>
-                  )}
-                </div>
-              </button>
-            )
-          })}
-        </div>
+                </button>
+              )
+            })}
+          </div>
+          {treff.length > SYNLIGE && (
+            <button type="button" onClick={() => setAlle((v) => !v)}
+              style={{ background: 'none', border: 'none', padding: '12px 0 0', cursor: 'pointer', font: 'inherit', fontSize: 14, color: 'var(--ember-deep)' }}>
+              {alle ? tc('show_fewer') : t('show_all_n', { n: treff.length })}
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Uten denne linja blir resten av rutene bare grå, og ingen får vite
+          hvorfor. En deaktivert flate som ikke forklarer seg, ser ut som feil. */}
+      {valgte.length >= maks && (
+        <p style={{ fontSize: 13.5, color: 'var(--ember-deep)', margin: '12px 0 0' }}>{tc('max_reached', { n: maks })}</p>
       )}
     </div>
   )
