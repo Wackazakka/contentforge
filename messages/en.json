@@ -1557,7 +1557,8 @@
     "agency_eyebrow": "For agencies, managers and agents",
     "agency_h2": "Do you bring performers, and look for them?",
     "agency_p": "Casting agents sit on both sides of the table. You can manage your own rights holders in your own brand, with your prices and your terms — and use the catalogue as a customer when the role needs someone you do not have.",
-    "agency_cta": "See white-label"
+    "agency_cta": "See white-label",
+    "live_now": "Being logged"
   },
   "apply": {
     "meta_title": "Join {tenant} as a voice",

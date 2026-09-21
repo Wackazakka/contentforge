@@ -1557,7 +1557,8 @@
     "agency_eyebrow": "For byråer, managere og agenter",
     "agency_h2": "Kommer du med skuespillere, og leter etter dem?",
     "agency_p": "Castingagenter står på begge sider av bordet. Du kan forvalte dine egne rettighetshavere i din egen drakt, med dine priser og dine vilkår — og bruke katalogen som kunde når rollen krever noen du ikke har.",
-    "agency_cta": "Se white-label"
+    "agency_cta": "Se white-label",
+    "live_now": "Føres nå"
   },
   "apply": {
     "meta_title": "Bli en stemme hos {tenant}",
