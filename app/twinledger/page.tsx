@@ -100,10 +100,15 @@ export default async function TwinLedgerPage() {
 
       <hr className="tl-rule" />
 
-      {/* Hero. Snudd 20.09.2026: produsenten er sluttkunden, og siden dekker
-          nå ansikt like mye som stemme. Den gamle overskriften var bare stemme,
-          og den eneste døra gikk til operatører. */}
-      <section className="tl-band" style={{ paddingTop: 72, paddingBottom: 60 }}>
+      {/* Hero + DE TO DOERENE (Lars 21.09.2026).
+          🔑 MARKEDSPLASSEN HAR TO SIDER, OG BEGGE BETALER FOR SEG. Produsenten
+          betaler; rettighetshaveren leverer varen. Til 21.09 sto produsenten i
+          hero-en med to knapper, mens rettighetshaveren bare fantes som en
+          lenke i menyen — og akkurat na er det TILBUDSSIDEN som er den bindende
+          skranken. En markedsplass uten varer kan ikke betjene ettersporsel.
+          Derfor er doerene hero-ens handling, likestilte, i stedet for en
+          knapperad som bare peker en vei. */}
+      <section className="tl-band" style={{ paddingTop: 72, paddingBottom: 18 }}>
         <p className="tl-eyebrow">{t('hero_eyebrow')}</p>
         <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(34px, 5.2vw, 54px)', lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 22px', maxWidth: 820, textWrap: 'balance' }}>
           {t('hero_h1_a')}<br />{t('hero_h1_b')}
@@ -111,34 +116,32 @@ export default async function TwinLedgerPage() {
         <p className="tl-p" style={{ fontSize: 19, maxWidth: '36em' }}>
           {t('hero_body')}
         </p>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 28 }}>
-          <Link href="/stemmer" className="tl-cta">{t('hero_cta')}</Link>
-          <a href="#ledger" className="tl-ghost">{t('hero_ghost')}</a>
-        </div>
       </section>
 
-      {/* For produsenten. Denne fantes ikke — siden hadde bare en dør, og den
-          gikk til operatører. */}
-      <section className="tl-band" style={{ paddingBottom: 72 }}>
-        <p className="tl-eyebrow">{t('casting_eyebrow')}</p>
-        <h2 className="tl-h2">{t('casting_h2')}</h2>
-        <div className="tl-g3" style={{ marginTop: 26 }}>
-          <div className="tl-card">
-            <h3>{t('c1_h')}</h3>
-            <p>{t('c1_p')}</p>
+      <section className="tl-band" style={{ paddingBottom: 64 }}>
+        <div className="tl-g2">
+          <div className="tl-card" style={{ padding: 30 }}>
+            <h3 style={{ fontSize: 20 }}>{t('door_cast_h')}</h3>
+            <p>{t('door_cast_p')}</p>
+            <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+              <Link href="/stemmer" className="tl-cta">{t('door_cast_cta')}</Link>
+            </div>
           </div>
-          <div className="tl-card">
-            <h3>{t('c2_h')}</h3>
-            <p>{t('c2_p')}</p>
-          </div>
-          <div className="tl-card">
-            <h3>{t('c3_h')}</h3>
-            <p>{t('c3_p')}</p>
+          <div className="tl-card" style={{ padding: 30 }}>
+            <h3 style={{ fontSize: 20 }}>{t('door_talent_h')}</h3>
+            <p>{t('door_talent_p')}</p>
+            <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+              <Link href="/bli-stemme" className="tl-cta">{t('door_talent_cta')}</Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Hovedboken */}
+      {/* Hovedboken. FLYTTET OPP 21.09.2026: den er det eneste beviset som
+          virker for BEGGE maalgruppene samtidig. Produsenten leser «dette er
+          klarert»; rettighetshaveren leser «jeg faar betalt, og jeg ser det».
+          Tabellen har allerede kolonnene «Fra kunde» og «Til rettighetshaver»
+          — den gjorde jobben, den sto bare for langt nede. */}
       <section id="ledger" className="tl-band" style={{ paddingBottom: 72 }}>
         <p className="tl-eyebrow">{t('ledger_eyebrow')}</p>
         <h2 className="tl-h2">{t('ledger_h2')}</h2>
@@ -186,31 +189,58 @@ export default async function TwinLedgerPage() {
         </p>
       </section>
 
-      <hr className="tl-rule" />
-
-      {/* Hva du får */}
-      <section className="tl-band" style={{ paddingTop: 72, paddingBottom: 72 }}>
-        <p className="tl-eyebrow">{t('what_eyebrow')}</p>
-        <h2 className="tl-h2">{t('what_h2')}</h2>
+      {/* For produsenten. Denne fantes ikke — siden hadde bare en dør, og den
+          gikk til operatører. */}
+      <section className="tl-band" style={{ paddingBottom: 72 }}>
+        <p className="tl-eyebrow">{t('casting_eyebrow')}</p>
+        <h2 className="tl-h2">{t('casting_h2')}</h2>
         <div className="tl-g3" style={{ marginTop: 26 }}>
           <div className="tl-card">
-            <h3>{t('w1_h')}</h3>
-            <p>{t('w1_p')}</p>
+            <h3>{t('c1_h')}</h3>
+            <p>{t('c1_p')}</p>
           </div>
           <div className="tl-card">
-            <h3>{t('w2_h')}</h3>
-            <p>{t('w2_p')}</p>
+            <h3>{t('c2_h')}</h3>
+            <p>{t('c2_p')}</p>
           </div>
           <div className="tl-card">
-            <h3>{t('w3_h')}</h3>
-            <p>{t('w3_p')}</p>
+            <h3>{t('c3_h')}</h3>
+            <p>{t('c3_p')}</p>
+          </div>
+        </div>
+      </section>
+
+
+      <hr className="tl-rule" />
+
+      {/* For rettighetshaveren. Denne fantes IKKE — halve markedsplassen sto
+          bare som en lenke i menyen. Tre kort, samme vekt som produsentens. */}
+      <section className="tl-band" style={{ paddingTop: 72, paddingBottom: 72 }}>
+        <p className="tl-eyebrow">{t('talent_eyebrow')}</p>
+        <h2 className="tl-h2">{t('talent_h2')}</h2>
+        <div className="tl-g3" style={{ marginTop: 26 }}>
+          <div className="tl-card">
+            <h3>{t('t1_h')}</h3>
+            <p>{t('t1_p')}</p>
+          </div>
+          <div className="tl-card">
+            <h3>{t('t2_h')}</h3>
+            <p>{t('t2_p')}</p>
+          </div>
+          <div className="tl-card">
+            <h3>{t('t3_h')}</h3>
+            <p>{t('t3_p')}</p>
           </div>
         </div>
       </section>
 
       <hr className="tl-rule" />
 
-      {/* Avgrensningen — hva det IKKE er */}
+      {/* Forholdet til CenterForge. OMRAMMET 21.09.2026 (Lars): sto som «hva
+          det IKKE er», altsaa en gaffel i veien. Men CenterForge er VAAR EGEN
+          produksjonsenhet — riktig framing er at produksjon FOELGER lisensen,
+          i samme hus. Grensen staar fortsatt: din egen stemme i ditt eget
+          materiale trenger ingen hovedbok. */}
       <section className="tl-band" style={{ paddingTop: 72, paddingBottom: 72 }}>
         <p className="tl-eyebrow">{t('line_eyebrow')}</p>
         <h2 className="tl-h2">{t('line_h2')}</h2>
@@ -237,16 +267,19 @@ export default async function TwinLedgerPage() {
 
       <hr className="tl-rule" />
 
-      {/* CTA */}
-      <section className="tl-band" style={{ paddingTop: 64, paddingBottom: 80 }}>
-        <h2 className="tl-h2">{t('who_h2')}</h2>
-        <p className="tl-p">
-          {t.rich('who_p', {
-            b: (c) => <strong style={{ fontWeight: 600 }}>{c}</strong>,
-          })}
-        </p>
-        <div style={{ marginTop: 26 }}>
-          <Link href="/white-label" className="tl-cta">{t('who_cta')}</Link>
+      {/* Byraaer og agenter — NED TIL EN STRIPE 21.09.2026. Dette var tre kort
+          midt paa sida, altsaa like mye plass som produsenten fikk. Men
+          white-label er en salgssamtale, ikke en selvbetjent doer, og den hoerer
+          nederst.
+          🔑 Castingagenten staar paa BEGGE sider av bordet: hen kommer med
+          skuespillere og leter etter dem. Derfor staar hen her, og ikke i en av
+          de to doerene — hen ville maattet velge feil. */}
+      <section className="tl-band" style={{ paddingTop: 56, paddingBottom: 80 }}>
+        <p className="tl-eyebrow">{t('agency_eyebrow')}</p>
+        <h2 className="tl-h2" style={{ fontSize: 'clamp(20px, 2.4vw, 26px)' }}>{t('agency_h2')}</h2>
+        <p className="tl-p">{t('agency_p')}</p>
+        <div style={{ marginTop: 22 }}>
+          <Link href="/white-label" className="tl-ghost">{t('agency_cta')}</Link>
         </div>
       </section>
 
