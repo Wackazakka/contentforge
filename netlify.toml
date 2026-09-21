@@ -28,11 +28,20 @@
 # annen adresse enn den vi selv oppgir.
 #
 # ⚠️ Legger du til et nytt .ai-domene med www: legg til en blokk her ogsaa.
-# voicebank.ai har samme situasjon og er IKKE ryddet (bevisst -- egen tenant,
-# egen beslutning).
+#
+# FORSKJELLEN MELLOM DE TO: twinledger.ai skrives om paa «/» (proxy.ts), og
+# derfor maa ROTA redirectes der -- se merknaden over. voicebank.ai skrives
+# IKKE om, saa «/» passerer uroert gjennom proxy.ts og fanges av regelen her.
+# Derfor trenger voicebank bare en blokk, mens twinledger trenger begge deler.
 
 [[redirects]]
   from = "https://www.twinledger.ai/*"
   to = "https://twinledger.ai/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.voicebank.ai/*"
+  to = "https://voicebank.ai/:splat"
   status = 301
   force = true
