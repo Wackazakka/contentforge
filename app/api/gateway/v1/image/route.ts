@@ -41,6 +41,15 @@ export async function POST(request: Request) {
     try {
       png = await generateFaceImage(actor.face_character_id, prompt, imageSize || '1024x1536')
     } catch (genErr: any) {
+      // ⚠️ EN TILBAKETREKKING ER IKKE EN DRIFTSFEIL. Uten dette skillet meldes
+      // «rettighetshaveren har sagt nei» som «noe gikk galt», og kunden ringer
+      // support om en feil som ikke finnes. Speiler 409-svaret på stemmesiden;
+      // se lib/faceWithdrawal og lib/elevenlabsErrors.
+      const { FACE_WITHDRAWN, FACE_WITHDRAWN_MESSAGE } = await import('@/lib/faceWithdrawal')
+      if (genErr?.code === FACE_WITHDRAWN) {
+        console.warn('[gateway/image] ansikt trukket tilbake av rettighetshaver:', actor.id)
+        return NextResponse.json({ error: FACE_WITHDRAWN_MESSAGE, code: FACE_WITHDRAWN }, { status: 409 })
+      }
       console.error('[gateway/image] fal-feil:', genErr.message)
       return NextResponse.json({ error: 'Bildegenerering feilet' }, { status: 502 })
     }
