@@ -1,33 +1,59 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { createClient } from '@supabase/supabase-js'
 
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
+// Opplastingslenke for treningsbildene — til en PRIVAT bøtte.
+//
+// 🔑 HVORFOR DETTE FLYTTET SEG FRA R2. Zipen lå tidligere i R2 under
+// `characters/zips/<uuid>.zip`, og R2-bøtta er eksponert i sin helhet gjennom
+// `pub-…r2.dev`. Det betyr at 18 bilder av et menneske lå fritt lesbare for
+// enhver som kjente stien — «sikkerhet ved uklarhet», beskyttet av at ingen
+// gjetter en UUID. For Mari spilte det ingen rolle; hun er fiktiv. For den
+// første ekte skuespilleren gjør det det, og denne flyttingen må skje FØR
+// noen ekte person laster opp bilder, ikke etter.
+//
+// 🔑 SUPABASE, IKKE EN NY R2-BØTTE. Storage er alt i bruk her (music-inbox),
+// bøtta kan settes privat, og signerte URL-er med utløp er innebygd. En ny
+// R2-bøtte ville krevd nye miljøvariabler og en manuell opprettelse.
+//
+// Fal må kunne HENTE zipen. Den får en signert lenke med kort levetid når
+// treningen startes — se /api/characters/train. Det som lagres på raden er
+// STIEN, ikke lenken: en signert URL utløper, og en rad som peker på noe
+// utløpt svarer ikke på «hvilke bilder ble modellen laget fra?».
 
-// Presigned PUT-URL så nettleseren kan laste zip-en rett til R2
-// (Netlify-funksjoner har ~6MB body-grense — treningsbilder er større).
-export async function GET() {
+export const BOTTE = 'training-sets'
+
+function admin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  )
+}
+
+export async function GET(request: Request) {
   try {
-    const s3 = new S3Client({
-      region: 'auto',
-      endpoint: process.env.R2_ENDPOINT,
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-      },
-    })
-    const key = `characters/zips/${randomUUID()}.zip`
-    const uploadUrl = await getSignedUrl(
-      s3,
-      new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME || 'contentforge-assets',
-        Key: key,
-        ContentType: 'application/zip',
-      }),
-      { expiresIn: 600 }
-    )
-    return NextResponse.json({ uploadUrl, publicUrl: `${R2_PUBLIC_URL}/${key}` })
+    // Krever innlogging: en opplastingslenke er en skriverett, og den skal
+    // ikke deles ut til hvem som helst som kjenner adressen.
+    const auth = request.headers.get('authorization')
+    if (!auth?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    }
+    const { data: u } = await admin().auth.getUser(auth.slice(7))
+    if (!u?.user?.id) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+
+    const sti = `${u.user.id}/${randomUUID()}.zip`
+    const { data, error } = await admin().storage.from(BOTTE).createSignedUploadUrl(sti)
+    if (error) {
+      // Mangler bøtta, sier vi det rett ut. «Opplasting feilet» ville sendt
+      // neste leser til nettverksfanen i stedet for til oppsettet.
+      return NextResponse.json(
+        { error: `Kunne ikke lage opplastingslenke (${error.message}). Finnes bøtta «${BOTTE}»?` },
+        { status: 500 }
+      )
+    }
+    // `path` er det klienten sender videre til /train. Ingen offentlig URL
+    // returneres — det finnes ingen.
+    return NextResponse.json({ uploadUrl: data.signedUrl, token: data.token, path: sti })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

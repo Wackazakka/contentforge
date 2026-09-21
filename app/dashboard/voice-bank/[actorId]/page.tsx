@@ -237,6 +237,21 @@ export default function VoiceActorPage() {
     } catch { /* behold visning */ }
   }
 
+  // Lenken til treningssettet finnes ikke paa forhaand: boetta er privat, saa
+  // den signeres ved behov og varer ti minutter.
+  const aapneTreningssett = async () => {
+    if (!actor?.face_character_id) return
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const tok = sess?.session?.access_token
+      const d = await fetch(`/api/characters/training-set?characterId=${actor.face_character_id}`, {
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+      }).then((r) => r.json())
+      if (d.url) window.open(d.url, '_blank', 'noopener')
+      else setError(d.error || 'Fant ikke treningsbildene')
+    } catch { setError('Kunne ikke hente treningsbildene') }
+  }
+
   const toggleFaceWithdrawn = async () => {
     if (!actor) return
     try {
@@ -522,11 +537,16 @@ export default function VoiceActorPage() {
                   {/* Grunnlaget (094). «Hvilke bilder ble modellen laget fra?»
                       skal kunne besvares her, ikke i en sesjonslogg. Mangler
                       den, staar det — en tom plass er et aerlig hull. */}
+                  {/* Boetta er PRIVAT, saa det finnes ingen lenke aa klikke paa
+                      — den lages i det oeyeblikket noen spoer, og utloeper. Det
+                      er hele poenget: 18 bilder av et menneske skal ikke ligge
+                      paa en permanent adresse. */}
                   <p className="text-xs mt-1" style={{ color: faceConsent?.trainingSet ? 'var(--text-muted, #5E564A)' : 'var(--ember-deep)' }}>
                     {faceConsent?.trainingSet ? (
-                      <a href={faceConsent.trainingSet} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                        Treningsbildene modellen ble laget fra →
-                      </a>
+                      <button onClick={aapneTreningssett}
+                        className="hover:underline" style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer' }}>
+                        Se treningsbildene modellen ble laget fra →
+                      </button>
                     ) : '⚠️ Treningsbildene er ikke sporet — modellen kan ikke trenes på nytt eller revideres'}
                   </p>
                 </div>

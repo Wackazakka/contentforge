@@ -72,8 +72,10 @@ export default function CharactersPage() {
       const blob = await zip.generateAsync({ type: 'blob' })
 
       setBusy('Laster opp…')
-      const { uploadUrl, publicUrl, error: upErr } = await fetch('/api/characters/upload-url').then((r) => r.json())
-      if (!uploadUrl) throw new Error(upErr || 'Fikk ikke opplastings-URL')
+      // Bildene gaar til en PRIVAT boette. Se /api/characters/upload-url for
+      // hvorfor: den gamle veien la dem fritt lesbare i en offentlig R2-boette.
+      const { uploadUrl, path, error: upErr } = await fetch('/api/characters/upload-url', { headers: await authHeaders() }).then((r) => r.json())
+      if (!uploadUrl || !path) throw new Error(upErr || 'Fikk ikke opplastings-URL')
       const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'application/zip' }, body: blob })
       if (!put.ok) throw new Error('Opplasting til lagring feilet (' + put.status + ')')
 
@@ -81,7 +83,7 @@ export default function CharactersPage() {
       const res = await fetch('/api/characters/train', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ name, zipUrl: publicUrl, consentSubject: consent, subjectEmail: subjectEmail || null, trainer }),
+        body: JSON.stringify({ name, zipPath: path, consentSubject: consent, subjectEmail: subjectEmail || null, trainer }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Trening feilet')

@@ -38,9 +38,9 @@ const STANDARD_TRENER: TrenerId = 'portrait'
 // (samme trener som Lawrence — bevist god ansiktslikhet). Steps/lr fra den beviste kjøringen.
 export async function POST(request: Request) {
   try {
-    const { name, zipUrl, consentSubject, subjectEmail: raaEpost, trainer: raaTrener } = await request.json()
-    if (!name?.trim() || !zipUrl) {
-      return NextResponse.json({ error: 'Mangler navn eller zipUrl' }, { status: 400 })
+    const { name, zipPath, consentSubject, subjectEmail: raaEpost, trainer: raaTrener } = await request.json()
+    if (!name?.trim() || !zipPath) {
+      return NextResponse.json({ error: 'Mangler navn eller zipPath' }, { status: 400 })
     }
 
     // 🔑 SAMTYKKEPORTEN (089). Skjemaet hadde lenge en avkryssing med riktig
@@ -110,11 +110,22 @@ export async function POST(request: Request) {
     // Unikt trigger-ord, f.eks. CHRXKQZW
     const trigger = 'CHR' + Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random() * 24)]).join('')
 
+    // 🔑 SIGNERT LENKE MED KORT LEVETID, IKKE EN OFFENTLIG URL. Fal må kunne
+    // hente zipen, men bare mens treningen startes. Én time er rikelig og
+    // etterlater ingen permanent leselenke til bildene av et menneske.
+    const { BOTTE } = await import('@/app/api/characters/upload-url/route')
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const { data: sign, error: signErr } = await supabase
+      .storage.from(BOTTE).createSignedUrl(String(zipPath), 3600)
+    if (signErr || !sign?.signedUrl) {
+      return NextResponse.json({ error: `Fant ikke treningsbildene (${signErr?.message || 'ukjent sti'})` }, { status: 400 })
+    }
+
     const submitRes = await fetch(`https://queue.fal.run/${valgt.endepunkt}`, {
       method: 'POST',
       headers: { Authorization: `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        images_data_url: zipUrl,
+        images_data_url: sign.signedUrl,
         trigger_phrase: trigger,
         steps: valgt.steps,
         learning_rate: 0.0002,
@@ -125,7 +136,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'fal-trening feilet: ' + JSON.stringify(submit).slice(0, 200) }, { status: 502 })
     }
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
     const { data, error } = await supabase
       .from('user_characters')
       .insert({
@@ -146,7 +156,10 @@ export async function POST(request: Request) {
         // den ble laget fra: ingen retrening, ingen revisjon, og «slett
         // grunnlaget» blir noe vi ikke kan utføre. En av-bryter på modellen
         // mens kildebildene ligger et sted ingen vet, er en halv rettighet.
-        training_set_url: zipUrl,
+        // ⚠️ STIEN, IKKE DEN SIGNERTE LENKEN. En signert URL utløper, og en
+        // rad som peker på noe utløpt svarer ikke på «hvilke bilder ble
+        // modellen laget fra?». Adminen signerer på nytt ved behov.
+        training_set_url: String(zipPath),
         consent_subject: consentSubject,
         consent_declared_at: new Date().toISOString(),
         consent_declared_by: u.user.id,
