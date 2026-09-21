@@ -208,8 +208,14 @@ export default async function ActorPresentationPage({ params }: { params: Promis
             <section style={{ marginBottom: 36 }}>
               <Overskrift>{t('watch')}</Overskrift>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* ⚠️ `preload="none"`, IKKE «metadata». Med «metadata» hentet
+                    Chrome hele filmen ved innlasting — begge lå på readyState 4
+                    før noen hadde trykket play, altså ~5 MB på to filmer. Det
+                    skalerer med antall filmer på kortet, og en regissør som
+                    bare skal lese casting-tabellen betaler for hele arkivet.
+                    Nettleserne tolker «metadata» ulikt; «none» gjør de likt. */}
                 {actor.videos.map((url, i) => (
-                  <video key={url} controls preload="metadata" playsInline src={url}
+                  <video key={url} controls preload="none" playsInline src={url}
                     style={{ width: '100%', aspectRatio: '16/9', background: 'var(--ink)', border: '1px solid var(--ds-border-strong)', display: 'block' }}
                     aria-label={t('film_alt', { n: i + 1, name: actor.name })} />
                 ))}
