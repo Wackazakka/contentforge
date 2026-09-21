@@ -63,6 +63,9 @@ export default function VoiceActorPage() {
   const [faceWithdrawnAt, setFaceWithdrawnAt] = useState<string | null>(null)
   // Erklaeringen fra LoRA-treningen (089): hvem gikk god for ansiktet.
   const [faceConsent, setFaceConsent] = useState<{ subject: string | null; at: string | null; trainingSet?: string | null } | null>(null)
+  // Opptaksloeypa for proffklone (095). Ligger i egne tabeller, hentes ved siden av.
+  const [opptak, setOpptak] = useState<{ oekt: { status: string; epost: string | null; lenke: string; opprettet: string } | null; fremdrift?: { totaltSek: number; maalSek: number; ferdig: boolean; per: Array<{ register: string; sek: number; maalSek: number; dekket: boolean }> } } | null>(null)
+  const [opptakBusy, setOpptakBusy] = useState(false)
   const [events, setEvents] = useState<Array<{ id: number; actor_rate_nok: number; customer_price_nok: number; meta: { kind?: string }; created_at: string }>>([])
   const [byMonth, setByMonth] = useState<Agg[]>([])
   const [byKind, setByKind] = useState<Agg[]>([])
@@ -121,6 +124,14 @@ export default function VoiceActorPage() {
       setActor(data.actor)
       setFaceWithdrawnAt(data.faceWithdrawnAt ?? null)
       setFaceConsent(data.faceConsent ?? null)
+      try {
+        const { data: s4 } = await getSupabase().auth.getSession()
+        const t4 = s4?.session?.access_token
+        if (t4) {
+          const r4 = await fetch(`/api/stemmeopptak/admin?actorId=${actorId}`, { headers: { Authorization: `Bearer ${t4}` } })
+          if (r4.ok) setOpptak(await r4.json())
+        }
+      } catch { /* opptaksstatus er tilleggsinfo */ }
       setEvents(data.events || [])
       setByMonth(data.byMonth || [])
       setByKind(data.byKind || [])
@@ -250,6 +261,28 @@ export default function VoiceActorPage() {
       if (d.url) window.open(d.url, '_blank', 'noopener')
       else setError(d.error || 'Fant ikke treningsbildene')
     } catch { setError('Kunne ikke hente treningsbildene') }
+  }
+
+  const beOmOpptak = async () => {
+    setOpptakBusy(true); setError(null)
+    try {
+      const res = await authedFetchTilOpptak()
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Kunne ikke opprette opptaksøkt')
+      await refresh()
+      if (!d.epostSendt) setError(`Økta er opprettet, men e-posten gikk ikke. Send lenken selv: ${d.lenke}`)
+    } catch (e: any) { setError(e.message) } finally { setOpptakBusy(false) }
+  }
+
+  const authedFetchTilOpptak = async () => {
+    const { data: sess } = await getSupabase().auth.getSession()
+    const token = sess?.session?.access_token
+    if (!token) throw new Error('Ikke innlogget')
+    return fetch('/api/stemmeopptak/admin', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actorId }),
+    })
   }
 
   const toggleFaceWithdrawn = async () => {
@@ -492,6 +525,49 @@ export default function VoiceActorPage() {
                 className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                 {t('lic_open')}
               </Link>
+            </div>
+
+            {/* Opptaksløypa for proffklone (095). Står ved lisensene og
+                av-bryteren fordi det hører til FORVALTNINGEN av stemmen, ikke
+                til presentasjonen: det er her vi ber et menneske om å gjøre
+                noe, og her vi ser om hun har gjort det. */}
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-5 mb-8">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="font-medium text-gray-900 text-sm">
+                    {opptak?.oekt
+                      ? opptak.fremdrift?.ferdig ? 'Opptaket er fullført' : 'Opptak pågår'
+                      : 'Stemmeopptak for proffklone'}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5 max-w-xl">
+                    {opptak?.oekt
+                      ? `Lenken er sendt til ${opptak.oekt.epost || 'ukjent adresse'} ${new Date(opptak.oekt.opprettet).toLocaleDateString('nb-NO')}. Hun kan ta pauser og fortsette senere.`
+                      : 'Hun leser inn ca. 30 minutter selv, hjemmefra, i sju ulike toneleier. Variasjonen er det som gir klonen rekkevidde.'}
+                  </p>
+                </div>
+                <button onClick={beOmOpptak} disabled={opptakBusy}
+                  className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40">
+                  {opptakBusy ? 'Sender…' : opptak?.oekt ? 'Send lenken på nytt' : 'Be om opptak'}
+                </button>
+              </div>
+
+              {/* Fremdriften PER REGISTER, ikke som én teller — ellers ser en
+                  halvtime nøytral opplesning ut som et ferdig opptak. */}
+              {opptak?.oekt && opptak.fremdrift && (
+                <div className="mt-4 pt-3 border-t border-gray-200">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {opptak.fremdrift.per.map((r) => (
+                      <span key={r.register} className="text-xs" style={{ color: r.dekket ? 'var(--text-muted, #5E564A)' : 'var(--ember-deep)' }}>
+                        {r.register} {Math.round(r.sek / 60)}/{Math.round(r.maalSek / 60)}m
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    Samlet {Math.round(opptak.fremdrift.totaltSek / 60)} av {Math.round(opptak.fremdrift.maalSek / 60)} minutter.
+                    {' '}<a href={opptak.oekt.lenke} target="_blank" rel="noopener noreferrer" className="hover:underline">Åpne løypa hennes →</a>
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Av-bryteren på ansiktet (088). Står ved lisensene og ikke ved
