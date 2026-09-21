@@ -33,8 +33,7 @@ export default function ForgotPasswordPage() {
     return (
       <AuthShell title={t('checkEmail')}>
         <div style={{ fontFamily: 'var(--font-hanken), sans-serif' }}>
-          <div style={{ fontSize: 40, marginBottom: 6 }}>📬</div>
-          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6B6358', margin: '0 0 22px' }}>
+          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 22px' }}>
             {t('resetLinkSent')} <strong style={{ color: '#3A352C' }}>{email}</strong>
           </p>
           <AuthSwitch linkLabel={t('backToSignIn')} href="/login" />

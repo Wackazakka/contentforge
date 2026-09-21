@@ -5,12 +5,15 @@ import { useSearchParams } from 'next/navigation'
 import { signUp, getSupabase } from '@/lib/supabaseClient'
 import { useTranslations } from 'next-intl'
 import { AuthShell, AuthField, AuthSubmit, AuthBanner, AuthSwitch } from '@/components/AuthUI'
+import Link from 'next/link'
 import { useTenant } from '@/lib/tenantContext'
 import { isSimpleMode } from '@/lib/verticals'
 
 export default function RegisterPage() {
   const t = useTranslations('register')
   const tenant = useTenant()
+  // Kun pa tjenester med rettighetsforvaltning finnes det en «annen dor».
+  const erRettighetsforvaltning = tenant.twinledger_enabled !== false && tenant.slug === 'twinledger'
   // Enkel modus (4/9): ett passordfelt er nok — «bekreft passord» er et
   // hinder til for folk som saa vidt sender e-post.
   const enkel = isSimpleMode(tenant.vertical)
@@ -129,8 +132,7 @@ export default function RegisterPage() {
     return (
       <AuthShell title={t('alreadyRegisteredTitle')}>
         <div style={{ fontFamily: 'var(--font-hanken), sans-serif' }}>
-          <div style={{ fontSize: 40, marginBottom: 6 }}>👋</div>
-          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6B6358', margin: '0 0 22px' }}>
+          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 22px' }}>
             {t('alreadyRegisteredText', { email: registeredEmail })}
           </p>
           <AuthSwitch linkLabel={t('signIn')} href={loginHref} />
@@ -144,8 +146,7 @@ export default function RegisterPage() {
     return (
       <AuthShell title={t('checkEmailTitle')}>
         <div style={{ fontFamily: 'var(--font-hanken), sans-serif' }}>
-          <div style={{ fontSize: 40, marginBottom: 6 }}>📬</div>
-          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6B6358', margin: '0 0 22px' }}>
+          <p style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 22px' }}>
             {t('checkEmailText', { email: registeredEmail })}
           </p>
           <AuthSwitch linkLabel={t('backToSignIn')} href={loginHref} />
@@ -155,7 +156,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthShell title={t('title')} subtitle={t('subtitle')}>
+    // 🔑 SKUESPILLERE HAVNET FEIL HER. «Opprett konto» leser som veien inn
+    // for alle, men pa TwinLedger er dette KUNDENS dor — rettighetshaveren
+    // skal til /bli-stemme. Ingressen sier na hvilken tjeneste dette er, og
+    // linja under sender den andre halvparten dit hen skal.
+    <AuthShell title={t('title')} subtitle={erRettighetsforvaltning ? t('subtitle_rights') : t('subtitle')}>
       {error && <AuthBanner variant="error">{error}</AuthBanner>}
 
       <form onSubmit={handleSubmit}>
@@ -206,6 +211,13 @@ export default function RegisterPage() {
       </form>
 
       <AuthSwitch prompt={t('alreadyHaveAccount')} linkLabel={t('signIn')} href={loginHref} />
+      {erRettighetsforvaltning && (
+        <p style={{ fontFamily: 'var(--font-hanken), sans-serif', fontSize: 13, lineHeight: 1.55, color: 'var(--text-muted)', marginTop: 14, textAlign: 'center' }}>
+          {t.rich('actor_hint', {
+            a: (c) => <Link href="/bli-stemme" style={{ color: 'var(--ember-deep)' }}>{c}</Link>,
+          })}
+        </p>
+      )}
     </AuthShell>
   )
 }

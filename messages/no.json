@@ -208,7 +208,9 @@
     "errorUnexpected": "En uventet feil oppstod",
     "alreadyRegisteredTitle": "Du har allerede en konto",
     "alreadyRegisteredText": "{email} er allerede registrert hos oss. Logg inn med passordet ditt — eller tilbakestill det hvis du ikke husker det. Vi har ikke sendt noen ny e-post.",
-    "forgotPassword": "Tilbakestill passordet"
+    "forgotPassword": "Tilbakestill passordet",
+    "subtitle_rights": "Opprett konto for å bruke stemmer og ansikter i produksjonen din.",
+    "actor_hint": "Er du skuespiller eller vokalist? Da er det <a>her du melder deg</a> — ikke her."
   },
   "forgotPassword": {
     "title": "Tilbakestill passord",

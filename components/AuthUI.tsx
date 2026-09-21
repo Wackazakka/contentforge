@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import { CSSProperties, InputHTMLAttributes, ReactNode } from 'react'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
+import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
 
 /** Ember text-link style for "forgot password", mode switches, etc. */
 export const emberLink: CSSProperties = {
@@ -37,6 +39,11 @@ export function AuthShell({
   maxWidth?: number
 }) {
   const tenant = useTenant()
+  // ⚠️ TENANT-STYRT, IKKE GLOBALT. AuthUI deles av alle tenantene, og
+  // Daylight Studio-formen (radius, skygge, serif, ember-glød) er deres. Bare
+  // TwinLedger får den firkantede — samme grunn som at paletten ligger i
+  // tenant.colors og ikke i :root.
+  const firkantet = tenant.slug === 'twinledger'
   return (
     <div
       style={{
@@ -59,7 +66,7 @@ export function AuthShell({
         }}
       >
         <Link href="/" style={{ textDecoration: 'none' }}>
-          <CenterForgeLogo size={28} wordmarkSize={19} />
+          {firkantet ? <TwinLedgerLogo size={22} /> : <CenterForgeLogo size={28} wordmarkSize={19} />}
         </Link>
         {/* Innloggingen er den siste flaten som fortsatt viste bryteren etter
             at tenanten hadde skrudd den av (Lars 3/8) */}
@@ -74,21 +81,31 @@ export function AuthShell({
         }}
       >
         <div style={{ position: 'relative', width: '100%', maxWidth }}>
+          {/* Ember-gløden hører til Daylight Studio. TwinLedger-designet har
+              ingen glød og ingen skygge — hairline er hele dekoren. */}
+          {!firkantet && (
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute', inset: '-12% -8% 30% -8%',
+                background: 'radial-gradient(50% 50% at 50% 30%,color-mix(in srgb, var(--ember) 14%, transparent),transparent 70%)',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
           <div
-            aria-hidden="true"
             style={{
-              position: 'absolute', inset: '-12% -8% 30% -8%',
-              background: 'radial-gradient(50% 50% at 50% 30%,color-mix(in srgb, var(--ember) 14%, transparent),transparent 70%)',
-              pointerEvents: 'none',
-            }}
-          />
-          <div
-            style={{
-              position: 'relative', background: 'var(--paper-raised)', border: '1px solid var(--ds-border)',
-              borderRadius: 22, padding: '38px 34px', boxShadow: '0 40px 80px -45px color-mix(in srgb, var(--ink) 45%, transparent)',
+              position: 'relative', background: 'var(--paper-raised)',
+              border: `1px solid var(--ds-border${firkantet ? '-strong' : ''})`,
+              padding: '38px 34px',
+              // Samme skall for innlogging og registrering: min-høyde så de to
+              // ikke hopper i størrelse når man bytter mellom dem.
+              ...(firkantet
+                ? { borderRadius: 0, minHeight: 480, display: 'flex', flexDirection: 'column' }
+                : { borderRadius: 22, boxShadow: '0 40px 80px -45px color-mix(in srgb, var(--ink) 45%, transparent)' }),
             }}
           >
-            <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 34, lineHeight: 1.06, letterSpacing: '-0.01em', color: 'var(--ink)', margin: '0 0 8px' }}>{title}</h1>
+            <h1 style={{ fontFamily: firkantet ? ARCHIVO : SERIF, fontWeight: firkantet ? 800 : 400, fontSize: 34, lineHeight: 1.06, letterSpacing: firkantet ? '-0.035em' : '-0.01em', color: 'var(--ink)', margin: '0 0 8px' }}>{title}</h1>
             {subtitle ? (
               <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 24px' }}>{subtitle}</p>
             ) : (

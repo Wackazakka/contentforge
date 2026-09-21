@@ -14,9 +14,12 @@ import { produktnavn } from '@/lib/tenantNames'
 // partnerens lead). Interessevalget prependes i message-feltet, saa API og DB
 // er uendret.
 
+// 🔑 REKKEFØLGEN ER IKKE VILKÅRLIG (Claude Design 5E). Rettighetsforvaltning
+// står FØRST: det er det en besøkende fra TwinLedger kommer for. Sto
+// innholdsproduksjon øverst, leste sida som om det var hovedsaken.
 const INTERESSER = [
-  { id: 'produksjon' as const, label: 'Innholdsproduksjon', hint: 'Video, artikler og publisering under eget merke' },
   { id: 'rettigheter' as const, label: 'Stemme- og rettighetsforvaltning', hint: 'Forvalte stemmer og ansikter med hovedbok og oppgjør' },
+  { id: 'produksjon' as const, label: 'Innholdsproduksjon', hint: 'Video, artikler og publisering under eget merke' },
   { id: 'begge' as const, label: 'Begge deler', hint: 'Hele plattformen' },
 ]
 
@@ -68,56 +71,72 @@ export default function WhiteLabelPage() {
         </p>
 
         {sent ? (
-          <div className="p-5 rounded-xl bg-green-50 border border-green-200 text-green-800">
+          <div style={{ padding: 22, background: 'var(--paper-sunken)', border: '1px solid var(--ds-border-strong)', color: 'var(--ink)' }}>
             <p className="font-semibold mb-1">Takk for søknaden!</p>
             <p className="text-sm">Vi tar kontakt på e-posten dere oppga, vanligvis innen en virkedag.</p>
           </div>
         ) : (
-          <form onSubmit={submit} className="bg-white rounded-xl border border-gray-200 p-6">
+          <form onSubmit={submit} style={{ background: 'var(--paper-raised)', border: '1px solid var(--ds-border-strong)', padding: 26 }}>
             <label className="block text-sm font-medium text-gray-700 mb-1">Firma</label>
             <input value={company} onChange={(e) => setCompany(e.target.value)} required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
+              style={{ width: '100%', padding: '13px 14px', fontSize: 15, border: '1px solid var(--ds-border-strong)', background: 'var(--paper)', color: 'var(--ink)', marginBottom: 16, fontFamily: 'inherit' }} />
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Kontaktperson</label>
                 <input value={contactName} onChange={(e) => setContactName(e.target.value)} required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
+                  style={{ width: '100%', padding: '13px 14px', fontSize: 15, border: '1px solid var(--ds-border-strong)', background: 'var(--paper)', color: 'var(--ink)', marginBottom: 16, fontFamily: 'inherit' }} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Telefon (valgfritt)</label>
                 <input value={phone} onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
+                  style={{ width: '100%', padding: '13px 14px', fontSize: 15, border: '1px solid var(--ds-border-strong)', background: 'var(--paper)', color: 'var(--ink)', marginBottom: 16, fontFamily: 'inherit' }} />
               </div>
             </div>
 
             <label className="block text-sm font-medium text-gray-700 mb-1">E-post</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
+              style={{ width: '100%', padding: '13px 14px', fontSize: 15, border: '1px solid var(--ds-border-strong)', background: 'var(--paper)', color: 'var(--ink)', marginBottom: 16, fontFamily: 'inherit' }} />
 
+            {/* Valgbare FLATER, ikke tre radioknapper under et langt avsnitt:
+                valget er sidens viktigste input, og skal se ut som det. */}
             <label className="block text-sm font-medium text-gray-700 mb-2">Hva er dere interessert i?</label>
-            <div className="flex flex-col gap-2 mb-4">
-              {INTERESSER.map((o) => (
-                <label key={o.id} className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
-                  <input type="radio" name="interesse" checked={interest === o.id} onChange={() => setInterest(o.id)} className="mt-0.5" />
-                  <span><span className="font-medium">{o.label}</span><span className="block text-xs text-gray-400">{o.hint}</span></span>
-                </label>
-              ))}
+            <div style={{ display: 'grid', gap: 10, marginBottom: 18 }}>
+              {INTERESSER.map((o) => {
+                const paa = interest === o.id
+                return (
+                  <button key={o.id} type="button" onClick={() => setInterest(o.id)} aria-pressed={paa}
+                    style={{
+                      position: 'relative', textAlign: 'left', cursor: 'pointer',
+                      padding: '14px 44px 14px 16px', background: paa ? 'var(--paper-sunken)' : 'var(--paper-raised)',
+                      border: `1px solid ${paa ? 'var(--ink)' : 'var(--ds-border-strong)'}`,
+                    }}>
+                    <span style={{ display: 'block', fontFamily: 'var(--font-archivo), system-ui, sans-serif', fontWeight: 700, fontSize: 15.5, color: 'var(--ink)', marginBottom: 3 }}>{o.label}</span>
+                    <span style={{ display: 'block', fontSize: 13, lineHeight: 1.5, color: 'var(--text-muted)' }}>{o.hint}</span>
+                    <span aria-hidden="true" style={{
+                      position: 'absolute', top: 14, right: 14, width: 18, height: 18,
+                      border: `1px solid ${paa ? 'var(--ink)' : 'var(--ds-border-strong)'}`,
+                      background: paa ? 'var(--ink)' : 'transparent',
+                      color: 'var(--paper)', fontSize: 11, lineHeight: '17px', textAlign: 'center',
+                    }}>{paa ? '\u2713' : ''}</span>
+                  </button>
+                )
+              })}
             </div>
 
             <label className="block text-sm font-medium text-gray-700 mb-1">Hva slags kunder skal dere tilby dette til?</label>
             <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4}
               placeholder="F.eks. bransje, antall kunder, hva dere vil tilby dem …"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4" />
+              style={{ width: '100%', padding: '13px 14px', fontSize: 15, border: '1px solid var(--ds-border-strong)', background: 'var(--paper)', color: 'var(--ink)', marginBottom: 16, fontFamily: 'inherit' }} />
 
             {/* honeypot — skjult for mennesker */}
             <input value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off"
               style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true" />
 
-            {error && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
+            {error && <div style={{ marginBottom: 16, padding: '12px 14px', border: '1px solid var(--ember-tint-border)', background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)', fontSize: 14 }}>{error}</div>}
 
             <button type="submit" disabled={busy}
-              className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50 transition-opacity">
+              style={{ padding: '14px 26px', fontFamily: 'var(--font-archivo), system-ui, sans-serif', fontWeight: 700, fontSize: 15.5, background: 'var(--ember-deep)', color: 'var(--on-ember)', border: 'none', cursor: 'pointer' }}>
               {busy ? 'Sender …' : 'Send søknad'}
             </button>
           </form>
