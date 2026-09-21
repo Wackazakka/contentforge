@@ -52,6 +52,13 @@ const kr = (n: number) =>
  * ville vært feil vare: den styrer fordelingen av et LISENSHONORAR, mens dette
  * er bruksprisen per produksjon. To ulike penger.
  *
+ * ⚠️ «Du betaler» er kundeprisen GANGET MED KJEDEFAKTOREN (TwinLedger står på
+ * 1,5), mens satsen til rettighetshaveren ikke ganges — hen får sitt uansett
+ * hva leddene over legger på. Differansen rommer derfor både plattformmarginen
+ * og kjedepåslaget, og linja «Til TwinLedger» er bare sann så lenge TwinLedger
+ * er toppen av sin egen kjede. Legges det en partner mellom, går påslaget dit,
+ * og da må linja deles i to — eller panelet slås av for det leddet.
+ *
  * Bokføringens konvensjon: delene først, enkel strek, sum, dobbel strek.
  */
 function Kostnadspanel({ s }: { s: BankStemme }) {
