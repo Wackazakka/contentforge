@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { dobbeltstrek } from '@/components/TwinLedgerLogo'
 
 // Rettighetshaverne som EGEN FLATE over biblioteket (Claude Design 7D, 21.09.2026).
 //
@@ -26,12 +27,70 @@ export interface BankStemme {
   name: string
   voiceId: string
   pricePerUseNok: number
+  /**
+   * Hva rettighetshaveren tjener på bruken. `null` utenfor TwinLedger — se
+   * porten i /api/voice-actors: differansen mot kundeprisen er leddets margin,
+   * og den hører ikke hjemme hos en white-label-kjedes kunder.
+   */
+  actorRateNok?: number | null
   previewUrl: string | null
   /** null = ikke spurt (uten produkt finnes ingen kunde å spørre på vegne av). */
   licence: { licenceId: string | null; match: string } | null
 }
 
 const MONO = 'var(--font-cfmono), ui-monospace, monospace'
+
+const kr = (n: number) =>
+  n.toLocaleString('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/**
+ * Hva bruken koster, og hvem pengene går til.
+ *
+ * 🔑 TALLET ER IKKE ET ANSLAG. `actor_earnings` summerer nøyaktig den satsen
+ * som vises her, så linja «Til rettighetshaveren» er det hen faktisk får —
+ * ikke en prosent regnet ut på skjermen. En prosentsats hentet fra takstkortet
+ * ville vært feil vare: den styrer fordelingen av et LISENSHONORAR, mens dette
+ * er bruksprisen per produksjon. To ulike penger.
+ *
+ * Bokføringens konvensjon: delene først, enkel strek, sum, dobbel strek.
+ */
+function Kostnadspanel({ s }: { s: BankStemme }) {
+  if (s.actorRateNok == null) return null
+  const plattform = Math.round((s.pricePerUseNok - s.actorRateNok) * 100) / 100
+  const rad = {
+    display: 'flex', justifyContent: 'space-between', gap: 16,
+    padding: '7px 0', fontSize: 13.5,
+  } as const
+  const tall = { fontFamily: MONO, fontSize: 13, fontVariantNumeric: 'tabular-nums' } as const
+
+  return (
+    <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid var(--ds-border-strong, #D8D4CC)', background: 'var(--paper-raised)' }}>
+      <p style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)', margin: '0 0 6px' }}>
+        Per produksjon
+      </p>
+      <div style={rad}>
+        <span style={{ color: 'var(--ink)' }}>Til {s.name}</span>
+        <span style={tall}>{kr(s.actorRateNok)}</span>
+      </div>
+      <div style={{ ...rad, borderTop: '1px solid var(--ds-border-faint, #E8E4DC)', color: 'var(--text-muted, #6B6B6B)' }}>
+        <span>Til TwinLedger</span>
+        <span style={tall}>{kr(plattform)}</span>
+      </div>
+      <div style={{ ...rad, ...dobbeltstrek(), marginTop: 2, fontWeight: 700 }}>
+        <span>Du betaler</span>
+        <span style={{ ...tall, fontWeight: 700 }}>{kr(s.pricePerUseNok)}</span>
+      </div>
+      {/* Negativ plattformandel skjules ikke. Den betyr at satsen er satt
+          høyere enn kundeprisen, og det er en feil i takstkortet man skal se —
+          ikke et tall som skal rundes bort på skjermen. */}
+      {plattform < 0 && (
+        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ember-deep)' }}>
+          Satsen ligger over kundeprisen. Sjekk takstene på {s.name}.
+        </p>
+      )}
+    </div>
+  )
+}
 
 /** Kan denne stemmen produseres med? `null` (ikke spurt) teller som ja — se filtoppen. */
 export function harHjemmel(s: BankStemme): boolean {
@@ -133,6 +192,10 @@ export default function LisensertStemme({
           </Link>
         </div>
       )}
+
+      {/* Står også når produksjonen er stengt: det er nettopp da man skal
+          kunne se hva lisensen ville koste per bruk. */}
+      {valgtStemme && <Kostnadspanel s={valgtStemme} />}
     </div>
   )
 }

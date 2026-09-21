@@ -56,15 +56,32 @@ export async function GET(request: Request) {
     }
 
     const pf = Number(tenant.price_multiplier) || 1
+
+    // ⚠️ SKUESPILLERENS SATS SLIPPES KUN UT PÅ TWINLEDGER, OG PORTEN STÅR HER
+    // PÅ SERVEREN — ikke i klienten. Differansen mellom kundepris og sats ER
+    // leddets margin. Sendes den til en white-label-kjede, ser Isabels og
+    // IndigoBooms kunder partnerens påslag i et nettverkskall. På TwinLedger er
+    // marginen vår egen, og fordelingen er allerede publisert på /pricing —
+    // der er åpenheten selve varen.
+    //
+    // Satsen ganges IKKE med kjedefaktoren: rettighetshaveren får sitt uansett
+    // hva leddene over legger på. `actor_earnings` summerer nøyaktig denne
+    // kolonnen, så tallet er det hen faktisk tjener — ikke et anslag.
+    const viserSats = tenant.slug === 'twinledger'
+
     return NextResponse.json({
-      voices: actors.map((a) => ({
-        id: a.id,
-        name: a.name,
-        voiceId: a.elevenlabs_voice_id,
-        pricePerUseNok: Math.round(ratesForKind(a, kind).price * pf * 100) / 100,
-        previewUrl: a.preview_url,
-        licence: hjemler ? hjemler[a.id] ?? { licenceId: null, match: 'none' } : null,
-      })),
+      voices: actors.map((a) => {
+        const { rate, price } = ratesForKind(a, kind)
+        return {
+          id: a.id,
+          name: a.name,
+          voiceId: a.elevenlabs_voice_id,
+          pricePerUseNok: Math.round(price * pf * 100) / 100,
+          actorRateNok: viserSats ? Math.round(rate * 100) / 100 : null,
+          previewUrl: a.preview_url,
+          licence: hjemler ? hjemler[a.id] ?? { licenceId: null, match: 'none' } : null,
+        }
+      }),
     })
   } catch (err: any) {
     return NextResponse.json({ voices: [], error: err.message })
