@@ -17,7 +17,7 @@ const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
  * karakterer som ett av flere bruksområder. Sammenlikningen er altså ikke
  * «gammel mot ny», og den må måles før den brukes som standard.
  */
-const TRENERE = {
+export const TRENERE = {
   portrait: {
     endepunkt: 'fal-ai/flux-lora-portrait-trainer',
     steps: 1500,
@@ -31,7 +31,7 @@ const TRENERE = {
     raakostNok: 96,
   },
 } as const
-type TrenerId = keyof typeof TRENERE
+export type TrenerId = keyof typeof TRENERE
 const STANDARD_TRENER: TrenerId = 'portrait'
 
 // Start trening av egen karakter: zip med bilder (R2-URL) → fal flux-lora-portrait-trainer

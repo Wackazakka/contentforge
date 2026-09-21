@@ -13,6 +13,8 @@ interface UserCharacter {
   created_at: string
   // Maaleinstrumentet (093): hvilken trener som laget modellen.
   trainer: string | null
+  // Settet den ble laget fra (094). Uten den kan den ikke trenes paa nytt.
+  training_set_url: string | null
 }
 
 export default function CharactersPage() {
@@ -50,6 +52,28 @@ export default function CharactersPage() {
     const iv = setInterval(refresh, 20000) // trening tar ~6 min — poll til «ready»
     return () => clearInterval(iv)
   }, [])
+
+  // Tren paa nytt fra det LAGREDE settet — ingen nedlasting, ingen ny zip.
+  // Lager en NY rad, aldri overskriving: en sammenlikning trenger begge, og
+  // en overskriving ville drept en modell rettighetshaveren har godkjent.
+  const retrain = async (c: UserCharacter, medTrener: 'portrait' | 'flux2') => {
+    setError(null)
+    setBusy('Starter trening…')
+    try {
+      const res = await fetch('/api/characters/retrain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify({ characterId: c.id, trainer: medTrener }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Retrening feilet')
+      await refresh()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setBusy(null)
+    }
+  }
 
   const train = async () => {
     setError(null)
@@ -218,6 +242,21 @@ export default function CharactersPage() {
                     {c.trainer && <> · {c.trainer.includes('flux-2') ? 'Flux 2' : 'Flux 1 portrett'}</>}
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                {/* Retrening er admin-styrt: den bruker vaar fal-noekkel og kan
+                    koste 96 kr. Vises bare naar settet faktisk er sporet. */}
+                {role.admin && c.status === 'ready' && c.training_set_url && (
+                  <>
+                    <button onClick={() => retrain(c, 'portrait')} disabled={!!busy}
+                      className="text-xs px-2.5 py-1 rounded-lg border border-gray-300 text-gray-600 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40">
+                      Tren på nytt · Flux 1
+                    </button>
+                    <button onClick={() => retrain(c, 'flux2')} disabled={!!busy}
+                      className="text-xs px-2.5 py-1 rounded-lg border border-gray-300 text-gray-600 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40">
+                      Flux 2 · ~96 kr
+                    </button>
+                  </>
+                )}
                 <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                   c.status === 'ready' ? 'bg-green-100 text-green-800'
                   : c.status === 'training' ? 'bg-amber-100 text-amber-800'
@@ -225,6 +264,7 @@ export default function CharactersPage() {
                 }`}>
                   {c.status === 'ready' ? '✓ Klar' : c.status === 'training' ? '⏳ Trener…' : '✗ Feilet'}
                 </span>
+                </div>
               </div>
             ))}
           </div>
