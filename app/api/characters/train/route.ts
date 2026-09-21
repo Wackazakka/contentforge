@@ -24,6 +24,12 @@ export async function POST(request: Request) {
     // ⚠️ AVVISES HER, IKKE BARE I SKJEMAET. Ruta er et offentlig endepunkt —
     // en klient som ikke sender feltet skal ikke få trent, uansett hvilket
     // grensesnitt den kom fra.
+    //
+    // Porten står FØR innloggingssjekken, og det er med vilje: da kan den
+    // etterprøves utenfra uten en gyldig konto, og «virker samtykkeporten?»
+    // blir et spørsmål man kan besvare i stedet for å stole på. Ingenting
+    // lekker — at feltet kreves står allerede i klientbunten. Flyttes den
+    // under auth, mister den den egenskapen.
     const LOVLIGE = ['self', 'other_consented', 'not_a_person'] as const
     if (!LOVLIGE.includes(consentSubject)) {
       return NextResponse.json({
