@@ -96,18 +96,28 @@ export async function generateMetadata(): Promise<Metadata> {
   // lenken deles. De var HARDKODET paa norsk for alle white-labels — en
   // engelsk tjeneste som Isabel's VideoMaker fikk «AI-drevet
   // innholdsproduksjon» i fanen (Lars 3/8). Foelger naa tenantens spraak.
-  const paaEngelsk = (tenant.default_locale || 'no') === 'en'
+  // 🔑 SPRAAKET ER BESOEKENDES VALG, IKKE TENANTENS STANDARD. Her sto
+  // `tenant.default_locale` — altsaa endret spraakvelgeren hele sida, men
+  // IKKE fanen, ikke soekeresultatet og ikke det som stod i et delt lenkekort.
+  // getLocale() leser cookien foerst og faller tilbake paa default_locale, saa
+  // den daekker begge tilfellene.
+  const locale = await getLocale()
+  const paaEngelsk = locale === 'en'
   // Fanen navngir TJENESTEN, ikke selskapet (IndigoBoom driver PromoMaker).
   // Er de samme navnet, gir produktnavn() selskapsnavnet tilbake.
   const produkt = produktnavn(tenant)
+  // Tenantens egen tekst PAA DETTE SPRAAKET (086). De enspraaklige kolonnene
+  // blir staaende som fallback for spraak ingen har fylt ut, saa en tenant
+  // aldri mister teksten sin i overgangen.
+  const egen = tenant.meta_i18n?.[locale]
   // Malen under antar at hver white-label driver INNHOLDSPRODUKSJON. Det gjoer
   // de ikke alle — VoiceBank selger rettighetsforvaltning, og fikk «AI-drevet
   // innholdsproduksjon» i fanen og i hver delt lenke. Tenanter kan derfor
   // overstyre begge feltene; staar de tomme, gjelder malen som foer.
-  const tittel = tenant.meta_title?.trim() || (paaEngelsk
+  const tittel = egen?.title?.trim() || tenant.meta_title?.trim() || (paaEngelsk
     ? `${produkt} — AI-powered content production`
     : `${produkt} — AI-drevet innholdsproduksjon`)
-  const beskrivelse = tenant.meta_description?.trim() || (paaEngelsk
+  const beskrivelse = egen?.description?.trim() || tenant.meta_description?.trim() || (paaEngelsk
     ? `Create professional videos and articles in seconds with ${produkt}.`
     : `Lag profesjonelle videoer og artikler på sekunder med ${produkt}.`)
   // INDEKSERING (085). Standard AV: en white-label skal ikke konkurrere med
