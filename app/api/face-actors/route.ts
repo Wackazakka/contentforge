@@ -25,6 +25,25 @@ export async function GET(request: Request) {
     }
     if (!loggedIn) actors = actors.filter((a) => (a as { library_enabled?: boolean }).library_enabled === true)
 
+    // Tilbaketrukne ansikter ut av lista. Et ansikt som står valgbart og
+    // feiler ved trykk er verre enn et som ikke står der: kunden får en feil
+    // hen ikke kunne forutse, og rettighetshaveren står i hylla som om hen var
+    // tilgjengelig etter å ha sagt nei.
+    //
+    // ⚠️ FILTRERES HER, IKKE I getAvailableFaceActors. Den funksjonen deles med
+    // logVoiceUsage/logFaceUsage, som slår opp skuespilleren for å FØRE en bruk
+    // som allerede har skjedd. Filtrerte vi der, ville en bruk fra før
+    // tilbaketrekkingen miste royalty-raden sin — og tilbaketrekking skal ikke
+    // virke bakover.
+    const { trukketTilbake } = await import('@/lib/faceWithdrawal')
+    const stengte = await trukketTilbake(
+      actors.map((a) => (a as { face_character_id?: string | null }).face_character_id)
+    )
+    actors = actors.filter((a) => {
+      const cid = (a as { face_character_id?: string | null }).face_character_id
+      return !cid || !stengte.has(cid)
+    })
+
     const pf = Number(tenant.price_multiplier) || 1
     return NextResponse.json({
       faces: actors.map((a) => ({

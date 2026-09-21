@@ -171,12 +171,20 @@ export async function getPublicActors(tenant: Tenant): Promise<PublicActor[]> {
     const chain = tenant.id === 'root' ? null : await kjedeOpp(tenant.id)
     const egenDor = erEgenDor(tenant)
     const rader = ((data || []) as Rad[]).filter((a) => synligHer(a, chain, egenDor))
-    const [navn, modeller] = await Promise.all([
+    const { trukketTilbake } = await import('@/lib/faceWithdrawal')
+    const [navn, modeller, stengte] = await Promise.all([
       navnFor(rader.map((a) => a.owner_tenant_id)),
       modellAlderFor(rader.map((a) => a.id)),
+      trukketTilbake(rader.map((a) => a.face_character_id)),
     ])
     return rader
-      .map((a) => tilPublic(a, navn, tenant.app_name, modeller))
+      // Har hen trukket ansiktet tilbake, skal katalogen ikke love et ansikt.
+      // Stemmen kan stå — det er to ulike rettigheter, og hen kan ha sagt nei
+      // til den ene og ja til den andre.
+      .map((a) => tilPublic(
+        a.face_character_id && stengte.has(a.face_character_id) ? { ...a, face_character_id: null } : a,
+        navn, tenant.app_name, modeller
+      ))
       // Eksempler sist: så snart én ekte rettighetshaver er publisert, skal
       // hen stå først i hylla — uten at noen må huske å rydde.
       .sort((a, b) => Number(a.isDemo) - Number(b.isDemo))
@@ -192,11 +200,15 @@ export async function getPublicActor(tenant: Tenant, actorId: string): Promise<P
     if (!a) return null
     const chain = tenant.id === 'root' ? null : await kjedeOpp(tenant.id)
     if (!synligHer(a, chain, erEgenDor(tenant))) return null
-    const [navn, modeller] = await Promise.all([
+    const { trukketTilbake } = await import('@/lib/faceWithdrawal')
+    const [navn, modeller, stengte] = await Promise.all([
       navnFor([a.owner_tenant_id]),
       modellAlderFor([a.id]),
+      trukketTilbake([a.face_character_id]),
     ])
-    return tilPublic(a, navn, tenant.app_name, modeller)
+    // Samme regel som i galleriet: trukket ansikt skal ikke loves på kortet.
+    const rad = a.face_character_id && stengte.has(a.face_character_id) ? { ...a, face_character_id: null } : a
+    return tilPublic(rad, navn, tenant.app_name, modeller)
   } catch {
     return null
   }

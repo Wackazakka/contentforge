@@ -287,13 +287,15 @@ export async function flyttTake(takeId: string): Promise<void> {
 
   try {
     if (t.stage === 'still' && !t.request_id) {
-      const { data: ch } = await supabase.from('user_characters')
-        .select('trigger_word, lora_url, status').eq('id', actor!.face_character_id).maybeSingle()
-      if (!ch?.lora_url || ch.status !== 'ready') throw new Error(`${actor!.name} har ingen ferdig ansiktsmodell`)
-      const trig = ch.trigger_word
+      // Porten: kaster om rettighetshaveren har trukket ansiktet tilbake.
+      // Se lib/faceWithdrawal — ett oppslag for alle genereringsveiene.
+      const { hentAnsiktForGenerering } = await import('@/lib/faceWithdrawal')
+      if (!actor!.face_character_id) throw new Error(`${actor!.name} har ingen ansiktsmodell`)
+      const ch = await hentAnsiktForGenerering(actor!.face_character_id)
+      const trig = ch.triggerWord
       const id = await falSubmit(FLUX, {
         prompt: `${trig}. Use the trained ${trig} LoRA with maximum identity fidelity. ${trig}, natural appearance. Scene: ${a!.scene_prompt}. Photorealistic, cinematic. No text, letters or typography in the image.`,
-        loras: [{ path: ch.lora_url, scale: 1.0 }],
+        loras: [{ path: ch.loraUrl, scale: 1.0 }],
         image_size: { width: 1344, height: 768 }, num_images: 1, output_format: 'png',
       })
       await sett({ request_id: id })

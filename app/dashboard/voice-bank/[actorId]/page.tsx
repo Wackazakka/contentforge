@@ -58,6 +58,9 @@ export default function VoiceActorPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actor, setActor] = useState<ActorDetail | null>(null)
+  // Av-bryteren paa ansiktet (088). Ligger paa user_characters, ikke paa
+  // skuespillerraden, og hentes derfor som eget felt. Se lib/faceWithdrawal.
+  const [faceWithdrawnAt, setFaceWithdrawnAt] = useState<string | null>(null)
   const [events, setEvents] = useState<Array<{ id: number; actor_rate_nok: number; customer_price_nok: number; meta: { kind?: string }; created_at: string }>>([])
   const [byMonth, setByMonth] = useState<Agg[]>([])
   const [byKind, setByKind] = useState<Agg[]>([])
@@ -114,6 +117,7 @@ export default function VoiceActorPage() {
       setError(null)
       setOrigin(window.location.origin)
       setActor(data.actor)
+      setFaceWithdrawnAt(data.faceWithdrawnAt ?? null)
       setEvents(data.events || [])
       setByMonth(data.byMonth || [])
       setByKind(data.byKind || [])
@@ -226,6 +230,14 @@ export default function VoiceActorPage() {
     if (!actor) return
     try {
       const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, isDemo: !actor.is_demo }) })
+      if (res.ok) await refresh()
+    } catch { /* behold visning */ }
+  }
+
+  const toggleFaceWithdrawn = async () => {
+    if (!actor) return
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, faceWithdrawn: !faceWithdrawnAt }) })
       if (res.ok) await refresh()
     } catch { /* behold visning */ }
   }
@@ -463,6 +475,42 @@ export default function VoiceActorPage() {
                 {t('lic_open')}
               </Link>
             </div>
+
+            {/* Av-bryteren på ansiktet (088). Står ved lisensene og ikke ved
+                presentasjonen: dette er en RETTIGHET som stenges, ikke en side
+                som skjules. Vises bare når raden faktisk har et ansikt — for en
+                ren stemmerad er den meningsløs.
+
+                🔑 HVORFOR DEN FINNES. Stemmen har en teknisk nødbryter:
+                proff-klonen ligger på skuespillerens egen ElevenLabs-konto, og
+                slår hen delingen av, stopper bruken uten at vi gjør noe.
+                Ansiktet er en LoRA-fil vi holder hos fal — der var «du kan
+                trekke det tilbake» et løfte, ikke en mekanisme. Denne knappen
+                er mekanismen. */}
+            {actor.face_character_id && (
+              <div
+                className="rounded-lg p-5 mb-8 flex items-center justify-between gap-4 flex-wrap"
+                style={{
+                  background: faceWithdrawnAt ? 'var(--ember-tint-bg)' : 'var(--paper-raised)',
+                  border: `${faceWithdrawnAt ? 2 : 1}px solid ${faceWithdrawnAt ? 'var(--ember-deep)' : 'var(--ds-border-strong, #D8CDB8)'}`,
+                }}
+              >
+                <div>
+                  <div className="font-medium text-gray-900 text-sm">
+                    {faceWithdrawnAt ? t('face_withdrawn_yes') : t('face_withdrawn_no')}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5 max-w-xl">
+                    {faceWithdrawnAt
+                      ? t('face_withdrawn_note_on', { date: new Date(faceWithdrawnAt).toLocaleDateString('nb-NO') })
+                      : t('face_withdrawn_note_off')}
+                  </p>
+                </div>
+                <button onClick={toggleFaceWithdrawn}
+                  className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                  {faceWithdrawnAt ? t('face_withdrawn_restore') : t('face_withdrawn_do')}
+                </button>
+              </div>
+            )}
 
             {/* Presentasjonsside */}
             <h2 className="font-semibold text-gray-900 mb-3">{t('pub_h2')}</h2>

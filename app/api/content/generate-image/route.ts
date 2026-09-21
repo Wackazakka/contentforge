@@ -147,6 +147,11 @@ async function resolveCharacter(characterId: string) {
   }
   const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
   const { data } = await supabase.from('user_characters').select('*').eq('id', characterId).single()
+  // ⚠️ TILBAKETRUKKET ANSIKT STOPPER HER, FØR tilgangssjekken under. Den
+  // sjekken spør «har denne tenanten lov til å bruke ansiktet», og svaret kan
+  // være ja samtidig som rettighetshaveren har sagt nei. Hens nei veier
+  // tyngst. Se lib/faceWithdrawal.
+  if (data?.withdrawn_at) return null
   if (data && data.status === 'ready' && data.lora_url) {
     // Sikring (2026-07-29): karakteren må være tilgjengelig for HOST-tenanten —
     // enten eid i egen kjede, eller ansiktet på en tilgjengelig bankrad.

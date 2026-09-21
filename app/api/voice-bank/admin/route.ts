@@ -118,9 +118,20 @@ export async function GET(request: Request) {
         return Array.from(m.entries()).map(([k, v]) => ({ key: k, ...v }))
       }
       const fees = await getFees(tenant.id)
+      // Tilstanden på av-bryteren (088). Ligger på user_characters, så den må
+      // hentes ved siden av — adminen skal kunne se at ansiktet er stengt uten
+      // å gå til databasen.
+      let faceWithdrawnAt: string | null = null
+      const fcid = (actor as { face_character_id?: string | null }).face_character_id
+      if (fcid) {
+        const { data: ch } = await supabase
+          .from('user_characters').select('withdrawn_at').eq('id', fcid).maybeSingle()
+        faceWithdrawnAt = (ch as { withdrawn_at?: string | null } | null)?.withdrawn_at ?? null
+      }
       return NextResponse.json({
         tenant: { id: tenant.id, name: tenant.app_name },
         actor,
+        faceWithdrawnAt,
         events: events.slice(0, 200),
         byMonth: agg((e) => String(e.created_at).slice(0, 7)).sort((a, b) => b.key.localeCompare(a.key)),
         byKind: agg((e) => e.meta?.kind || 'ukjent'),
@@ -290,6 +301,22 @@ export async function PATCH(request: Request) {
 
     const actorId = body.actorId
     if (!actorId) return NextResponse.json({ error: 'Mangler actorId' }, { status: 400 })
+
+    // Av-bryteren på ansiktet (088). Skrives på user_characters, ikke på
+    // skuespillerraden — se lib/faceWithdrawal for hvorfor porten må ligge på
+    // selve artefakten. Håndteres FØR resten: den er sin egen handling, og
+    // skal virke også når ingen andre felter sendes.
+    if (typeof body.faceWithdrawn === 'boolean') {
+      const { data: rad } = await admin()
+        .from('voice_actors').select('face_character_id').eq('id', actorId).maybeSingle()
+      const fcid = (rad as { face_character_id?: string | null } | null)?.face_character_id
+      if (!fcid) return NextResponse.json({ error: 'Skuespilleren har ingen ansiktsmodell' }, { status: 400 })
+      const { error: wErr } = await admin()
+        .from('user_characters')
+        .update({ withdrawn_at: body.faceWithdrawn ? new Date().toISOString() : null })
+        .eq('id', fcid)
+      if (wErr) return NextResponse.json({ error: wErr.message }, { status: 500 })
+    }
 
     const patch: Record<string, unknown> = {}
     if (typeof body.isActive === 'boolean') patch.is_active = body.isActive

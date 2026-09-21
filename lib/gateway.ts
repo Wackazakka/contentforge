@@ -93,9 +93,9 @@ export async function generateFaceImage(faceCharacterId: string, prompt: string,
   const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
   if (!FAL_KEY) throw new Error('CONTENTFORGE_FAL_KEY mangler')
 
-  const { data: ch } = await admin()
-    .from('user_characters').select('name, trigger_word, lora_url, status').eq('id', faceCharacterId).single()
-  if (!ch || ch.status !== 'ready' || !ch.lora_url) throw new Error('Ansiktet er ikke klart (LoRA mangler)')
+  // Porten: kaster AnsiktTrukketTilbake om retten er stengt. Se lib/faceWithdrawal.
+  const { hentAnsiktForGenerering } = await import('@/lib/faceWithdrawal')
+  const ch = await hentAnsiktForGenerering(faceCharacterId)
 
   const SIZE_MAP: Record<string, { width: number; height: number }> = {
     '1024x1024': { width: 1024, height: 1024 },
@@ -104,15 +104,15 @@ export async function generateFaceImage(faceCharacterId: string, prompt: string,
   }
   const image_size = SIZE_MAP[imageSize] || SIZE_MAP['1024x1536']
   const fullPrompt =
-    ch.trigger_word + '. Use the trained ' + ch.trigger_word + ' LoRA with maximum identity fidelity. ' +
-    ch.trigger_word + ', natural appearance, natural relaxed posture. Scene: ' + prompt +
+    ch.triggerWord + '. Use the trained ' + ch.triggerWord + ' LoRA with maximum identity fidelity. ' +
+    ch.triggerWord + ', natural appearance, natural relaxed posture. Scene: ' + prompt +
     '. Photorealistic, professional photography, cinematic lighting. No text, letters or typography in the image.'
 
   const auth = { Authorization: 'Key ' + FAL_KEY }
   const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-lora', {
     method: 'POST',
     headers: { ...auth, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: fullPrompt, loras: [{ path: ch.lora_url, scale: 1.0 }], image_size, num_images: 1, output_format: 'png' }),
+    body: JSON.stringify({ prompt: fullPrompt, loras: [{ path: ch.loraUrl, scale: 1.0 }], image_size, num_images: 1, output_format: 'png' }),
   })
   const submit = await submitRes.json().catch(() => ({}))
   if (!submitRes.ok || !submit.request_id) throw new Error('fal submit feilet: ' + JSON.stringify(submit).slice(0, 200))
