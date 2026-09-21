@@ -29,7 +29,7 @@ import type { Kandidat } from '@/lib/castingAttributes'
 // Flaten poller selv. Ingen forespørsel venter på en render: hver poll skyver
 // hvert take ett steg videre (se lib/auditions.ts).
 
-interface Read { id: string; take_id: string; audio_url: string | null; direction: string | null; is_chosen: boolean }
+interface Read { id: string; take_id: string; audio_url: string | null; direction: string | null; is_chosen: boolean; model: string | null; tag: string | null }
 interface Take { id: string; actor_id: string; stage: string; still_url: string | null; video_url: string | null; feil: string | null; cost_nok: number | null; reads: Read[] }
 
 // Bare verdiene ligger i koden; etikettene hentes per språk. Verdiene er
@@ -432,6 +432,17 @@ export default function AuditionPage() {
                             }}>
                             {r.is_chosen ? t('chosen') : t('choose')}
                           </button>
+                          {/* Regien kan ha blitt lest av ulike modeller — v3 tar
+                              regi som en tagg, turbo kan det ikke. Uten denne
+                              linja later to lesninger av SAMME regi ulikt uten
+                              at noen kan se hvorfor, og da er ikke Audition
+                              lenger en sammenlikning. Vises bare når regien
+                              faktisk fikk en tagg; ellers er den støy. */}
+                          {r.tag && (
+                            <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+                              {r.tag}
+                            </span>
+                          )}
                         </div>
                       )
                     })}

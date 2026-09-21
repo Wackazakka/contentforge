@@ -40,14 +40,57 @@ export const AUDITION_READ_NOK = 2
 
 export const honorarFor = (kundepris: number) => kr((kundepris * AUDITION_ACTOR_PCT) / 100)
 
-/** Regi → stemmeinnstillinger. Husets EMOTION_PRESETS. */
-export const REGI: Record<string, { stability: number; style: number }> = {
+/**
+ * Regi → stemmeinnstillinger, og for de sterke regiene en LYDTAGG.
+ *
+ * 🔑 TALLENE ALENE ER IKKE REGI (Lars 21.09). `stability` lav gir mer
+ * VARIASJON mellom lesninger, ikke mer intensitet — og `style` honoreres
+ * dårlig eller ikke i det hele tatt av turbo-modellen, som er en
+ * lavlatensmodell. Resultatet var at «Dramatisk» og «Nøytral» låt like: to
+ * tall som ikke kan be om et rop.
+ *
+ * Taggen er v3-modellens mekanisme for nettopp dette — den står i TEKSTEN,
+ * ikke i innstillingene.
+ *
+ * ⚠️ TAGGEN MÅ ALDRI NÅ TURBO. Sendes «[shouting]» til en modell som ikke
+ * kjenner tagger, LESER den ordet høyt. Derfor legges taggen på kun i
+ * v3-forsøket, og faller vi tilbake, faller teksten tilbake med.
+ */
+export const REGI: Record<string, { stability: number; style: number; tag?: string }> = {
   noytral: { stability: 0.5, style: 0.0 },
   varm: { stability: 0.45, style: 0.4 },
-  entusiastisk: { stability: 0.3, style: 0.75 },
+  entusiastisk: { stability: 0.3, style: 0.75, tag: 'excited' },
   rolig: { stability: 0.8, style: 0.0 },
-  trist: { stability: 0.7, style: 0.2 },
-  dramatisk: { stability: 0.25, style: 0.85 },
+  trist: { stability: 0.7, style: 0.2, tag: 'sad' },
+  dramatisk: { stability: 0.25, style: 0.85, tag: 'shouting, desperate' },
+}
+
+const MODELL_V3 = 'eleven_v3'
+const MODELL_TURBO = 'eleven_turbo_v2_5'
+
+/**
+ * Forsøkene, i rekkefølge, for én lesning.
+ *
+ * Vi VET ikke hva kontoen støtter — nøkkelen ligger bare i Netlify, så det lot
+ * seg ikke slå opp da dette ble skrevet. I stedet for å gjette, prøver vi det
+ * beste først og faller nedover. Hvilket ledd som lyktes lagres på raden, så
+ * første ekte audition SVARER på spørsmålet i stedet for at vi antar.
+ *
+ * Leddene:
+ *   1. v3 med tagg og språkkode — det vi håper på.
+ *   2. v3 med tagg uten språkkode — `language_code` er dokumentert for
+ *      turbo/flash; avviser v3 den, skal ikke hele regien ryke med.
+ *   3. turbo uten tagg — dagens oppførsel. Flat, men den virker, og en
+ *      regissør midt i en audition skal få lyd og ikke en feilmelding.
+ */
+function forsoek(st: { stability: number; style: number; tag?: string }) {
+  const v3 = st.tag
+    ? [
+        { model: MODELL_V3, tag: st.tag, lang: true },
+        { model: MODELL_V3, tag: st.tag, lang: false },
+      ]
+    : []
+  return [...v3, { model: MODELL_TURBO, tag: null as string | null, lang: true }]
 }
 
 const falAuth = () => ({ Authorization: 'Key ' + (process.env.CONTENTFORGE_FAL_KEY || '') })
@@ -141,21 +184,50 @@ export async function lagLesning(takeId: string, regi?: string | null) {
 
   const valgt = regi || a!.direction || 'noytral'
   const st = REGI[valgt] || REGI.noytral
-  const tts = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actor.elevenlabs_voice_id}`, {
-    method: 'POST',
-    headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY || '', 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      text: a!.line, model_id: 'eleven_turbo_v2_5', language_code: 'no',
-      apply_text_normalization: 'off', voice_settings: { ...st, similarity_boost: 0.75 },
-    }),
-  })
-  if (!tts.ok) throw new Error(`Stemmen feilet (${tts.status})`)
-  const lyd = Buffer.from(await tts.arrayBuffer())
+
+  let lyd: Buffer | null = null
+  let brukt: { model: string; tag: string | null } | null = null
+  const feil: string[] = []
+
+  for (const f of forsoek(st)) {
+    // Taggen står i teksten, foran replikken — det er v3-modellens form.
+    const tekst = f.tag ? `[${f.tag}] ${a!.line}` : a!.line
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actor.elevenlabs_voice_id}`, {
+      method: 'POST',
+      headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY || '', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: tekst,
+        model_id: f.model,
+        ...(f.lang ? { language_code: 'no' } : {}),
+        apply_text_normalization: 'off',
+        voice_settings: { stability: st.stability, style: st.style, similarity_boost: 0.75 },
+      }),
+    })
+    if (res.ok) {
+      lyd = Buffer.from(await res.arrayBuffer())
+      brukt = { model: f.model, tag: f.tag }
+      break
+    }
+    // Grunnen tas vare på: feiler ALLE ledd, er det denne teksten som forteller
+    // hvorfor — og «Stemmen feilet (422)» alene har aldri hjulpet noen.
+    feil.push(`${f.model}${f.lang ? '' : ' uten språkkode'}: ${res.status} ${(await res.text()).slice(0, 160)}`)
+  }
+
+  if (!lyd || !brukt) throw new Error(`Stemmen feilet — ${feil.join(' | ')}`)
+  if (brukt.model !== MODELL_TURBO || st.tag) {
+    // Logges alltid når regien VILLE hatt en tagg, også når den lyktes: det er
+    // slik vi får vite hva kontoen faktisk støtter.
+    console.log(`[audition] regi=${valgt} modell=${brukt.model} tagg=${brukt.tag ?? '—'}${feil.length ? ` (falt fra: ${feil.join(' | ')})` : ''}`)
+  }
+
   const url = await tilR2(lyd, `auditions/${t.audition_id}/${takeId}-${Date.now()}.mp3`, 'audio/mpeg')
 
   const { data: read } = await supabase.from('audition_reads').insert({
     take_id: takeId, audio_url: url, direction: valgt,
     stability: st.stability, style: st.style, chars: String(a!.line).length,
+    // Hvilken modell som faktisk leste. Uten denne kan to lesninger av samme
+    // regi låte helt ulikt uten at noen kan se hvorfor.
+    model: brukt.model, tag: brukt.tag,
   }).select('id').single()
 
   // En lesning er utforskning FØR en avtale finnes — samme kategori som
@@ -281,7 +353,7 @@ export async function pollAudition(auditionId: string) {
   const ids = (etter || []).map((t) => t.id as string)
   const { data: reads } = ids.length
     ? await supabase.from('audition_reads')
-        .select('id, take_id, audio_url, direction, is_chosen, created_at')
+        .select('id, take_id, audio_url, direction, is_chosen, created_at, model, tag')
         .in('take_id', ids).order('created_at')
     : { data: [] as Array<Record<string, unknown>> }
 
