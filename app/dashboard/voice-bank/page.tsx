@@ -80,6 +80,10 @@ export default function VoiceBankAdminPage() {
   const [subsCount, setSubsCount] = useState(0)
   const [subsNok, setSubsNok] = useState(0)
   const [applications, setApplications] = useState<VoiceApplication[]>([])
+  // Lisensforespoersler fra kunder (090). Staar ved siden av soeknadskoeen
+  // fordi begge er noen som venter paa svar fra OSS -- og en forespoersel
+  // ingen ser, er en kunde som tror hen ble oversett.
+  const [lisensKo, setLisensKo] = useState<Array<{ id: string; actor_id: string; asset_type: string; media_class: string; territory: string; term_months: number; exclusivity: string; note: string | null; requested_email: string | null; created_at: string }>>([])
   const [acceptApps, setAcceptApps] = useState(false)
   const [appsMigrated, setAppsMigrated] = useState(true)
   const [appBusy, setAppBusy] = useState<string | null>(null)
@@ -142,6 +146,11 @@ export default function VoiceBankAdminPage() {
           setAppsMigrated(adata.migrated !== false)
         }
       } catch { /* søknadskøen er valgfri */ }
+      try {
+        const lres = await authedFetchTo('/api/licence-requests')
+        const ldata = await lres.json()
+        if (lres.ok) setLisensKo((ldata.requests || []).filter((r: { status: string }) => r.status === 'open'))
+      } catch { /* lisenskøen er tilleggsinfo, ikke krav */ }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -307,6 +316,45 @@ export default function VoiceBankAdminPage() {
                     {acceptApps ? t('apps_turn_off') : t('apps_turn_on')}
                   </button>
                 </div>
+
+                {/* Lisensforespørsler (090). Står FØR søknadskøen: en søknad
+                    er noen som vil inn i banken, en forespørsel er noen som vil
+                    KJØPE. Den andre har en produksjon som står stille. */}
+                {lisensKo.length > 0 && (
+                  <div style={{ border: '2px solid var(--ember-deep)', padding: 18, marginBottom: 8 }}>
+                    <h2 className="font-semibold text-gray-900 mb-1">
+                      {lisensKo.length === 1 ? '1 venter på lisenstilbud' : `${lisensKo.length} venter på lisenstilbud`}
+                    </h2>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Feltene er takstkortets egne akser, så forespørselen kan mates rett inn i tilbudet.
+                    </p>
+                    <div className="space-y-2">
+                      {lisensKo.map((r) => {
+                        const a = actors.find((x) => x.id === r.actor_id)
+                        return (
+                          <div key={r.id} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-3 flex flex-wrap items-center gap-3">
+                            <div className="flex-1 min-w-[240px]">
+                              <div className="font-medium text-gray-900 text-sm">
+                                {a?.name || 'Ukjent rettighetshaver'}
+                                <span className="font-normal text-gray-500"> — {r.requested_email || 'ukjent kunde'}</span>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {r.asset_type} · {r.media_class} · {r.territory} ·{' '}
+                                {r.term_months === 0 ? 'uten sluttdato' : `${r.term_months} mnd`} · eksklusivitet: {r.exclusivity}
+                                {' · '}{new Date(r.created_at).toLocaleDateString('nb-NO')}
+                              </div>
+                              {r.note && <p className="text-xs text-gray-600 mt-1 mb-0 italic">«{r.note}»</p>}
+                            </div>
+                            <Link href={`/dashboard/voice-bank/${r.actor_id}/lisenser`}
+                              className="flex-none px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)]">
+                              Lag tilbud →
+                            </Link>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {applications.filter((a) => a.status === 'new').length > 0 && (
                   <div style={{ border: '2px solid var(--ember-deep)', padding: 18, marginBottom: 8 }}>

@@ -194,8 +194,13 @@ export default function LisensertStemme({
               ? 'Flere aktive lisenser dekker denne bruken. Hovedboken kan ikke velge mellom dem, og produksjonen ville blitt stående uten hjemmel.'
               : `Det finnes ingen aktiv lisens på ${valgtStemme?.name} for denne kunden. Produksjonen er stengt til lisensen er på plass.`}
           </p>
-          <Link href="/dashboard/voice-bank" style={{ display: 'inline-block', marginTop: 8, fontSize: 13.5, fontWeight: 600, color: 'var(--ember-deep)' }}>
-            {uavklart ? 'Rydd opp i lisensene →' : 'Opprett lisens →'}
+          {/* ⚠️ GÅR TIL KUNDENS DØR, IKKE INN I ADMIN. Lenken pekte tidligere på
+              /dashboard/voice-bank, som er admin-beskyttet: en ekte kunde fikk
+              403 og en tom flate. Porten var riktig; døra på utsiden manglet.
+              Forespørselssiden viser admins en snarvei inn i banken, så den ene
+              veien betjener begge. */}
+          <Link href={`/dashboard/be-om-lisens/${valgtStemme.id}`} style={{ display: 'inline-block', marginTop: 8, fontSize: 13.5, fontWeight: 600, color: 'var(--ember-deep)' }}>
+            {uavklart ? 'Rydd opp i lisensene →' : `Be om lisens på ${valgtStemme.name} →`}
           </Link>
         </div>
       )}
