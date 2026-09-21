@@ -8,3 +8,26 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# www -> apex, per domene (Lars 21.09.2026).
+#
+# Netlifys egen «Primary domain»-redirect kan IKKE brukes her: Primary er
+# centerforge.norditech.io, og den ville sendt alle tenantene dit. Én site
+# betjener hele huset, så www-opprydding må gjøres per domene.
+#
+# force = true er noedvendig: uten den slaar regelen bare til naar ingenting
+# annet matcher, og Next.js fanger alt.
+#
+# Canonical peker uansett paa apex, saa dette er opprydding og ikke en
+# soekefiks -- men en bruker som deler en www-lenke skal ikke etterlate en
+# annen adresse enn den vi selv oppgir.
+#
+# ⚠️ Legger du til et nytt .ai-domene med www: legg til en blokk her ogsaa.
+# voicebank.ai har samme situasjon og er IKKE ryddet (bevisst -- egen tenant,
+# egen beslutning).
+
+[[redirects]]
+  from = "https://www.twinledger.ai/*"
+  to = "https://twinledger.ai/:splat"
+  status = 301
+  force = true
