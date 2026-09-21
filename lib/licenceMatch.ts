@@ -71,18 +71,94 @@ export async function finnLisensFor(e: {
       .eq('status', 'active')
       .in('asset_type', dekker)
 
-    // Perioden filtreres i koden, ikke i spørringen: null betyr «ingen grense»
-    // i begge ender, og det uttrykkes tungt i PostgREST.
-    const gyldige = (data || []).filter((l) =>
-      dekkerPerioden(l.term_start as string | null, l.term_end as string | null, dag)
-    )
-
-    if (gyldige.length === 1) return { licenceId: gyldige[0].id as string, match: 'inferred' }
-    if (gyldige.length > 1) return { licenceId: null, match: 'ambiguous' }
-    return { licenceId: null, match: 'none' }
+    return velgHjemmel((data || []) as LisensRad[], dag)
   } catch {
     // Hjemmelsoppslaget skal ALDRI stoppe en logging. En rad uten hjemmel er
     // langt bedre enn ingen rad — da forsvinner både royaltyen og sporet.
     return { licenceId: null, match: 'none' }
+  }
+}
+
+export interface LisensRad { id: string; actor_id?: string; term_start: string | null; term_end: string | null }
+
+/**
+ * Dommen over ÉN skuespillers lisensrader. Eneste sted regelen står.
+ *
+ * ⚠️ DELT MED `lisensStatusFor` MED VILJE. Produksjonsflaten spør på forhånd
+ * «har jeg hjemmel?», og `finnLisensFor` svarer på det samme i det bruken
+ * logges. Drifter de to fra hverandre, viser skjermen «Lisens på plass» mens
+ * hovedboken skriver et hull — og da lyver produktet om nøyaktig det ene det
+ * selger. Derfor én funksjon, ikke to like.
+ */
+function velgHjemmel(rader: LisensRad[], dag: string): LisensKobling {
+  // Perioden filtreres i koden, ikke i spørringen: null betyr «ingen grense»
+  // i begge ender, og det uttrykkes tungt i PostgREST.
+  const gyldige = rader.filter((l) => dekkerPerioden(l.term_start, l.term_end, dag))
+  if (gyldige.length === 1) return { licenceId: gyldige[0].id, match: 'inferred' }
+  if (gyldige.length > 1) return { licenceId: null, match: 'ambiguous' }
+  return { licenceId: null, match: 'none' }
+}
+
+/**
+ * Sorter lisensradene tilbake på skuespillerne de gjelder, og døm hver for seg.
+ *
+ * Skilt ut og eksportert fordi det er her en feil ville vært stillest: bommer
+ * grupperingen, står «Lisens på plass» på feil navn, og skjermen sier ja på
+ * vegne av en avtale som gjelder en annen. Rene inndata, ingen nettverk.
+ */
+export function fordelPaaSkuespillere(
+  rader: LisensRad[], actorIds: string[], dag: string
+): Record<string, LisensKobling> {
+  const perSkuespiller = new Map<string, LisensRad[]>()
+  for (const rad of rader) {
+    const id = rad.actor_id
+    if (!id) continue
+    perSkuespiller.set(id, [...(perSkuespiller.get(id) || []), rad])
+  }
+  return Object.fromEntries(
+    actorIds.map((id) => [id, velgHjemmel(perSkuespiller.get(id) || [], dag)])
+  )
+}
+
+/**
+ * Samme spørsmål som `finnLisensFor`, men for en hel stemmebank i ett oppslag.
+ *
+ * Brukes av produksjonsflatene, som skal vise hjemmelen FØR noe produseres.
+ * Én spørring for hele banken: et oppslag per skuespiller i en liste er både
+ * tregt og lett å glemme å avbryte når lista vokser.
+ *
+ * Skuespillere uten treff kommer med som `none` — en tom plass i kartet ville
+ * ikke skilles fra «ikke spurt», og det er forskjellen mellom «ingen lisens»
+ * og «vet ikke».
+ */
+export async function lisensStatusFor(e: {
+  actorIds: string[]
+  organizationId?: string | null
+  assetType?: string | null
+  at?: Date
+}): Promise<Record<string, LisensKobling>> {
+  const tomt = (grunn: LisensTreff): Record<string, LisensKobling> =>
+    Object.fromEntries(e.actorIds.map((id) => [id, { licenceId: null, match: grunn }]))
+
+  if (e.actorIds.length === 0) return {}
+  if (!e.organizationId) return tomt('no_customer')
+
+  try {
+    const dag = (e.at ?? new Date()).toISOString().slice(0, 10)
+    const dekker = e.assetType === 'face' ? ['face', 'both'] : ['voice', 'both']
+
+    const { data } = await admin()
+      .from('licences')
+      .select('id, actor_id, term_start, term_end')
+      .in('actor_id', e.actorIds)
+      .eq('organization_id', e.organizationId)
+      .eq('status', 'active')
+      .in('asset_type', dekker)
+
+    return fordelPaaSkuespillere((data || []) as LisensRad[], e.actorIds, dag)
+  } catch {
+    // Feiler oppslaget, er svaret «vet ikke» — og da skal ingen flate påstå at
+    // hjemmelen mangler. `ambiguous` er det ærlige svaret: noe står uavklart.
+    return tomt('ambiguous')
   }
 }

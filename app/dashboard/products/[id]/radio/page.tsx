@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack } from '@/lib/uploadTrack'
+import LisensertStemme, { lisensSperrer, type BankStemme } from '@/components/LisensertStemme'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
@@ -65,6 +66,32 @@ export default function RadioAdPage() {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [emotion, setEmotion] = useState('nøytral')
+
+  // Stemmebanken hentes MED produktet, slik at hjemmelen slås opp for kunden
+  // som faktisk eier produksjonen — ikke for den innloggede brukerens eldste
+  // organisasjon. Radiosiden hentet tidligere ingen bank i det hele tatt: en
+  // skuespillerstemme kunne bare brukes ved å lime inn ID-en, altså utenom
+  // både banken og hjemmelen.
+  const [bank, setBank] = useState<BankStemme[]>([])
+  const rettighetsmodus = tenantInfo.slug === 'twinledger'
+
+  useEffect(() => {
+    let avbrutt = false
+    ;(async () => {
+      try {
+        const { data: { session } } = await getSupabase().auth.getSession()
+        const res = await fetch(
+          `/api/voice-actors?kind=radio&productId=${encodeURIComponent(productId)}`,
+          session ? { headers: { Authorization: `Bearer ${session.access_token}` } } : undefined,
+        )
+        const d = await res.json()
+        if (!avbrutt) setBank(d.voices || [])
+      } catch { /* tom bank er en gyldig tilstand, ikke en feil */ }
+    })()
+    return () => { avbrutt = true }
+  }, [productId])
+
+  const sperret = lisensSperrer(bank, voiceId, rettighetsmodus)
 
   type Segment = { text: string; audioUrl: string | null; audioBlob: Blob | null; generating: boolean; emotion: string }
   const [segments, setSegments] = useState<Segment[]>([])
@@ -385,6 +412,7 @@ export default function RadioAdPage() {
           {/* Section 3: Voice */}
           <div className="bg-[var(--paper-raised)] rounded-xl border border-gray-200 p-6 space-y-3">
             <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">Stemme</h2>
+            <LisensertStemme stemmer={bank} valgt={voiceId} velg={setVoiceId} rettighetsmodus={rettighetsmodus} />
             <div className="grid grid-cols-2 gap-2 mb-3">
               {NORWEGIAN_VOICES.map((v) => {
                 const isSelected = voiceId === v.id
@@ -635,10 +663,19 @@ export default function RadioAdPage() {
           )}
 
           <button type="submit"
-            disabled={loading || uploadingSegments || !script.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
+            disabled={sperret || loading || uploadingSegments || !script.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
             className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-300 text-[var(--on-ember)] font-semibold py-3 px-4 rounded-lg transition-colors">
             {uploadingSegments ? 'Laster opp segmenter…' : loading ? 'Starter produksjon…' : '🎙️ Produser radioreklame'}
           </button>
+
+          {/* Grunnen står allerede i ramma over stemmevelgeren, men den kan ha
+              rullet ut av syne. En grå knapp uten forklaring ved seg selv ser
+              ut som en feil. */}
+          {sperret && (
+            <p className="text-xs text-center" style={{ color: 'var(--ember-deep)' }}>
+              Produksjon er stengt til lisensen på den valgte stemmen er på plass.
+            </p>
+          )}
 
           <p className="text-xs text-gray-400 text-center">
             MP3-filen er klar om ca. 30–60 sekunder og kan lastes ned fra produktsiden.

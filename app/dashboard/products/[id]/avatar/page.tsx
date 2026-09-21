@@ -9,6 +9,7 @@ import { COSTS_NOK } from '@/lib/costs'
 import { useTenant } from '@/lib/tenantContext'
 import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack } from '@/lib/uploadTrack'
+import LisensertStemme, { lisensSperrer, type BankStemme } from '@/components/LisensertStemme'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
 
@@ -67,17 +68,24 @@ export default function AvatarVideoPage() {
   const pf = useTenant().price_multiplier || 1
   const [avatarImageUrl, setAvatarImageUrl] = useState('')
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID)
-  const [actorVoices, setActorVoices] = useState<Array<{ voiceId: string; name: string; pricePerUseNok: number; previewUrl: string | null }>>([])
+  const [actorVoices, setActorVoices] = useState<BankStemme[]>([])
+  // `productId` følger med: hjemmelen skal slås opp for kunden som eier
+  // produksjonen, ikke for brukerens eldste organisasjon.
   useEffect(() => {
     ;(async () => {
       try {
         const { data: sess } = await getSupabase().auth.getSession()
         const token = sess?.session?.access_token
-        const d = await fetch('/api/voice-actors?kind=avatar', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+        const d = await fetch(
+          `/api/voice-actors?kind=avatar&productId=${encodeURIComponent(productId)}`,
+          token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+        ).then((r) => r.json())
         setActorVoices(d.voices || [])
       } catch { /* ingen skuespillere å vise */ }
     })()
-  }, [])
+  }, [productId])
+  const rettighetsmodus = useTenant().slug === 'twinledger'
+  const sperret = lisensSperrer(actorVoices, voiceId, rettighetsmodus)
   const [saldo, setSaldo] = useState<number | null>(null)
   useEffect(() => {
     ;(async () => {
@@ -581,6 +589,7 @@ export default function AvatarVideoPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Stemme</label>
+              <LisensertStemme stemmer={actorVoices} valgt={voiceId} velg={setVoiceId} rettighetsmodus={rettighetsmodus} />
               <div className="grid grid-cols-2 gap-2 mb-3">
                 {NORWEGIAN_VOICES.map((v) => {
                   const isSelected = voiceId === v.id
@@ -633,24 +642,8 @@ export default function AvatarVideoPage() {
                   )
                 })}
               </div>
-              {actorVoices.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs font-medium text-gray-600 mb-1.5">🎙️ Skuespillere (stemmebank — pris per produksjon)</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {actorVoices.map((v) => (
-                      <button
-                        key={v.voiceId}
-                        type="button"
-                        onClick={() => setVoiceId(v.voiceId)}
-                        className={`text-left p-2.5 rounded-lg border-2 transition-all ${voiceId === v.voiceId ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)]' : 'border-gray-200 hover:border-gray-300 bg-[var(--paper-raised)]'}`}
-                      >
-                        <div className="text-sm font-medium text-gray-900">{v.name}</div>
-                        <div className="text-xs text-gray-500">{v.pricePerUseNok.toFixed(2).replace('.', ',')} kreditter per produksjon</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Skuespillerne lå her, under de tolv lagerstemmene. De står nå
+                  øverst i <LisensertStemme> — se kommentaren i den fila. */}
               <input
                 type="text"
                 value={voiceId}
@@ -1218,11 +1211,17 @@ export default function AvatarVideoPage() {
 
           <button
             type="submit"
-            disabled={loading || uploadingSegments || !script.trim() || !avatarImageUrl.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
+            disabled={sperret || loading || uploadingSegments || !script.trim() || !avatarImageUrl.trim() || (segmentMode && segments.length > 0 && !segments.every(s => s.audioBlob))}
             className="w-full bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:bg-gray-300 text-[var(--on-ember)] font-semibold py-3 px-4 rounded-lg transition-colors"
           >
             {uploadingSegments ? 'Laster opp segmenter…' : loading ? 'Starter produksjon…' : 'Generer avatar-video'}
           </button>
+
+          {sperret && (
+            <p className="text-xs text-center" style={{ color: 'var(--ember-deep)' }}>
+              Produksjon er stengt til lisensen på den valgte stemmen er på plass.
+            </p>
+          )}
 
           <p className="text-xs text-gray-400 text-center">
             Videoen tar typisk 2–5 minutter. Du kan lukke siden og hente resultatet fra produktsiden.
