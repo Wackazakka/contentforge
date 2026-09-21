@@ -181,6 +181,10 @@
     "signingIn": "Logger inn...",
     "noAccount": "Har du ikke en konto?",
     "signUp": "Registrer deg",
+    "title_rights": "Hovedboken din",
+    "subtitle_rights": "Logg inn og se hvor stemmen din har vært brukt, under hvilken avtale, og hva du har til gode.",
+    "noAccount_rights": "Er du ikke en stemme i banken ennå?",
+    "signUp_rights": "Søk om å bli det",
     "errorInvalidEmail": "Ugyldig e-postadresse",
     "errorPasswordRequired": "Passord er påkrevd",
     "errorUnexpected": "En uventet feil oppstod"
@@ -1575,6 +1579,7 @@
     "door_talent_h": "Du har en stemme eller et ansikt",
     "door_talent_p": "Du bestemmer hvem som får bruke den. Hver bruk føres i en bok du selv har innsyn i, og du får betalt hver gang.",
     "door_talent_cta": "Bli med i banken",
+    "door_talent_signin": "Allerede en stemme? Logg inn",
     "talent_eyebrow": "Har du en stemme eller et ansikt?",
     "talent_h2": "Lei den ut uten å miste kontrollen",
     "t1_h": "Du bestemmer, hver gang",

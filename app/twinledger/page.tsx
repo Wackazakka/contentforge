@@ -174,8 +174,14 @@ export default async function TwinLedgerPage() {
         <div className="tl-half-b" style={{ background: 'var(--paper-raised)', padding: `clamp(32px, 3.5vw, 44px) ${GUTTER} clamp(40px, 4.5vw, 56px)`, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <h2 className="tl-h3">{t('door_talent_h')}</h2>
           <p className="tl-p">{t('door_talent_p')}</p>
-          <div style={{ marginTop: 'auto', paddingTop: 12 }}>
+          {/* Døra tar imot den som ikke er i banken ennå. Den som ALLEREDE er
+              det kom for å se hovedboken sin, og fant før dette bare en
+              nøytral «Logg inn» oppe i hjørnet, delt med kundene. */}
+          <div style={{ marginTop: 'auto', paddingTop: 12, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
             <Link href="/bli-stemme" className="tl-ink">{t('door_talent_cta')}</Link>
+            <Link href="/login?rolle=stemme" style={{ fontSize: 14.5, color: 'var(--ink-soft)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+              {t('door_talent_signin')}
+            </Link>
           </div>
         </div>
       </div>

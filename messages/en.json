@@ -181,6 +181,10 @@
     "signingIn": "Signing in...",
     "noAccount": "Don't have an account?",
     "signUp": "Sign up",
+    "title_rights": "Your ledger",
+    "subtitle_rights": "Sign in to see where your voice has been used, under which agreement, and what you are owed.",
+    "noAccount_rights": "Not a voice in the bank yet?",
+    "signUp_rights": "Apply to join",
     "errorInvalidEmail": "Invalid email address",
     "errorPasswordRequired": "Password is required",
     "errorUnexpected": "An unexpected error occurred"
@@ -1575,6 +1579,7 @@
     "door_talent_h": "You have a voice or a face",
     "door_talent_p": "You decide who may use it. Every use is recorded in a ledger you can see yourself, and you are paid every time.",
     "door_talent_cta": "Join the bank",
+    "door_talent_signin": "Already a voice? Sign in",
     "talent_eyebrow": "Do you have a voice or a face?",
     "talent_h2": "Licence it without losing control",
     "t1_h": "You decide, every time",

@@ -85,7 +85,10 @@ export default async function BliStemmePage() {
         <Link href="/" style={{ textDecoration: 'none' }}>{logo}</Link>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px 18px', flexWrap: 'wrap', fontSize: 15 }}>
           <Link href="/stemmer" style={{ color: 'var(--ink-soft)', textDecoration: 'none' }}>{t('nav_cast')}</Link>
-          <Link href="/login" style={{ color: 'var(--ink-soft)', textDecoration: 'none' }}>{t('nav_login')}</Link>
+          {/* Alle som står på DENNE siden er rettighetshavere — søknadsskjemaet
+              angår ingen andre. Da skal innloggingslenken herfra åpne
+              hovedboken, ikke kundeinngangen. */}
+          <Link href="/login?rolle=stemme" style={{ color: 'var(--ink-soft)', textDecoration: 'none' }}>{t('nav_login')}</Link>
           {tenant.show_language_toggle !== false && <LangToggle />}
         </div>
       </header>

@@ -61,9 +61,32 @@ export function LoginForm() {
     }
   }
 
+  // SKILTING, IKKE EN ANDRE INNLOGGING (Lars 21.09).
+  //
+  // Landingssiden har to dører, men begge endte i samme nøytrale skjema: en
+  // skuespiller som klikket «Jeg har en stemme» landet et sted som snakket til
+  // en kunde. `?rolle=stemme` bytter TEKSTEN — overskrift, ingress og hvor
+  // «har du ikke konto» peker — og ingenting annet.
+  //
+  // 🔑 SAMME KONTO OG SAMME SKJEMA. Rollen er en egenskap ved personen, ikke
+  // ved døren hun kom inn gjennom: en casting-agent kommer både med stemmer og
+  // ønsker stemmer, og to innlogginger ville tvunget henne til å velge side.
+  // Hvor man havner ETTER innlogging avgjøres uansett av rollen
+  // (app/dashboard/page.tsx sender en ren rettighetshaver til /min-stemme),
+  // ikke av denne parameteren.
+  //
+  // ⚠️ Uten parameteren er siden nøyaktig som før — den deles av alle
+  // tenantene. Og parameteren ignoreres der rettighetsforvaltningen er av, for
+  // ellers ville «søk om å bli det» pekt på en side som svarer 404.
+  const rettighetshaver =
+    searchParams.get('rolle') === 'stemme' && tenant.twinledger_enabled !== false
+
   // Man logger inn paa TJENESTEN, ikke paa selskapet bak den.
   return (
-    <AuthShell title={t('title')} subtitle={t('subtitle', { name: produktnavn(tenant) })}>
+    <AuthShell
+      title={rettighetshaver ? t('title_rights') : t('title')}
+      subtitle={rettighetshaver ? t('subtitle_rights') : t('subtitle', { name: produktnavn(tenant) })}
+    >
       {message && <AuthBanner variant="success">{message}</AuthBanner>}
       {error && <AuthBanner variant="error">{error}</AuthBanner>}
 
@@ -96,7 +119,13 @@ export function LoginForm() {
         <AuthSubmit loading={loading} loadingLabel={t('signingIn')}>{t('signIn')}</AuthSubmit>
       </form>
 
-      <AuthSwitch prompt={t('noAccount')} linkLabel={t('signUp')} href="/register" />
+      {/* En rettighetshaver uten konto skal ikke til /register — der lager man
+          en KUNDEkonto. Veien inn i banken går gjennom søknaden. */}
+      {rettighetshaver ? (
+        <AuthSwitch prompt={t('noAccount_rights')} linkLabel={t('signUp_rights')} href="/bli-stemme" />
+      ) : (
+        <AuthSwitch prompt={t('noAccount')} linkLabel={t('signUp')} href="/register" />
+      )}
     </AuthShell>
   )
 }
