@@ -18,6 +18,10 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740fe
 
 const MAX_BYTES = 10 * 1024 * 1024
 // MIME → trygg filendelse (endelsen hentes ALDRI fra filnavnet)
+const IMAGE_TYPES: Record<string, string> = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
+}
+
 const AUDIO_TYPES: Record<string, string> = {
   'audio/mpeg': 'mp3',
   'audio/wav': 'wav',
@@ -53,6 +57,18 @@ export async function POST(request: Request) {
     if (!offersVoice && !wantsFace) {
       return NextResponse.json({ error: 'Velg minst ett aktivum: stemme eller ansikt' }, { status: 400 })
     }
+    // Bildene til ansiktstrening (091). Kommer fra soekeren selv, ikke fra en
+    // innboks: et produkt som selger sporbarhet kan ikke ta imot bilder av et
+    // virkelig menneske gjennom en kanal hovedboken ikke kjenner.
+    const photos = form.getAll('photos').filter((f): f is File => f instanceof File).slice(0, 20)
+    if (wantsFace && photos.length < 5) {
+      return NextResponse.json({ error: 'Ansiktsmodellen trenger minst 5 bilder (gjerne 10-15)' }, { status: 400 })
+    }
+    for (const f of photos) {
+      if (f.size > MAX_BYTES) return NextResponse.json({ error: 'Bilde for stort (maks 10 MB)' }, { status: 413 })
+      if (!IMAGE_TYPES[f.type]) return NextResponse.json({ error: 'Bilder maa vaere JPG, PNG eller WebP' }, { status: 415 })
+    }
+
     const samples = form.getAll('samples').filter((f): f is File => f instanceof File).slice(0, 2)
     if (offersVoice && samples.length === 0) return NextResponse.json({ error: 'Minst én lydprøve må lastes opp når du tilbyr stemmen' }, { status: 400 })
     for (const f of samples) {
@@ -76,6 +92,18 @@ export async function POST(request: Request) {
         ContentType: f.type,
       }))
       sampleUrls.push(`${R2_PUBLIC_URL}/${key}`)
+    }
+
+    const photoUrls: string[] = []
+    for (const f of photos) {
+      const key = `voice-applications/${applicationId}/photo-${Date.now()}-${photoUrls.length}.${IMAGE_TYPES[f.type]}`
+      await r2.send(new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: key,
+        Body: Buffer.from(await f.arrayBuffer()),
+        ContentType: f.type,
+      }))
+      photoUrls.push(`${R2_PUBLIC_URL}/${key}`)
     }
 
     // Castingfeltene. Soekeren fyller dem selv -- se 084 for hvorfor det er
@@ -117,6 +145,7 @@ export async function POST(request: Request) {
       phone: String(form.get('phone') || '').trim() || null,
       bio: String(form.get('bio') || '').slice(0, 2000) || null,
       sample_urls: sampleUrls,
+      photo_urls: photoUrls,
       wants_face: wantsFace,
       offers_voice: offersVoice,
       consent_text: String(form.get('consentText') || '').slice(0, 2000) || null,

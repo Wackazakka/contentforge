@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { randomBytes } from 'crypto'
 
 const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
 
@@ -7,7 +8,7 @@ const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
 // (samme trener som Lawrence — bevist god ansiktslikhet). Steps/lr fra den beviste kjøringen.
 export async function POST(request: Request) {
   try {
-    const { name, zipUrl, consentSubject } = await request.json()
+    const { name, zipUrl, consentSubject, subjectEmail: raaEpost } = await request.json()
     if (!name?.trim() || !zipUrl) {
       return NextResponse.json({ error: 'Mangler navn eller zipUrl' }, { status: 400 })
     }
@@ -30,6 +31,19 @@ export async function POST(request: Request) {
     // blir et spørsmål man kan besvare i stedet for å stole på. Ingenting
     // lekker — at feltet kreves står allerede i klientbunten. Flyttes den
     // under auth, mister den den egenskapen.
+    // 🔑 GJELDER DET EN ANNEN PERSON, MÅ VI VITE HVEM (091). Uten adressen
+    // kan hen ikke få se modellen av seg selv, og godkjenningen blir en
+    // formalitet vi krysser av på hennes vegne — akkurat det 089 skulle
+    // slutte med. Samme krav som stemmesiden har hatt hele tiden: en
+    // rettighetshaver uten e-post kan ikke varsles om noe som helst.
+    const subjectEmail = String(raaEpost || '').trim()
+    if (consentSubject === 'other_consented' && !subjectEmail.includes('@')) {
+      return NextResponse.json({
+        error: 'Gjelder det en annen person, må vi ha e-posten hennes — hun skal godkjenne modellen før den kan brukes.',
+        code: 'SUBJECT_EMAIL_REQUIRED',
+      }, { status: 400 })
+    }
+
     const LOVLIGE = ['self', 'other_consented', 'not_a_person'] as const
     if (!LOVLIGE.includes(consentSubject)) {
       return NextResponse.json({
@@ -82,6 +96,17 @@ export async function POST(request: Request) {
         consent_subject: consentSubject,
         consent_declared_at: new Date().toISOString(),
         consent_declared_by: u.user.id,
+        // Godkjenningen (091). Gjelder det en annen person, er modellen
+        // STENGT til hen har sett proevebildene og sagt ja. Er det deg selv
+        // eller ingen virkelig person, finnes det ingen tredjepart aa spoerre.
+        approval_status: consentSubject === 'other_consented' ? 'pending' : 'not_required',
+        subject_email: consentSubject === 'other_consented' ? subjectEmail : null,
+        // Tokenet lages HER, ikke naar e-posten sendes: da finnes lenken saa
+        // snart raden finnes, og en e-post som feiler kan sendes paa nytt uten
+        // at noen maa gjenskape en hemmelighet som ble borte.
+        approval_token: consentSubject === 'other_consented'
+          ? randomBytes(24).toString('base64url')
+          : null,
       })
       .select()
       .single()

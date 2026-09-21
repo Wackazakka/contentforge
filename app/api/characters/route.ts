@@ -3,6 +3,39 @@ import { createClient } from '@supabase/supabase-js'
 
 const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
 
+/**
+ * Be rettighetshaveren godkjenne modellen av ansiktet sitt (091).
+ *
+ * 🔑 LENKEN ER HENNES AUTENTISERING. Hen har ingen konto hos oss og skal ikke
+ * trenge en for aa svare paa om ansiktet sitt kan brukes.
+ *
+ * Feiler stille: modellen staar som `pending`, altsaa STENGT. Det verste en
+ * mislykket e-post kan gjoere er aa utsette et ja -- ikke aa slippe noe gjennom.
+ */
+async function varsleOmGodkjenning(til: string, token: string, navn: string | null): Promise<void> {
+  try {
+    if (!process.env.RESEND_API_KEY) return
+    const { getTenant } = await import('@/lib/tenantServer')
+    const t = await getTenant()
+    const vert = t.custom_domain ? `https://${t.custom_domain}` : `https://${t.slug}.norditech.io`
+    const lenke = `${vert}/godkjenn-ansikt/${token}`
+    const merke = t.app_name || 'TwinLedger'
+    const { Resend } = await import('resend')
+    await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: `${merke} <hello@centerforge.app>`,
+      to: til,
+      subject: 'Er dette deg? Godkjenn ansiktsmodellen din',
+      html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1C1A16">
+        <h2 style="margin:0 0 12px">Er dette deg?</h2>
+        <p>Vi har laget en ansiktsmodell${navn ? ` («${navn}»)` : ''} fra bildene dine. Foer den kan brukes til noe som helst, vil vi at du skal se hva den lager.</p>
+        <p>Du faar se tre bilder generert med modellen, i ulike situasjoner. Deretter svarer du ja eller nei.</p>
+        <p style="margin:24px 0"><a href="${lenke}" style="background:#C5451B;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Se bildene og svar</a></p>
+        <p style="color:#6B6358;font-size:14px">Til du svarer, er modellen stengt og kan ikke brukes. Du kan ombestemme deg senere uansett hva du svarer naa.</p>
+      </div>`,
+    })
+  } catch { /* se over */ }
+}
+
 // Liste over egne karakterer. «Lazy» status-oppdatering: for rader under trening
 // sjekkes fal-køen, og lora_url lagres når treningen er ferdig (~6 min).
 export async function GET(request: Request) {
@@ -44,6 +77,16 @@ export async function GET(request: Request) {
             await supabase.from('user_characters').update({ lora_url: url, status: 'ready' }).eq('id', row.id)
             row.lora_url = url
             row.status = 'ready'
+            // 🔑 HER, OG BARE HER, BLIR MODELLEN NOE Å GODKJENNE (091). Før
+            // treningen er ferdig finnes det ingen prøvebilder å vise, og en
+            // lenke sendt tidligere ville ført til en tom side.
+            //
+            // Feiler stille: modellen ER trent og står som pending, altså
+            // stengt. Det verste en mislykket e-post kan gjøre er å utsette
+            // et ja — ikke å slippe noe gjennom.
+            if (row.approval_status === 'pending' && row.subject_email && row.approval_token) {
+              varsleOmGodkjenning(row.subject_email, row.approval_token, row.name).catch(() => {})
+            }
           }
         } else if (st.status === 'FAILED' || st.status === 'ERROR') {
           await supabase.from('user_characters').update({ status: 'failed' }).eq('id', row.id)
@@ -52,7 +95,11 @@ export async function GET(request: Request) {
       } catch { /* behold 'training' til neste poll */ }
     }
 
-    return NextResponse.json({ characters: rows || [] })
+    // ⚠️ TOKENET UT AV SVARET. `select('*')` tar det med, men det er
+    // rettighetshaverens autentisering mot godkjenningssida — ikke noe som
+    // skal ligge i adminens nettleser.
+    const trygge = (rows || []).map((r) => { const { approval_token, ...resten } = r as Record<string, unknown>; return resten })
+    return NextResponse.json({ characters: trygge })
   } catch (err: any) {
     return NextResponse.json({ error: err.message, characters: [] }, { status: 500 })
   }

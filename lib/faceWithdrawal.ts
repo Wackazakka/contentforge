@@ -28,6 +28,27 @@ function admin() {
 }
 
 export const FACE_WITHDRAWN = 'FACE_WITHDRAWN' as const
+export const FACE_AWAITING_APPROVAL = 'FACE_AWAITING_APPROVAL' as const
+
+/**
+ * Meldingen når modellen venter på personens eget ja (091).
+ *
+ * 🔑 EGEN KODE OG EGEN TEKST, IKKE «trukket tilbake». De to er ulike ting:
+ * tilbaketrekking er noen som har ombestemt seg, dette er noen som ennå ikke
+ * er spurt ferdig. Slår man dem sammen, får den som venter beskjed om at noen
+ * har sagt nei — og det er feil om et menneske.
+ */
+export const FACE_AWAITING_MESSAGE =
+  'Ansiktsmodellen venter på at rettighetshaveren skal godkjenne den. ' +
+  'Den kan ikke brukes før hen har sett prøvebildene og sagt ja.'
+
+export class AnsiktVenterPaaGodkjenning extends Error {
+  readonly code = FACE_AWAITING_APPROVAL
+  constructor() {
+    super(FACE_AWAITING_MESSAGE)
+    this.name = 'AnsiktVenterPaaGodkjenning'
+  }
+}
 
 /** Meldingen kunden skal se. Ingen teknikk, ingen skyld på systemet. */
 export const FACE_WITHDRAWN_MESSAGE =
@@ -63,13 +84,58 @@ export interface Ansiktsmodell {
 export async function hentAnsiktForGenerering(characterId: string): Promise<Ansiktsmodell> {
   const { data, error } = await admin()
     .from('user_characters')
-    .select('name, trigger_word, lora_url, status, withdrawn_at')
+    .select('name, trigger_word, lora_url, status, withdrawn_at, approval_status')
     .eq('id', characterId)
     .maybeSingle()
 
   if (error) throw new Error(`Ansiktsoppslaget feilet: ${error.message}`)
   if (!data) throw new Error('Ansiktet finnes ikke')
   if (data.withdrawn_at) throw new AnsiktTrukketTilbake()
+
+  // 🔑 GODKJENNINGEN (091) SLÅR GJENNOM FØR «ER MODELLEN KLAR». En ferdig
+  // trent LoRA av en annen person er nettopp den som IKKE skal kunne brukes
+  // før hen har sett prøvebildene. Rekkefølgen her er hele porten.
+  //
+  // `rejected` behandles som en tilbaketrekking utad: hen har sagt nei, og
+  // kunden trenger ikke vite om det var før eller etter at modellen ble laget.
+  if (data.approval_status === 'pending') throw new AnsiktVenterPaaGodkjenning()
+  if (data.approval_status === 'rejected') throw new AnsiktTrukketTilbake()
+
+  if (data.status !== 'ready' || !data.lora_url) throw new Error('Ansiktet er ikke klart (LoRA mangler)')
+
+  return {
+    triggerWord: String(data.trigger_word || ''),
+    loraUrl: String(data.lora_url),
+    name: (data.name as string | null) ?? null,
+  }
+}
+
+/**
+ * Samme oppslag, men UTEN godkjenningssjekken.
+ *
+ * ⚠️ DEN ENE BEVISSTE OMVEIEN RUNDT PORTEN, og den finnes av en grunn som
+ * ikke kan løses på annen måte: prøvebildene personen skal godkjenne, må
+ * lages MED modellen hen ennå ikke har godkjent. Uten dette unntaket blir
+ * godkjenningen umulig å innhente — hen skulle sett noe som ikke kan lages.
+ *
+ * 🔑 TILBAKETREKKING GJELDER FORTSATT. Har hen sagt nei én gang, lages det
+ * ingen nye prøvebilder heller. Unntaket er for den som ikke har svart ennå,
+ * aldri for den som har svart.
+ *
+ * Kalles KUN av ruta som lager godkjenningsprøver. Kommer det et annet
+ * kallsted, er det nesten helt sikkert feil.
+ */
+export async function hentAnsiktForProeve(characterId: string): Promise<Ansiktsmodell> {
+  const { data, error } = await admin()
+    .from('user_characters')
+    .select('name, trigger_word, lora_url, status, withdrawn_at, approval_status')
+    .eq('id', characterId)
+    .maybeSingle()
+
+  if (error) throw new Error(`Ansiktsoppslaget feilet: ${error.message}`)
+  if (!data) throw new Error('Ansiktet finnes ikke')
+  if (data.withdrawn_at) throw new AnsiktTrukketTilbake()
+  if (data.approval_status === 'rejected') throw new AnsiktTrukketTilbake()
   if (data.status !== 'ready' || !data.lora_url) throw new Error('Ansiktet er ikke klart (LoRA mangler)')
 
   return {

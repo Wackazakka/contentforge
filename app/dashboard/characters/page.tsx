@@ -18,6 +18,10 @@ export default function CharactersPage() {
   const [files, setFiles] = useState<FileList | null>(null)
   // null = ingen erklaering avgitt ennaa. Se samtykkeporten lenger nede.
   const [consent, setConsent] = useState<'self' | 'other_consented' | 'not_a_person' | null>(null)
+  // Hvem som skal godkjenne modellen (091). Kreves naar bildene viser en
+  // ANNEN person: uten adressen kan hen ikke se modellen av seg selv, og
+  // godkjenningen blir en formalitet vi krysser av paa hennes vegne.
+  const [subjectEmail, setSubjectEmail] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -46,6 +50,9 @@ export default function CharactersPage() {
     if (!files || files.length < 5) { setError('Last opp minst 5 bilder (gjerne 10-15).'); return }
     if (files.length > 20) { setError('Maks 20 bilder.'); return }
     if (!consent) { setError('Velg hvem bildene viser før du starter treningen.'); return }
+    if (consent === 'other_consented' && !subjectEmail.includes('@')) {
+      setError('Fyll inn e-posten til personen på bildene — hun skal godkjenne modellen før den kan brukes.'); return
+    }
 
     try {
       setBusy('Pakker bilder…')
@@ -67,12 +74,12 @@ export default function CharactersPage() {
       const res = await fetch('/api/characters/train', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ name, zipUrl: publicUrl, consentSubject: consent }),
+        body: JSON.stringify({ name, zipUrl: publicUrl, consentSubject: consent, subjectEmail: subjectEmail || null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Trening feilet')
 
-      setName(''); setFiles(null); setConsent(null)
+      setName(''); setFiles(null); setConsent(null); setSubjectEmail('')
       await refresh()
     } catch (err: any) {
       setError(err.message)
@@ -132,6 +139,22 @@ export default function CharactersPage() {
                 <span>{tekst}</span>
               </label>
             ))}
+            {/* Gjelder det en annen person, maa hen kunne se modellen av seg
+                selv. Feltet staar inne i valget, ikke ved siden av, saa det er
+                tydelig at det HOERER til det svaret. */}
+            {consent === 'other_consented' && (
+              <div className="mt-2 mb-1 pl-6">
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-post til personen på bildene</label>
+                <input type="email" value={subjectEmail} onChange={(e) => setSubjectEmail(e.target.value)}
+                  placeholder="hen@eksempel.no"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <p className="text-xs text-gray-500 mt-1">
+                  Hun får se tre bilder laget med modellen og svarer ja eller nei.
+                  <strong> Modellen er stengt til hun har sagt ja.</strong>
+                </p>
+              </div>
+            )}
+
             <p className="text-xs text-gray-500 mt-2">
               Svaret lagres på karakteren sammen med hvem som avga det og når. Er
               ansiktet en annen persons, kan hen når som helst be om at det stenges.

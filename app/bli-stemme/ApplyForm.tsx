@@ -56,6 +56,9 @@ export default function ApplyForm() {
   const [phone, setPhone] = useState('')
   const [bio, setBio] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  // Bildene til ansiktsmodellen (091). Foer dette maatte de komme utenom
+  // systemet, til et produkt som selger sporbarhet.
+  const [photos, setPhotos] = useState<File[]>([])
   const [tilbud, setTilbud] = useState<Tilbud>('stemme')
   const [consent, setConsent] = useState(false)
   const [website, setWebsite] = useState('') // honeypot
@@ -83,6 +86,7 @@ export default function ApplyForm() {
     setError(null)
     if (!name.trim() || !email.includes('@')) { setError(t('err_name')); return }
     if (offersVoice && files.length === 0) { setError(t('err_sample')); return }
+    if (wantsFace && photos.length < 5) { setError('Ansiktsmodellen trenger minst 5 bilder — gjerne 10–15, i ulike vinkler.'); return }
     if (!consent) { setError(t('err_consent')); return }
     const tallOk = (v: string) => v === '' || /^\d{1,3}$/.test(v)
     if (!tallOk(aldFra) || !tallOk(aldTil) ||
@@ -111,6 +115,7 @@ export default function ApplyForm() {
       fd.append('appearanceConsent', appearanceConsent ? '1' : '0')
       if (appearanceConsent) fd.append('appearanceConsentText', appearanceConsentText)
       files.slice(0, 2).forEach((f) => fd.append('samples', f))
+      photos.slice(0, 20).forEach((f) => fd.append('photos', f))
       const res = await fetch('/api/voice-bank/apply', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || t('err_generic'))
@@ -193,6 +198,38 @@ export default function ApplyForm() {
           </label>
         </div>
       )}
+
+      {/* Bildene til ansiktsmodellen. Staar her, i soeknaden, og ikke i en
+          e-post: da kommer de fra soekeren selv, med et tidsstempel og en rad
+          aa henge dem paa. */}
+      {wantsFace && (
+        <div style={{ marginBottom: 20 }}>
+          <Etikett>Bilder til ansiktsmodellen</Etikett>
+          <label style={{ display: 'block', border: '1.5px dashed var(--ds-border-strong)', background: 'var(--paper)', padding: '22px 16px', textAlign: 'center', cursor: busy ? 'default' : 'pointer' }}>
+            <span style={{ display: 'block', fontSize: 14.5, color: 'var(--ink-soft)', marginBottom: 4 }}>
+              {photos.length > 0 ? `${photos.length} bilder valgt` : 'Velg 10–15 bilder'}
+            </span>
+            <span style={{ fontFamily: MONO, fontSize: 11, color: 'var(--text-faint)' }}>
+              JPG, PNG eller WebP — skarpe bilder av deg alene, ulike vinkler og uttrykk
+            </span>
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy}
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const valgte = Array.from(e.target.files || []).slice(0, 20)
+                for (const f of valgte) {
+                  if (f.size > MAX_FILE_MB * 1024 * 1024) { setError(t('err_too_big', { name: f.name, mb: MAX_FILE_MB })); e.target.value = ''; return }
+                }
+                setError(null)
+                setPhotos(valgte)
+              }} />
+          </label>
+          <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-muted)', margin: '8px 0 0' }}>
+            Når modellen er trent, får du den tilsendt for godkjenning: du ser tre bilder
+            laget med den, og svarer ja eller nei. Den kan ikke brukes til noe før du har sagt ja.
+          </p>
+        </div>
+      )}
+
 
       <label style={{ display: 'block', marginBottom: 24 }}>
         <Etikett>{t('f_bio')}</Etikett>
