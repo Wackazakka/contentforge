@@ -45,3 +45,21 @@
   to = "https://voicebank.ai/:splat"
   status = 301
   force = true
+
+# «Stemmebank» er ETT ord naar man sier det, og ruta heter voice-bank. Lars
+# skrev /dashboard/voicebank og fikk 404 paa en side han hadde faatt lenke
+# til. Skrivefeilen er ikke hans -- den ligger i at adressen ikke likner
+# navnet. Dette gjelder alle tenantene, siden dashbordet er delt.
+#
+# 302, ikke 301: den riktige adressen er voice-bank, og en permanent
+# omdirigering ville laast feilstavingen inn i nettleserhistorikken som om den
+# var et alternativt navn.
+[[redirects]]
+  from = "/dashboard/voicebank"
+  to = "/dashboard/voice-bank"
+  status = 302
+
+[[redirects]]
+  from = "/dashboard/voicebank/*"
+  to = "/dashboard/voice-bank/:splat"
+  status = 302
