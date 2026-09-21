@@ -2243,6 +2243,12 @@
     "admin_err": "Lagring feilet",
     "admin_cm": "cm",
     "admin_years": "år",
-    "max_reached": "Maks {n} i én runde. Ta av noen for å bytte."
+    "max_reached": "Maks {n} i én runde. Ta av noen for å bytte.",
+    "sort": "Sortering",
+    "sort_recent": "Nylig lagt til",
+    "show_all_n": "Vis alle {n}",
+    "show_fewer": "Vis færre",
+    "portrait": "Portrett",
+    "filters_empty": "Ingen castingopplysninger er fylt inn ennå, så det er ingenting å filtrere på."
   }
 }

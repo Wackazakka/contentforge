@@ -2243,6 +2243,12 @@
     "admin_err": "Saving failed",
     "admin_cm": "cm",
     "admin_years": "years",
-    "max_reached": "Maximum {n} in one round. Deselect someone to swap."
+    "max_reached": "Maximum {n} in one round. Deselect someone to swap.",
+    "sort": "Sort",
+    "sort_recent": "Recently added",
+    "show_all_n": "Show all {n}",
+    "show_fewer": "Show fewer",
+    "portrait": "Portrait",
+    "filters_empty": "No casting details have been filled in yet, so there is nothing to filter on."
   }
 }
