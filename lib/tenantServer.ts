@@ -13,6 +13,9 @@ export interface Tenant {
   parent_tenant_id: string | null
   custom_domain?: string | null // eget domene, uten www (f.eks. 'voicebank.ai')
   allow_indexing?: boolean | null // skal sokemotorer indeksere? Standard av (085)
+  // Tenantens eget takstkort (migrasjon 078). Delvis overstyring av
+  // STANDARD_RATE_CARD — se mergeRateCard i lib/rateCard.ts.
+  rate_card?: unknown
   // Tittel/beskrivelse per spraakkode (086). Slaas opp FOER de enspraaklige
   // meta_title/meta_description, som fortsatt gjelder for spraak som mangler her.
   meta_i18n?: Record<string, { title?: string; description?: string }> | null
