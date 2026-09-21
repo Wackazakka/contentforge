@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 
@@ -93,6 +93,11 @@ export default function LisenserPage() {
   const nok = lagNok(locale)
   const { actorId } = useParams<{ actorId: string }>()
   const [licences, setLicences] = useState<Licence[]>([])
+  // Tilbud laget FRA en kundeforespoersel (090). Aksene fylles inn fra
+  // hennes svar, og raden kobles tilbake naar tilbudet er laget -- ellers
+  // blir koen aldri kortere og neste forespoersel avvises som duplikat.
+  const foresporselId = useSearchParams().get('forespoersel')
+  const [fra, setFra] = useState<{ id: string; requested_email: string | null; note: string | null; created_at: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [laster, setLaster] = useState(true)
 
@@ -143,6 +148,33 @@ export default function LisenserPage() {
 
   useEffect(() => { refresh() }, [refresh])
 
+  // Forhaandsutfylling fra kundens forespoersel. Aksene er de samme paa begge
+  // sider (takstkortets), saa dette er en ren overfoering -- ingen oversetting,
+  // og dermed ingen sted aa gjoere den feil.
+  useEffect(() => {
+    if (!foresporselId) return
+    let avbrutt = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/licence-requests?id=${encodeURIComponent(foresporselId)}`, {
+          headers: { Authorization: `Bearer ${await token()}` },
+        })
+        const d = await res.json()
+        const r = (d.requests || [])[0]
+        if (!r || avbrutt) return
+        setKind('campaign')
+        setAsset(r.asset_type)
+        setMediaClass(r.media_class)
+        setTerritory(r.territory)
+        setTermMonths(r.term_months)
+        setExclusivity(r.exclusivity)
+        if (r.requested_email) setCustomerLabel(r.requested_email)
+        setFra({ id: r.id, requested_email: r.requested_email, note: r.note, created_at: r.created_at })
+      } catch { /* uten forespoerselen er skjemaet bare tomt, ikke oedelagt */ }
+    })()
+    return () => { avbrutt = true }
+  }, [foresporselId])
+
   // Hent listepris hver gang en akse endres. Beløpsfeltene fylles bare så lenge
   // admin ikke har rørt dem — et forslag skal aldri overskrive en forhandlet pris.
   useEffect(() => {
@@ -189,6 +221,18 @@ export default function LisenserPage() {
       })
       const d = await res.json()
       if (!res.ok) { setError(d.error || t('err_create')); return }
+      // Lukk sloeyfa: forespoerselen er besvart. Uten dette blir koen aldri
+      // kortere, og neste forespoersel fra samme kunde avvises som duplikat.
+      if (fra) {
+        try {
+          await fetch('/api/licence-requests', {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: fra.id, status: 'quoted', licenceId: d.id ?? d.licenceId ?? null }),
+          })
+          setFra(null)
+        } catch { /* tilbudet er laget; koblingen er bokfoering */ }
+      }
       setError(null); setWorkTitle(''); setCustomerLabel(''); setRort(false)
       await refresh()
     } finally { setBusy(false) }
@@ -231,6 +275,20 @@ export default function LisenserPage() {
       {/* Nytt tilbud */}
       <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-10">
         <h2 className="font-semibold text-gray-900 mb-4">{t('new_h2')}</h2>
+
+        {/* Kommer man hit fra en forespørsel, skal det STÅ — ellers ser et
+            forhåndsutfylt skjema ut som om noen andre har begynt på et tilbud,
+            og man vet ikke om feltene er kundens ord eller ens egne. */}
+        {fra && (
+          <div className="mb-5 p-3 rounded-lg" style={{ background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-deep)' }}>
+            <p className="text-sm text-gray-900 m-0">
+              <strong>Tilbud på forespørsel</strong> fra {fra.requested_email || 'ukjent kunde'},
+              sendt {new Date(fra.created_at).toLocaleDateString('nb-NO')}. Feltene under er
+              fylt inn fra det kunden ba om — endre fritt, prisen er din.
+            </p>
+            {fra.note && <p className="text-xs text-gray-700 mt-2 mb-0 italic">«{fra.note}»</p>}
+          </div>
+        )}
 
         <div className="flex gap-2 mb-5">
           {(['campaign', 'work'] as Kind[]).map((k) => (

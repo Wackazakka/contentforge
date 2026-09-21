@@ -53,6 +53,65 @@ async function orgFor(userId: string, tenantId: string): Promise<string | null> 
   return (traff ?? liste[0])?.id ?? null
 }
 
+/**
+ * Varsle bankens admins om en ny forespørsel.
+ *
+ * Adressene hentes fra `tenants.admin_emails` OPPOVER I KJEDEN — samme liste
+ * som `isTenantAdmin` sjekker mot. Da kan ikke varselet og tilgangen komme i
+ * utakt: den som har lov til å svare, er den som får beskjed.
+ *
+ * Feiler stille, med vilje. Raden er lagret før dette kalles.
+ */
+async function varsleAdmins(i: {
+  tenantId: string
+  requestId: string
+  actorId: string
+  actorName: string
+  kundeEpost: string | null
+  akser: string
+  note: string | null
+}): Promise<void> {
+  try {
+    if (!process.env.RESEND_API_KEY) return
+    const { tenantChainUp } = await import('@/lib/voiceBank')
+    const kjede = i.tenantId !== 'root' ? await tenantChainUp(i.tenantId) : []
+    if (kjede.length === 0) return
+
+    const { data: tenants } = await admin()
+      .from('tenants').select('id, app_name, admin_emails, custom_domain, slug').in('id', kjede)
+    const rader = tenants || []
+    const mottakere = [...new Set(
+      rader.flatMap((t) => (Array.isArray(t.admin_emails) ? t.admin_emails : []))
+        .map((e: unknown) => String(e).trim()).filter((e) => e.includes('@'))
+    )]
+    if (mottakere.length === 0) return
+
+    const egen = rader.find((t) => t.id === i.tenantId)
+    const merke = egen?.app_name || 'TwinLedger'
+    const vert = egen?.custom_domain
+      ? `https://${egen.custom_domain}`
+      : `https://${egen?.slug || 'twinledger'}.norditech.io`
+    // Rett inn i tilbudsskjemaet, med forespørselen forhåndsutfylt.
+    const lenke = `${vert}/dashboard/voice-bank/${i.actorId}/lisenser?forespoersel=${i.requestId}`
+
+    const { Resend } = await import('resend')
+    await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: `${merke} <hello@centerforge.app>`,
+      to: mottakere,
+      subject: `Lisensforespørsel: ${i.actorName}`,
+      html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1C1A16">
+        <h2 style="margin:0 0 12px">Ny lisensforespørsel</h2>
+        <p style="margin:0 0 4px"><strong>${i.actorName}</strong></p>
+        <p style="margin:0 0 4px;color:#6B6358">Fra: ${i.kundeEpost || 'ukjent kunde'}</p>
+        <p style="margin:0 0 16px;color:#6B6358">${i.akser}</p>
+        ${i.note ? `<p style="margin:0 0 16px;font-style:italic">«${i.note}»</p>` : ''}
+        <p style="margin:24px 0"><a href="${lenke}" style="background:#C5451B;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Lag tilbud</a></p>
+        <p style="color:#6B6358;font-size:13px">Produksjon med denne rettighetshaveren er stengt hos kunden til lisensen er på plass.</p>
+      </div>`,
+    })
+  } catch { /* e-post feiler stille — raden er allerede lagret */ }
+}
+
 export async function POST(request: Request) {
   try {
     const tenant = await getTenant()
@@ -112,6 +171,24 @@ export async function POST(request: Request) {
       }
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    // ⚠️ VARSEL ETTER LAGRING, OG DET MÅ ALDRI VELTE FORESPØRSELEN. Raden er
+    // det som betyr noe; e-posten er en bekvemmelighet. Feiler Resend, skal
+    // kunden fortsatt ha fått sendt — køen i adminen viser den uansett.
+    //
+    // Uten dette varselet venter den første ekte forespørselen til noen
+    // tilfeldigvis ser på bankforsiden, og en kunde med en stanset produksjon
+    // tror hen ble oversett.
+    varsleAdmins({
+      tenantId: tenant.id,
+      requestId: data!.id,
+      actorId,
+      actorName: actor.name,
+      kundeEpost: bruker.email,
+      akser: `${b.assetType} · ${b.mediaClass} · ${b.territory} · ${termMonths === 0 ? 'uten sluttdato' : `${termMonths} mnd`} · eksklusivitet: ${b.exclusivity}`,
+      note: b.note ? String(b.note).slice(0, 500) : null,
+    }).catch(() => { /* se over */ })
+
     return NextResponse.json({ ok: true, id: data!.id })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
@@ -146,11 +223,57 @@ export async function GET(request: Request) {
     }
     const actorId = sp.get('actorId')
     if (actorId) q = q.eq('actor_id', actorId)
+    // Én bestemt forespørsel — brukes til å forhåndsutfylle tilbudsskjemaet.
+    // Filtreringen over staar fortsatt: en kunde naar bare sine egne.
+    const id = sp.get('id')
+    if (id) q = q.eq('id', id)
 
     const { data, error } = await q
     if (error) return NextResponse.json({ requests: [], error: error.message })
     return NextResponse.json({ requests: data || [], isAdmin: erAdmin })
   } catch (err: any) {
     return NextResponse.json({ requests: [], error: err.message })
+  }
+}
+
+/**
+ * PATCH — lukk sløyfa når et tilbud er laget.
+ *
+ * 🔑 UTEN DENNE BLIR KØEN ALDRI KORTERE. En forespørsel som er besvart, men
+ * fortsatt staar som «open», gjør at neste forespørsel fra samme kunde
+ * avvises som duplikat — og adminen slutter å stole på tallet i køen.
+ *
+ * Kun admins. Statusen er det eneste som kan endres; aksene er kundens ord og
+ * skal ikke kunne skrives om av oss i ettertid.
+ */
+export async function PATCH(request: Request) {
+  try {
+    const tenant = await getTenant()
+    const bruker = await hvemSpor(request)
+    if (!bruker) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    if (!bruker.email || !(await isTenantAdmin(bruker.email, tenant.id))) {
+      return NextResponse.json({ error: 'Ingen admin-tilgang' }, { status: 403 })
+    }
+
+    const b = await request.json()
+    const id = String(b.id || '')
+    const status = String(b.status || '')
+    if (!id) return NextResponse.json({ error: 'Mangler id' }, { status: 400 })
+    if (!['open', 'quoted', 'closed'].includes(status)) {
+      return NextResponse.json({ error: 'Ugyldig status' }, { status: 400 })
+    }
+
+    const { error } = await admin()
+      .from('licence_requests')
+      .update({
+        status,
+        licence_id: b.licenceId ? String(b.licenceId) : null,
+        handled_at: status === 'open' ? null : new Date().toISOString(),
+      })
+      .eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
