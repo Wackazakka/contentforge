@@ -25,7 +25,28 @@ function bareHost(request: NextRequest): string {
 }
 
 export function proxy(request: NextRequest) {
-  if (TWINLEDGER_HOSTS.has(bareHost(request))) {
+  const vert = bareHost(request)
+
+  // www -> apex, for ROTA. Undersidene tas av regelen i netlify.toml, men
+  // den kan ikke ta rota:
+  //
+  // 🔑 REKKEFØLGEN. Denne omskrivingen kjører FØR Netlifys redirect-motor.
+  // Uten dette ville «/» først blitt skrevet om til «/twinledger», og
+  // toml-regelen ville sendt brukeren til «https://twinledger.ai/twinledger»
+  // — en intern sti ingen skal se. Derfor må rota redirectes her, før
+  // omskrivingen, og ikke i toml.
+  if (vert.startsWith('www.')) {
+    const apex = vert.slice(4)
+    if (TWINLEDGER_HOSTS.has(apex)) {
+      const url = new URL(request.url)
+      url.host = apex
+      url.protocol = 'https:'
+      url.port = ''
+      return NextResponse.redirect(url, 301)
+    }
+  }
+
+  if (TWINLEDGER_HOSTS.has(vert)) {
     return NextResponse.rewrite(new URL('/twinledger', request.url))
   }
   return NextResponse.next()

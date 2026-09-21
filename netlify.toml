@@ -18,6 +18,11 @@
 # force = true er noedvendig: uten den slaar regelen bare til naar ingenting
 # annet matcher, og Next.js fanger alt.
 #
+# ⚠️ ROTA («/») TAS IKKE HER, MEN I proxy.ts. Omskrivingen «/» -> «/twinledger»
+# kjoerer FOER Netlifys redirect-motor, saa denne regelen ville sendt brukeren
+# til https://twinledger.ai/twinledger — en intern sti ingen skal se. Endrer du
+# den ene, se paa den andre.
+#
 # Canonical peker uansett paa apex, saa dette er opprydding og ikke en
 # soekefiks -- men en bruker som deler en www-lenke skal ikke etterlate en
 # annen adresse enn den vi selv oppgir.
