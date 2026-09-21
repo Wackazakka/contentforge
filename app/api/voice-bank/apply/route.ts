@@ -60,9 +60,12 @@ export async function POST(request: Request) {
     // Bildene til ansiktstrening (091). Kommer fra soekeren selv, ikke fra en
     // innboks: et produkt som selger sporbarhet kan ikke ta imot bilder av et
     // virkelig menneske gjennom en kanal hovedboken ikke kjenner.
-    const photos = form.getAll('photos').filter((f): f is File => f instanceof File).slice(0, 20)
-    if (wantsFace && photos.length < 5) {
-      return NextResponse.json({ error: 'Ansiktsmodellen trenger minst 5 bilder (gjerne 10-15)' }, { status: 400 })
+    const photos = form.getAll('photos').filter((f): f is File => f instanceof File).slice(0, 30)
+    // 🔑 ANTALLET ER DEN ENESTE JUSTERINGEN SOM SIKKERT VIRKER. Bade fals egen
+    // veiledning og praksisen rundt Flux-trening peker paa 15-30; vi ba om 5.
+    // Det er gratis kvalitet, og det eneste jeg ville endret uten aa maale.
+    if (wantsFace && photos.length < 10) {
+      return NextResponse.json({ error: 'Ansiktsmodellen trenger minst 10 bilder (15-25 gir merkbart bedre likhet)' }, { status: 400 })
     }
     for (const f of photos) {
       if (f.size > MAX_BYTES) return NextResponse.json({ error: 'Bilde for stort (maks 10 MB)' }, { status: 413 })

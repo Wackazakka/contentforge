@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
+import { useDashboardRole } from '@/lib/useDashboardRole'
 
 interface UserCharacter {
   id: string
@@ -10,6 +11,8 @@ interface UserCharacter {
   trigger_word: string
   status: 'training' | 'ready' | 'failed'
   created_at: string
+  // Maaleinstrumentet (093): hvilken trener som laget modellen.
+  trainer: string | null
 }
 
 export default function CharactersPage() {
@@ -22,6 +25,10 @@ export default function CharactersPage() {
   // ANNEN person: uten adressen kan hen ikke se modellen av seg selv, og
   // godkjenningen blir en formalitet vi krysser av paa hennes vegne.
   const [subjectEmail, setSubjectEmail] = useState('')
+  // Trenervalget er ADMIN-styrt: en kunde kan ikke vurdere spoersmaalet, og
+  // et galt valg gir daarligere likhet hen faar skylden for selv.
+  const role = useDashboardRole()
+  const [trainer, setTrainer] = useState<'portrait' | 'flux2'>('portrait')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,8 +54,8 @@ export default function CharactersPage() {
   const train = async () => {
     setError(null)
     if (!name.trim()) { setError('Gi karakteren et navn.'); return }
-    if (!files || files.length < 5) { setError('Last opp minst 5 bilder (gjerne 10-15).'); return }
-    if (files.length > 20) { setError('Maks 20 bilder.'); return }
+    if (!files || files.length < 10) { setError('Last opp minst 10 bilder — 15–25 gir merkbart bedre ansiktslikhet.'); return }
+    if (files.length > 30) { setError('Maks 30 bilder.'); return }
     if (!consent) { setError('Velg hvem bildene viser før du starter treningen.'); return }
     if (consent === 'other_consented' && !subjectEmail.includes('@')) {
       setError('Fyll inn e-posten til personen på bildene — hun skal godkjenne modellen før den kan brukes.'); return
@@ -74,7 +81,7 @@ export default function CharactersPage() {
       const res = await fetch('/api/characters/train', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ name, zipUrl: publicUrl, consentSubject: consent, subjectEmail: subjectEmail || null }),
+        body: JSON.stringify({ name, zipUrl: publicUrl, consentSubject: consent, subjectEmail: subjectEmail || null, trainer }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Trening feilet')
@@ -106,7 +113,7 @@ export default function CharactersPage() {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4"
           />
 
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bilder (5-20 stk)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Bilder (10-30 stk)</label>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -114,7 +121,7 @@ export default function CharactersPage() {
             onChange={(e) => setFiles(e.target.files)}
             className="block w-full text-sm text-gray-500 mb-1 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--on-ember)]"
           />
-          <p className="text-xs text-gray-400 mb-4">Tips: 10-15 skarpe bilder av samme person, ulike vinkler og uttrykk, helst uten andre personer i bildet.</p>
+          <p className="text-xs text-gray-400 mb-4">Tips: 15–25 skarpe bilder av samme person, ulike vinkler, uttrykk og lys — helst uten andre personer i bildet. Antallet betyr mer for likheten enn noe annet du kan justere.</p>
 
           {/* Samtykkeporten (089). Var ett avkryss som aldri forlot nettleseren.
               Nå er det tre valg, fordi «har du lov?» er ett spørsmål med tre
@@ -161,6 +168,29 @@ export default function CharactersPage() {
             </p>
           </fieldset>
 
+          {/* Trenervalg — kun admin. Hensikten er aa KUNNE MAALE: tren samme
+              bildesett paa begge og sammenlikn. Standard staar paa den billige
+              til maalingen er gjort. */}
+          {role.admin && (
+            <fieldset className="mb-4 p-3 rounded-lg border border-gray-300">
+              <legend className="text-sm font-medium text-gray-700 px-1">Trener (admin)</legend>
+              {([
+                ['portrait', 'Flux 1, portrett-spesialisert', '~20 kr'],
+                ['flux2', 'Flux 2 dev, generell', '~96 kr'],
+              ] as const).map(([v, tekst, pris]) => (
+                <label key={v} className="flex items-start gap-2 mb-1.5 text-sm text-gray-700 cursor-pointer">
+                  <input type="radio" name="trainer" checked={trainer === v}
+                    onChange={() => setTrainer(v)} className="mt-0.5 h-4 w-4" />
+                  <span>{tekst} <span className="text-gray-400">— {pris} råkost</span></span>
+                </label>
+              ))}
+              <p className="text-xs text-gray-500 mt-1">
+                Fem ganger prisen er ikke bevist verdt det. Tren samme bildesett på begge
+                og sammenlikn før du bytter standard.
+              </p>
+            </fieldset>
+          )}
+
           {error && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
 
           <button
@@ -181,7 +211,10 @@ export default function CharactersPage() {
               <div key={c.id} className="flex items-center justify-between bg-[var(--paper-raised)] border border-gray-200 rounded-lg px-4 py-3">
                 <div>
                   <div className="font-medium text-gray-900">{c.name}</div>
-                  <div className="text-xs text-gray-400">{new Date(c.created_at).toLocaleDateString('nb-NO')}</div>
+                  <div className="text-xs text-gray-400">
+                    {new Date(c.created_at).toLocaleDateString('nb-NO')}
+                    {c.trainer && <> · {c.trainer.includes('flux-2') ? 'Flux 2' : 'Flux 1 portrett'}</>}
+                  </div>
                 </div>
                 <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                   c.status === 'ready' ? 'bg-green-100 text-green-800'

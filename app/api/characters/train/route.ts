@@ -4,11 +4,41 @@ import { randomBytes } from 'crypto'
 
 const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
 
+/**
+ * Trenerne vi kan bruke, og hva de koster (migrasjon 093).
+ *
+ * 🔑 VALGET ER ADMIN-STYRT, ALDRI KUNDENS. «Vil du ha Flux 1 portrett eller
+ * Flux 2 dev?» er ikke et spørsmål en produsent kan svare på, og et galt valg
+ * gir dårligere likhet hen får skylden for selv. Kvaliteten på modellen er en
+ * egenskap ved RETTIGHETSHAVEREN — samme logikk som PVC mot en bibliotekstemme.
+ *
+ * ⚠️ PRISFORSKJELLEN ER FEM GANGER, og den er ikke bevist verdt det. Flux 1-
+ * treneren er portrett-SPESIALISERT; Flux 2-treneren er generell med
+ * karakterer som ett av flere bruksområder. Sammenlikningen er altså ikke
+ * «gammel mot ny», og den må måles før den brukes som standard.
+ */
+const TRENERE = {
+  portrait: {
+    endepunkt: 'fal-ai/flux-lora-portrait-trainer',
+    steps: 1500,
+    // ~$2 per kjoering, uavhengig av steg.
+    raakostNok: 20,
+  },
+  flux2: {
+    endepunkt: 'fal-ai/flux-2-trainer',
+    steps: 1500,
+    // $0,0064 per steg x 1500 = $9,60. USD->NOK ~10.
+    raakostNok: 96,
+  },
+} as const
+type TrenerId = keyof typeof TRENERE
+const STANDARD_TRENER: TrenerId = 'portrait'
+
 // Start trening av egen karakter: zip med bilder (R2-URL) → fal flux-lora-portrait-trainer
 // (samme trener som Lawrence — bevist god ansiktslikhet). Steps/lr fra den beviste kjøringen.
 export async function POST(request: Request) {
   try {
-    const { name, zipUrl, consentSubject, subjectEmail: raaEpost } = await request.json()
+    const { name, zipUrl, consentSubject, subjectEmail: raaEpost, trainer: raaTrener } = await request.json()
     if (!name?.trim() || !zipUrl) {
       return NextResponse.json({ error: 'Mangler navn eller zipUrl' }, { status: 400 })
     }
@@ -61,16 +91,32 @@ export async function POST(request: Request) {
     if (!u?.user?.id) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
     if (!FAL_KEY) return NextResponse.json({ error: 'CONTENTFORGE_FAL_KEY mangler' }, { status: 500 })
 
+    // ⚠️ TRENERVALG KREVER ADMIN. Ruta er et offentlig endepunkt; uten denne
+    // sjekken kunne hvilken som helst innlogget kunde valgt den fem ganger
+    // dyrere treneren — paa vaar fal-noekkel.
+    let trener: TrenerId = STANDARD_TRENER
+    if (raaTrener && raaTrener !== STANDARD_TRENER) {
+      const { isTenantAdmin } = await import('@/lib/voiceBank')
+      if (!(raaTrener in TRENERE)) {
+        return NextResponse.json({ error: 'Ukjent trener' }, { status: 400 })
+      }
+      if (!u.user.email || !(await isTenantAdmin(u.user.email, tenant.id))) {
+        return NextResponse.json({ error: 'Bare admin kan velge trener' }, { status: 403 })
+      }
+      trener = raaTrener as TrenerId
+    }
+    const valgt = TRENERE[trener]
+
     // Unikt trigger-ord, f.eks. CHRXKQZW
     const trigger = 'CHR' + Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random() * 24)]).join('')
 
-    const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-lora-portrait-trainer', {
+    const submitRes = await fetch(`https://queue.fal.run/${valgt.endepunkt}`, {
       method: 'POST',
       headers: { Authorization: `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         images_data_url: zipUrl,
         trigger_phrase: trigger,
-        steps: 1500,
+        steps: valgt.steps,
         learning_rate: 0.0002,
       }),
     })
@@ -93,6 +139,9 @@ export async function POST(request: Request) {
         created_by: u.user.id,
         // Erklæringen lagres på raden, ikke i en logg ved siden av: spørsmålet
         // «hvem gikk god for dette ansiktet?» skal besvares der ansiktet er.
+        // Maaleinstrumentet (093): uten dette kan to modeller se ulike ut
+        // uten at noen kan si hvorfor.
+        trainer: valgt.endepunkt,
         consent_subject: consentSubject,
         consent_declared_at: new Date().toISOString(),
         consent_declared_by: u.user.id,
@@ -129,8 +178,10 @@ export async function POST(request: Request) {
         organizationId: org?.id ?? null,
         userId: u.user.id,
         eventType: 'character_training',
-        costNok: COSTS_NOK.characterTraining,
-        meta: { characterId: data.id, name: name.trim() },
+        // ⚠️ Raakost per trener, ikke en fast sats. Flux 2 koster fem ganger
+        // saa mye, og en maaling som foerer feil tall er ingen maaling.
+        costNok: valgt.raakostNok,
+        meta: { characterId: data.id, name: name.trim(), trainer: valgt.endepunkt },
       })
     } catch { /* maaling velter aldri trening */ }
 

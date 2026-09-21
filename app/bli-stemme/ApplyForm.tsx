@@ -86,7 +86,7 @@ export default function ApplyForm() {
     setError(null)
     if (!name.trim() || !email.includes('@')) { setError(t('err_name')); return }
     if (offersVoice && files.length === 0) { setError(t('err_sample')); return }
-    if (wantsFace && photos.length < 5) { setError('Ansiktsmodellen trenger minst 5 bilder — gjerne 10–15, i ulike vinkler.'); return }
+    if (wantsFace && photos.length < 10) { setError('Ansiktsmodellen trenger minst 10 bilder — 15–25 gir merkbart bedre likhet.'); return }
     if (!consent) { setError(t('err_consent')); return }
     const tallOk = (v: string) => v === '' || /^\d{1,3}$/.test(v)
     if (!tallOk(aldFra) || !tallOk(aldTil) ||
@@ -115,7 +115,7 @@ export default function ApplyForm() {
       fd.append('appearanceConsent', appearanceConsent ? '1' : '0')
       if (appearanceConsent) fd.append('appearanceConsentText', appearanceConsentText)
       files.slice(0, 2).forEach((f) => fd.append('samples', f))
-      photos.slice(0, 20).forEach((f) => fd.append('photos', f))
+      photos.slice(0, 30).forEach((f) => fd.append('photos', f))
       const res = await fetch('/api/voice-bank/apply', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || t('err_generic'))
@@ -207,10 +207,10 @@ export default function ApplyForm() {
           <Etikett>Bilder til ansiktsmodellen</Etikett>
           <label style={{ display: 'block', border: '1.5px dashed var(--ds-border-strong)', background: 'var(--paper)', padding: '22px 16px', textAlign: 'center', cursor: busy ? 'default' : 'pointer' }}>
             <span style={{ display: 'block', fontSize: 14.5, color: 'var(--ink-soft)', marginBottom: 4 }}>
-              {photos.length > 0 ? `${photos.length} bilder valgt` : 'Velg 10–15 bilder'}
+              {photos.length > 0 ? `${photos.length} bilder valgt` : 'Velg 15–25 bilder'}
             </span>
             <span style={{ fontFamily: MONO, fontSize: 11, color: 'var(--text-faint)' }}>
-              JPG, PNG eller WebP — skarpe bilder av deg alene, ulike vinkler og uttrykk
+              JPG, PNG eller WebP — minst 10, helst 15–25. Deg alene, ulike vinkler, uttrykk og lys
             </span>
             <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy}
               style={{ display: 'none' }}
