@@ -10,6 +10,7 @@ import { MOTION_STYLES } from '@/lib/motionStyles'
 import { VOICES as VOICES_FALLBACK, type VoiceOption, languageForGroup } from '@/lib/voices'
 import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
+import LisensertStemme, { lisensSperrer, type BankStemme } from '@/components/LisensertStemme'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack } from '@/lib/uploadTrack'
 import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
@@ -126,7 +127,7 @@ export default function DraftPage() {
   const [character, setCharacter] = useState<string>(searchParams?.get('character') || '')
   const [userChars, setUserChars] = useState<Array<{ id: string; name: string; status: string }>>([])
   const [faceActors, setFaceActors] = useState<Array<{ id: string; name: string; faceCharacterId: string; pricePerUseNok: number }>>([])
-  const [actorVoices, setActorVoices] = useState<Array<{ voiceId: string; name: string; pricePerUseNok: number }>>([])
+  const [actorVoices, setActorVoices] = useState<BankStemme[]>([])
   const [musicUploading, setMusicUploading] = useState(false)
   // Medley (fase 3b): velg 2–5 egne låter i rekkefølge → dropleten mikser
   // dem til én fil med crossfade + loudnorm, lagret i tracks-<productId>.
@@ -451,7 +452,10 @@ export default function DraftPage() {
       try {
         const { data: sess } = await getSupabase().auth.getSession()
         const token = sess?.session?.access_token
-        const d = await fetch('/api/voice-actors?kind=video', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
+        const d = await fetch(
+          `/api/voice-actors?kind=video&productId=${encodeURIComponent(productId)}`,
+          token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+        ).then((r) => r.json())
         setActorVoices(d.voices || [])
       } catch { /* ingen skuespillere å vise */ }
     })()
@@ -1036,6 +1040,9 @@ export default function DraftPage() {
   const tenantInfo = useTenant()
   // Utpris-faktor (white-label): kunden ser priser der partnerens margin er inkludert
   const pf = tenantInfo.price_multiplier || 1
+  // Lisensporten gjelder kun der lisensen ER klareringen — se LisensertStemme.
+  const rettighetsmodus = tenantInfo.slug === 'twinledger'
+  const lisensSperret = lisensSperrer(actorVoices, draft?.voice_id || '', rettighetsmodus)
   const billingOn = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
   const [checkout, setCheckout] = useState<{ url: string; price: number; tier: string; breakdown: Array<{ label: string; nok: number }> } | null>(null)
 
@@ -1239,6 +1246,15 @@ export default function DraftPage() {
             {/* Stemme */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">🎙️ Stemme</label>
+              {/* Skuespillerne lå i en optgroup nede i denne nedtrekksmenyen.
+                  En rettighetshaver kan ikke være et punkt nummer nitten i en
+                  liste man må åpne for å se. */}
+              <LisensertStemme
+                stemmer={actorVoices}
+                valgt={draft.voice_id || ''}
+                velg={updateVoice}
+                rettighetsmodus={rettighetsmodus}
+              />
               <select
                 value={draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX'}
                 onChange={(e) => updateVoice(e.target.value)}
@@ -1268,12 +1284,14 @@ export default function DraftPage() {
                     </optgroup>
                   ))
                 })()}
-                {actorVoices.length > 0 && (
-                  <optgroup label="🎙️ Skuespillere (per bruk)">
-                    {actorVoices.map((v) => (
-                      <option key={v.voiceId} value={v.voiceId}>{v.name} — {fmtCredits(v.pricePerUseNok)} per produksjon</option>
-                    ))}
-                  </optgroup>
+                {/* Er en lisensiert stemme valgt i flaten over, må listen her
+                    likevel ha en verdi som matcher — ellers hopper den tilbake
+                    til første lagerstemme og sier at noe annet er valgt enn det
+                    som faktisk er valgt. */}
+                {actorVoices.some((v) => v.voiceId === draft.voice_id) && (
+                  <option value={draft.voice_id!}>
+                    {actorVoices.find((v) => v.voiceId === draft.voice_id)!.name} — valgt over
+                  </option>
                 )}
               </select>
               {(() => {
@@ -2390,9 +2408,9 @@ export default function DraftPage() {
 
           <button
             onClick={startProduction}
-            disabled={!allApproved || starting}
+            disabled={!allApproved || starting || lisensSperret}
             className={`px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
-              !allApproved || starting
+              !allApproved || starting || lisensSperret
                 ? 'bg-gray-400 cursor-not-allowed opacity-50'
                 : 'bg-green-600 hover:bg-green-700'
             }`}
@@ -2406,6 +2424,12 @@ export default function DraftPage() {
               t('startProduction')
             )}
           </button>
+
+          {lisensSperret && (
+            <p className="text-xs mt-2" style={{ color: 'var(--ember-deep)' }}>
+              Produksjon er stengt til lisensen på den valgte stemmen er på plass.
+            </p>
+          )}
         </div>
       </div>
     </div>
