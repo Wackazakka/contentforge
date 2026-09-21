@@ -2249,6 +2249,7 @@
     "show_all_n": "Vis alle {n}",
     "show_fewer": "Vis færre",
     "portrait": "Portrett",
-    "filters_empty": "Ingen castingopplysninger er fylt inn ennå, så det er ingenting å filtrere på."
+    "filters_empty": "Ingen castingopplysninger er fylt inn ennå, så det er ingenting å filtrere på.",
+    "f_models": "Modeller"
   }
 }

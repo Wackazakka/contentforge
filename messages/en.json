@@ -2249,6 +2249,7 @@
     "show_all_n": "Show all {n}",
     "show_fewer": "Show fewer",
     "portrait": "Portrait",
-    "filters_empty": "No casting details have been filled in yet, so there is nothing to filter on."
+    "filters_empty": "No casting details have been filled in yet, so there is nothing to filter on.",
+    "f_models": "Models"
   }
 }
