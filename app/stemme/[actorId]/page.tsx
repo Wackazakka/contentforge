@@ -110,6 +110,10 @@ export default async function ActorPresentationPage({ params }: { params: Promis
           .ac-split { grid-template-columns: 1fr; }
           .ac-left { border-right: 0; border-bottom: 1px solid var(--ds-border); }
           .ac-photos { grid-template-columns: repeat(2, 1fr); }
+          /* ⚠️ Nar spaltene stables, ma portrettet begrenses. Et 4:5-bilde i
+             full bredde blir naermere tusen piksler hoyt pa nettbrett — en
+             vegg man ma scrolle forbi for a komme til navnet. */
+          .ac-left .ac-portrett { max-width: 420px; }
         }
       `}</style>
 
@@ -137,9 +141,9 @@ export default async function ActorPresentationPage({ params }: { params: Promis
         <div className="ac-left">
           {photos[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photos[0]} alt={actor.name} style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', objectPosition: 'top', display: 'block' }} />
+            <img className="ac-portrett" src={photos[0]} alt={actor.name} style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', objectPosition: 'top', display: 'block' }} />
           ) : (
-            <div style={{ aspectRatio: '4/5', background: '#E4E4E0', display: 'flex', alignItems: 'flex-end', padding: 18 }}>
+            <div className="ac-portrett" style={{ aspectRatio: '4/5', background: '#E4E4E0', display: 'flex', alignItems: 'flex-end', padding: 18 }}>
               <span style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>{tc('portrait')}</span>
             </div>
           )}
