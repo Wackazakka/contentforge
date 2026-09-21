@@ -14,7 +14,10 @@
     "markup": "Påslag",
     "settlement": "Avregning",
     "myledger": "Min hovedbok",
-    "audition": "Audition"
+    "audition": "Audition",
+    "group_production": "Produksjon",
+    "group_management": "Forvaltning",
+    "group_me": "Meg"
   },
   "home": {
     "nav_pricing": "Priser",
@@ -1821,8 +1824,8 @@
     "actors_h2": "Skuespillere",
     "cancel": "Avbryt",
     "add_actor": "+ Legg til stemme/ansikt",
-    "f_voice": "🎙️ Stemme",
-    "f_face": "🧑 Ansikt",
+    "f_voice": "Stemme",
+    "f_face": "Ansikt",
     "f_row_hint": "Én rad = én forvaltningsavtale — stemme, ansikt eller begge.",
     "f_name": "Navn",
     "f_name_ph": "F.eks. «Kari Nordmann»",
@@ -1851,8 +1854,8 @@
     "err_voice_id": "ElevenLabs voice-id må fylles ut når raden har stemme.",
     "none_registered": "Ingen skuespillere registrert ennå.",
     "bulk_label": "Hele banken:",
-    "bulk_exclusive": "🔒 Gjør alle eksklusive",
-    "bulk_shared": "🌐 Del alle med plattformen",
+    "bulk_exclusive": "Gjør alle eksklusive",
+    "bulk_shared": "Del alle med plattformen",
     "bulk_busy": "Oppdaterer …",
     "th_name": "Navn",
     "th_to_actor": "Til skuespiller",
@@ -1863,9 +1866,9 @@
     "th_access": "Tilgang",
     "th_status": "Status",
     "tier_line": "{pct} % fra {from} bruk",
-    "waiting_clone": "⏳ venter kloning",
-    "access_exclusive": "🔒 Eksklusiv",
-    "access_shared": "🌐 Delt",
+    "waiting_clone": "Venter på klone",
+    "access_exclusive": "Eksklusiv",
+    "access_shared": "Delt",
     "access_excl_title": "Kun vårt kundenett",
     "access_shared_title": "Delt med hele plattformen",
     "toggle_off_title": "Klikk for å deaktivere — stemmen forsvinner fra kundenes menyer",
@@ -1892,7 +1895,10 @@
     "kind_avatar": "Avatar",
     "kind_radio": "Radio",
     "kind_face": "Ansikt",
-    "kind_preview": "Prøvelytt"
+    "kind_preview": "Prøvelytt",
+    "assets_both": "Stemme, ansikt",
+    "assets_voice": "Stemme",
+    "assets_face": "Ansikt"
   },
   "actorAdmin": {
     "back": "← Stemmebanken",

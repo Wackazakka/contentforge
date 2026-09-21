@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/authContext'
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
+import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
 import { isSimpleMode } from '@/lib/verticals'
@@ -106,6 +107,75 @@ export default function NavBar() {
   const handleLogout = async () => {
     await signOut()
     router.push('/login')
+  }
+
+  // ⚠️ TENANT-STYRT, IKKE GLOBALT. NavBar tegner dashbordet for ALLE
+  // tenantene. Sidemenyen er TwinLedgers redesign (Claude Design 7); de andre
+  // beholder topplinja. Samme grunn som at paletten ligger i tenant.colors og
+  // ikke i :root — en layoutendring her ville flyttet menyen for VoiceBank,
+  // PromoMaker, Bombaza og BådeOg uten at noen hadde bedt om det.
+  const sidemeny = tenant.slug === 'twinledger'
+
+  const gruppenavn = [t('group_production'), t('group_management'), t('group_me')]
+  // Rekkefølgen på gruppene varierer med vertikal, så navnet må følge
+  // INNHOLDET og ikke indeksen: forvaltning først hos rights-tenanter.
+  const navnFor = (g: NavLink[]) =>
+    g === forvaltning ? gruppenavn[1] : g === meg ? gruppenavn[2] : gruppenavn[0]
+
+  if (sidemeny) {
+    return (
+      <nav aria-label="Dashbord" style={{
+        position: 'fixed', left: 0, top: 0, bottom: 0, width: 236, zIndex: 50,
+        background: 'var(--ink)', display: 'flex', flexDirection: 'column',
+        overflowY: 'auto',
+      }} className="cf-sidenav">
+        <div style={{ padding: '22px 20px 18px' }}>
+          <Link href="/dashboard" style={{ textDecoration: 'none' }}>
+            <TwinLedgerLogo size={20} variant="dark" />
+          </Link>
+        </div>
+
+        <div style={{ flex: 1, paddingBottom: 12 }}>
+          {navGroups.map((group, gi) => (
+            <div key={gi} style={{ marginBottom: 18 }}>
+              {/* Gruppeoverskrift i stedet for en tynn strek: «Avregning» og
+                  «Kreditter» hører til to ulike verdener, og et NAVN sier
+                  hvilke — en strek sier bare at det er et skille. */}
+              <p style={{
+                fontFamily: 'var(--font-cfmono), ui-monospace, monospace', fontSize: 10,
+                fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase',
+                color: '#6B6B72', margin: '0 0 6px', padding: '0 20px',
+              }}>{navnFor(group)}</p>
+              {group.map(({ href, label }) => {
+                const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+                return (
+                  <Link key={href} href={href} style={{
+                    display: 'block', fontFamily: HANKEN, fontSize: 14.5,
+                    fontWeight: active ? 600 : 500,
+                    color: active ? 'var(--paper)' : '#C9C9CE',
+                    background: active ? '#2A2A2E' : 'transparent',
+                    borderLeft: `3px solid ${active ? 'var(--ember)' : 'transparent'}`,
+                    padding: '9px 20px 9px 17px', textDecoration: 'none',
+                  }}>{label}</Link>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+
+        <div style={{ borderTop: '1px solid #2A2A2E', padding: '14px 20px 20px', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
+          {tenant.show_language_toggle !== false && <LangToggle />}
+          {session && (
+            <Link href="/dashboard/konto" style={{ fontFamily: HANKEN, fontSize: 14, color: '#C9C9CE', textDecoration: 'none' }}>{tKonto('nav')}</Link>
+          )}
+          {session ? (
+            <button onClick={handleLogout} style={{ fontFamily: HANKEN, fontSize: 14, color: '#C9C9CE', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>{t('logout')}</button>
+          ) : (
+            <Link href="/login" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--ember)', textDecoration: 'none' }}>{tLogin('signIn')}</Link>
+          )}
+        </div>
+      </nav>
+    )
   }
 
   return (

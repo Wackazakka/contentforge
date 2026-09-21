@@ -197,55 +197,41 @@ export default function AvregningPage() {
         )}
 
         {feil && !laster && (
-          <div className="mt-8 bg-[var(--paper-raised)] border border-red-200 rounded-2xl p-5 text-red-700 text-sm">{feil}</div>
+          <div className="mt-8 bg-[var(--paper-raised)] border border-red-200  p-5 text-red-700 text-sm">{feil}</div>
         )}
 
         {data && !laster && (
           <>
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] px-5 py-4">
-                <p className="text-[12px] uppercase tracking-widest text-[var(--text-faint)]">{t('revenue')}</p>
-                <p className="mt-1 text-2xl font-semibold text-[var(--ink)] tabular-nums">{fmtNok(data.omsetningNok)}</p>
-                <p className="mt-1 text-[12px] text-[var(--text-faint)]">{t('revenueHint')}</p>
-              </div>
-              <div className="bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] px-5 py-4">
-                <p className="text-[12px] uppercase tracking-widest text-[var(--text-faint)]">{t('toPlatform')}</p>
-                <p className="mt-1 text-2xl font-semibold text-[var(--ink)] tabular-nums">{fmtNok(data.tilContentForgeNok)}</p>
-                <p className="mt-1 text-[12px] text-[var(--text-faint)]">{t('toPlatformHint')}</p>
-              </div>
-              <div className="bg-[var(--paper-raised)] rounded-2xl border-2 border-[var(--ember-deep)] px-5 py-4">
-                <p className="text-[12px] uppercase tracking-widest text-[var(--ember-deep)]">{t('toYou')}</p>
-                <p className="mt-1 text-2xl font-semibold text-[var(--ink)] tabular-nums">{fmtNok(data.tilWhiteLabelNok)}</p>
-                <p className="mt-1 text-[12px] text-[var(--text-faint)]">{t('toYouHint')}</p>
-              </div>
-            </div>
 
             {/* Innkrevingsmodellen: kundene betaler oss, vi betaler deg videre.
                 Opptjent andel og faktisk utbetaling er ikke samme tall — se
                 kursjusteringen. Vises bare når serveren sender feltene. */}
             {typeof data.tilGodeNok === 'number' && (
-              <div className="mt-5 bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] overflow-hidden">
+              <div className="mt-5 bg-[var(--paper-raised)]  border border-[var(--ds-border)] overflow-hidden">
                 <div className="px-5 py-3.5 border-b border-[var(--ds-border-faint)]">
                   <h2 className="text-base font-semibold text-[var(--ink)]">{t('payoutTitle')}</h2>
                 </div>
-                <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[14px]">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-[var(--text-muted)]">{t('collected')}</span>
-                    <span className="tabular-nums text-[var(--ink)]">{fmtNok(data.innkrevdNok ?? 0)}</span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-[var(--text-muted)]">{t('discountFactor')}</span>
-                    <span className="tabular-nums text-[var(--ink)]">
-                      {((data.rabattfaktor ?? 1) * 100).toFixed(1).replace('.', ',')} %
-                    </span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-[var(--text-muted)]">{t('alreadyPaid')}</span>
-                    <span className="tabular-nums text-[var(--ink)]">{fmtNok(data.alleredeUtbetaltNok ?? 0)}</span>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-3 border-t sm:border-t-0 border-[var(--ds-border-faint)] pt-3 sm:pt-0">
-                    <span className="font-medium text-[var(--ember-deep)]">{t('due')}</span>
-                    <span className="tabular-nums text-lg font-semibold text-[var(--ink)]">{fmtNok(data.tilGodeNok ?? 0)}</span>
+                {/* 🔑 ÉN OPPSTILLING, IKKE TRE KORT OG EN BOKS (Claude Design
+                    7C). Omsetning, andeler og utbetaling er ETT regnestykke
+                    som leses ovenfra og ned — delt i kort ble det fire tall
+                    uten synlig sammenheng, og leseren måtte gjøre koblingen
+                    selv. Dobbeltstrek under sluttsummen, som i bokføring. */}
+                <div className="px-5 py-4" style={{ fontSize: 14.5 }}>
+                  {([
+                    [t('revenue'), fmtNok(data.omsetningNok), false],
+                    [t('collected'), fmtNok(data.innkrevdNok ?? 0), false],
+                    [t('toPlatform'), fmtNok(data.tilContentForgeNok), false],
+                    [t('discountFactor'), `${((data.rabattfaktor ?? 1) * 100).toFixed(1).replace('.', ',')} %`, true],
+                    [t('alreadyPaid'), fmtNok(data.alleredeUtbetaltNok ?? 0), false],
+                  ] as Array<[string, string, boolean]>).map(([k, v, dempet], i) => (
+                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '9px 0', borderTop: i === 0 ? 'none' : '1px solid var(--ds-border-faint)' }}>
+                      <span style={{ color: dempet ? 'var(--text-faint)' : 'var(--text-muted)' }}>{k}</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums', color: dempet ? 'var(--text-faint)' : 'var(--ink)' }}>{v}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '13px 0 11px', marginTop: 4, borderTop: '1.5px solid var(--ink)', borderBottom: '5px double var(--ember-deep)' }}>
+                    <span style={{ fontFamily: 'var(--font-archivo), system-ui, sans-serif', fontWeight: 700, fontSize: 16 }}>{t('due')}</span>
+                    <span style={{ fontFamily: 'var(--font-archivo), system-ui, sans-serif', fontWeight: 700, fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{fmtNok(data.tilGodeNok ?? 0)}</span>
                   </div>
                 </div>
                 <p className="px-5 pb-4 text-[12px] leading-relaxed text-[var(--text-faint)]">
@@ -305,7 +291,7 @@ export default function AvregningPage() {
 
             {/* Hvem kjøpte og hvem produserte — ikke bare hvor mye (Lars 7/8) */}
             {data.perKunde && (
-              <div className="mt-5 bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] overflow-hidden">
+              <div className="mt-5 bg-[var(--paper-raised)]  border border-[var(--ds-border)] overflow-hidden">
                 <div className="px-5 py-3.5 border-b border-[var(--ds-border-faint)]">
                   <h2 className="text-base font-semibold text-[var(--ink)]">{t('customers')}</h2>
                 </div>
@@ -386,7 +372,7 @@ export default function AvregningPage() {
               </div>
             )}
 
-            <div className="mt-5 bg-[var(--paper-raised)] rounded-2xl border border-[var(--ds-border)] overflow-hidden">
+            <div className="mt-5 bg-[var(--paper-raised)]  border border-[var(--ds-border)] overflow-hidden">
               <div className="px-5 py-3.5 border-b border-[var(--ds-border-faint)] flex items-baseline justify-between gap-3">
                 <h2 className="text-base font-semibold text-[var(--ink)]">{t('breakdown')}</h2>
                 <span className="text-[12.5px] text-[var(--text-faint)]">{t('events', { count: data.antallHendelser })}</span>

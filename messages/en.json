@@ -14,7 +14,10 @@
     "markup": "Markup",
     "settlement": "Settlement",
     "myledger": "My ledger",
-    "audition": "Audition"
+    "audition": "Audition",
+    "group_production": "Production",
+    "group_management": "Management",
+    "group_me": "Me"
   },
   "home": {
     "nav_pricing": "Pricing",
@@ -1821,8 +1824,8 @@
     "actors_h2": "Performers",
     "cancel": "Cancel",
     "add_actor": "+ Add voice/face",
-    "f_voice": "🎙️ Voice",
-    "f_face": "🧑 Face",
+    "f_voice": "Voice",
+    "f_face": "Face",
     "f_row_hint": "One row = one management agreement — voice, face or both.",
     "f_name": "Name",
     "f_name_ph": "For example “Kari Nordmann”",
@@ -1851,8 +1854,8 @@
     "err_voice_id": "An ElevenLabs voice id is required when the row has a voice.",
     "none_registered": "No performers registered yet.",
     "bulk_label": "The whole bank:",
-    "bulk_exclusive": "🔒 Make all exclusive",
-    "bulk_shared": "🌐 Share all with the platform",
+    "bulk_exclusive": "Make all exclusive",
+    "bulk_shared": "Share all with the platform",
     "bulk_busy": "Updating …",
     "th_name": "Name",
     "th_to_actor": "To performer",
@@ -1863,9 +1866,9 @@
     "th_access": "Access",
     "th_status": "Status",
     "tier_line": "{pct} % from {from} uses",
-    "waiting_clone": "⏳ awaiting cloning",
-    "access_exclusive": "🔒 Exclusive",
-    "access_shared": "🌐 Shared",
+    "waiting_clone": "Awaiting clone",
+    "access_exclusive": "Exclusive",
+    "access_shared": "Shared",
     "access_excl_title": "Our customer network only",
     "access_shared_title": "Shared with the whole platform",
     "toggle_off_title": "Click to deactivate — the voice disappears from customer menus",
@@ -1892,7 +1895,10 @@
     "kind_avatar": "Avatar",
     "kind_radio": "Radio",
     "kind_face": "Face",
-    "kind_preview": "Preview"
+    "kind_preview": "Preview",
+    "assets_both": "Voice, face",
+    "assets_voice": "Voice",
+    "assets_face": "Face"
   },
   "actorAdmin": {
     "back": "← The bank",

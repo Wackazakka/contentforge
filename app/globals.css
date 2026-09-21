@@ -370,3 +370,23 @@ body {
   background: var(--ember-deep);
   color: var(--on-ember);
 }
+
+/* Dashbordets sidemeny (TwinLedger, Claude Design 7). Under 900px er det
+   ikke plass til 236px meny OG innhold — da legger menyen seg som en
+   vannrett stripe øverst, og innholdet slutter å rykke inn. */
+@media (max-width: 899px) {
+  .cf-sidenav {
+    position: static !important;
+    width: 100% !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 14px;
+    overflow-x: auto;
+  }
+  .cf-sidenav > div { padding: 10px 16px !important; margin-bottom: 0 !important; }
+  .cf-sidenav > div:last-child { border-top: 0 !important; flex-direction: row !important; margin-left: auto; }
+  .cf-sidenav p { display: none; }
+  .cf-sidenav a { display: inline-block !important; border-left: 0 !important; border-bottom: 3px solid transparent; padding: 8px 10px !important; }
+  .cf-with-sidenav { margin-left: 0 !important; }
+}

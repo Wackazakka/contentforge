@@ -286,8 +286,83 @@ export default function VoiceBankAdminPage() {
 
         {!loading && !error && (
           <>
+            {/* 🔑 SØKNADSKØEN ØVERST (Claude Design 7B). Den er det ENESTE
+                tidskritiske på sida — en søker som venter en uke på svar, er
+                en søker man har mistet. Nøkkeltall og tabeller kan leses når
+                som helst. Ember-rammen sier at dette er det som haster. */}
+            {/* Drop-in-søknader («Bli en stemme i banken») */}
+            {appsMigrated && (
+              <div className="mb-8">
+                <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4 mb-3 flex flex-wrap items-center gap-3">
+                  <div className="flex-1 min-w-[240px]">
+                    <div className="font-semibold text-gray-900 text-sm">{t('apps_title')}</div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {acceptApps
+                        ? <>{t('apps_on')} <span className="font-mono">{typeof window !== 'undefined' ? `${window.location.origin}/bli-stemme` : '/bli-stemme'}</span></>
+                        : t('apps_off')}
+                    </p>
+                  </div>
+                  <button onClick={toggleAcceptApps}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold ${acceptApps ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90'}`}>
+                    {acceptApps ? t('apps_turn_off') : t('apps_turn_on')}
+                  </button>
+                </div>
+
+                {applications.filter((a) => a.status === 'new').length > 0 && (
+                  <div style={{ border: '2px solid var(--ember-deep)', padding: 18, marginBottom: 8 }}>
+                    <h2 className="font-semibold text-gray-900 mb-3">
+                      {t('apps_h2', { n: applications.filter((a) => a.status === 'new').length })}
+                    </h2>
+                    <div className="space-y-3">
+                      {applications.filter((a) => a.status === 'new').map((app) => (
+                        <div key={app.id} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4">
+                          <div className="flex flex-wrap items-start gap-3">
+                            <div className="flex-1 min-w-[220px]">
+                              <div className="font-semibold text-gray-900">{app.name}{app.wants_face && <span className="ml-2 text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-2 py-0.5">{t('apps_plus_face')}</span>}</div>
+                              <div className="text-xs text-gray-500">{app.email}{app.phone ? ` · ${app.phone}` : ''} · {String(app.created_at).slice(0, 10)}</div>
+                              {app.bio && <p className="text-sm text-gray-600 mt-1">{app.bio}</p>}
+                              {/* Det soekeren selv oppga. Uten dette maatte den
+                                  som godkjenner apne raden etterpaa for a se om
+                                  hen i det hele tatt blir soekbar. */}
+                              {castinglinje(app) && (
+                                <div className="text-xs text-gray-600 mt-1.5">{castinglinje(app)}</div>
+                              )}
+                              {castingmerker(app).length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                  {castingmerker(app).map((m) => (
+                                    <span key={m} className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-600">{m}</span>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {(app.sample_urls || []).map((u, i) => (
+                                  <audio key={i} controls preload="none" src={u} className="h-9" />
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => decideApplication(app, 'approved')} disabled={appBusy === app.id}
+                                className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-green-700 hover:opacity-90 disabled:opacity-50">
+                                {t('apps_approve')}
+                              </button>
+                              <button onClick={() => decideApplication(app, 'rejected')} disabled={appBusy === app.id}
+                                className="px-3 py-1.5 rounded-lg text-sm text-gray-600 border border-gray-300 hover:border-red-400 hover:text-red-600 disabled:opacity-50">
+                                {t('apps_reject')}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Månedens tall */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            {/* Nøkkeltallene som FEM FELT I ÉN RAMME, ikke fem kort. De hører
+                til samme regnestykke — kort ville sagt at de er fem saker. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', border: '1px solid var(--ds-border-strong)', background: 'var(--paper-raised)', marginBottom: 32 }}>
               {[
                 { label: t('card_uses'), value: String(totals.uses) },
                 { label: t('card_from'), value: nok(totals.from) },
@@ -295,10 +370,10 @@ export default function VoiceBankAdminPage() {
                 ...(fees ? [{ label: t('card_infra', { pct: fees.infraPct }), value: nok(monthInfraNok) }] : []),
                 ...(fees?.licenseTo ? [{ label: t('card_licence', { to: fees.licenseTo, pct: fees.licensePct }), value: nok(monthLicenseNok) }] : []),
                 { label: fees ? t('card_cut_net') : t('card_cut'), value: nok(totals.cut - monthInfraNok - monthLicenseNok) },
-              ].map((c) => (
-                <div key={c.label} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4">
-                  <div className="text-xs text-gray-500 mb-1">{c.label}</div>
-                  <div className="text-xl font-bold text-gray-900">{c.value}</div>
+              ].map((c, i) => (
+                <div key={c.label} style={{ padding: '16px 18px', borderLeft: i === 0 ? 'none' : '1px solid var(--ds-border)' }}>
+                  <div style={{ fontFamily: 'var(--font-cfmono), ui-monospace, monospace', fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6 }}>{c.label}</div>
+                  <div style={{ fontFamily: 'var(--font-archivo), system-ui, sans-serif', fontWeight: 800, fontSize: 20, letterSpacing: '-0.02em', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{c.value}</div>
                 </div>
               ))}
             </div>
@@ -464,7 +539,7 @@ export default function VoiceBankAdminPage() {
                           </td>
                           <td className="px-4 py-2">{m?.uses ?? 0}</td>
                           <td className="px-4 py-2">
-                            {a.elevenlabs_voice_id && a.face_character_id ? '🎙️🧑' : a.elevenlabs_voice_id ? '🎙️' : a.face_character_id ? '🧑' : t('waiting_clone')}
+                            {a.elevenlabs_voice_id && a.face_character_id ? t('assets_both') : a.elevenlabs_voice_id ? t('assets_voice') : a.face_character_id ? t('assets_face') : t('waiting_clone')}
                           </td>
                           <td className="px-4 py-2" title={a.is_exclusive !== false ? t('access_excl_title') : t('access_shared_title')}>
                             {a.is_exclusive !== false ? t('access_exclusive') : t('access_shared')}
@@ -487,74 +562,6 @@ export default function VoiceBankAdminPage() {
               </>
             )}
 
-            {/* Drop-in-søknader («Bli en stemme i banken») */}
-            {appsMigrated && (
-              <div className="mb-8">
-                <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4 mb-3 flex flex-wrap items-center gap-3">
-                  <div className="flex-1 min-w-[240px]">
-                    <div className="font-semibold text-gray-900 text-sm">{t('apps_title')}</div>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {acceptApps
-                        ? <>{t('apps_on')} <span className="font-mono">{typeof window !== 'undefined' ? `${window.location.origin}/bli-stemme` : '/bli-stemme'}</span></>
-                        : t('apps_off')}
-                    </p>
-                  </div>
-                  <button onClick={toggleAcceptApps}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold ${acceptApps ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90'}`}>
-                    {acceptApps ? t('apps_turn_off') : t('apps_turn_on')}
-                  </button>
-                </div>
-
-                {applications.filter((a) => a.status === 'new').length > 0 && (
-                  <>
-                    <h2 className="font-semibold text-gray-900 mb-3">
-                      {t('apps_h2', { n: applications.filter((a) => a.status === 'new').length })}
-                    </h2>
-                    <div className="space-y-3">
-                      {applications.filter((a) => a.status === 'new').map((app) => (
-                        <div key={app.id} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4">
-                          <div className="flex flex-wrap items-start gap-3">
-                            <div className="flex-1 min-w-[220px]">
-                              <div className="font-semibold text-gray-900">{app.name}{app.wants_face && <span className="ml-2 text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-2 py-0.5">{t('apps_plus_face')}</span>}</div>
-                              <div className="text-xs text-gray-500">{app.email}{app.phone ? ` · ${app.phone}` : ''} · {String(app.created_at).slice(0, 10)}</div>
-                              {app.bio && <p className="text-sm text-gray-600 mt-1">{app.bio}</p>}
-                              {/* Det soekeren selv oppga. Uten dette maatte den
-                                  som godkjenner apne raden etterpaa for a se om
-                                  hen i det hele tatt blir soekbar. */}
-                              {castinglinje(app) && (
-                                <div className="text-xs text-gray-600 mt-1.5">{castinglinje(app)}</div>
-                              )}
-                              {castingmerker(app).length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                  {castingmerker(app).map((m) => (
-                                    <span key={m} className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-600">{m}</span>
-                                  ))}
-                                </div>
-                              )}
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {(app.sample_urls || []).map((u, i) => (
-                                  <audio key={i} controls preload="none" src={u} className="h-9" />
-                                ))}
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <button onClick={() => decideApplication(app, 'approved')} disabled={appBusy === app.id}
-                                className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-green-700 hover:opacity-90 disabled:opacity-50">
-                                {t('apps_approve')}
-                              </button>
-                              <button onClick={() => decideApplication(app, 'rejected')} disabled={appBusy === app.id}
-                                className="px-3 py-1.5 rounded-lg text-sm text-gray-600 border border-gray-300 hover:border-red-400 hover:text-red-600 disabled:opacity-50">
-                                {t('apps_reject')}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
 
             {/* Royalty-logg */}
             <h2 className="font-semibold text-gray-900 mb-3">{t('events_h2')}</h2>

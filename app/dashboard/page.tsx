@@ -13,7 +13,9 @@ import { verticalConfig } from '@/lib/verticals'
 import { useDashboardRole } from '@/lib/useDashboardRole'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
-const SERIF = 'var(--font-serif), serif'
+// Instrument Serif brukes IKKE i TwinLedger-designet (Claude Design 7A).
+// Archivo 800 overalt der display-tekst skal stå.
+const SERIF = 'var(--font-archivo), system-ui, sans-serif'
 const MONO = 'var(--font-cfmono), monospace'
 
 function formatDate(iso: string, locale: string) {
@@ -218,7 +220,7 @@ export default function DashboardPage() {
 
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 }}>
-        <h1 style={{ fontFamily: SERIF, fontWeight: 400, fontSize: 'clamp(32px,4vw,42px)', lineHeight: 1, letterSpacing: '-0.01em', color: 'var(--ink)', margin: 0 }}>{t('yourProducts')}</h1>
+        <h1 style={{ fontFamily: SERIF, fontWeight: 800, fontSize: 'clamp(28px,3.4vw,38px)', lineHeight: 1.05, letterSpacing: '-0.035em', color: 'var(--ink)', margin: 0 }}>{t('yourProducts')}</h1>
         {/* Er lista tom, staar den samme oppfordringen i velkomstkortet rett
             under — to like knapper med et par centimeter mellom seg (Lars 3/8).
             Kortets knapp er den tydeligste, saa denne viker til det finnes noe
@@ -249,7 +251,6 @@ export default function DashboardPage() {
       ) : products.length === 0 ? (
         <div style={{ background: 'var(--paper-raised)', border: '1px solid var(--ds-border)', borderRadius: 18, padding: 32, boxShadow: '0 1px 2px rgba(70,45,20,0.04)' }}>
           <div style={{ maxWidth: 380, margin: '0 auto', textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
             <h3 style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 20, color: 'var(--ink)', margin: '0 0 8px' }}>{t('welcomeTitle', { name: tenant.app_name })}</h3>
             <p style={{ fontFamily: HANKEN, fontSize: 14.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '0 0 26px' }}>{t('welcomeSubtitle')}</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
