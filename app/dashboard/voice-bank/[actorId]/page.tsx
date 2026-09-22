@@ -19,6 +19,10 @@ interface ActorDetail {
   customer_price_nok: number
   rates: Record<string, { actor_rate_nok: number; customer_price_nok: number }> | null
   face_character_id: string | null
+  // Levering (101) og identitetssjekk (102) — grunnlaget for skjoeten under
+  photo_paths?: string[] | null
+  recording_paths?: string[] | null
+  identity_check?: { ok?: boolean; sameCount?: number; withFace?: number; outliers?: string[]; noFace?: string[]; reason?: string | null } | null
   is_exclusive: boolean
   is_public: boolean
   is_demo: boolean
@@ -78,6 +82,67 @@ export default function VoiceActorPage() {
   const [editPrice, setEditPrice] = useState('')
   const [editKinds, setEditKinds] = useState<Record<string, { rate: string; price: string }>>({})
   const [editFaceId, setEditFaceId] = useState('')
+  // Skjoeten (22.09): leverte bilder -> ansiktsmodell. Bildene ligger i den
+  // private boetta (101) og identitetssjekken (102) har sett paa dem — men
+  // treningen (091/093) tok fortsatt en zip lastet opp for haand. Denne
+  // knappen pakker det hun leverte, i NETTLESEREN (en Netlify-funksjon
+  // kutter ved ~6 MB), og sender det inn samme port som alt annet:
+  // samtykkeporten (089) og godkjenningen (091) staar urort — hun faar de
+  // tre proevebildene til ja/nei, som ved enhver annen trening.
+  const [trener, setTrener] = useState<'portrait' | 'flux2'>('portrait')
+  const [trenBusy, setTrenBusy] = useState(false)
+  const [trenStatus, setTrenStatus] = useState('')
+  const [trenFeil, setTrenFeil] = useState<string | null>(null)
+  const trenFraLevering = async () => {
+    if (!actor) return
+    const ic = actor.identity_check
+    if (ic && ic.ok === false) {
+      const hva = (ic.outliers || []).map((x) => x.split('/').pop()).join(', ') || ic.reason || 'avvik'
+      if (!confirm(`Identitetssjekken har avvik (${hva}). Trene likevel?`)) return
+    }
+    if (!actor.actor_email) { setTrenFeil('Raden mangler e-post — godkjenningen (091) kan ikke sendes til henne.'); return }
+    setTrenBusy(true); setTrenFeil(null)
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Ikke innlogget')
+      const h = { Authorization: `Bearer ${token}` }
+      setTrenStatus('Henter bildene…')
+      const lev = await fetch(`/api/levering/admin?actorId=${actorId}`, { headers: h }).then((r) => r.json())
+      const bilder: Array<{ url: string | null; navn?: string }> = (lev.bilder || []).filter((b: any) => b.url)
+      if (bilder.length < 10) throw new Error(`Bare ${bilder.length} bilder tilgjengelig — modellen trenger minst 10.`)
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+      for (let i = 0; i < bilder.length; i++) {
+        setTrenStatus(`Pakker ${i + 1} av ${bilder.length}…`)
+        const r = await fetch(bilder[i].url!)
+        if (!r.ok) throw new Error(`Bilde ${i + 1} kunne ikke hentes (${r.status})`)
+        zip.file(bilder[i].navn || `bilde-${i + 1}.jpg`, await r.blob())
+      }
+      setTrenStatus('Lager zip…')
+      // JPEG er alt komprimert — STORE er raskere og like lite.
+      const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' })
+      setTrenStatus('Laster opp settet…')
+      const up = await fetch('/api/characters/upload-url', { headers: h }).then((r) => r.json())
+      if (!up.uploadUrl || !up.path) throw new Error(up.error || 'Fikk ikke opplastingslenke')
+      const put = await fetch(up.uploadUrl, { method: 'PUT', body: zipBlob, headers: { 'Content-Type': 'application/zip' } })
+      if (!put.ok) throw new Error(`Opplasting av settet feilet (${put.status})`)
+      setTrenStatus('Starter treningen…')
+      const tr = await fetch('/api/characters/train', {
+        method: 'POST', headers: { ...h, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: actor.name, zipPath: up.path, consentSubject: 'other_consented', subjectEmail: actor.actor_email, trainer: trener }),
+      })
+      const tj = await tr.json()
+      if (!tr.ok || !tj.character?.id) throw new Error(tj.error || 'Treningen startet ikke')
+      setTrenStatus('Kobler modellen til raden…')
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, faceCharacterId: tj.character.id }) })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Modellen ble laget, men kunne ikke kobles til raden')
+      await refresh()
+    } catch (e) {
+      setTrenFeil(e instanceof Error ? e.message : 'Noe gikk galt')
+    } finally { setTrenBusy(false); setTrenStatus('') }
+  }
   const [editBio, setEditBio] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editVoiceId, setEditVoiceId] = useState('')
@@ -581,6 +646,35 @@ export default function VoiceActorPage() {
                 Ansiktet er en LoRA-fil vi holder hos fal — der var «du kan
                 trekke det tilbake» et løfte, ikke en mekanisme. Denne knappen
                 er mekanismen. */}
+            {!actor.face_character_id && (actor.photo_paths?.length ?? 0) > 0 && (() => {
+              const n = actor.photo_paths!.length
+              const ic = actor.identity_check
+              const idLinje = !ic ? 'Identitetssjekken har ikke kjørt ennå.'
+                : ic.ok ? `✓ Identitetssjekk: alle ${ic.sameCount} ansiktene ser ut som samme person.`
+                : `⚠️ Identitetssjekk: ${ic.reason || 'avvik'}${(ic.outliers || []).length ? ' — ' + ic.outliers!.map((x) => x.split('/').pop()).join(', ') : ''}.`
+              return (
+                <div className="rounded-lg p-5 mb-8" style={{ background: 'var(--paper-raised)', border: '1px solid var(--ds-border-strong, #D8CDB8)' }}>
+                  <div className="font-medium text-gray-900 text-sm">Ansiktsmodell fra de {n} leverte bildene</div>
+                  <p className={`text-xs mt-0.5 max-w-xl ${ic && ic.ok === false ? 'text-amber-800' : 'text-gray-500'}`}>{idLinje}</p>
+                  <p className="text-xs text-gray-500 mt-1 max-w-xl">
+                    Settet pakkes her i nettleseren og sendes inn samme port som all annen trening. Hun får tre prøvebilder til godkjenning før modellen kan brukes.
+                  </p>
+                  <div className="flex items-center gap-3 mt-3 flex-wrap">
+                    <select value={trener} onChange={(e) => setTrener(e.target.value as 'portrait' | 'flux2')} disabled={trenBusy}
+                      className="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white">
+                      <option value="portrait">Flux 1 portrett (~20 kr) — standard</option>
+                      <option value="flux2">Flux 2 (~96 kr) — måleinstrument</option>
+                    </select>
+                    <button onClick={trenFraLevering} disabled={trenBusy || n < 10}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[var(--ink,#1C1A16)] hover:opacity-90 disabled:opacity-50">
+                      {trenBusy ? trenStatus || 'Arbeider…' : n < 10 ? `Trenger minst 10 bilder (${n})` : 'Tren ansiktsmodell'}
+                    </button>
+                  </div>
+                  {trenFeil && <p className="text-xs text-red-700 mt-2">{trenFeil}</p>}
+                </div>
+              )
+            })()}
+
             {actor.face_character_id && (
               <div
                 className="rounded-lg p-5 mb-8 flex items-center justify-between gap-4 flex-wrap"
