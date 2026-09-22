@@ -1625,7 +1625,7 @@
     "err_recording_choice": "Si om du har et opptak fra før, eller om du vil ha hjelp til det.",
     "err_too_large_request": "Forespørselen ble for stor til at serveren tok imot den. Prøv med færre eller mindre bilder.",
     "delivery_hint": "Bilder og opptak leverer du ikke her — når du har bekreftet e-posten, finner du siden din, og der laster du dem opp i ditt eget tempo.",
-    "consent": "Jeg melder meg på stemmebanken. Blir stemmen eller ansiktet mitt tatt i bruk, lages en profesjonell modell som lagres hos plattformen og aldri utleveres. All bruk logges og honoreres etter avtale, og jeg kan når som helst trekke meg. Stemmen min er biometriske data og behandles i tråd med personvernreglene.",
+    "consent": "Jeg melder meg på stemmebanken. Blir stemmen eller ansiktet mitt tatt i bruk, lages en profesjonell modell som lagres hos plattformen og aldri utleveres. Av bildene og opptaket jeg leverer, lages det også et fingeravtrykk — en tallrekke, ikke et bilde — som brukes til å bekrefte at bildene viser meg, og til å hindre at samme person registreres to ganger. All bruk logges og honoreres etter avtale, og jeg kan når som helst trekke meg; da slettes også fingeravtrykket. Stemmen og ansiktet mitt er biometriske data og behandles i tråd med personvernreglene.",
     "done_title": "Sjekk e-posten din",
     "done_body": "Vi har sendt en bekreftelseslenke til {email}. Klikk den, så er kontoen din åpen — og inne finner du siden der du leverer bilder og opptak.",
     "h1": "Bli en stemme hos {tenant}",

@@ -1625,7 +1625,7 @@
     "err_recording_choice": "Say whether you already have a recording, or want help making one.",
     "err_too_large_request": "The request was too large for the server to accept. Try fewer or smaller photos.",
     "delivery_hint": "You do not deliver photos or recordings here — once you have confirmed your email, you will find your own page, and you upload them there at your own pace.",
-    "consent": "I am signing up to the voice bank. If my voice or face is put to use, a professional model is created, stored with the platform and never handed out. All use is logged and paid according to agreement, and I may withdraw at any time. My voice is biometric data and is processed in line with data protection rules.",
+    "consent": "I am signing up to the voice bank. If my voice or face is put to use, a professional model is created, stored with the platform and never handed out. From the photos and recording I deliver, a fingerprint is also created — a sequence of numbers, not an image — used to confirm that the photos show me, and to prevent the same person being registered twice. All use is logged and paid according to agreement, and I may withdraw at any time; the fingerprint is then deleted too. My voice and face are biometric data and are processed in line with data protection rules.",
     "done_title": "Check your email",
     "done_body": "We have sent a confirmation link to {email}. Click it and your account is open — inside you will find the page where you deliver photos and recordings.",
     "h1": "Join {tenant} as a voice",
