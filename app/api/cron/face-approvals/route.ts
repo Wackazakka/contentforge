@@ -25,9 +25,13 @@ async function sendEpost(til: string | string[], emne: string, html: string): Pr
   if (!process.env.RESEND_API_KEY) return false
   try {
     const { Resend } = await import('resend')
-    await new Resend(process.env.RESEND_API_KEY).emails.send({
+    // Resend kaster ikke — en avvist sending kommer som `{ error }`. Uten
+    // denne sjekken ble purringen bokfoert som sendt uansett (samme feil som
+    // i varsleOmGodkjenning, funnet 22.09).
+    const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: 'TwinLedger <hello@centerforge.app>', to: til, subject: emne, html,
     })
+    if (error) { console.error('[face-approvals] e-post avvist:', error); return false }
     return true
   } catch { return false }
 }

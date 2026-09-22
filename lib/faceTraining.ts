@@ -57,7 +57,13 @@ export async function varsleOmGodkjenning(karakterId: string, til: string, token
     const { vert, merke } = await vertFor(tenantId)
     const lenke = `${vert}/godkjenn-ansikt/${token}`
     const { Resend } = await import('resend')
-    await new Resend(process.env.RESEND_API_KEY).emails.send({
+    // 🔑 RESEND KASTER IKKE. SDK-en svarer `{ data, error }` — en avvist
+    // sending (ugyldig mottaker, sperret domene, kvote) kommer tilbake som et
+    // vanlig svar. Den gamle koden `await`-et og satte approval_sent_at
+    // uansett: 22.09 19:49 sto raden som «e-post sendt» mens Lars satt uten
+    // mail. Naa: feilen paa raden (last_error), tidsstempelet urørt, og
+    // neste tikk proever igjen (se varsleEtterslep).
+    const { error: sendFeil } = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: `${merke} <hello@centerforge.app>`,
       to: til,
       subject: 'Er dette deg? Godkjenn ansiktsmodellen din',
@@ -69,12 +75,19 @@ export async function varsleOmGodkjenning(karakterId: string, til: string, token
         <p style="color:#6B6358;font-size:14px">Til du svarer, er modellen stengt og kan ikke brukes. Du kan ombestemme deg senere uansett hva du svarer nå.</p>
       </div>`,
     })
+    if (sendFeil) {
+      await db().from('user_characters').update({ last_error: `e-post: ${sendFeil.name || ''} ${sendFeil.message || JSON.stringify(sendFeil)}`.slice(0, 300) }).eq('id', karakterId)
+      return false
+    }
     // ⚠️ Tidsstempelet settes FOERST NAAR e-posten faktisk gikk. Sto det ved
     // innsetting, ville purresveipet (092) talt dager fra et varsel som
     // kanskje aldri ble sendt — og purret paa noe hun ikke har faatt.
-    await db().from('user_characters').update({ approval_sent_at: new Date().toISOString() }).eq('id', karakterId)
+    await db().from('user_characters').update({ approval_sent_at: new Date().toISOString(), last_error: null }).eq('id', karakterId)
     return true
-  } catch { return false }
+  } catch (e) {
+    await db().from('user_characters').update({ last_error: `e-post: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300) }).eq('id', karakterId).then(() => {}, () => {})
+    return false
+  }
 }
 
 /** Menneskelesbar aarsak fra et fal-svar: 422-detaljer som «image_data_url: Field required», ellers det som er. */
@@ -141,5 +154,30 @@ export async function fullfoerTreninger(opts: { tenantId?: string } = {}): Promi
       }
     } catch { /* behold 'training' til neste poll */ }
   }
+  varslet += await varsleEtterslep(opts.tenantId)
   return { sjekket: rader.length, ferdige, feilet, varslet }
+}
+
+/**
+ * Ferdige modeller som venter paa godkjenning, men der varselet aldri gikk.
+ *
+ * 🔑 EN MISLYKKET E-POST SKAL IKKE VAERE ENDESTASJON. Foer gikk varselet bare i
+ * det ene oeyeblikket modellen ble flippet til «ready»; feilet sendingen der
+ * (eller ble den bare RAPPORTERT som sendt), fantes ingen vei til et nytt
+ * forsoek — bare purresveipet (092), som forutsetter at foerste varsel gikk.
+ * Naa proever hvert tikk paa nytt til approval_sent_at er satt. Idempotent:
+ * tidsstempelet settes bare naar Resend faktisk tok imot.
+ */
+async function varsleEtterslep(tenantId?: string): Promise<number> {
+  let q = db().from('user_characters')
+    .select('id, name, owner_tenant_id, subject_email, approval_token')
+    .eq('status', 'ready').eq('approval_status', 'pending').is('approval_sent_at', null)
+    .not('subject_email', 'is', null).not('approval_token', 'is', null)
+  if (tenantId) q = q.eq('owner_tenant_id', tenantId)
+  const { data } = await q
+  let n = 0
+  for (const r of (data || []) as Pick<Rad, 'id' | 'name' | 'owner_tenant_id' | 'subject_email' | 'approval_token'>[]) {
+    if (await varsleOmGodkjenning(r.id, r.subject_email!, r.approval_token!, r.name, r.owner_tenant_id)) n++
+  }
+  return n
 }
