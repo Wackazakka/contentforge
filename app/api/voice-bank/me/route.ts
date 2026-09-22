@@ -180,11 +180,27 @@ export async function GET(request: Request) {
       // Proevelytt: naar en kunde tester stemmen. Per 1000 tegn, ikke per bruk.
       const previewRatePer1000 = Number(r.preview?.actor_rate_nok ?? PREVIEW_ROYALTY_PER_1000.actor)
 
+      // Ansiktsmodellen hennes (091): status og de tre proevebildene hun svarte
+      // paa. Lars 22.09: «vis dem paa /min-stemme ogsaa» — for et menneske ER
+      // de tre bildene modellen. Signert 10 min; eldre offentlige R2-adresser
+      // (doede) hoppes over.
+      let faceModel: { status: string; approval: string | null; withdrawn: boolean; samples: string[] } | null = null
+      if (a.face_character_id) {
+        const { data: fm } = await supabase.from('user_characters')
+          .select('status, approval_status, withdrawn_at, sample_urls').eq('id', a.face_character_id).maybeSingle()
+        if (fm) {
+          const stier = (Array.isArray(fm.sample_urls) ? fm.sample_urls : []).filter((s: unknown): s is string => typeof s === 'string' && !s.startsWith('http'))
+          const signert = stier.length ? (await supabase.storage.from('training-sets').createSignedUrls(stier, 600)).data || [] : []
+          faceModel = { status: String(fm.status), approval: fm.approval_status ?? null, withdrawn: !!fm.withdrawn_at, samples: signert.map((x) => x.signedUrl).filter((u): u is string => !!u) }
+        }
+      }
+
       out.push({
         id: a.id,
         name: a.name,
         hasVoice: !!a.elevenlabs_voice_id,
         hasFace: !!a.face_character_id,
+        faceModel,
         isActive: !!a.is_active,
         isExclusive: a.is_exclusive !== false,
         // Paameldingen (101): hva hun tilbyr og hvor langt hun er kommet.

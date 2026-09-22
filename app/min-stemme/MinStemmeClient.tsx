@@ -21,6 +21,8 @@ interface Actor {
   // Paameldingen (101)
   offersVoice: boolean; wantsFace: boolean; hasOwnRecording: boolean | null
   enrolled: boolean; identityBasis: string | null; delivered: boolean
+  // Ansiktsmodellen (091): status + proevebildene hun svarte paa, signert 10 min
+  faceModel: { status: string; approval: string | null; withdrawn: boolean; samples: string[] } | null
 }
 
 interface Fradrag { label: string; pct: number | null; amountNok: number }
@@ -206,6 +208,36 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 />
               </div>
             )}
+
+            {/* Ansiktsmodellen hennes — de tre bildene hun svarte paa, og hva
+                svaret var. Lars 22.09: etter godkjenningen fantes bildene ikke
+                noe sted hun kunne se dem. Dette ER modellen for henne. */}
+            {a.faceModel && (() => {
+              const fm = a.faceModel
+              const stengt = fm.withdrawn || fm.approval === 'rejected'
+              const tekst = stengt ? 'Stengt. Modellen kan ikke brukes til noe.'
+                : fm.status === 'training' ? 'Modellen trenes. Du får e-post når det er noe å se på.'
+                : fm.status === 'failed' ? 'Treningen feilet. Vi prøver på nytt.'
+                : fm.approval === 'pending' ? 'Venter på svaret ditt — se e-posten «Er dette deg?».'
+                : fm.approval === 'approved' ? 'Godkjent av deg. Kan brukes under de avtalene som klareres for den — hver bruk føres opp her.'
+                : 'Klar.'
+              return (
+                <div className="mb-8">
+                  <h2 className="font-semibold mb-1">Ansiktsmodellen din</h2>
+                  <p className={`text-sm mb-3 ${stengt ? 'text-red-700' : 'text-gray-600'}`}>{tekst}</p>
+                  {fm.samples.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {fm.samples.map((u, i) => (
+                        <a key={i} href={u} target="_blank" rel="noreferrer" title="Prøvebilde laget med modellen">
+                          <img src={u} alt="" className={`h-40 w-auto object-cover rounded border border-gray-200 ${stengt ? 'opacity-50 grayscale' : ''}`} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">Bildene er laget med modellen, ikke av deg. Du kan når som helst be om at den stenges.</p>
+                </div>
+              )
+            })()}
 
             {/* Oppgjøret — det viktigste først */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
