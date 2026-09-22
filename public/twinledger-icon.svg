@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- TwinLedger-favicon, avledet av ordmerket: T i blekk paa papir, med
+       dobbeltstreken under — streken som i bokfoering betyr at summen er
+       endelig. Samme grep som TwinLedgerLogo.tsx. Erstattbar naar designet
+       leverer et eget ikon. -->
+  <rect width="64" height="64" rx="12" fill="#F6F4EF"/>
+  <path d="M16 15h32v8H36v22h-8V23H16z" fill="#1C1A16"/>
+  <rect x="14" y="49" width="36" height="2.5" fill="#C5451B"/>
+  <rect x="14" y="54" width="36" height="2.5" fill="#C5451B"/>
+</svg>

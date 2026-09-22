@@ -1,6 +1,7 @@
 'use client'
 
 import { useTenant } from '@/lib/tenantContext'
+import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
 
 /**
  * CenterForge "Daylight Studio" brand mark — Logo C ("Smelteåpning" / molten aperture).
@@ -42,6 +43,17 @@ export function CenterForgeLogo({
   wordmarkSize?: number
 }) {
   const tenant = useTenant()
+
+  // 🔑 TWINLEDGER HAR ET TEGNET ORDMERKE, IKKE EN OPPLASTET LOGO. Uten dette
+  // falt tenanten gjennom til fallbacken under — CenterForges kule pluss
+  // «TwinLedger» som vanlig tekst — paa /min-stemme, /start, vilkaarssidene
+  // og landingssidene, mens fem andre sider tegnet det ekte merket (Lars
+  // 22.09: «logoen vaar er ikke brukt i store deler av tjenesten»). Naa
+  // ligger valget HER, saa alle som ber om «logoen» faar riktig merke, og
+  // ingen side trenger aa vite at TwinLedger er spesiell.
+  if (tenant.slug === 'twinledger') {
+    return <TwinLedgerLogo size={wordmarkSize} />
+  }
 
   if (tenant.logo_url) {
     // Tenanten har lastet opp sitt eget merke. Da ER logoen merkevaren, og
