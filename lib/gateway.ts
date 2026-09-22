@@ -117,7 +117,15 @@ export async function submitFaceImageJob(ch: { triggerWord: string; loraUrl: str
   // lastes i Flux 1-generatoren (fal-ai/flux-lora) — den ville gitt feil
   // eller et fremmed ansikt. Fram til 22.09.2026 gikk alt hit uansett trener;
   // maaleinstrumentet (093) kunne aldri ha vist et Flux 2-bilde.
-  const generator = (ch.trainer || '').includes('flux-2') ? 'fal-ai/flux-2/lora' : 'fal-ai/flux-lora'
+  const erFlux2 = (ch.trainer || '').includes('flux-2')
+  const generator = erFlux2 ? 'fal-ai/flux-2/lora' : 'fal-ai/flux-lora'
+  // 🔑 STYRKEN ER MAALT, IKKE GJETTET (22.09, Lars' 15 bilder, samme froe og
+  // prompt, likhet = ansiktsvektor mot de ekte bildene): Flux 2-modellen fra
+  // fals standardinnstillinger gir 0,36 ved x1,0 («en fremmed»), 0,68 ved
+  // x1,3, 0,77 ved x1,5 (innenfor de ekte: 0,71–0,88), 0,64 og overkokt ved
+  // x2,0. Flux 1 (portrett-treneren) gir 0,84 ved x1,0. Flux 2 faar 1,5 saa
+  // en sammenlikning er rettferdig; Flux 1 er fortsatt standard (093).
+  const scale = erFlux2 ? 1.5 : 1.0
   const fullPrompt =
     ch.triggerWord + '. Use the trained ' + ch.triggerWord + ' LoRA with maximum identity fidelity. ' +
     ch.triggerWord + ', natural appearance, natural relaxed posture. Scene: ' + prompt +
@@ -125,7 +133,7 @@ export async function submitFaceImageJob(ch: { triggerWord: string; loraUrl: str
   const submitRes = await fetch('https://queue.fal.run/' + generator, {
     method: 'POST',
     headers: { Authorization: 'Key ' + FAL_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: fullPrompt, loras: [{ path: ch.loraUrl, scale: 1.0 }], image_size, num_images: 1, output_format: 'png' }),
+    body: JSON.stringify({ prompt: fullPrompt, loras: [{ path: ch.loraUrl, scale }], image_size, num_images: 1, output_format: 'png' }),
   })
   const submit = await submitRes.json().catch(() => ({}))
   if (!submitRes.ok || !submit.request_id) throw new Error('fal submit feilet: ' + JSON.stringify(submit).slice(0, 200))
