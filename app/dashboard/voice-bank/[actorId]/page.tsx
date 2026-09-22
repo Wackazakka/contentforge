@@ -90,6 +90,12 @@ export default function VoiceActorPage() {
   // samtykkeporten (089) og godkjenningen (091) staar urort — hun faar de
   // tre proevebildene til ja/nei, som ved enhver annen trening.
   const [trener, setTrener] = useState<'portrait' | 'flux2'>('portrait')
+  // Status paa ansiktsmodellen (22.09): «trening paagaar» sto ingen steder.
+  // Hentes fra /api/characters — som ogsaa fullfoerer ferdige treninger, saa
+  // aa ha denne sida aapen gjoer det samme som cron-jobben gjoer hvert tiende
+  // minutt. Poller hvert 30. sekund mens status er «training».
+  type KarakterStatus = { status: string; approval_status?: string | null; approval_sent_at?: string | null; created_at?: string; trainer?: string | null; withdrawn_at?: string | null }
+  const [karakter, setKarakter] = useState<KarakterStatus | null>(null)
   const [trenBusy, setTrenBusy] = useState(false)
   const [trenStatus, setTrenStatus] = useState('')
   const [trenFeil, setTrenFeil] = useState<string | null>(null)
@@ -338,6 +344,27 @@ export default function VoiceActorPage() {
       if (!d.epostSendt) setError(`Økta er opprettet, men e-posten gikk ikke. Send lenken selv: ${d.lenke}`)
     } catch (e: any) { setError(e.message) } finally { setOpptakBusy(false) }
   }
+
+  useEffect(() => {
+    const fcid = actor?.face_character_id
+    if (!fcid) { setKarakter(null); return }
+    let stoppet = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const hent = async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        if (!token) return
+        const d = await fetch('/api/characters', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
+        const k = (d.characters || []).find((c: any) => c.id === fcid) as KarakterStatus | undefined
+        if (stoppet) return
+        setKarakter(k || null)
+        if (k?.status === 'training') timer = setTimeout(hent, 30000)
+      } catch { /* status er tilleggsinfo */ }
+    }
+    hent()
+    return () => { stoppet = true; if (timer) clearTimeout(timer) }
+  }, [actor?.face_character_id])
 
   const authedFetchTilOpptak = async () => {
     const { data: sess } = await getSupabase().auth.getSession()
@@ -684,6 +711,21 @@ export default function VoiceActorPage() {
                 }}
               >
                 <div>
+                  {karakter && (() => {
+                    const st = karakter.status
+                    const ap = karakter.approval_status
+                    const naar = karakter.created_at ? new Date(karakter.created_at).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }) : ''
+                    const trener = (karakter.trainer || '').includes('flux-2') ? 'Flux 2' : 'Flux 1 portrett'
+                    const tekst = st === 'training' ? `⏳ Trening pågår hos fal (${trener}, startet ${naar}). Tar 20–40 minutter; sjekkes hvert tiende minutt. Modellen blir klar og prøvebildene sendt av seg selv.`
+                      : st === 'failed' ? '✗ Treningen feilet hos fal. Prøv igjen fra «Tren på nytt», eller med den andre treneren.'
+                      : st === 'ready' && ap === 'pending' ? `✓ Modellen er trent. Venter på at hun godkjenner prøvebildene${karakter.approval_sent_at ? ' — e-post sendt' : ' — e-post går ved neste sjekk'}.`
+                      : st === 'ready' && ap === 'approved' ? '✓ Modellen er trent og godkjent av henne.'
+                      : st === 'ready' && ap === 'rejected' ? '✗ Hun sa nei til modellen. Den kan ikke brukes.'
+                      : st === 'ready' ? '✓ Modellen er klar.' : `Status: ${st}`
+                    return (
+                      <div className={`text-xs mb-2 ${st === 'failed' || ap === 'rejected' ? 'text-red-700' : st === 'training' ? 'text-amber-800' : 'text-green-800'}`}>{tekst}</div>
+                    )
+                  })()}
                   <div className="font-medium text-gray-900 text-sm">
                     {faceWithdrawnAt ? t('face_withdrawn_yes') : t('face_withdrawn_no')}
                   </div>

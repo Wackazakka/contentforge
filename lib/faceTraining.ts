@@ -1,0 +1,123 @@
+import { createClient } from '@supabase/supabase-js'
+
+// Fullfoering av ansiktstreninger (091/093) — delt mellom GET /api/characters
+// (naar en admin ser paa lista) og cron-jobben hvert tiende minutt.
+//
+// 🔑 FOER LAA DETTE BARE I ADMINENS SIDEVISNING. Modellen ble flippet til
+// «ready», og rettighetshaveren fikk godkjenningsmailen, foerst naar eieren
+// av karakteren aapnet «Medvirkende». Lars trente sin foerste modell 22.09 og
+// spurte hvor han kunne se at trening paagikk. Svaret var «ingen steder — og
+// den blir ikke ferdig foer du aapner en bestemt side». Naa er dette en
+// funksjon begge kan kalle, og cron-jobben kaller den uansett.
+//
+// 🔑 VERTEN I GODKJENNINGSLENKEN UTLEDES FRA KARAKTERENS TENANT, ikke fra
+// forespoerselen. En cron-jobb har ingen meningsfull vert, og den gamle koden
+// (getTenant()) ville sendt henne til feil merkevare. Samme feil som ble
+// rettet i 092 for purringene.
+
+const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
+const STANDARD_ENDEPUNKT = 'fal-ai/flux-lora-portrait-trainer'
+
+function db() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+}
+
+interface Rad {
+  id: string; name: string | null; status: string; fal_request_id: string | null
+  trainer: string | null; owner_tenant_id: string | null
+  approval_status: string | null; subject_email: string | null; approval_token: string | null
+  approval_sent_at: string | null
+}
+
+async function vertFor(tenantId: string | null): Promise<{ vert: string; merke: string }> {
+  if (tenantId) {
+    const { data: t } = await db().from('tenants').select('slug, custom_domain, app_name').eq('id', tenantId).maybeSingle()
+    if (t) {
+      return {
+        vert: t.custom_domain ? `https://${t.custom_domain}` : `https://${t.slug}.norditech.io`,
+        merke: t.app_name || 'TwinLedger',
+      }
+    }
+  }
+  return { vert: 'https://twinledger.ai', merke: 'TwinLedger' }
+}
+
+/**
+ * Be rettighetshaveren godkjenne modellen av ansiktet sitt (091).
+ *
+ * 🔑 LENKEN ER HENNES AUTENTISERING. Hen har ingen konto hos oss og skal ikke
+ * trenge en for aa svare paa om ansiktet sitt kan brukes.
+ *
+ * Feiler stille: modellen staar som `pending`, altsaa STENGT. Det verste en
+ * mislykket e-post kan gjoere er aa utsette et ja — ikke aa slippe noe gjennom.
+ */
+export async function varsleOmGodkjenning(karakterId: string, til: string, token: string, navn: string | null, tenantId: string | null): Promise<boolean> {
+  try {
+    if (!process.env.RESEND_API_KEY) return false
+    const { vert, merke } = await vertFor(tenantId)
+    const lenke = `${vert}/godkjenn-ansikt/${token}`
+    const { Resend } = await import('resend')
+    await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: `${merke} <hello@centerforge.app>`,
+      to: til,
+      subject: 'Er dette deg? Godkjenn ansiktsmodellen din',
+      html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1C1A16">
+        <h2 style="margin:0 0 12px">Er dette deg?</h2>
+        <p>Vi har laget en ansiktsmodell${navn ? ` («${navn}»)` : ''} fra bildene dine. Før den kan brukes til noe som helst, vil vi at du skal se hva den lager.</p>
+        <p>Du får se tre bilder generert med modellen, i ulike situasjoner. Deretter svarer du ja eller nei.</p>
+        <p style="margin:24px 0"><a href="${lenke}" style="background:#C5451B;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Se bildene og svar</a></p>
+        <p style="color:#6B6358;font-size:14px">Til du svarer, er modellen stengt og kan ikke brukes. Du kan ombestemme deg senere uansett hva du svarer nå.</p>
+      </div>`,
+    })
+    // ⚠️ Tidsstempelet settes FOERST NAAR e-posten faktisk gikk. Sto det ved
+    // innsetting, ville purresveipet (092) talt dager fra et varsel som
+    // kanskje aldri ble sendt — og purret paa noe hun ikke har faatt.
+    await db().from('user_characters').update({ approval_sent_at: new Date().toISOString() }).eq('id', karakterId)
+    return true
+  } catch { return false }
+}
+
+/**
+ * Spoer fal om status paa alle treninger som paagaar, og fullfoer de ferdige.
+ *
+ * ⚠️ ENDEPUNKTET ER RADENS, IKKE ET FAST. Den gamle koden spurte alltid
+ * flux-lora-portrait-trainer — en modell trent med Flux 2 (093,
+ * maaleinstrumentet) ville aldri blitt ferdig, fordi status ble hentet fra
+ * feil koe. `trainer` paa raden er endepunktet; det brukes.
+ *
+ * Idempotent: bare `training`-rader roeres; varsel gaar bare naar
+ * approval_sent_at er tom.
+ */
+export async function fullfoerTreninger(opts: { tenantId?: string } = {}): Promise<{ sjekket: number; ferdige: number; feilet: number; varslet: number }> {
+  if (!FAL_KEY) return { sjekket: 0, ferdige: 0, feilet: 0, varslet: 0 }
+  let q = db().from('user_characters')
+    .select('id, name, status, fal_request_id, trainer, owner_tenant_id, approval_status, subject_email, approval_token, approval_sent_at')
+    .eq('status', 'training').not('fal_request_id', 'is', null)
+  if (opts.tenantId) q = q.eq('owner_tenant_id', opts.tenantId)
+  const { data } = await q
+  const rader = (data || []) as Rad[]
+  const falAuth = { Authorization: `Key ${FAL_KEY}` }
+  let ferdige = 0, feilet = 0, varslet = 0
+  for (const row of rader) {
+    const endepunkt = row.trainer || STANDARD_ENDEPUNKT
+    try {
+      const st = await fetch(`https://queue.fal.run/${endepunkt}/requests/${row.fal_request_id}/status`, { headers: falAuth }).then((r) => r.json())
+      if (st.status === 'COMPLETED') {
+        const result = await fetch(`https://queue.fal.run/${endepunkt}/requests/${row.fal_request_id}`, { headers: falAuth }).then((r) => r.json())
+        const url = result?.diffusers_lora_file?.url
+        if (!url) continue
+        await db().from('user_characters').update({ lora_url: url, status: 'ready' }).eq('id', row.id)
+        ferdige++
+        // 🔑 HER, OG BARE HER, BLIR MODELLEN NOE AA GODKJENNE (091). Foer
+        // treningen er ferdig finnes det ingen proevebilder aa vise.
+        if (row.approval_status === 'pending' && row.subject_email && row.approval_token && !row.approval_sent_at) {
+          if (await varsleOmGodkjenning(row.id, row.subject_email, row.approval_token, row.name, row.owner_tenant_id)) varslet++
+        }
+      } else if (st.status === 'FAILED' || st.status === 'ERROR') {
+        await db().from('user_characters').update({ status: 'failed' }).eq('id', row.id)
+        feilet++
+      }
+    } catch { /* behold 'training' til neste poll */ }
+  }
+  return { sjekket: rader.length, ferdige, feilet, varslet }
+}
