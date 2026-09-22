@@ -31,16 +31,18 @@ export type Kjoenn = (typeof KJOENN)[number]
  * de vanligste først, ikke alfabetisk, fordi en caster leter med øyet.
  */
 export const VOKABULAR: Record<Fasett, readonly string[]> = {
+  // Språk FØR dialekt (Lars 22.09): språket er overkategorien, dialekt en
+  // undergruppe av norsk. Rekkefølgen her er visningsrekkefølgen overalt.
+  // Språk skuespilleren kan SPILLE PÅ, ikke språk de forstår.
+  languages: [
+    'norsk', 'engelsk', 'svensk', 'dansk', 'tysk', 'fransk', 'spansk',
+    'polsk', 'arabisk', 'somali', 'urdu', 'russisk', 'ukrainsk', 'samisk',
+  ],
   // Norske dialektregioner slik casting faktisk ber om dem. Bevisst grovt:
   // «østnorsk» dekker det en regissør spør etter; kommunenivå gjør det ikke.
   dialects: [
     'ostnorsk', 'bergensk', 'trondersk', 'nordnorsk', 'sorlandsk',
     'vestnorsk', 'stavangersk', 'innlandet', 'standard_ostnorsk', 'nynorsknaer',
-  ],
-  // Språk skuespilleren kan SPILLE PÅ, ikke språk de forstår.
-  languages: [
-    'norsk', 'engelsk', 'svensk', 'dansk', 'tysk', 'fransk', 'spansk',
-    'polsk', 'arabisk', 'somali', 'urdu', 'russisk', 'ukrainsk', 'samisk',
   ],
   hair: ['blond', 'brunt', 'sort', 'rodt', 'gratt', 'hvitt', 'skallet', 'farget'],
   eyes: ['bla', 'gronne', 'brune', 'gra', 'hasselnott'],
