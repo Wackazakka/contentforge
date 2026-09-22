@@ -158,6 +158,10 @@ export default async function TwinLedgerPage() {
           {t('hero_h1_a')}<br />{t('hero_h1_b')}
         </h1>
         <p className="tl-lede">{t('hero_body')}</p>
+        {/* Navnet forklart. Ordet «tvilling» sto ingen steder paa sida — og
+            det er halve firmanavnet (Lars 22.09). Én linje, i mono som en
+            ordbokoppføring, saa den leser som forklaring og ikke som slagord. */}
+        <p style={{ fontFamily: MONO, fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-faint)', margin: '16px 0 0', maxWidth: '44em' }}>{t('name_line')}</p>
       </section>
 
       {/* DE TO DØRENE som en 50/50-deling i full bredde. Ikke to kort — en
@@ -185,6 +189,26 @@ export default async function TwinLedgerPage() {
           </div>
         </div>
       </div>
+
+      {/* HVORFOR NAA. Reguleringen er investordokumentets sterkeste argument og
+          var fravaerende paa sida (Lars 22.09). Rammet inn mot produsenten:
+          «klarert» er et mykt ord, «dokumentert samtykke» er en hard grunn.
+          ⚠️ Bare det vi leverer: samtykke, lisens og hovedbok. Vi merker IKKE
+          innhold (C2PA) — noten sier det rett ut, saa sida ikke lover mer enn
+          veikartet. */}
+      <section style={{ background: 'var(--paper)', borderTop: '1px solid var(--ds-border-strong)', padding: `clamp(44px, 5.5vw, 72px) ${GUTTER}` }}>
+        <p className="tl-eyebrow" style={{ marginBottom: 14 }}>{t('why_eyebrow')}</p>
+        <h2 className="tl-h2" style={{ marginBottom: 28 }}>{t('why_h2')}</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'clamp(20px, 3vw, 36px)', marginBottom: 26 }}>
+          {[['why_1_h', 'why_1_p'], ['why_2_h', 'why_2_p'], ['why_3_h', 'why_3_p']].map(([h, b]) => (
+            <div key={h} style={{ borderTop: '2px solid var(--ember-deep)', paddingTop: 14 }}>
+              <h3 className="tl-h3" style={{ marginBottom: 8 }}>{t(h)}</h3>
+              <p className="tl-p" style={{ margin: 0 }}>{t(b)}</p>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontFamily: MONO, fontSize: 12.5, lineHeight: 1.6, color: 'var(--text-faint)', margin: 0, maxWidth: '60em' }}>{t('why_note')}</p>
+      </section>
 
       {/* Hovedboken. Det eneste beviset som virker for BEGGE målgruppene:
           produsenten leser «dette er klarert», rettighetshaveren «jeg får
