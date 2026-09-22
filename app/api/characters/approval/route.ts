@@ -55,7 +55,7 @@ export async function GET(request: Request) {
       // «trening pågår» er en egen tilstand for hen: modellen finnes ikke ennå,
       // og da kan det heller ikke lages prøvebilder å se på.
       trainingDone: rad.status === 'ready',
-      samples: Array.isArray(rad.sample_urls) ? (rad.sample_urls as unknown[]).map(String) : [],
+      samples: await signerProever(rad.sample_urls),
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
@@ -71,6 +71,25 @@ export async function GET(request: Request) {
  * og tre i samme kall ville sprengt tidsgrensen på en serverless-funksjon. Hen
  * ser dem dukke opp ett for ett i stedet for å vente på alle.
  */
+// 🔑 PROEVEBILDENE LIGGER PRIVAT OG SIGNERES VED LESING (22.09). Foer gikk de
+// til uploadToR2 — som viste seg aa vaere en STUB («Upload placeholder»):
+// den lastet aldri opp noe og returnerte en oppdiktet adresse. Tre bilder ble
+// generert, betalt og kastet, og Lars saa tre brukne ikoner. Og R2-boetta
+// er offentlig; et generert bilde av et ekte ansikt hoerer ikke der (094).
+// Naa: privat Supabase-boette, STIEN paa raden, signert lenke i ti minutter
+// naar sida spoer. Eldre rader med http-adresser slippes gjennom som de er.
+const PROEVE_BOETTE = 'training-sets'
+async function signerProever(stier: unknown): Promise<string[]> {
+  const liste = (Array.isArray(stier) ? stier : []).map(String)
+  const ut: string[] = []
+  for (const p of liste) {
+    if (/^https?:\/\//.test(p)) { ut.push(p); continue }
+    const { data } = await admin().storage.from(PROEVE_BOETTE).createSignedUrl(p, 600)
+    if (data?.signedUrl) ut.push(data.signedUrl)
+  }
+  return ut
+}
+
 export async function POST(request: Request) {
   try {
     const b = await request.json()
@@ -84,7 +103,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Modellen venter ikke på svar' }, { status: 409 })
       }
       const alt = Array.isArray(rad.sample_urls) ? (rad.sample_urls as unknown[]).map(String) : []
-      if (alt.length >= SCENER.length) return NextResponse.json({ samples: alt })
+      if (alt.length >= SCENER.length) return NextResponse.json({ samples: await signerProever(alt), pending: false, v: 2 })
 
       // ⚠️ Går bevisst UTENOM godkjenningsporten — se hentAnsiktForProeve.
       // Det er ikke mulig å be noen godkjenne noe de ikke får se.
@@ -111,26 +130,26 @@ export async function POST(request: Request) {
         const job = await submitFaceImageJob(ch, SCENER[alt.length], '1024x1024')
         ventende = { ...job, scene: alt.length, submitted_at: new Date().toISOString() }
         await admin().from('user_characters').update({ sample_pending: ventende }).eq('id', rad.id)
-        return NextResponse.json({ samples: alt, pending: true, status: 'IN_QUEUE' })
+        return NextResponse.json({ samples: await signerProever(alt), pending: true, status: 'IN_QUEUE', v: 2 })
       }
 
       const res = await hentFaceImageResultat(ventende)
       if (res.status === 'FAILED') {
         await admin().from('user_characters').update({ sample_pending: null }).eq('id', rad.id)
-        return NextResponse.json({ samples: alt, error: 'fal klarte ikke å lage bildet — prøver igjen' }, { status: 502 })
+        return NextResponse.json({ samples: await signerProever(alt), error: 'fal klarte ikke å lage bildet — prøver igjen', v: 2 }, { status: 502 })
       }
       if (res.status !== 'COMPLETED') {
-        return NextResponse.json({ samples: alt, pending: true, status: res.status })
+        return NextResponse.json({ samples: await signerProever(alt), pending: true, status: res.status, v: 2 })
       }
-      const { uploadToR2 } = await import('@/lib/r2Client')
-      const url = await uploadToR2({
-        fileName: `face-approval/${rad.id}/${Date.now()}.png`,
-        fileData: res.png,
-        contentType: 'image/png',
-      })
-      const nye = [...alt, url]
+      const sti = `approval/${rad.id}/${Date.now()}.png`
+      const { error: oppFeil } = await admin().storage.from(PROEVE_BOETTE).upload(sti, res.png, { contentType: 'image/png', upsert: false })
+      if (oppFeil) {
+        // Ikke toem sample_pending: bildet finnes hos fal, neste kall proever aa lagre igjen.
+        return NextResponse.json({ samples: await signerProever(alt), error: `Kunne ikke lagre bildet (${oppFeil.message})`, v: 2 }, { status: 500 })
+      }
+      const nye = [...alt, sti]
       await admin().from('user_characters').update({ sample_urls: nye, sample_pending: null }).eq('id', rad.id)
-      return NextResponse.json({ samples: nye, pending: nye.length < SCENER.length })
+      return NextResponse.json({ samples: await signerProever(nye), pending: nye.length < SCENER.length, v: 2 })
     }
 
     if (b.action === 'decide') {
