@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // Rettighetshaverens godkjenning av sin egen ansiktsmodell (migrasjon 091).
@@ -98,14 +99,28 @@ export default function GodkjennAnsiktPage() {
         </h1>
 
         {status === 'approved' ? (
-          <p style={{ fontSize: 17, lineHeight: 1.6 }}>
-            Takk — modellen er godkjent og kan nå brukes under de avtalene som klareres for den.
-            Du kan når som helst be om at den stenges.
-          </p>
+          <>
+            <p style={{ fontSize: 17, lineHeight: 1.6 }}>
+              Takk — modellen er godkjent og kan nå brukes under de avtalene som klareres for den.
+              Du kan når som helst be om at den stenges.
+            </p>
+            {/* Veien videre (Lars 22.09): sida var en blindvei etter svaret. Hun kom
+                hit fra en e-post uten konto — «siden din» krever innlogging, og
+                /login sender henne dit hvis hun har en. Forsiden er alltid aapen. */}
+            <p style={{ marginTop: 22, display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Link href="/min-stemme" style={{ display: 'inline-block', background: 'var(--ink)', color: 'var(--paper)', padding: '12px 20px', fontWeight: 600, textDecoration: 'none' }}>Gå til siden din →</Link>
+              <Link href="/" style={{ color: 'var(--ink-soft)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Til forsiden</Link>
+            </p>
+          </>
         ) : status === 'rejected' ? (
-          <p style={{ fontSize: 17, lineHeight: 1.6 }}>
-            Modellen er avvist og kan ikke brukes. Den er stengt fra nå.
-          </p>
+          <>
+            <p style={{ fontSize: 17, lineHeight: 1.6 }}>
+              Modellen er avvist og kan ikke brukes. Den er stengt fra nå.
+            </p>
+            <p style={{ marginTop: 22 }}>
+              <Link href="/" style={{ color: 'var(--ink-soft)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Til forsiden</Link>
+            </p>
+          </>
         ) : (
           <>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--ink-soft)', margin: '0 0 8px' }}>
