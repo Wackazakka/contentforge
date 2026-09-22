@@ -85,7 +85,13 @@ export default function ApplyForm() {
     e.preventDefault()
     setError(null)
     if (!name.trim() || !email.includes('@')) { setError(t('err_name')); return }
-    if (offersVoice && files.length === 0) { setError(t('err_sample')); return }
+    // 🔑 LYDPROEVE ER IKKE LENGER ET KRAV (Lars 22.09). Vi screener ikke paa
+    // stemmen foerst — vi gaar ut fra at den som soeker har en stemme. Hoeringen
+    // flyttes til opptaksloeypa (095), der vi uansett hoerer dem ordentlig i
+    // tretti minutter framfor gjennom et telefonklipp. Kravet stengte nettopp
+    // den soekeren loeypa ble bygget for: hen uten hjemmestudio.
+    // Filen er fortsatt velkommen — en skuespiller med reel faar en bedre
+    // profil fra dag én — men den er et tilbud, ikke en terskel.
     if (wantsFace && photos.length < 10) { setError('Ansiktsmodellen trenger minst 10 bilder — 15–25 gir merkbart bedre likhet.'); return }
     if (!consent) { setError(t('err_consent')); return }
     const tallOk = (v: string) => v === '' || /^\d{1,3}$/.test(v)

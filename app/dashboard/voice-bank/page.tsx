@@ -37,6 +37,7 @@ interface VoiceApplication {
   phone: string | null
   bio: string | null
   sample_urls: string[]
+  offers_voice?: boolean | null
   wants_face: boolean
   status: string
   created_at: string
@@ -382,10 +383,20 @@ export default function VoiceBankAdminPage() {
                                   ))}
                                 </div>
                               )}
+                              {/* Lydprøve er frivillig fra 22.09, så «ingen lyd» er nå
+                                  normaltilstanden og ikke en mangel. Uten denne linja
+                                  ser raden ut som om noe mangler, og den som godkjenner
+                                  venter på en fil som aldri var ment å komme. */}
                               <div className="flex flex-wrap gap-2 mt-2">
-                                {(app.sample_urls || []).map((u, i) => (
-                                  <audio key={i} controls preload="none" src={u} className="h-9" />
-                                ))}
+                                {(app.sample_urls || []).length > 0
+                                  ? (app.sample_urls || []).map((u, i) => (
+                                      <audio key={i} controls preload="none" src={u} className="h-9" />
+                                    ))
+                                  : app.offers_voice !== false && (
+                                      <span className="text-[13px] text-gray-500">
+                                        Ingen lydprøve lagt ved — opptaket tas i opptaksløypa etter godkjenning.
+                                      </span>
+                                    )}
                               </div>
                             </div>
                             <div className="flex gap-2">

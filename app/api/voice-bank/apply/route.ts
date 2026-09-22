@@ -73,7 +73,10 @@ export async function POST(request: Request) {
     }
 
     const samples = form.getAll('samples').filter((f): f is File => f instanceof File).slice(0, 2)
-    if (offersVoice && samples.length === 0) return NextResponse.json({ error: 'Minst én lydprøve må lastes opp når du tilbyr stemmen' }, { status: 400 })
+    // Lydproeve er FRIVILLIG fra 22.09 (Lars): vi screener ikke paa stemmen
+    // foer opptak. Se kommentaren i ApplyForm.tsx. Formatsjekkene under staar —
+    // sender hen en fil, skal den vaere brukbar.
+    // sample_urls har default '[]'::jsonb, saa tom liste trenger ingen migrasjon.
     for (const f of samples) {
       if (f.size > MAX_BYTES) return NextResponse.json({ error: 'Lydfil for stor (maks 10 MB)' }, { status: 413 })
       if (!AUDIO_TYPES[f.type]) return NextResponse.json({ error: 'Kun MP3, WAV eller M4A' }, { status: 415 })
