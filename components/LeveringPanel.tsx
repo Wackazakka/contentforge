@@ -24,10 +24,15 @@ export interface LeveringsStatus {
   trengerBilder: boolean; trengerOpptak: boolean; venterVeiledetOpptak: boolean
   bilderOk: boolean; opptakOk: boolean; ferdig: boolean
 }
+export interface Identitet {
+  ok: boolean; reason: string | null; photos: number; withFace: number; sameCount: number
+  outliers: string[]; noFace: string[]; multiFace: string[]; checkedAt: string | null
+}
 export interface LeveringsSvar {
   fornavn: string; avvist?: boolean
   bilder: Fil[]; opptak: Fil[]; status: LeveringsStatus
   grenser: { minBilder: number; maksBilder: number; maksFilMb: number }
+  identitet?: Identitet | null
 }
 export type Auth = { token: string } | { bearer: string; actorId: string }
 type Kind = 'photo' | 'recording'
@@ -133,7 +138,22 @@ export default function LeveringPanel({
             {laster?.kind === 'photo' ? `Laster opp ${laster.n} av ${laster.av}…` : d.bilder.length ? 'Legg til flere bilder' : 'Velg bilder'}
           </Knapp>
           {laster?.kind === 'photo' && <Framdrift n={laster.n} av={laster.av} navn={laster.navn} />}
-          {d.bilder.length > 0 && <Liste filer={d.bilder} onFjern={(p) => fjern('photo', p)} disabled={!!laster} />}
+          {/* Identitetssjekken (102): regnes naar bildet registreres. Hun ser
+              sine egne avvik, aldri hvem hun eventuelt likner paa. */}
+          {d.identitet && d.bilder.length > 0 && (
+            <p style={{ fontSize: 13.5, lineHeight: 1.55, margin: '12px 0 0', color: d.identitet.ok ? 'var(--ink)' : 'var(--ember-deep)' }}>
+              {d.identitet.ok
+                ? `✓ Alle ${d.identitet.sameCount} ansiktene ser ut som samme person.`
+                : <>
+                    <strong>{d.identitet.reason || 'Sjekk bildene'}.</strong>
+                    {d.identitet.outliers.length > 0 && <> Skiller seg ut: {d.identitet.outliers.join(', ')} — fjern dem, eller behold hvis du er sikker på at det er deg.</>}
+                    {d.identitet.noFace.length > 0 && <> Fant ikke noe ansikt i: {d.identitet.noFace.join(', ')}.</>}
+                    {d.identitet.multiFace.length > 0 && <> Flere personer i: {d.identitet.multiFace.join(', ')} — vi bruker det største ansiktet.</>}
+                  </>}
+            </p>
+          )}
+          {d.bilder.length > 0 && <Liste filer={d.bilder} onFjern={(p) => fjern('photo', p)} disabled={!!laster}
+            merke={(navn) => d.identitet?.outliers.includes(navn) ? 'skiller seg ut' : d.identitet?.noFace.includes(navn) ? 'ingen ansikt' : null} />}
           <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-muted)', margin: '12px 0 0' }}>
             Når modellen er trent, får du den tilsendt for godkjenning: du ser tre bilder laget med den, og svarer ja eller nei.
             Den kan ikke brukes til noe før du har sagt ja.
@@ -219,18 +239,24 @@ function Framdrift({ n, av, navn }: { n: number; av: number; navn: string }) {
   )
 }
 
-function Liste({ filer, onFjern, disabled }: { filer: Fil[]; onFjern: (p: string) => void; disabled: boolean }) {
+function Liste({ filer, onFjern, disabled, merke }: { filer: Fil[]; onFjern: (p: string) => void; disabled: boolean; merke?: (navn: string) => string | null }) {
   return (
     <ul style={{ listStyle: 'none', padding: 0, margin: '14px 0 0', borderTop: '1px solid var(--ds-border)' }}>
-      {filer.map((f) => (
+      {filer.map((f) => {
+        const navn = f.navn || f.path.split('/').pop() || f.path
+        const m = merke?.(navn)
+        return (
         <li key={f.path} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--ds-border)', fontSize: 13.5 }}>
-          <span style={{ fontFamily: MONO, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.navn || f.path.split('/').pop()}</span>
+          <span style={{ fontFamily: MONO, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {navn}{m && <span style={{ marginLeft: 8, fontFamily: SANS, fontSize: 11.5, color: 'var(--ember-deep)', border: '1px solid var(--ember-tint-border)', padding: '1px 6px' }}>{m}</span>}
+          </span>
           <button type="button" disabled={disabled} onClick={() => onFjern(f.path)}
             style={{ background: 'none', border: 'none', color: 'var(--ember-deep)', cursor: disabled ? 'default' : 'pointer', fontSize: 13, fontFamily: SANS, padding: 0 }}>
             Fjern
           </button>
         </li>
-      ))}
+        )
+      })}
     </ul>
   )
 }

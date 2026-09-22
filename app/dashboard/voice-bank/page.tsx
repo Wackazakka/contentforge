@@ -24,6 +24,8 @@ interface Actor {
   identity_basis?: 'self_declared' | 'vouched' | 'bankid' | null
   delivered_at?: string | null
   is_public?: boolean | null
+  // Identitetssjekken (102): {ok, sameCount, withFace, outliers[], duplicates[{actorId,name,similarity}]}
+  identity_check?: { ok?: boolean; sameCount?: number; withFace?: number; outliers?: string[]; noFace?: string[]; duplicates?: Array<{ actorId: string; name?: string; similarity: number }> } | null
 }
 
 interface UsageEvent {
@@ -695,6 +697,18 @@ export default function VoiceBankAdminPage() {
                                 <span className={`text-[11px] px-2 py-0.5 rounded-full border ${a.delivered_at ? 'border-green-300 bg-green-50 text-green-800' : 'border-gray-200 text-gray-500'}`}>
                                   {a.delivered_at ? 'Levert' : 'Venter på levering'}
                                 </span>
+                                {a.identity_check && (a.identity_check.withFace ?? 0) > 0 && (
+                                  <span className={`text-[11px] px-2 py-0.5 rounded-full border ${a.identity_check.ok ? 'border-green-300 bg-green-50 text-green-800' : 'border-amber-300 bg-amber-50 text-amber-800'}`}
+                                    title={a.identity_check.ok ? 'Alle bildene viser samme person' : `Avvik: ${(a.identity_check.outliers || []).map((p) => p.split('/').pop()).join(', ') || '—'}; uten ansikt: ${(a.identity_check.noFace || []).length}`}>
+                                    Identitet: {a.identity_check.sameCount}/{a.identity_check.withFace} samme person
+                                  </span>
+                                )}
+                                {a.identity_check && (a.identity_check.duplicates?.length ?? 0) > 0 && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-red-300 bg-red-50 text-red-800"
+                                    title={a.identity_check.duplicates!.map((d) => `${d.name || d.actorId} (${Math.round(d.similarity * 100)} %)`).join(', ')}>
+                                    Mulig dublett: {a.identity_check.duplicates![0].name || 'annen rad'}
+                                  </span>
+                                )}
                                 {a.identity_basis === 'self_declared' && (
                                   <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-500" title="Bare en avkryssing gaar god for at personen finnes. Kan delta, men ikke publiseres foer byraa eller BankID (steg 2/3).">
                                     Selverklært

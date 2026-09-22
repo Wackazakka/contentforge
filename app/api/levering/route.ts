@@ -5,6 +5,8 @@ import {
   BILDE_TYPER, LYD_TYPER, MAKS_BILDER, MAKS_FIL_MB,
   eierSti, leveringsSti, leveringsStatus,
 } from '@/lib/levering'
+import { vurderIdentitet, tilVektorTekst, fraVektorTekst, DUBLETT_TERSKEL, type BildeVektor, type IdentitetsVurdering, type Dublett } from '@/lib/identity'
+import { hentAnsikter, embedKonfigurert } from '@/lib/embedClient'
 
 // Leveringen: bilder til ansiktsmodellen og et opptak hun alt hadde.
 //
@@ -38,6 +40,7 @@ type Rad = {
   id: string; name: string; status: string
   wants_face: boolean; offers_voice: boolean | null; has_own_recording: boolean | null
   photo_paths: string[]; recording_paths: string[]; delivered_at: string | null
+  identity_check?: unknown
 }
 
 async function hentSoeknad(token: string): Promise<Rad | null> {
@@ -57,7 +60,7 @@ async function hentEgenRad(bearer: string, actorId: string): Promise<Rad | null 
   if (!epost) return 'utlogget'
   const { data } = await admin()
     .from('voice_actors')
-    .select('id, name, is_active, wants_face, offers_voice, has_own_recording, photo_paths, recording_paths, delivered_at')
+    .select('id, name, is_active, wants_face, offers_voice, has_own_recording, photo_paths, recording_paths, delivered_at, identity_check')
     .eq('id', actorId)
     .ilike('actor_email', epost)
     .eq('owner_tenant_id', tenant.id)
@@ -86,7 +89,73 @@ function svar(s: Rad) {
     opptak: opptak.map((p) => ({ path: p, navn: p.split('/').pop() })),
     status: leveringsStatus(krav(s), bilder.length, opptak.length),
     grenser: { minBilder: 10, maksBilder: MAKS_BILDER, maksFilMb: MAKS_FIL_MB },
+    identitet: forSoekeren(s.identity_check),
   }
+}
+
+// Det hun faar se av identitetssjekken: sine egne bilder og hva som skiller
+// seg ut. IKKE dublettene — «du likner paa X» er en opplysning om X, og den
+// hoerer hjemme i adminen, ikke hos en fremmed.
+function forSoekeren(ic: unknown) {
+  if (!ic || typeof ic !== 'object') return null
+  const v = ic as IdentitetsVurdering & { duplicates?: Dublett[] }
+  const navn = (p: string) => p.split('/').pop()
+  return {
+    ok: !!v.ok, reason: v.reason ?? null, photos: v.photos, withFace: v.withFace, sameCount: v.sameCount,
+    outliers: (v.outliers || []).map(navn), noFace: (v.noFace || []).map(navn), multiFace: (v.multiFace || []).map(navn),
+    checkedAt: v.computedAt ?? null,
+  }
+}
+
+// ── Identitetssjekken (102) ──────────────────────────────────────────────────
+// Kjoeres etter at et bilde er registrert eller fjernet paa en SKUESPILLERRAD.
+// Feiler aapent: leveringen er alt lagret naar dette kalles, og en nede
+// tjeneste skal ikke gjoere et levert bilde til et ulevert. Feilen skrives
+// paa bilderaden saa det er synlig at sjekken mangler.
+
+async function beregnBildevektor(actorId: string, sti: string, boette: string): Promise<void> {
+  if (!embedKonfigurert()) return
+  const rad: Record<string, unknown> = { actor_id: actorId, path: sti, faces: 0, embedding: null, model: null, det_score: null, error: null }
+  try {
+    const { data: signert, error } = await admin().storage.from(boette).createSignedUrl(sti, 600)
+    if (error || !signert?.signedUrl) throw new Error(error?.message || 'kunne ikke signere')
+    const svar = await hentAnsikter(signert.signedUrl)
+    rad.model = svar.model ?? null
+    rad.faces = svar.faces.length
+    if (svar.error) rad.error = svar.error
+    if (svar.faces.length > 0) {
+      const stoerst = svar.faces[0] // sortert etter areal av tjenesten
+      rad.embedding = tilVektorTekst(stoerst.embedding)
+      rad.det_score = stoerst.det_score
+    }
+  } catch (e) {
+    rad.error = e instanceof Error ? e.message.slice(0, 300) : 'ukjent feil'
+  }
+  await admin().from('actor_photo_embeddings').upsert(rad, { onConflict: 'actor_id,path' })
+}
+
+async function oppdaterIdentitet(actorId: string): Promise<(IdentitetsVurdering & { duplicates: Dublett[] }) | null> {
+  const { data: rader } = await admin()
+    .from('actor_photo_embeddings').select('path, embedding, faces').eq('actor_id', actorId)
+  const bilder: BildeVektor[] = (rader || []).map((r: any) => ({
+    path: r.path, embedding: fraVektorTekst(r.embedding), faces: Number(r.faces) || 0,
+  }))
+  const v = vurderIdentitet(bilder)
+  let duplicates: Dublett[] = []
+  if (v.centroid) {
+    const { data: naer } = await admin().rpc('naermeste_ansikter', { p_actor: actorId, p_emb: tilVektorTekst(v.centroid), p_k: 5 })
+    duplicates = ((naer || []) as Array<{ actor_id: string; name: string; similarity: number }>)
+      .filter((n) => Number(n.similarity) >= DUBLETT_TERSKEL)
+      .map((n) => ({ actorId: n.actor_id, name: n.name, similarity: Math.round(Number(n.similarity) * 1000) / 1000 }))
+  }
+  const { centroid, ...lagres } = v
+  const identity_check = { ...lagres, duplicates }
+  await admin().from('voice_actors').update({
+    face_embedding: centroid ? tilVektorTekst(centroid) : null,
+    identity_check,
+    identity_checked_at: v.computedAt,
+  }).eq('id', actorId)
+  return { ...v, duplicates }
 }
 
 const feilFor = (r: Rad | null | 'utlogget') =>
@@ -156,7 +225,15 @@ export async function POST(request: Request) {
         [felt]: neste, ...(levert && !s.delivered_at ? { delivered_at: levert } : {}),
       }).eq('id', s.id)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-      return NextResponse.json(svar({ ...s, [felt]: neste, delivered_at: levert }))
+      let identity_check = s.identity_check
+      if (kind === 'photo' && s.tabell === 'voice_actors') {
+        try {
+          await beregnBildevektor(s.id, sti, boette)
+          const v = await oppdaterIdentitet(s.id)
+          if (v) identity_check = v
+        } catch (e) { console.error('[levering] identitetssjekk feilet:', e instanceof Error ? e.message : e) }
+      }
+      return NextResponse.json(svar({ ...s, [felt]: neste, delivered_at: levert, identity_check }))
     }
 
     if (b.handling === 'fjern') {
@@ -167,7 +244,15 @@ export async function POST(request: Request) {
       const neste = naa.filter((p) => p !== sti)
       const { error } = await admin().from(s.tabell).update({ [felt]: neste }).eq('id', s.id)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-      return NextResponse.json(svar({ ...s, [felt]: neste }))
+      let identity_check = s.identity_check
+      if (kind === 'photo' && s.tabell === 'voice_actors') {
+        try {
+          await admin().from('actor_photo_embeddings').delete().eq('actor_id', s.id).eq('path', sti)
+          const v = await oppdaterIdentitet(s.id)
+          if (v) identity_check = v
+        } catch (e) { console.error('[levering] identitetssjekk feilet:', e instanceof Error ? e.message : e) }
+      }
+      return NextResponse.json(svar({ ...s, [felt]: neste, identity_check }))
     }
 
     return NextResponse.json({ error: 'Ukjent handling' }, { status: 400 })
