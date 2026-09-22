@@ -717,7 +717,7 @@ export default function VoiceActorPage() {
                     const naar = karakter.created_at ? new Date(karakter.created_at).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' }) : ''
                     const trener = (karakter.trainer || '').includes('flux-2') ? 'Flux 2' : 'Flux 1 portrett'
                     const tekst = st === 'training' ? `⏳ Trening pågår hos fal (${trener}, startet ${naar}). Tar 20–40 minutter; sjekkes hvert tiende minutt. Modellen blir klar og prøvebildene sendt av seg selv.`
-                      : st === 'failed' ? `✗ Treningen feilet hos fal${karakter.last_error ? ` (${karakter.last_error})` : ''}. Prøv igjen fra «Tren på nytt», eller med den andre treneren.`
+                      : st === 'failed' ? `✗ ${karakter.last_error ? `Modellen ble stoppet: ${karakter.last_error}` : 'Treningen feilet hos fal.'} Prøv igjen fra «Tren på nytt», eller med den andre treneren.`
                       : st === 'ready' && ap === 'pending' ? `✓ Modellen er trent. Venter på at hun godkjenner prøvebildene${karakter.approval_sent_at ? ' — e-post sendt' : ' — e-post går ved neste sjekk'}.`
                       : st === 'ready' && ap === 'approved' ? '✓ Modellen er trent og godkjent av henne.'
                       : st === 'ready' && ap === 'rejected' ? '✗ Hun sa nei til modellen. Den kan ikke brukes.'

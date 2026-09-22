@@ -23,12 +23,9 @@ function admin() {
   )
 }
 
-/** Scenene prøvebildene lages i. Ulike med vilje — én heldig vinkel beviser ingenting. */
-const SCENER = [
-  'standing in a bright modern office, looking at the camera, neutral expression',
-  'outdoors on a city street in daylight, three-quarter view, slight smile',
-  'seated indoors with soft window light, close portrait, calm expression',
-]
+// Scener, lagring, signering og batch-logikk bor i lib/faceSamples (105) —
+// delt med cron-jobben, som naa lager bildene foer e-posten gaar.
+import { SCENER, signerProever, startProever, hentFerdigeProever, lesBatch } from '@/lib/faceSamples'
 
 async function hentRad(token: string) {
   const { data } = await admin()
@@ -77,18 +74,7 @@ export async function GET(request: Request) {
 // generert, betalt og kastet, og Lars saa tre brukne ikoner. Og R2-boetta
 // er offentlig; et generert bilde av et ekte ansikt hoerer ikke der (094).
 // Naa: privat Supabase-boette, STIEN paa raden, signert lenke i ti minutter
-// naar sida spoer. Eldre rader med http-adresser slippes gjennom som de er.
-const PROEVE_BOETTE = 'training-sets'
-async function signerProever(stier: unknown): Promise<string[]> {
-  const liste = (Array.isArray(stier) ? stier : []).map(String)
-  const ut: string[] = []
-  for (const p of liste) {
-    if (/^https?:\/\//.test(p)) { ut.push(p); continue }
-    const { data } = await admin().storage.from(PROEVE_BOETTE).createSignedUrl(p, 600)
-    if (data?.signedUrl) ut.push(data.signedUrl)
-  }
-  return ut
-}
+// naar sida spoer (signerProever i lib/faceSamples).
 
 export async function POST(request: Request) {
   try {
@@ -118,38 +104,28 @@ export async function POST(request: Request) {
       // kaster på pending. Ingen prøvebilde for en ventende modell har derfor
       // noen gang kunnet lages før nå.
       const { hentAnsiktForProeve } = await import('@/lib/faceWithdrawal')
-      const { submitFaceImageJob, hentFaceImageResultat } = await import('@/lib/gateway')
       const ch = await hentAnsiktForProeve(rad.id) // kaster om hen alt har sagt nei
 
-      type Ventende = { request_id: string; status_url: string; response_url: string; scene: number; submitted_at: string }
-      let ventende = (rad.sample_pending && typeof rad.sample_pending === 'object') ? rad.sample_pending as Ventende : null
-      // En jobb som har hengt i over ti minutter regnes som tapt; send en ny.
-      if (ventende && Date.now() - new Date(ventende.submitted_at).getTime() > 10 * 60_000) ventende = null
-
-      if (!ventende) {
-        const job = await submitFaceImageJob(ch, SCENER[alt.length], '1024x1024')
-        ventende = { ...job, scene: alt.length, submitted_at: new Date().toISOString() }
-        await admin().from('user_characters').update({ sample_pending: ventende }).eq('id', rad.id)
-        return NextResponse.json({ samples: await signerProever(alt), pending: true, status: 'IN_QUEUE', v: 2 })
-      }
-
-      const res = await hentFaceImageResultat(ventende)
-      if (res.status === 'FAILED') {
+      // Batchen (105): alle manglende scener sendes paa én gang, og hvert kall
+      // herfra henter det som er ferdig. Som regel har cron-jobben alt laget
+      // bildene foer hun kom hit; da er dette bare en lesing.
+      let batch = lesBatch(rad.sample_pending)
+      // En batch som har hengt i over ti minutter regnes som tapt; send paa nytt.
+      if (batch && Date.now() - new Date(batch.submitted_at).getTime() > 10 * 60_000) {
         await admin().from('user_characters').update({ sample_pending: null }).eq('id', rad.id)
-        return NextResponse.json({ samples: await signerProever(alt), error: 'fal klarte ikke å lage bildet — prøver igjen', v: 2 }, { status: 502 })
+        batch = null
       }
-      if (res.status !== 'COMPLETED') {
-        return NextResponse.json({ samples: await signerProever(alt), pending: true, status: res.status, v: 2 })
+      if (!batch) {
+        await startProever(ch, rad.id, alt.length)
+        return NextResponse.json({ samples: await signerProever(alt), pending: true, status: 'IN_QUEUE', v: 3 })
       }
-      const sti = `approval/${rad.id}/${Date.now()}.png`
-      const { error: oppFeil } = await admin().storage.from(PROEVE_BOETTE).upload(sti, res.png, { contentType: 'image/png', upsert: false })
-      if (oppFeil) {
-        // Ikke toem sample_pending: bildet finnes hos fal, neste kall proever aa lagre igjen.
-        return NextResponse.json({ samples: await signerProever(alt), error: `Kunne ikke lagre bildet (${oppFeil.message})`, v: 2 }, { status: 500 })
+      const { stier, pending } = await hentFerdigeProever(rad.id, alt, batch)
+      if (!pending && stier.length < SCENER.length) {
+        // Noen scener feilet hos fal — send dem paa nytt.
+        await startProever(ch, rad.id, stier.length)
+        return NextResponse.json({ samples: await signerProever(stier), pending: true, status: 'IN_QUEUE', v: 3 })
       }
-      const nye = [...alt, sti]
-      await admin().from('user_characters').update({ sample_urls: nye, sample_pending: null }).eq('id', rad.id)
-      return NextResponse.json({ samples: await signerProever(nye), pending: nye.length < SCENER.length, v: 2 })
+      return NextResponse.json({ samples: await signerProever(stier), pending, v: 3 })
     }
 
     if (b.action === 'decide') {

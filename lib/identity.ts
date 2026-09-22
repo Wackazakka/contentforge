@@ -19,6 +19,15 @@
 
 export const SAMME_PERSON_TERSKEL = 0.35
 export const DUBLETT_TERSKEL = 0.55
+/**
+ * Kvalitetsport for proevebilder (105): snittet av de tre proevebildenes
+ * likhet med sentroiden av hennes egne leverte bilder maa vaere over dette
+ * foer hun blir spurt «er dette deg?». Kalibrert 22.09 paa Lars: Flux 1
+ * (godkjent av ham) og Flux 2 (avvist) i de tre godkjenningsscenene — se
+ * tallene i lib/faceSamples.ts. Ett menneske, saa dette er en startverdi:
+ * skaarene lagres paa raden (sample_scores) for aa justere.
+ */
+export const PROEVE_LIKHET_MIN = 0.75
 export const MODELL = 'buffalo_l'
 
 export interface BildeVektor {

@@ -15,6 +15,8 @@ interface UserCharacter {
   last_error: string | null
   // Proevebildene fra godkjenningen (091), signert 10 min av /api/characters.
   samples?: string[]
+  // Kvalitetsporten (105): hvert proevebildes likhet med hennes egne bilder.
+  sample_scores?: { scores: (number | null)[]; mean: number | null; threshold: number; passed: boolean } | null
   // Maaleinstrumentet (093): hvilken trener som laget modellen.
   trainer: string | null
   // Settet den ble laget fra (094). Uten den kan den ikke trenes paa nytt.
@@ -257,6 +259,14 @@ export default function CharactersPage() {
                           <img src={u} alt="" className="h-16 w-12 object-cover rounded border border-gray-200" />
                         </a>
                       ))}
+                    </div>
+                  )}
+                  {/* Likheten maalt av porten (105): tallet per bilde, mot
+                      sentroiden av hennes egne leverte bilder. */}
+                  {c.sample_scores && (
+                    <div className={`text-xs mt-1 ${c.sample_scores.passed ? 'text-gray-500' : 'text-red-700'}`}>
+                      Likhet {c.sample_scores.scores.map((s) => s == null ? '–' : s.toFixed(2).replace('.', ',')).join(' · ')}
+                      {c.sample_scores.mean != null && <> — snitt {c.sample_scores.mean.toFixed(2).replace('.', ',')}, krav {c.sample_scores.threshold.toFixed(2).replace('.', ',')}</>}
                     </div>
                   )}
                 </div>

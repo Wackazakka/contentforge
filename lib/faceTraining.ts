@@ -140,9 +140,21 @@ export async function fullfoerTreninger(opts: { tenantId?: string } = {}): Promi
         }
         await db().from('user_characters').update({ lora_url: url, status: 'ready', last_error: null }).eq('id', row.id)
         ferdige++
-        // 🔑 HER, OG BARE HER, BLIR MODELLEN NOE AA GODKJENNE (091). Foer
-        // treningen er ferdig finnes det ingen proevebilder aa vise.
+        // 🔑 HER BLIR MODELLEN NOE AA GODKJENNE (091) — men ikke noe aa SPOERRE
+        // om ennaa. Har hun levert bilder (102), lages proevebildene naa og
+        // skaares mot sentroiden hennes foer e-posten gaar (105, neste tikk).
+        // Uten sentroide (modell fra en zip uten levering) gaar varselet som
+        // foer, og sida lager bildene naar hun aapner den.
         if (row.approval_status === 'pending' && row.subject_email && row.approval_token && !row.approval_sent_at) {
+          const { hentSentroide, startProever } = await import('@/lib/faceSamples')
+          const sentroide = await hentSentroide(row.subject_email, row.owner_tenant_id)
+          if (sentroide) {
+            try {
+              const { hentAnsiktForProeve } = await import('@/lib/faceWithdrawal')
+              await startProever(await hentAnsiktForProeve(row.id), row.id, 0)
+              continue
+            } catch { /* fall tilbake til varsel uten port */ }
+          }
           if (await varsleOmGodkjenning(row.id, row.subject_email, row.approval_token, row.name, row.owner_tenant_id)) varslet++
         }
       } else if (st.status === 'FAILED' || st.status === 'ERROR') {
@@ -154,8 +166,62 @@ export async function fullfoerTreninger(opts: { tenantId?: string } = {}): Promi
       }
     } catch { /* behold 'training' til neste poll */ }
   }
+  const port = await fullfoerProever(opts.tenantId)
+  varslet += port.varslet
+  feilet += port.stoppet
   varslet += await varsleEtterslep(opts.tenantId)
   return { sjekket: rader.length, ferdige, feilet, varslet }
+}
+
+/**
+ * Kvalitetsporten (105): hent ferdige proevebilder, skaar dem mot sentroiden
+ * hennes, og send e-posten bare naar de likner.
+ *
+ * 🔑 EN MODELL SOM IKKE LIKNER ER EN FEILET TRENING, IKKE ET SPOERSMAAL TIL
+ * HENNE. Lars sa nei til tre bilder som maalt laa paa 0,36 (22.09). Slike
+ * modeller settes til «failed» med tallene i last_error — adminen ser dem i
+ * Medvirkende — og hun hoerer aldri om dem.
+ *
+ * Batch eldre enn 10 min med jobber som aldri kom: porten gis opp, varselet
+ * gaar som foer, og sida lager bildene selv. Bedre et spoersmaal uten port
+ * enn et ansikt som aldri blir spurt om.
+ */
+async function fullfoerProever(tenantId?: string): Promise<{ varslet: number; stoppet: number }> {
+  const { hentFerdigeProever, hentSentroide, vurderProever, likhetTekst, SCENER } = await import('@/lib/faceSamples')
+  let q = db().from('user_characters')
+    .select('id, name, owner_tenant_id, subject_email, approval_token, sample_urls, sample_pending')
+    .eq('status', 'ready').eq('approval_status', 'pending').is('approval_sent_at', null)
+    .not('sample_pending', 'is', null).not('subject_email', 'is', null).not('approval_token', 'is', null)
+  if (tenantId) q = q.eq('owner_tenant_id', tenantId)
+  const { data } = await q
+  let varslet = 0, stoppet = 0
+  for (const r of (data || []) as (Pick<Rad, 'id' | 'name' | 'owner_tenant_id' | 'subject_email' | 'approval_token'> & { sample_urls: unknown; sample_pending: unknown })[]) {
+    try {
+      const { stier, pending, batch } = await hentFerdigeProever(r.id, r.sample_urls, r.sample_pending)
+      if (pending) {
+        const alder = batch ? Date.now() - new Date(batch.submitted_at).getTime() : 0
+        if (alder < 10 * 60_000) continue
+        await db().from('user_characters').update({ sample_pending: null }).eq('id', r.id)
+      }
+      if (stier.length < SCENER.length && pending === false && stier.length > 0) {
+        // Noen scener feilet hos fal: send dem paa nytt, vent til neste tikk.
+        const { startProever } = await import('@/lib/faceSamples')
+        const { hentAnsiktForProeve } = await import('@/lib/faceWithdrawal')
+        await startProever(await hentAnsiktForProeve(r.id), r.id, stier.length)
+        continue
+      }
+      const sentroide = await hentSentroide(r.subject_email, r.owner_tenant_id)
+      const vurdering = stier.length && sentroide ? await vurderProever(stier, sentroide) : null
+      if (vurdering) await db().from('user_characters').update({ sample_scores: vurdering }).eq('id', r.id)
+      if (vurdering && !vurdering.passed) {
+        await db().from('user_characters').update({ status: 'failed', last_error: `Prøvebildene likner ikke nok på henne (${likhetTekst(vurdering)}). Ikke sendt.` }).eq('id', r.id)
+        stoppet++
+        continue
+      }
+      if (await varsleOmGodkjenning(r.id, r.subject_email!, r.approval_token!, r.name, r.owner_tenant_id)) varslet++
+    } catch { /* neste tikk */ }
+  }
+  return { varslet, stoppet }
 }
 
 /**
@@ -173,6 +239,8 @@ async function varsleEtterslep(tenantId?: string): Promise<number> {
     .select('id, name, owner_tenant_id, subject_email, approval_token')
     .eq('status', 'ready').eq('approval_status', 'pending').is('approval_sent_at', null)
     .not('subject_email', 'is', null).not('approval_token', 'is', null)
+    // Rader med proevebilder underveis eies av porten (fullfoerProever).
+    .is('sample_pending', null)
   if (tenantId) q = q.eq('owner_tenant_id', tenantId)
   const { data } = await q
   let n = 0
