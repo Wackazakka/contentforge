@@ -133,7 +133,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: tittel, template: `%s · ${produkt}` },
     description: beskrivelse,
-    icons: { icon: tenant.icon_url || "/icon.svg" },
+    // 🔑 INGEN FILKONVENSJON-IKONER I app/. app/favicon.ico ble injisert for
+    // ALLE tenanter med sizes="256x256", og nettlesere foretrekker en ICO med
+    // stoerrelse foran en SVG uten — saa TwinLedger viste CenterForges ikon
+    // selv med icon_url satt (22.09). ICO-en ligger naa i public/ for gamle
+    // nettlesere som ber om /favicon.ico paa egen haand; det eneste <link>
+    // er tenantens eget.
+    icons: { icon: [{ url: tenant.icon_url || "/icon.svg", type: "image/svg+xml" }] },
     ...(indekseres ? { metadataBase: new URL(kanonisk) } : {}),
     robots: indekseres
       ? { index: true, follow: true }
