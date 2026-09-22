@@ -96,7 +96,7 @@ async function varsleAdmins(i: {
 
     const { Resend } = await import('resend')
     await new Resend(process.env.RESEND_API_KEY).emails.send({
-      from: `${merke} <hello@centerforge.app>`,
+      from: `${merke} <no-reply@send.norditech.io>`,
       to: mottakere,
       subject: `Lisensforespørsel: ${i.actorName}`,
       html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1C1A16">

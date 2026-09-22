@@ -98,7 +98,7 @@ export async function POST(request: Request) {
               : `${kunde} har fylt på med ${kreditter} kreditter for ${beloep}. Din andel står på avregningssiden.`
             const { Resend } = await import('resend')
             await new Resend(process.env.RESEND_API_KEY).emails.send({
-              from: `${tn?.app_name || 'CenterForge'} <hello@centerforge.app>`,
+              from: `${tn?.app_name || 'CenterForge'} <no-reply@send.norditech.io>`,
               to: mottakere,
               subject: emne,
               html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.6;color:#181C17">

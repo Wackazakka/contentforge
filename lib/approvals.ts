@@ -107,8 +107,9 @@ async function sendApprovalEmail(actorId: string, token: string, kind: string, e
   try {
     const { Resend } = await import('resend')
     const resend = new Resend(process.env.RESEND_API_KEY)
-    await resend.emails.send({
-      from: `${brand} <hello@centerforge.app>`,
+    // Resend kaster ikke — sjekk { error }, ellers ser «feiler stille» ut som sendt.
+    const { error: sendFeil } = await resend.emails.send({
+      from: `${brand} <no-reply@send.norditech.io>`,
       to: actor.actor_email,
       subject: `Godkjenning: ${hva}`,
       html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1C1A16">
@@ -118,6 +119,7 @@ async function sendApprovalEmail(actorId: string, token: string, kind: string, e
         <p style="color:#6B6358;font-size:14px">Hvis du ikke svarer innen <strong>${frist}</strong>, blir bruken automatisk godkjent slik at kunden rekker sin frist.</p>
       </div>`,
     })
+    if (sendFeil) console.error('[approvals] e-post avvist:', sendFeil.name, sendFeil.message)
   } catch { /* e-post feiler stille */ }
 }
 

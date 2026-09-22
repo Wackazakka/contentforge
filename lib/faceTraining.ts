@@ -64,7 +64,7 @@ export async function varsleOmGodkjenning(karakterId: string, til: string, token
     // mail. Naa: feilen paa raden (last_error), tidsstempelet urørt, og
     // neste tikk proever igjen (se varsleEtterslep).
     const { error: sendFeil } = await new Resend(process.env.RESEND_API_KEY).emails.send({
-      from: `${merke} <hello@centerforge.app>`,
+      from: `${merke} <no-reply@send.norditech.io>`,
       to: til,
       subject: 'Er dette deg? Godkjenn ansiktsmodellen din',
       html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1C1A16">

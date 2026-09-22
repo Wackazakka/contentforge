@@ -60,7 +60,7 @@ async function varsleAdmin(subject: string, html: string): Promise<void> {
   try {
     const { Resend } = await import('resend')
     await new Resend(process.env.RESEND_API_KEY).emails.send({
-      from: 'VoiceBank <hello@centerforge.app>',
+      from: 'VoiceBank <no-reply@send.norditech.io>',
       to: til,
       subject,
       html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;padding:24px;color:#1C1A16">${html}</div>`,

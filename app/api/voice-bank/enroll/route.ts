@@ -126,8 +126,12 @@ export async function POST(request: Request) {
         const { Resend } = await import('resend')
         const fornavn = name.split(' ')[0]
         const hva = [offersVoice ? 'stemmen' : '', wantsFace ? 'ansiktet' : ''].filter(Boolean).join(' og ')
-        await new Resend(process.env.RESEND_API_KEY).emails.send({
-          from: `${merke} <hello@centerforge.app>`,
+        // Resend kaster ikke — avvist sending kommer som { error }. Kast selv,
+        // saa epostSendt forblir false og feilen havner i loggen (22.09: alle
+        // sendinger fra hello@centerforge.app var avvist, domenet er ikke
+        // verifisert i Resend-kontoen — og ingen saa det).
+        const { error: sendFeil } = await new Resend(process.env.RESEND_API_KEY).emails.send({
+          from: `${merke} <no-reply@send.norditech.io>`,
           to: email,
           subject: `Bekreft påmeldingen din`,
           html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1C1A16">
@@ -138,6 +142,7 @@ export async function POST(request: Request) {
             <p style="color:#6B6358;font-size:14px">Ingenting publiseres før du har levert og vi har sett gjennom det sammen. Du bestemmer selv hvem som får bruke ${hva}.</p>
           </div>`,
         })
+        if (sendFeil) throw new Error(`${sendFeil.name}: ${sendFeil.message}`)
         epostSendt = true
       }
     } catch (e) {

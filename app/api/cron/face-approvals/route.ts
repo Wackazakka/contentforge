@@ -29,7 +29,7 @@ async function sendEpost(til: string | string[], emne: string, html: string): Pr
     // denne sjekken ble purringen bokfoert som sendt uansett (samme feil som
     // i varsleOmGodkjenning, funnet 22.09).
     const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
-      from: 'TwinLedger <hello@centerforge.app>', to: til, subject: emne, html,
+      from: 'TwinLedger <no-reply@send.norditech.io>', to: til, subject: emne, html,
     })
     if (error) { console.error('[face-approvals] e-post avvist:', error); return false }
     return true
