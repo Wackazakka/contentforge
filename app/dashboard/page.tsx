@@ -265,7 +265,7 @@ export default function DashboardPage() {
                   — da maa lenken finnes. Ingen admin-sjekk her (NavBar-ens fetch
                   dupliseres ikke); API-guarden paa maalsiden svarer uautoriserte
                   med klar melding. */}
-              {tenant.vertical === 'rights' && (
+              {tenant.vertical === 'rights' && role.admin && (
                 <Link
                   href="/dashboard/voice-bank"
                   style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--ink)', background: 'transparent', border: '1.5px solid var(--ds-border)', borderRadius: 999, padding: '11px 22px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
@@ -273,7 +273,22 @@ export default function DashboardPage() {
                   {t('goToVoiceBank')}
                 </Link>
               )}
+              {/* Paamelding (101) for en som alt har konto — hullet Lars traff
+                  22.09: 409 paa /bli-stemme, «logg inn», og ingenting inne.
+                  Vises bare for den som verken er admin eller alt er paameldt;
+                  en paameldt sendes til /min-stemme av rollen uansett. */}
+              {tenant.slug === 'twinledger' && role.loaded && !role.admin && !role.actor && (
+                <Link
+                  href="/bli-stemme"
+                  style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--ink)', background: 'transparent', border: '1.5px solid var(--ds-border)', borderRadius: 999, padding: '11px 22px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                >
+                  {t('enrollCta')} →
+                </Link>
+              )}
             </div>
+            {tenant.slug === 'twinledger' && role.loaded && !role.admin && !role.actor && (
+              <p style={{ fontFamily: HANKEN, fontSize: 13.5, lineHeight: 1.5, color: 'var(--text-muted)', margin: '-14px 0 24px' }}>{t('enrollHint')}</p>
+            )}
             <div style={{ textAlign: 'left', borderTop: '1px solid var(--ds-border-faint)', paddingTop: 24 }}>
               <p style={{ fontFamily: MONO, fontSize: 11, fontWeight: 500, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-faint)', margin: '0 0 16px' }}>{t('howItWorksTitle')}</p>
               {[

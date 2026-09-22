@@ -243,6 +243,8 @@
     "errorPasswordsDoNotMatch": "Passwords do not match"
   },
   "dashboard": {
+    "enrollCta": "Sign up as a voice or face",
+    "enrollHint": "Do you have a voice or a face to offer? Signing up takes two minutes — no application.",
     "deleteTitle": "Delete product",
     "loading": "Loading...",
     "products": "products",
@@ -1595,6 +1597,10 @@
     "live_now": "Being logged"
   },
   "apply": {
+    "done_title_loggedin": "You are signed up",
+    "done_body_loggedin": "Your entry is created. On your page you upload photos, deliver or start the recording, and follow what happens next.",
+    "done_cta_loggedin": "Go to your page →",
+    "already_login_cta": "Log in and sign up →",
     "err_password": "The password must be at least 8 characters.",
     "password_ph": "At least 8 characters",
     "f_password": "Choose a password",

@@ -243,6 +243,8 @@
     "errorPasswordsDoNotMatch": "Passordene stemmer ikke overens"
   },
   "dashboard": {
+    "enrollCta": "Meld deg på som stemme eller ansikt",
+    "enrollHint": "Har du en stemme eller et ansikt du vil tilby? Påmeldingen tar to minutter — ingen søknad.",
     "deleteTitle": "Slett produkt",
     "loading": "Laster...",
     "products": "produkter",
@@ -1595,6 +1597,10 @@
     "live_now": "Føres nå"
   },
   "apply": {
+    "done_title_loggedin": "Du er påmeldt",
+    "done_body_loggedin": "Raden din er opprettet. På siden din laster du opp bilder, leverer eller starter opptaket, og følger med på hva som skjer videre.",
+    "done_cta_loggedin": "Gå til siden din →",
+    "already_login_cta": "Logg inn og meld deg på →",
     "err_password": "Passordet må være minst 8 tegn.",
     "password_ph": "Minst 8 tegn",
     "f_password": "Velg et passord",

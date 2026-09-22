@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import Link from 'next/link'
+import { useAuth } from '@/lib/authContext'
 import {
   FASETTER, KJOENN, KREVER_SAMTYKKE, VOKABULAR, type Fasett,
 } from '@/lib/castingAttributes'
@@ -49,13 +51,19 @@ function Etikett({ children }: { children: React.ReactNode }) {
 
 export default function ApplyForm() {
   const t = useTranslations('apply')
+  // Innlogget? Da finnes kontoen alt, og paameldingen gaar rett i raden
+  // (/api/voice-bank/enroll/me). E-post og passord skjules; navnet
+  // forhaandsfylles fra kontoen. Hullet Lars traff 22.09: en kunde som alt
+  // var inne fikk 409 paa den offentlige veien og fant ingenting inne.
+  const { session } = useAuth()
+  const innlogget = !!session?.access_token
   const tc = useTranslations('casting')
   const consentText = t('consent')
   // Art. 9-teksten fryses for seg: den dekker noe annet enn stemmesamtykket,
   // og en søker kan si ja til det ene og nei til det andre.
   const appearanceConsentText = t('appearance_consent_text')
 
-  const [name, setName] = useState('')
+  const [name, setName] = useState(() => String((session?.user?.user_metadata as any)?.full_name || ''))
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   // Paamelding lager kontoen (101) — derfor et passord her, ikke paa /register.
@@ -79,6 +87,8 @@ export default function ApplyForm() {
   const [appearanceConsent, setAppearanceConsent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
+  const [alleredeKonto, setAlleredeKonto] = useState(false)
+  const [alleredePaameldt, setAlleredePaameldt] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // De tre segmentene er én beslutning for søkeren, men to kolonner i basen.
@@ -93,8 +103,8 @@ export default function ApplyForm() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!name.trim() || !email.includes('@')) { setError(t('err_name')); return }
-    if (password.length < 8) { setError(t('err_password')); return }
+    if (!name.trim() || (!innlogget && !email.includes('@'))) { setError(t('err_name')); return }
+    if (!innlogget && password.length < 8) { setError(t('err_password')); return }
     // 🔑 LYDPROEVE ER IKKE LENGER ET KRAV (Lars 22.09). Vi screener ikke paa
     // stemmen foerst — vi gaar ut fra at den som soeker har en stemme. Hoeringen
     // flyttes til opptaksloeypa (095), der vi uansett hoerer dem ordentlig i
@@ -115,8 +125,9 @@ export default function ApplyForm() {
     setBusy(true)
     try {
       // JSON, ikke multipart: skjemaet baerer ingen filer lenger (099/101).
-      const res = await fetch('/api/voice-bank/enroll', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(innlogget ? '/api/voice-bank/enroll/me' : '/api/voice-bank/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(innlogget ? { Authorization: `Bearer ${session!.access_token}` } : {}) },
         body: JSON.stringify({
           name: name.trim(), email: email.trim(), password, phone: phone.trim(), bio: bio.trim(),
           wantsFace, offersVoice, consentText, website,
@@ -129,7 +140,11 @@ export default function ApplyForm() {
       const tekst = await res.text()
       let data: { error?: string; code?: string } = {}
       try { data = tekst ? JSON.parse(tekst) : {} } catch { /* tom eller ikke-JSON */ }
-      if (!res.ok) throw new Error(data.error || t('err_generic'))
+      if (!res.ok) {
+        if (data.code === 'ALREADY_REGISTERED') setAlleredeKonto(true)
+        if (data.code === 'ALREADY_ENROLLED') setAlleredePaameldt(true)
+        throw new Error(data.error || t('err_generic'))
+      }
       setDone(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('err_generic'))
@@ -141,8 +156,17 @@ export default function ApplyForm() {
   if (done) {
     return (
       <div style={{ border: '1px solid var(--ds-border-strong)', background: 'var(--paper-raised)', padding: 32 }}>
-        <h2 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 21, letterSpacing: '-0.02em', margin: '0 0 8px' }}>{t('done_title')}</h2>
-        <p style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--ink-soft)', margin: 0 }}>{t('done_body', { email: email.trim() })}</p>
+        <h2 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 21, letterSpacing: '-0.02em', margin: '0 0 8px' }}>{innlogget ? t('done_title_loggedin') : t('done_title')}</h2>
+        <p style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--ink-soft)', margin: 0 }}>
+          {innlogget ? t('done_body_loggedin') : t('done_body', { email: email.trim() })}
+        </p>
+        {innlogget && (
+          <p style={{ margin: '18px 0 0' }}>
+            <Link href="/min-stemme" style={{ display: 'inline-block', background: 'var(--ink)', color: 'var(--paper)', padding: '12px 20px', fontWeight: 600, textDecoration: 'none' }}>
+              {t('done_cta_loggedin')}
+            </Link>
+          </p>
+        )}
       </div>
     )
   }
@@ -155,6 +179,7 @@ export default function ApplyForm() {
         <Etikett>{t('f_name')}</Etikett>
         <input value={name} onChange={(e) => setName(e.target.value)} disabled={busy} placeholder={t('name_ph')} style={felt} />
       </label>
+      {!innlogget && (<>
       <label style={{ display: 'block', marginBottom: 16 }}>
         <Etikett>{t('f_email')}</Etikett>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} placeholder={t('email_ph')} style={felt} />
@@ -163,6 +188,7 @@ export default function ApplyForm() {
         <Etikett>{t('f_password')}</Etikett>
         <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} placeholder={t('password_ph')} style={felt} />
       </label>
+      </>)}
       <label style={{ display: 'block', marginBottom: 20 }}>
         <Etikett>{t('f_phone')} <span style={{ color: 'var(--text-faint)', letterSpacing: 0, textTransform: 'none' }}>{t('phone_opt')}</span></Etikett>
         <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={busy} placeholder={t('phone_ph')} style={felt} />
@@ -308,7 +334,11 @@ export default function ApplyForm() {
         autoComplete="off" name="website" style={{ position: 'absolute', left: -9999, width: 1, height: 1 }} />
 
       {error && (
-        <div style={{ border: '1px solid var(--ember-tint-border)', background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)', padding: '12px 14px', fontSize: 14, marginBottom: 16 }}>{error}</div>
+        <div style={{ border: '1px solid var(--ember-tint-border)', background: 'var(--ember-tint-bg)', color: 'var(--ember-deep)', padding: '12px 14px', fontSize: 14, marginBottom: 16 }}>
+          {error}
+          {alleredeKonto && <> <Link href="/login?rolle=stemme&next=%2Fbli-stemme" style={{ fontWeight: 600, textDecoration: 'underline', color: 'inherit' }}>{t('already_login_cta')}</Link></>}
+          {alleredePaameldt && <> <Link href="/min-stemme" style={{ fontWeight: 600, textDecoration: 'underline', color: 'inherit' }}>{t('done_cta_loggedin')}</Link></>}
+        </div>
       )}
 
       <button type="submit" disabled={busy}
