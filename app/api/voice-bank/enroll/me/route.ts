@@ -105,3 +105,61 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+
+/**
+ * Endre hva du tilbyr, etter paamelding. Lars meldte seg paa med bare stemme,
+ * ville legge til ansikt, og fant ingen vei: /bli-stemme sa «alt paameldt»,
+ * og /min-stemme hadde ingen bryter.
+ *
+ * 🔑 LEGGE TIL ER ALLTID LOV, TA BORT BARE FOER AKTIVERING. En aktivert stemme
+ * eller et trent ansikt er en avtale med lisenser bak seg; den slaas av med
+ * av-bryteren (088) og royalty-historikk intakt, ikke ved aa krysse av et
+ * felt paa «Kom i gang». Foer aktivering finnes ingen slik historikk, og hun
+ * kan ombestemme seg fritt.
+ */
+export async function PATCH(request: Request) {
+  try {
+    const tenant = await getTenant()
+    if (tenant.id === 'root') return NextResponse.json({ error: 'Tenant-oppsett mangler' }, { status: 404 })
+    const auth = request.headers.get('authorization')
+    if (!auth?.startsWith('Bearer ')) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    const { data: u } = await admin().auth.getUser(auth.slice(7))
+    const email = u?.user?.email?.toLowerCase()
+    if (!email) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+
+    const b = await request.json()
+    const { data: rad } = await admin()
+      .from('voice_actors')
+      .select('id, is_active, offers_voice, wants_face, has_own_recording, elevenlabs_voice_id, face_character_id')
+      .eq('id', String(b.actorId || ''))
+      .eq('owner_tenant_id', tenant.id)
+      .ilike('actor_email', email)
+      .maybeSingle()
+    if (!rad) return NextResponse.json({ error: 'Fant ikke raden din' }, { status: 404 })
+
+    const offersVoice = typeof b.offersVoice === 'boolean' ? b.offersVoice : rad.offers_voice !== false
+    const wantsFace = typeof b.wantsFace === 'boolean' ? b.wantsFace : rad.wants_face === true
+    if (!offersVoice && !wantsFace) return NextResponse.json({ error: 'Velg minst ett: stemme eller ansikt' }, { status: 400 })
+    // Ta bort noe som alt er i drift — nei. Bruk av-bryteren.
+    if (!offersVoice && (rad.is_active || rad.elevenlabs_voice_id)) {
+      return NextResponse.json({ error: 'Stemmen er i drift — den slås av fra av-bryteren, ikke her' }, { status: 409 })
+    }
+    if (!wantsFace && (rad.is_active || rad.face_character_id)) {
+      return NextResponse.json({ error: 'Ansiktet er i drift — det slås av fra av-bryteren, ikke her' }, { status: 409 })
+    }
+    let hasOwnRecording: boolean | null = offersVoice
+      ? (typeof b.hasOwnRecording === 'boolean' ? b.hasOwnRecording : rad.has_own_recording)
+      : null
+    if (offersVoice && hasOwnRecording === null) {
+      return NextResponse.json({ error: 'Si om du har et opptak fra før, eller vil ha hjelp til det' }, { status: 400 })
+    }
+
+    const { error } = await admin().from('voice_actors')
+      .update({ offers_voice: offersVoice, wants_face: wantsFace, has_own_recording: hasOwnRecording })
+      .eq('id', rad.id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ ok: true, offersVoice, wantsFace, hasOwnRecording })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}

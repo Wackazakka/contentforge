@@ -54,6 +54,9 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
   const [fetched, setFetched] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [actors, setActors] = useState<Actor[]>([])
+  // Teller som tvinger ny henting etter at hun har endret hva hun tilbyr.
+  const [reload, setReload] = useState(0)
+  const [tilbudBusy, setTilbudBusy] = useState(false)
   // Utledet, ikke satt synkront i effekten: uten sesjon er det ingenting å vente på.
   const loading = authLoading || (!!session && !fetched)
 
@@ -68,7 +71,7 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
       })
       .catch((e) => setError(e instanceof Error ? e.message : t('err_fetch')))
       .finally(() => setFetched(true))
-  }, [session])
+  }, [session, reload])
 
   const email = session?.user?.email
 
@@ -145,7 +148,49 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 <p className="text-sm text-gray-600 mb-4">
                   Du er påmeldt. Det som gjenstår står under — ingenting publiseres før du har levert og vi har sett gjennom det sammen.
                 </p>
+                {/* Hva hun tilbyr — kan endres fritt foer aktivering (PATCH
+                    /api/voice-bank/enroll/me). Lars meldte seg paa med bare
+                    stemme, ville legge til ansikt, og fant ingen vei. */}
+                {(() => {
+                  const valg: 'stemme' | 'ansikt' | 'begge' = a.offersVoice && a.wantsFace ? 'begge' : a.wantsFace ? 'ansikt' : 'stemme'
+                  const sett = async (patch: { offersVoice?: boolean; wantsFace?: boolean; hasOwnRecording?: boolean }) => {
+                    setTilbudBusy(true)
+                    try {
+                      const r = await fetch('/api/voice-bank/enroll/me', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+                        body: JSON.stringify({ actorId: a.id, ...patch }),
+                      })
+                      const j = await r.json()
+                      if (!r.ok) { alert(j.error || 'Kunne ikke endre'); return }
+                      setReload((n) => n + 1)
+                    } finally { setTilbudBusy(false) }
+                  }
+                  const knapp = (aktiv: boolean, onClick: () => void, label: string) => (
+                    <button type="button" disabled={tilbudBusy} onClick={onClick}
+                      className={`px-3 py-1.5 text-sm border ${aktiv ? 'bg-[var(--ink,#1C1A16)] text-white border-[var(--ink,#1C1A16)]' : 'bg-transparent border-gray-300 hover:border-gray-500'} disabled:opacity-50`}>
+                      {label}
+                    </button>
+                  )
+                  return (
+                    <div className="mb-4">
+                      <div className="text-xs font-semibold tracking-[0.12em] uppercase text-gray-500 mb-1.5">Hva tilbyr du?</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {knapp(valg === 'stemme', () => sett({ offersVoice: true, wantsFace: false, ...(a.hasOwnRecording == null ? { hasOwnRecording: false } : {}) }), 'Stemme')}
+                        {knapp(valg === 'ansikt', () => sett({ offersVoice: false, wantsFace: true }), 'Ansikt')}
+                        {knapp(valg === 'begge', () => sett({ offersVoice: true, wantsFace: true, ...(a.hasOwnRecording == null ? { hasOwnRecording: false } : {}) }), 'Begge')}
+                      </div>
+                      {a.offersVoice && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {knapp(a.hasOwnRecording === true, () => sett({ hasOwnRecording: true }), 'Jeg har et brukbart opptak')}
+                          {knapp(a.hasOwnRecording !== true, () => sett({ hasOwnRecording: false }), 'Hjelp meg med opptaket')}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
                 <LeveringPanel
+                  key={`${a.id}-${a.offersVoice}-${a.wantsFace}-${a.hasOwnRecording}`}
                   kompakt
                   auth={{ bearer: session?.access_token || '', actorId: a.id }}
                   onStartOpptak={a.offersVoice && a.hasOwnRecording !== true ? async () => {
