@@ -21,7 +21,9 @@ export type Fasett =
 /** Fasetter som er art. 9-data og derfor krever uttrykkelig samtykke. */
 export const KREVER_SAMTYKKE: readonly Fasett[] = ['appearance'] as const
 
-export const KJOENN = ['kvinne', 'mann', 'annet'] as const
+// To verdier (Lars 22.09). Basen haandhever den samme lista (migrasjon 100),
+// saa en tredje verdi kan ikke komme inn bakveien via en direkte insert.
+export const KJOENN = ['kvinne', 'mann'] as const
 export type Kjoenn = (typeof KJOENN)[number]
 
 /**
