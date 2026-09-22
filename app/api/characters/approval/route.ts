@@ -33,12 +33,12 @@ const SCENER = [
 async function hentRad(token: string) {
   const { data } = await admin()
     .from('user_characters')
-    .select('id, name, approval_status, subject_email, sample_urls, withdrawn_at, status')
+    .select('id, name, approval_status, subject_email, sample_urls, withdrawn_at, status, sample_pending')
     .eq('approval_token', token)
     .maybeSingle()
   return data as {
     id: string; name: string | null; approval_status: string
-    subject_email: string | null; sample_urls: unknown; withdrawn_at: string | null; status: string
+    subject_email: string | null; sample_urls: unknown; withdrawn_at: string | null; status: string; sample_pending: unknown
   } | null
 }
 
@@ -88,20 +88,49 @@ export async function POST(request: Request) {
 
       // ⚠️ Går bevisst UTENOM godkjenningsporten — se hentAnsiktForProeve.
       // Det er ikke mulig å be noen godkjenne noe de ikke får se.
+      //
+      // 🔑 TO STEG, IKKE ETT KALL (22.09, migrasjon 103). Før sendte ett kall
+      // jobben til fal og ventet inntil 22 sekunder — i en funksjon Netlify
+      // kutter på ~26. En kald LoRA tar 20–60 s, så kallet tidsavbrøt, sida sa
+      // «kunne ikke lages», og ny last sendte en NY jobb mens den forrige ble
+      // ferdig usett. Nå ligger jobben på raden (sample_pending), og sida spør
+      // hvert tredje sekund. Og: modellen hentes ÉN gang, her, via omveien —
+      // generateFaceImage slo den opp på nytt gjennom den gatede porten, som
+      // kaster på pending. Ingen prøvebilde for en ventende modell har derfor
+      // noen gang kunnet lages før nå.
       const { hentAnsiktForProeve } = await import('@/lib/faceWithdrawal')
-      const { generateFaceImage } = await import('@/lib/gateway')
-      await hentAnsiktForProeve(rad.id) // kaster om hen alt har sagt nei
-      const png = await generateFaceImage(rad.id, SCENER[alt.length], '1024x1024')
+      const { submitFaceImageJob, hentFaceImageResultat } = await import('@/lib/gateway')
+      const ch = await hentAnsiktForProeve(rad.id) // kaster om hen alt har sagt nei
 
+      type Ventende = { request_id: string; status_url: string; response_url: string; scene: number; submitted_at: string }
+      let ventende = (rad.sample_pending && typeof rad.sample_pending === 'object') ? rad.sample_pending as Ventende : null
+      // En jobb som har hengt i over ti minutter regnes som tapt; send en ny.
+      if (ventende && Date.now() - new Date(ventende.submitted_at).getTime() > 10 * 60_000) ventende = null
+
+      if (!ventende) {
+        const job = await submitFaceImageJob(ch, SCENER[alt.length], '1024x1024')
+        ventende = { ...job, scene: alt.length, submitted_at: new Date().toISOString() }
+        await admin().from('user_characters').update({ sample_pending: ventende }).eq('id', rad.id)
+        return NextResponse.json({ samples: alt, pending: true, status: 'IN_QUEUE' })
+      }
+
+      const res = await hentFaceImageResultat(ventende)
+      if (res.status === 'FAILED') {
+        await admin().from('user_characters').update({ sample_pending: null }).eq('id', rad.id)
+        return NextResponse.json({ samples: alt, error: 'fal klarte ikke å lage bildet — prøver igjen' }, { status: 502 })
+      }
+      if (res.status !== 'COMPLETED') {
+        return NextResponse.json({ samples: alt, pending: true, status: res.status })
+      }
       const { uploadToR2 } = await import('@/lib/r2Client')
       const url = await uploadToR2({
         fileName: `face-approval/${rad.id}/${Date.now()}.png`,
-        fileData: png,
+        fileData: res.png,
         contentType: 'image/png',
       })
       const nye = [...alt, url]
-      await admin().from('user_characters').update({ sample_urls: nye }).eq('id', rad.id)
-      return NextResponse.json({ samples: nye })
+      await admin().from('user_characters').update({ sample_urls: nye, sample_pending: null }).eq('id', rad.id)
+      return NextResponse.json({ samples: nye, pending: nye.length < SCENER.length })
     }
 
     if (b.action === 'decide') {

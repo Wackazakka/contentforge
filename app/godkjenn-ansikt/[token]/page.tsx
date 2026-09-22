@@ -25,6 +25,7 @@ export default function GodkjennAnsiktPage() {
   const [status, setStatus] = useState<string | null>(null)
   const [ferdigTrent, setFerdigTrent] = useState(false)
   const [bilder, setBilder] = useState<string[]>([])
+  const [tikk, setTikk] = useState(0)
   const [lager, setLager] = useState(false)
   const [svarer, setSvarer] = useState(false)
   const [feil, setFeil] = useState<string | null>(null)
@@ -54,6 +55,9 @@ export default function GodkjennAnsiktPage() {
         }).then((r) => r.json())
         if (!avbrutt && Array.isArray(d.samples)) setBilder(d.samples)
         if (!avbrutt && d.error) setFeil(d.error)
+        // Jobben ligger hos fal; spoer igjen om tre sekunder. Effekten
+        // re-trigges via `tikk`, saa hvert kall er kort og ingen ny jobb sendes.
+        if (!avbrutt && d.pending) { setFeil(null); setTimeout(() => { if (!avbrutt) setTikk((n) => n + 1) }, 3000) }
       } catch {
         if (!avbrutt) setFeil('Prøvebildet kunne ikke lages. Last siden på nytt.')
       } finally {
@@ -61,7 +65,7 @@ export default function GodkjennAnsiktPage() {
       }
     })()
     return () => { avbrutt = true }
-  }, [status, ferdigTrent, lager, bilder.length, token])
+  }, [status, ferdigTrent, lager, bilder.length, token, tikk])
 
   const svar = async (decision: 'approved' | 'rejected') => {
     setSvarer(true); setFeil(null)
