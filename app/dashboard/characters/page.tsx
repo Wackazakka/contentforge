@@ -250,11 +250,15 @@ export default function CharactersPage() {
                 <div className="flex items-center gap-2">
                 {/* Retrening er admin-styrt: den bruker vaar fal-noekkel og kan
                     koste 96 kr. Vises bare naar settet faktisk er sporet. */}
-                {role.admin && c.status === 'ready' && c.training_set_url && (
+                {/* Ogsaa fra et FEILET kort (Lars 22.09: «ingen steder jeg kan
+                    trykke tren paa nytt» — han sto paa det feilede). Settet er
+                    sporet paa raden, saa retrening derfra er det samme forsoeket
+                    om igjen, med rettet kode. */}
+                {role.admin && (c.status === 'ready' || c.status === 'failed') && c.training_set_url && (
                   <>
                     <button onClick={() => retrain(c, 'portrait')} disabled={!!busy}
                       className="text-xs px-2.5 py-1 rounded-lg border border-gray-300 text-gray-600 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40">
-                      Tren på nytt · Flux 1
+                      {c.status === 'failed' ? 'Prøv igjen · Flux 1' : 'Tren på nytt · Flux 1'}
                     </button>
                     <button onClick={() => retrain(c, 'flux2')} disabled={!!busy}
                       className="text-xs px-2.5 py-1 rounded-lg border border-gray-300 text-gray-600 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40">

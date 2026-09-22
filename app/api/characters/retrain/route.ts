@@ -99,9 +99,12 @@ export async function POST(request: Request) {
     // den forrige modellen, ikke denne.
     const maaGodkjennes = k.consent_subject === 'other_consented'
     const merke = valgt.endepunkt.includes('flux-2') ? 'Flux 2' : 'Flux 1'
+    // Retrening fra en rad som selv er en retrening (f.eks. et feilet forsoek)
+    // skal ikke hete «Lars (Flux 2) (Flux 2)» — stripp forrige merke foerst.
+    const grunnnavn = (k.name || 'Ansikt').replace(/\s*\((Flux [12])\)\s*$/, '')
 
     const { data, error } = await db.from('user_characters').insert({
-      name: `${k.name || 'Ansikt'} (${merke})`,
+      name: `${grunnnavn} (${merke})`,
       trigger_word: trigger,
       status: 'training',
       fal_request_id: submit.request_id,
