@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAuth } from '@/lib/authContext'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
+import LeveringPanel from '@/components/LeveringPanel'
 
 // Rettighetshaverens hovedbok. Alt her er hentet fra /api/voice-bank/me, som
 // avgjør identitet fra den innloggede e-posten — ikke fra noe på siden.
@@ -17,6 +18,9 @@ interface Actor {
   defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
   uses: number; earnedNok: number; meterNok: number; licenceNok: number; royaltyNok: number; paidNok: number; dueNok: number
   payouts: Payout[]; events: Usage[]; licences: Licence[]
+  // Paameldingen (101)
+  offersVoice: boolean; wantsFace: boolean; hasOwnRecording: boolean | null
+  enrolled: boolean; identityBasis: string | null; delivered: boolean
 }
 
 interface Fradrag { label: string; pct: number | null; amountNok: number }
@@ -131,6 +135,32 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
               {t('managed_since', { tenant: a.managedBy, date: dato(a.since) })}
               {a.hasVoice && a.hasFace ? t('both') : a.hasFace ? t('only_face') : t('only_voice')}
             </p>
+
+            {/* Kom i gang (101): paameldt, ikke aktiv ennaa. Leveringen skjer
+                HER, innlogget — ingen tokenlenke, ingen koe. Naar hun er
+                aktivert forsvinner blokka av seg selv. */}
+            {a.enrolled && !a.isActive && (
+              <div className="mb-8">
+                <h2 className="font-semibold mb-1">Kom i gang</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Du er påmeldt. Det som gjenstår står under — ingenting publiseres før du har levert og vi har sett gjennom det sammen.
+                </p>
+                <LeveringPanel
+                  kompakt
+                  auth={{ bearer: session?.access_token || '', actorId: a.id }}
+                  onStartOpptak={a.offersVoice && a.hasOwnRecording !== true ? async () => {
+                    const r = await fetch('/api/stemmeopptak/self', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+                      body: JSON.stringify({ actorId: a.id }),
+                    })
+                    const j = await r.json()
+                    if (!r.ok || !j.lenke) { alert(j.error || 'Kunne ikke starte opptaket'); return }
+                    window.location.href = j.lenke
+                  } : undefined}
+                />
+              </div>
+            )}
 
             {/* Oppgjøret — det viktigste først */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">

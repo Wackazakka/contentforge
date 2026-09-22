@@ -34,11 +34,14 @@ export async function GET(request: Request) {
   try {
     let email: string | null = null
     let userId: string | null = null
+    let enroll: Record<string, unknown> | null = null
     const auth = request.headers.get('authorization')
     if (auth?.startsWith('Bearer ')) {
       const { data } = await admin().auth.getUser(auth.slice(7))
       email = data?.user?.email ?? null
       userId = data?.user?.id ?? null
+      // Paameldingen (101) baerer radens innhold i metadata til foerste innlogging.
+      enroll = (data?.user?.user_metadata as { enroll?: Record<string, unknown> } | undefined)?.enroll ?? null
     }
     if (!email) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
 
@@ -47,11 +50,50 @@ export async function GET(request: Request) {
 
     let q = supabase
       .from('voice_actors')
-      .select('id, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at')
+      .select('id, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
       .ilike('actor_email', email)
     if (tenant.id !== 'root') q = q.eq('owner_tenant_id', tenant.id)
     const { data: rows } = await q.order('created_at', { ascending: true })
-    const actors = rows || []
+    let actors = rows || []
+
+    // 🔑 RADEN LAGES HER, VED FOERSTE INNLOGGING — ikke ved paamelding (101).
+    // Da finnes den bare for en e-post noen har bevist at de eier. Metadataene
+    // ble skrevet av /api/voice-bank/enroll; denne koden skriver aldri
+    // identity_basis til noe annet enn self_declared — vouched og bankid
+    // kommer fra egne loeyper (steg 2 og 3), aldri fra det hun selv sa.
+    // Idempotent: har hun alt en rad i denne banken, roeres ingenting.
+    if (actors.length === 0 && enroll && tenant.id !== 'root' && enroll.tenant_id === tenant.id) {
+      const e = enroll as Record<string, any>
+      const { data: ny, error: nyFeil } = await supabase
+        .from('voice_actors')
+        .insert({
+          owner_tenant_id: tenant.id,
+          name: String(e.name || '').slice(0, 120) || email,
+          actor_email: email,
+          elevenlabs_voice_id: null,
+          honorarium_nok: 0, actor_rate_nok: 0, customer_price_nok: 0, discount_tiers: [],
+          is_active: false, is_public: false, is_exclusive: true,
+          notes: [`Paameldt ${String(e.enrolled_at || '').slice(0, 10)}`, e.phone ? `Tlf: ${e.phone}` : ''].filter(Boolean).join(' · '),
+          bio: e.bio ?? null,
+          offers_voice: e.offers_voice !== false,
+          wants_face: e.wants_face === true,
+          has_own_recording: e.has_own_recording ?? null,
+          gender: e.gender ?? null,
+          playing_age_from: e.playing_age_from ?? null,
+          playing_age_to: e.playing_age_to ?? null,
+          height_cm: e.height_cm ?? null,
+          attributes: e.attributes && typeof e.attributes === 'object' ? e.attributes : {},
+          appearance_consent_at: e.appearance_consent_at ?? null,
+          consent_text: e.consent_text ?? null,
+          consent_at: e.consent_at ?? null,
+          enrolled_at: e.enrolled_at ?? new Date().toISOString(),
+          identity_basis: 'self_declared',
+        })
+        .select('id, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
+        .single()
+      if (nyFeil) console.error('[me] Kunne ikke opprette paameldt rad:', nyFeil.message)
+      else if (ny) actors = [ny as any]
+    }
 
     if (actors.length === 0) {
       return NextResponse.json({ tenant: { name: tenant.app_name }, actors: [] })
@@ -145,6 +187,13 @@ export async function GET(request: Request) {
         hasFace: !!a.face_character_id,
         isActive: !!a.is_active,
         isExclusive: a.is_exclusive !== false,
+        // Paameldingen (101): hva hun tilbyr og hvor langt hun er kommet.
+        offersVoice: a.offers_voice !== false,
+        wantsFace: a.wants_face === true,
+        hasOwnRecording: a.has_own_recording ?? null,
+        enrolled: !!a.enrolled_at,
+        identityBasis: a.identity_basis ?? null,
+        delivered: !!a.delivered_at,
         defaultRateNok: Number(a.actor_rate_nok),
         rates,
         previewRatePer1000,

@@ -6,7 +6,13 @@ import {
   FASETTER, KJOENN, KREVER_SAMTYKKE, VOKABULAR, type Fasett,
 } from '@/lib/castingAttributes'
 
-// Søknadsskjemaet (Claude Design 5C, 21.09.2026).
+// Paameldingsskjemaet (Claude Design 5C, 21.09.2026; paamelding fra 22.09).
+//
+// 🔑 DETTE ER IKKE EN SOEKNAD LENGER (Lars 22.09, migrasjon 101). Skjemaet
+// lager kontoen; skuespillerraden lages ved foerste innlogging, altsaa naar
+// e-posten er verifisert. Ingen koe, ingen godkjenning for aa delta — bare
+// «Publiser», som er et menneskes avgjoerelse. Bilder og opptak leveres
+// innlogget paa /min-stemme etterpaa.
 //
 // Samtykketeksten fryses på søknadsraden (consent_text) — endres formuleringen,
 // vet vi fortsatt nøyaktig hva hver søker samtykket til. Teksten hentes fra
@@ -52,6 +58,8 @@ export default function ApplyForm() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  // Paamelding lager kontoen (101) — derfor et passord her, ikke paa /register.
+  const [password, setPassword] = useState('')
   const [bio, setBio] = useState('')
   // Lyd tas ikke imot her lenger (22.09). Skjemaet spoer i stedet om hen har
   // et brukbart opptak fra foer — og det avgjoer hvilken vei hen sendes.
@@ -86,6 +94,7 @@ export default function ApplyForm() {
     e.preventDefault()
     setError(null)
     if (!name.trim() || !email.includes('@')) { setError(t('err_name')); return }
+    if (password.length < 8) { setError(t('err_password')); return }
     // 🔑 LYDPROEVE ER IKKE LENGER ET KRAV (Lars 22.09). Vi screener ikke paa
     // stemmen foerst — vi gaar ut fra at den som soeker har en stemme. Hoeringen
     // flyttes til opptaksloeypa (095), der vi uansett hoerer dem ordentlig i
@@ -105,32 +114,22 @@ export default function ApplyForm() {
     }
     setBusy(true)
     try {
-      const fd = new FormData()
-      fd.append('name', name.trim())
-      fd.append('email', email.trim())
-      fd.append('phone', phone.trim())
-      fd.append('bio', bio.trim())
-      fd.append('wantsFace', wantsFace ? '1' : '0')
-      fd.append('offersVoice', offersVoice ? '1' : '0')
-      fd.append('consentText', consentText)
-      fd.append('website', website) // honeypot
-      fd.append('gender', kjoenn)
-      fd.append('playingAgeFrom', aldFra)
-      fd.append('playingAgeTo', aldTil)
-      fd.append('heightCm', hoyde)
-      fd.append('attributes', JSON.stringify(attr))
-      fd.append('appearanceConsent', appearanceConsent ? '1' : '0')
-      if (appearanceConsent) fd.append('appearanceConsentText', appearanceConsentText)
-      if (offersVoice) fd.append('hasOwnRecording', harOpptak === 'ja' ? '1' : '0')
-      const res = await fetch('/api/voice-bank/apply', { method: 'POST', body: fd })
-      // ⚠️ Les teksten og parse selv. Netlify kutter store forespoersler i
-      // porten og svarer med TOM kropp — da kaster `res.json()` «Unexpected end
-      // of JSON input» rett i ansiktet paa soekeren. Bevist paa prod 22.09 med
-      // 12 bilder. En lesbar feil med statuskode er det minste vi skylder hen.
+      // JSON, ikke multipart: skjemaet baerer ingen filer lenger (099/101).
+      const res = await fetch('/api/voice-bank/enroll', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(), email: email.trim(), password, phone: phone.trim(), bio: bio.trim(),
+          wantsFace, offersVoice, consentText, website,
+          gender: kjoenn, playingAgeFrom: aldFra, playingAgeTo: aldTil, heightCm: hoyde,
+          attributes: attr, appearanceConsent,
+          ...(appearanceConsent ? { appearanceConsentText } : {}),
+          ...(offersVoice ? { hasOwnRecording: harOpptak === 'ja' } : {}),
+        }),
+      })
       const tekst = await res.text()
-      let data: { error?: string } = {}
+      let data: { error?: string; code?: string } = {}
       try { data = tekst ? JSON.parse(tekst) : {} } catch { /* tom eller ikke-JSON */ }
-      if (!res.ok) throw new Error(data.error || (tekst ? t('err_generic') : t('err_too_large_request')))
+      if (!res.ok) throw new Error(data.error || t('err_generic'))
       setDone(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('err_generic'))
@@ -159,6 +158,10 @@ export default function ApplyForm() {
       <label style={{ display: 'block', marginBottom: 16 }}>
         <Etikett>{t('f_email')}</Etikett>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} placeholder={t('email_ph')} style={felt} />
+      </label>
+      <label style={{ display: 'block', marginBottom: 16 }}>
+        <Etikett>{t('f_password')}</Etikett>
+        <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} placeholder={t('password_ph')} style={felt} />
       </label>
       <label style={{ display: 'block', marginBottom: 20 }}>
         <Etikett>{t('f_phone')} <span style={{ color: 'var(--text-faint)', letterSpacing: 0, textTransform: 'none' }}>{t('phone_opt')}</span></Etikett>

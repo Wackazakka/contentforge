@@ -58,11 +58,13 @@ export function leveringsStatus(krav: LeveringsKrav, antallBilder: number, antal
 
 /** Stien en fil skal ligge paa. Prefikset er eierskapet: ruta godtar aldri en
  *  sti utenfor soeknadens egen mappe, uansett hva klienten sender. */
-export function leveringsSti(applicationId: string, kind: 'photo' | 'recording', ext: string): string {
+export type Prefiks = 'applications' | 'actors'
+
+export function leveringsSti(id: string, kind: 'photo' | 'recording', ext: string, prefiks: Prefiks = 'applications'): string {
   const navn = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-  return `applications/${applicationId}/${kind}-${navn}`
+  return `${prefiks}/${id}/${kind}-${navn}`
 }
 
-export function eierSti(applicationId: string, sti: string): boolean {
-  return typeof sti === 'string' && sti.startsWith(`applications/${applicationId}/`) && !sti.includes('..')
+export function eierSti(id: string, sti: string, prefiks: Prefiks = 'applications'): boolean {
+  return typeof sti === 'string' && sti.startsWith(`${prefiks}/${id}/`) && !sti.includes('..')
 }

@@ -19,6 +19,11 @@ interface Actor {
   is_active: boolean
   is_exclusive?: boolean | null
   face_character_id?: string | null
+  // Paameldingen (101)
+  enrolled_at?: string | null
+  identity_basis?: 'self_declared' | 'vouched' | 'bankid' | null
+  delivered_at?: string | null
+  is_public?: boolean | null
 }
 
 interface UsageEvent {
@@ -681,6 +686,22 @@ export default function VoiceBankAdminPage() {
                             >
                               {a.is_active ? t('active') : t('inactive')}
                             </button>
+                            {/* Paameldt selv (101), ikke aktivert ennaa. Identitetsgrunnlaget
+                                staar synlig fordi det avgjoer om hun KAN publiseres:
+                                self_declared kan delta, men ikke inn i katalogen (steg 3). */}
+                            {a.enrolled_at && !a.is_active && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                <span className="text-[11px] px-2 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-amber-800">Ny påmelding</span>
+                                <span className={`text-[11px] px-2 py-0.5 rounded-full border ${a.delivered_at ? 'border-green-300 bg-green-50 text-green-800' : 'border-gray-200 text-gray-500'}`}>
+                                  {a.delivered_at ? 'Levert' : 'Venter på levering'}
+                                </span>
+                                {a.identity_basis === 'self_declared' && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-500" title="Bare en avkryssing gaar god for at personen finnes. Kan delta, men ikke publiseres foer byraa eller BankID (steg 2/3).">
+                                    Selverklært
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       )
