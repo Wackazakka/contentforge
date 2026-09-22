@@ -1,27 +1,20 @@
 import { NextResponse } from 'next/server'
+import { leveringsStatus } from '@/lib/levering'
 import { createClient } from '@supabase/supabase-js'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { randomUUID } from 'crypto'
+import { randomBytes, randomUUID } from 'crypto'
 import { getTenant } from '@/lib/tenantServer'
 import { KJOENN, rensAttributter } from '@/lib/castingAttributes'
 
-// «Bli en stemme i banken» — offentlig søknad med lydprøver i ETT multipart-kall
-// (ingen foreldreløse opplastinger). Gate: tenantens accept_actor_applications.
+// «Bli en stemme i banken» — offentlig paamelding. Gate: tenantens
+// accept_actor_applications.
+//
+// 🔑 INGEN FILER GAAR GJENNOM DENNE RUTA (22.09, migrasjon 099). Netlify
+// kutter forespoersler over ~6 MB i porten — bevist samme dag med 12 bilder.
+// Skjemaet er tekst; bilder og opptak leveres paa /levering/<token>, rett fra
+// nettleseren til de private boettene. Ruta lager tokenet og sender lenken.
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-const R2_ENDPOINT = process.env.R2_ENDPOINT
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'contentforge-assets'
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
-
-const MAX_BYTES = 10 * 1024 * 1024
-// MIME → trygg filendelse (endelsen hentes ALDRI fra filnavnet)
-const IMAGE_TYPES: Record<string, string> = {
-  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
-}
-
 
 function admin() {
   return createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '')
@@ -53,17 +46,12 @@ export async function POST(request: Request) {
     // Bildene til ansiktstrening (091). Kommer fra soekeren selv, ikke fra en
     // innboks: et produkt som selger sporbarhet kan ikke ta imot bilder av et
     // virkelig menneske gjennom en kanal hovedboken ikke kjenner.
-    const photos = form.getAll('photos').filter((f): f is File => f instanceof File).slice(0, 30)
-    // 🔑 ANTALLET ER DEN ENESTE JUSTERINGEN SOM SIKKERT VIRKER. Bade fals egen
-    // veiledning og praksisen rundt Flux-trening peker paa 15-30; vi ba om 5.
-    // Det er gratis kvalitet, og det eneste jeg ville endret uten aa maale.
-    if (wantsFace && photos.length < 10) {
-      return NextResponse.json({ error: 'Ansiktsmodellen trenger minst 10 bilder (15-25 gir merkbart bedre likhet)' }, { status: 400 })
-    }
-    for (const f of photos) {
-      if (f.size > MAX_BYTES) return NextResponse.json({ error: 'Bilde for stort (maks 10 MB)' }, { status: 413 })
-      if (!IMAGE_TYPES[f.type]) return NextResponse.json({ error: 'Bilder maa vaere JPG, PNG eller WebP' }, { status: 415 })
-    }
+    // 🔑 BILDENE TAS HELLER IKKE IMOT HER (22.09, migrasjon 099). Bevist paa
+    // prod: 12 bilder (23 MB) mot denne ruta ga HTTP 400 med tom kropp etter
+    // 1 MB — Netlify kuttet forespoerselen i porten, koden kjoerte aldri.
+    // Ansiktsdelen av soeknaden har derfor aldri kunnet virke for en ekte
+    // soeker. Og soeknadens photo_urls ble aldri lest av noe. Bildene gaar naa
+    // til leveringssiden, rett fra nettleseren til den private boetta.
 
     // 🔑 SKJEMAET TAR IKKE LENGER IMOT LYD (Lars 22.09). To grunner:
     // 1) Vi screener ikke paa stemmen — enten har hen et brukbart opptak fra
@@ -83,27 +71,13 @@ export async function POST(request: Request) {
     }
     const hasOwnRecording: boolean | null = offersVoice ? harOpptakRaa === '1' : null
 
-    const r2 = new S3Client({
-      region: 'auto',
-      endpoint: R2_ENDPOINT!,
-      credentials: { accessKeyId: R2_ACCESS_KEY_ID!, secretAccessKey: R2_SECRET_ACCESS_KEY! },
-    })
     const applicationId = randomUUID()
     // Alltid tom fra 22.09 — kolonnen beholdes for eldre rader og for den
     // dagen opplastingslenken skriver hit.
     const sampleUrls: string[] = []
 
+    // Tom for nye rader — se over. Kolonnen beholdes for eldre rader.
     const photoUrls: string[] = []
-    for (const f of photos) {
-      const key = `voice-applications/${applicationId}/photo-${Date.now()}-${photoUrls.length}.${IMAGE_TYPES[f.type]}`
-      await r2.send(new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: key,
-        Body: Buffer.from(await f.arrayBuffer()),
-        ContentType: f.type,
-      }))
-      photoUrls.push(`${R2_PUBLIC_URL}/${key}`)
-    }
 
     // Castingfeltene. Soekeren fyller dem selv -- se 084 for hvorfor det er
     // det eneste riktige stedet for spilleomraade (art. 9).
@@ -136,6 +110,11 @@ export async function POST(request: Request) {
         { harSamtykke: harAppearanceSamtykke })
     } catch { /* ugyldig JSON = ingen attributter, ikke en feilmelding i ansiktet */ }
 
+    // Lenken til leveringssiden lages FOER insert, saa en feilet e-post kan
+    // sendes paa nytt fra adminen uten aa lage et nytt token (samme grep som
+    // 091). 24 tilfeldige byte — ikke gjettbart, ikke oppslagbart.
+    const deliveryToken = randomBytes(24).toString('base64url')
+
     const { error } = await admin().from('voice_actor_applications').insert({
       id: applicationId,
       tenant_id: tenant.id,
@@ -148,6 +127,7 @@ export async function POST(request: Request) {
       wants_face: wantsFace,
       offers_voice: offersVoice,
       has_own_recording: hasOwnRecording,
+      delivery_token: deliveryToken,
       consent_text: String(form.get('consentText') || '').slice(0, 2000) || null,
       gender: kjoennRaa || null,
       playing_age_from: aldFra,
@@ -165,7 +145,48 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Kunne ikke lagre søknaden — prøv igjen' }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true })
+    // E-posten er det som baerer lenken. Feiler den, staar raden og lenken
+    // vises i adminen — en mislykket e-post skal ikke velte soeknaden.
+    const status = leveringsStatus(
+      { wantsFace, offersVoice, hasOwnRecording }, 0, 0)
+    const harNoeAaLevere = status.trengerBilder || status.trengerOpptak
+    const vert = tenant.custom_domain ? `https://${tenant.custom_domain}` : `https://${tenant.slug}.norditech.io`
+    const lenke = `${vert}/levering/${deliveryToken}`
+    const merke = tenant.app_name || 'TwinLedger'
+    const fornavn = name.split(' ')[0]
+    // Tre e-poster, ikke én med forbehold: hva hun skal gjoere avhenger av
+    // hva hun svarte, og en e-post som dekker alle tilfellene sier ingenting.
+    const punkter: string[] = []
+    if (status.trengerBilder) punkter.push('<li><strong>10–25 bilder</strong> av deg — ulike vinkler, uttrykk og lys. Tjue like passbilder gir en modell som bare kan det ene bildet.</li>')
+    if (status.trengerOpptak) punkter.push('<li><strong>Opptaket ditt</strong> — rundt 30 minutter ren tale, samme mikrofon hele veien. MP3 eller M4A; er fila stor, del den i flere.</li>')
+    const veiledet = status.venterVeiledetOpptak
+      ? '<p>Opptaket tar vi <strong>sammen</strong>: når søknaden er gjennomgått, får du en egen lenke med tekster å lese, nivåmåling og veiledning. Rundt 30 minutter, i flere omganger om du vil.</p>'
+      : ''
+    let epostSendt = false
+    try {
+      if (process.env.RESEND_API_KEY) {
+        const { Resend } = await import('resend')
+        await new Resend(process.env.RESEND_API_KEY).emails.send({
+          from: `${merke} <hello@centerforge.app>`,
+          to: email,
+          subject: harNoeAaLevere ? `Neste steg: det vi trenger fra deg` : `Vi har fått søknaden din`,
+          html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1C1A16">
+            <h2 style="margin:0 0 12px">Hei ${fornavn},</h2>
+            <p>Takk for søknaden til ${merke}.</p>
+            ${harNoeAaLevere ? `<p>Her er det vi trenger fra deg:</p><ul>${punkter.join('')}</ul>
+            <p style="margin:24px 0"><a href="${lenke}" style="background:#C5451B;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Lever her</a></p>
+            <p style="color:#6B6358;font-size:14px">Lenken er din. Du kan komme tilbake til den så mange ganger du vil — det du har lastet opp, ligger der.</p>` : ''}
+            ${veiledet}
+            <p style="color:#6B6358;font-size:14px">Vi går gjennom søknaden og tar kontakt på denne adressen.</p>
+          </div>`,
+        })
+        epostSendt = true
+      }
+    } catch (e) {
+      console.error('[voice-apply] E-post feilet:', e instanceof Error ? e.message : e)
+    }
+
+    return NextResponse.json({ ok: true, epostSendt, harNoeAaLevere })
   } catch (err: any) {
     console.error('[voice-apply] Feil:', err.message)
     return NextResponse.json({ error: 'Noe gikk galt — prøv igjen' }, { status: 500 })

@@ -24,7 +24,6 @@ import {
 const MONO = 'var(--font-cfmono), ui-monospace, monospace'
 const DISPLAY = 'var(--font-archivo), system-ui, sans-serif'
 
-const MAX_FILE_MB = 10
 
 type Tilbud = 'stemme' | 'ansikt' | 'begge'
 
@@ -58,9 +57,9 @@ export default function ApplyForm() {
   // et brukbart opptak fra foer — og det avgjoer hvilken vei hen sendes.
   // '' = ikke svart ennaa; ruta avviser tomt svar naar hen tilbyr stemme.
   const [harOpptak, setHarOpptak] = useState<'' | 'ja' | 'nei'>('')
-  // Bildene til ansiktsmodellen (091). Foer dette maatte de komme utenom
-  // systemet, til et produkt som selger sporbarhet.
-  const [photos, setPhotos] = useState<File[]>([])
+  // Bildene tas IKKE imot her fra 22.09 — de gaar til leveringssiden
+  // (/levering/<token>, migrasjon 099) rett fra nettleseren til lagring.
+  // Skjemaet kunne aldri baere dem: Netlify kutter ved ~6 MB.
   const [tilbud, setTilbud] = useState<Tilbud>('stemme')
   const [consent, setConsent] = useState(false)
   const [website, setWebsite] = useState('') // honeypot
@@ -95,7 +94,6 @@ export default function ApplyForm() {
     // Filen er fortsatt velkommen — en skuespiller med reel faar en bedre
     // profil fra dag én — men den er et tilbud, ikke en terskel.
     if (offersVoice && !harOpptak) { setError(t('err_recording_choice')); return }
-    if (wantsFace && photos.length < 10) { setError('Ansiktsmodellen trenger minst 10 bilder — 15–25 gir merkbart bedre likhet.'); return }
     if (!consent) { setError(t('err_consent')); return }
     const tallOk = (v: string) => v === '' || /^\d{1,3}$/.test(v)
     if (!tallOk(aldFra) || !tallOk(aldTil) ||
@@ -124,7 +122,6 @@ export default function ApplyForm() {
       fd.append('appearanceConsent', appearanceConsent ? '1' : '0')
       if (appearanceConsent) fd.append('appearanceConsentText', appearanceConsentText)
       if (offersVoice) fd.append('hasOwnRecording', harOpptak === 'ja' ? '1' : '0')
-      photos.slice(0, 30).forEach((f) => fd.append('photos', f))
       const res = await fetch('/api/voice-bank/apply', { method: 'POST', body: fd })
       // ⚠️ Les teksten og parse selv. Netlify kutter store forespoersler i
       // porten og svarer med TOM kropp — da kaster `res.json()` «Unexpected end
@@ -216,37 +213,13 @@ export default function ApplyForm() {
         </div>
       )}
 
-      {/* Bildene til ansiktsmodellen. Staar her, i soeknaden, og ikke i en
-          e-post: da kommer de fra soekeren selv, med et tidsstempel og en rad
-          aa henge dem paa. */}
-      {wantsFace && (
-        <div style={{ marginBottom: 20 }}>
-          <Etikett>Bilder til ansiktsmodellen</Etikett>
-          <label style={{ display: 'block', border: '1.5px dashed var(--ds-border-strong)', background: 'var(--paper)', padding: '22px 16px', textAlign: 'center', cursor: busy ? 'default' : 'pointer' }}>
-            <span style={{ display: 'block', fontSize: 14.5, color: 'var(--ink-soft)', marginBottom: 4 }}>
-              {photos.length > 0 ? `${photos.length} bilder valgt` : 'Velg 15–25 bilder'}
-            </span>
-            <span style={{ fontFamily: MONO, fontSize: 11, color: 'var(--text-faint)' }}>
-              JPG, PNG eller WebP — minst 10, helst 15–25. Deg alene, ulike vinkler, uttrykk og lys
-            </span>
-            <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy}
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const valgte = Array.from(e.target.files || []).slice(0, 20)
-                for (const f of valgte) {
-                  if (f.size > MAX_FILE_MB * 1024 * 1024) { setError(t('err_too_big', { name: f.name, mb: MAX_FILE_MB })); e.target.value = ''; return }
-                }
-                setError(null)
-                setPhotos(valgte)
-              }} />
-          </label>
-          <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-muted)', margin: '8px 0 0' }}>
-            Når modellen er trent, får du den tilsendt for godkjenning: du ser tre bilder
-            laget med den, og svarer ja eller nei. Den kan ikke brukes til noe før du har sagt ja.
-          </p>
-        </div>
+      {/* Bilder og eget opptak leveres paa en egen side ETTER innsending
+          (099). Skjemaet sier hva som venter, og e-posten baerer lenken. */}
+      {(wantsFace || (offersVoice && harOpptak === 'ja')) && (
+        <p style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '-6px 0 22px' }}>
+          {t('delivery_hint')}
+        </p>
       )}
-
 
       <label style={{ display: 'block', marginBottom: 24 }}>
         <Etikett>{t('f_bio')}</Etikett>

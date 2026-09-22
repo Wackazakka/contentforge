@@ -40,6 +40,10 @@ interface VoiceApplication {
   offers_voice?: boolean | null
   // true = har eget opptak, false = vil ha hjelp, null = tilbyr ikke stemme (098)
   has_own_recording?: boolean | null
+  // Leveringssiden (099): stier i private boetter, signeres ved behov
+  photo_paths?: string[] | null
+  recording_paths?: string[] | null
+  delivered_at?: string | null
   wants_face: boolean
   status: string
   created_at: string
@@ -90,6 +94,25 @@ export default function VoiceBankAdminPage() {
   const [acceptApps, setAcceptApps] = useState(false)
   const [appsMigrated, setAppsMigrated] = useState(true)
   const [appBusy, setAppBusy] = useState<string | null>(null)
+  // Leveringen hennes (099): hentes foerst naar noen aapner raden — signerte
+  // lenker lever i ti minutter, og en koe med tjue rader skal ikke signere
+  // to hundre filer ved innlasting.
+  type Levering = { lenke: string | null; bilder: Array<{ path: string; navn?: string; url: string | null }>; opptak: Array<{ path: string; navn?: string; url: string | null }>; deliveredAt: string | null }
+  const [levering, setLevering] = useState<Record<string, Levering | 'laster' | 'feil'>>({})
+  const hentLevering = async (applicationId: string) => {
+    setLevering((p) => ({ ...p, [applicationId]: 'laster' }))
+    try {
+      const { data: sess } = await getSupabase().auth.getSession()
+      const r = await fetch(`/api/levering/admin?applicationId=${encodeURIComponent(applicationId)}`, {
+        headers: { Authorization: `Bearer ${sess?.session?.access_token || ''}` },
+      })
+      const j = await r.json()
+      if (!r.ok) throw new Error(j.error)
+      setLevering((p) => ({ ...p, [applicationId]: j }))
+    } catch {
+      setLevering((p) => ({ ...p, [applicationId]: 'feil' }))
+    }
+  }
 
   // Legg til skuespiller-skjemaet
   const [showForm, setShowForm] = useState(false)
@@ -399,6 +422,52 @@ export default function VoiceBankAdminPage() {
                                   </span>
                                 )}
                               </div>
+                              {/* Leveringen (099). Tallene kommer fra raden; lenkene
+                                  signeres foerst naar noen ber om dem. */}
+                              {(app.wants_face || app.has_own_recording === true) && (() => {
+                                const nB = (app.photo_paths || []).length
+                                const nO = (app.recording_paths || []).length
+                                const lev = levering[app.id]
+                                return (
+                                  <div className="mt-2 text-[13px] text-gray-600">
+                                    <span className={app.delivered_at ? 'text-green-800' : ''}>
+                                      {app.wants_face && `Bilder: ${nB}${nB < 10 ? ' (minst 10)' : ''}`}
+                                      {app.wants_face && app.has_own_recording === true && ' · '}
+                                      {app.has_own_recording === true && `Opptak: ${nO} ${nO === 1 ? 'fil' : 'filer'}`}
+                                      {app.delivered_at ? ' · levert' : ' · venter på levering'}
+                                    </span>
+                                    {' '}
+                                    {!lev && <button type="button" onClick={() => hentLevering(app.id)} className="underline hover:no-underline">Vis filer og lenke</button>}
+                                    {lev === 'laster' && <span className="text-gray-400">henter…</span>}
+                                    {lev === 'feil' && <span className="text-red-700">kunne ikke hente</span>}
+                                    {lev && lev !== 'laster' && lev !== 'feil' && (
+                                      <div className="mt-1.5 space-y-1">
+                                        {lev.lenke && (
+                                          <div className="font-mono text-[11px] break-all">
+                                            Lenken hennes: <a href={lev.lenke} target="_blank" rel="noopener noreferrer" className="underline">{lev.lenke}</a>
+                                          </div>
+                                        )}
+                                        {lev.bilder.length > 0 && (
+                                          <div className="flex flex-wrap gap-1.5">
+                                            {lev.bilder.map((b) => b.url ? (
+                                              <a key={b.path} href={b.url} target="_blank" rel="noopener noreferrer" title={b.navn}>
+                                                <img src={b.url} alt="" className="h-12 w-12 object-cover rounded border border-gray-200" />
+                                              </a>
+                                            ) : null)}
+                                          </div>
+                                        )}
+                                        {lev.opptak.map((o) => o.url ? (
+                                          <div key={o.path} className="flex items-center gap-2">
+                                            <audio controls preload="none" src={o.url} className="h-9" />
+                                            <a href={o.url} download className="text-[11px] underline">{o.navn}</a>
+                                          </div>
+                                        ) : null)}
+                                        <div className="text-[11px] text-gray-400">Lenkene til filene virker i ti minutter.</div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })()}
                             </div>
                             <div className="flex gap-2">
                               <button onClick={() => decideApplication(app, 'approved')} disabled={appBusy === app.id}
