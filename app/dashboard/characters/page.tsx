@@ -13,6 +13,8 @@ interface UserCharacter {
   created_at: string
   // Hvorfor treningen feilet (104) — fals egen melding, saa ingen maa gjette.
   last_error: string | null
+  // Proevebildene fra godkjenningen (091), signert 10 min av /api/characters.
+  samples?: string[]
   // Maaleinstrumentet (093): hvilken trener som laget modellen.
   trainer: string | null
   // Settet den ble laget fra (094). Uten den kan den ikke trenes paa nytt.
@@ -245,6 +247,17 @@ export default function CharactersPage() {
                   </div>
                   {c.status === 'failed' && c.last_error && (
                     <div className="text-xs text-red-700 mt-0.5">{c.last_error}</div>
+                  )}
+                  {/* Kontaktkopien: de tre bildene hun svarte paa. Det er disse
+                      som ER modellen for et menneske — ikke lora_url. */}
+                  {!!c.samples?.length && (
+                    <div className="flex gap-1.5 mt-2">
+                      {c.samples.map((u, i) => (
+                        <a key={i} href={u} target="_blank" rel="noreferrer" title="Prøvebilde fra godkjenningen">
+                          <img src={u} alt="" className="h-16 w-12 object-cover rounded border border-gray-200" />
+                        </a>
+                      ))}
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-2">

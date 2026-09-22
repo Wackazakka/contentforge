@@ -42,7 +42,19 @@ export async function GET(request: Request) {
     // rettighetshaverens autentisering mot godkjenningssida — ikke noe som
     // skal ligge i adminens nettleser.
     const trygge = rader.map((r) => { const { approval_token, ...resten } = r as Record<string, unknown>; return resten })
-    return NextResponse.json({ characters: trygge })
+
+    // Proevebildene hun godkjente (091/103) — modellens kontaktkopi. Lars
+    // spurte 22.09 «hvor er de naa?»: de laa i den private boetta med sti paa
+    // raden, og var ikke synlige noe sted etter svaret. Signeres 10 min her;
+    // eldre rader med offentlige R2-adresser (doede) hoppes over.
+    const { BOTTE } = await import('@/app/api/characters/upload-url/route')
+    const medProever = await Promise.all(trygge.map(async (r) => {
+      const stier = (Array.isArray(r.sample_urls) ? r.sample_urls : []).filter((s): s is string => typeof s === 'string' && !s.startsWith('http'))
+      if (stier.length === 0) return { ...r, samples: [] as string[] }
+      const { data: signert } = await supabase.storage.from(BOTTE).createSignedUrls(stier, 600)
+      return { ...r, samples: (signert || []).map((x) => x.signedUrl).filter(Boolean) }
+    }))
+    return NextResponse.json({ characters: medProever })
   } catch (err: any) {
     return NextResponse.json({ error: err.message, characters: [] }, { status: 500 })
   }
