@@ -67,6 +67,9 @@ export interface Ansiktsmodell {
   triggerWord: string
   loraUrl: string
   name: string | null
+  // Hvilken trener laget modellen — genereringen maa bruke samme grunnmodell
+  // (en Flux 2-LoRA kan ikke lastes i Flux 1). Se submitFaceImageJob.
+  trainer: string | null
 }
 
 /**
@@ -84,7 +87,7 @@ export interface Ansiktsmodell {
 export async function hentAnsiktForGenerering(characterId: string): Promise<Ansiktsmodell> {
   const { data, error } = await admin()
     .from('user_characters')
-    .select('name, trigger_word, lora_url, status, withdrawn_at, approval_status')
+    .select('name, trigger_word, lora_url, status, withdrawn_at, approval_status, trainer')
     .eq('id', characterId)
     .maybeSingle()
 
@@ -107,6 +110,7 @@ export async function hentAnsiktForGenerering(characterId: string): Promise<Ansi
     triggerWord: String(data.trigger_word || ''),
     loraUrl: String(data.lora_url),
     name: (data.name as string | null) ?? null,
+    trainer: (data.trainer as string | null) ?? null,
   }
 }
 
@@ -128,7 +132,7 @@ export async function hentAnsiktForGenerering(characterId: string): Promise<Ansi
 export async function hentAnsiktForProeve(characterId: string): Promise<Ansiktsmodell> {
   const { data, error } = await admin()
     .from('user_characters')
-    .select('name, trigger_word, lora_url, status, withdrawn_at, approval_status')
+    .select('name, trigger_word, lora_url, status, withdrawn_at, approval_status, trainer')
     .eq('id', characterId)
     .maybeSingle()
 
@@ -142,6 +146,7 @@ export async function hentAnsiktForProeve(characterId: string): Promise<Ansiktsm
     triggerWord: String(data.trigger_word || ''),
     loraUrl: String(data.lora_url),
     name: (data.name as string | null) ?? null,
+    trainer: (data.trainer as string | null) ?? null,
   }
 }
 

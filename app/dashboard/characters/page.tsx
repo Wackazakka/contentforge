@@ -11,6 +11,8 @@ interface UserCharacter {
   trigger_word: string
   status: 'training' | 'ready' | 'failed'
   created_at: string
+  // Hvorfor treningen feilet (104) — fals egen melding, saa ingen maa gjette.
+  last_error: string | null
   // Maaleinstrumentet (093): hvilken trener som laget modellen.
   trainer: string | null
   // Settet den ble laget fra (094). Uten den kan den ikke trenes paa nytt.
@@ -241,6 +243,9 @@ export default function CharactersPage() {
                     {new Date(c.created_at).toLocaleDateString('nb-NO')}
                     {c.trainer && <> · {c.trainer.includes('flux-2') ? 'Flux 2' : 'Flux 1 portrett'}</>}
                   </div>
+                  {c.status === 'failed' && c.last_error && (
+                    <div className="text-xs text-red-700 mt-0.5">{c.last_error}</div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                 {/* Retrening er admin-styrt: den bruker vaar fal-noekkel og kan

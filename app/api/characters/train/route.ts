@@ -17,18 +17,48 @@ const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
  * karakterer som ett av flere bruksområder. Sammenlikningen er altså ikke
  * «gammel mot ny», og den må måles før den brukes som standard.
  */
+//
+// 🔑 HVER TRENER HAR SIN EGEN KROPP. De to endepunktene tar IKKE de samme
+// feltene: portrett-treneren vil ha `images_data_url` + `trigger_phrase`,
+// Flux 2-treneren vil ha `image_data_url` (entall) + `default_caption` — og
+// feiler uten caption. Fram til 22.09.2026 fikk begge portrett-kroppen; fal
+// tok imot jobben, satte den i koe, og «fullfoerte» den med en 422. Ingen
+// Flux 2-modell har dermed noen gang blitt trent. Lars' foerste forsoek
+// (b365038e) sto i «training» i to timer foer dette ble funnet.
 export const TRENERE = {
   portrait: {
     endepunkt: 'fal-ai/flux-lora-portrait-trainer',
+    // Bildene lages med samme grunnmodell som LoRA-en ble trent paa.
+    generator: 'fal-ai/flux-lora',
     steps: 1500,
     // ~$2 per kjoering, uavhengig av steg.
     raakostNok: 20,
+    kropp: (bilderUrl: string, trigger: string) => ({
+      images_data_url: bilderUrl,
+      trigger_phrase: trigger,
+      steps: 1500,
+      learning_rate: 0.0002,
+    }),
   },
   flux2: {
     endepunkt: 'fal-ai/flux-2-trainer',
+    // En Flux 2-LoRA kan ikke lastes i Flux 1 — genereringen maa ogsaa bytte.
+    generator: 'fal-ai/flux-2/lora',
     steps: 1500,
     // $0,0064 per steg x 1500 = $9,60. USD->NOK ~10.
     raakostNok: 96,
+    kropp: (bilderUrl: string, trigger: string) => ({
+      image_data_url: bilderUrl,
+      // Zipen har ingen tekstfiler; uten default_caption feiler treningen.
+      // Triggerordet MAA staa i captionen — det er slik det bindes til ansiktet.
+      default_caption: `a photo of ${trigger}`,
+      steps: 1500,
+      // fals egen standard for Flux 2 (5e-5). Portrett-verdien 2e-4 er fire
+      // ganger hoeyere og hoerer til en annen modell; maaleinstrumentet (093)
+      // skal maale treneren, ikke en feilinnstilling.
+      learning_rate: 0.00005,
+      output_lora_format: 'fal',
+    }),
   },
 } as const
 export type TrenerId = keyof typeof TRENERE
@@ -124,12 +154,7 @@ export async function POST(request: Request) {
     const submitRes = await fetch(`https://queue.fal.run/${valgt.endepunkt}`, {
       method: 'POST',
       headers: { Authorization: `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        images_data_url: sign.signedUrl,
-        trigger_phrase: trigger,
-        steps: valgt.steps,
-        learning_rate: 0.0002,
-      }),
+      body: JSON.stringify(valgt.kropp(sign.signedUrl, trigger)),
     })
     const submit = await submitRes.json().catch(() => ({}))
     if (!submitRes.ok || !submit.request_id) {

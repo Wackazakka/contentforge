@@ -77,6 +77,15 @@ export async function varsleOmGodkjenning(karakterId: string, til: string, token
   } catch { return false }
 }
 
+/** Menneskelesbar aarsak fra et fal-svar: 422-detaljer som «image_data_url: Field required», ellers det som er. */
+function feilTekst(httpStatus: number, body: any): string {
+  const d = body?.detail
+  if (Array.isArray(d)) return `fal ${httpStatus}: ` + d.map((e: any) => `${(e?.loc || []).filter((x: any) => x !== 'body').join('.')}: ${e?.msg}`).join('; ').slice(0, 300)
+  if (typeof d === 'string') return `fal ${httpStatus}: ${d.slice(0, 300)}`
+  if (body?.error) return `fal ${httpStatus}: ${String(body.error).slice(0, 300)}`
+  return `fal ${httpStatus}: ingen modell i resultatet (${JSON.stringify(body).slice(0, 200)})`
+}
+
 /**
  * Spoer fal om status paa alle treninger som paagaar, og fullfoer de ferdige.
  *
@@ -103,10 +112,20 @@ export async function fullfoerTreninger(opts: { tenantId?: string } = {}): Promi
     try {
       const st = await fetch(`https://queue.fal.run/${endepunkt}/requests/${row.fal_request_id}/status`, { headers: falAuth }).then((r) => r.json())
       if (st.status === 'COMPLETED') {
-        const result = await fetch(`https://queue.fal.run/${endepunkt}/requests/${row.fal_request_id}`, { headers: falAuth }).then((r) => r.json())
+        const resultRes = await fetch(`https://queue.fal.run/${endepunkt}/requests/${row.fal_request_id}`, { headers: falAuth })
+        const result = await resultRes.json().catch(() => ({}))
         const url = result?.diffusers_lora_file?.url
-        if (!url) continue
-        await db().from('user_characters').update({ lora_url: url, status: 'ready' }).eq('id', row.id)
+        if (!url) {
+          // 🔑 «COMPLETED» UTEN MODELL ER EN FEIL, IKKE EN VENTETILSTAND. fal
+          // setter en jobb med ugyldig kropp i koe og «fullfoerer» den med en
+          // 422 i resultatet. Foer sto det `continue` her: raden ble vaerende
+          // i «training» for alltid, ingen e-post, ingen feilmelding — Lars'
+          // Flux 2-forsoek 22.09 sto slik i to timer. Naa: failed + aarsak.
+          await db().from('user_characters').update({ status: 'failed', last_error: feilTekst(resultRes.status, result) }).eq('id', row.id)
+          feilet++
+          continue
+        }
+        await db().from('user_characters').update({ lora_url: url, status: 'ready', last_error: null }).eq('id', row.id)
         ferdige++
         // 🔑 HER, OG BARE HER, BLIR MODELLEN NOE AA GODKJENNE (091). Foer
         // treningen er ferdig finnes det ingen proevebilder aa vise.
@@ -114,7 +133,10 @@ export async function fullfoerTreninger(opts: { tenantId?: string } = {}): Promi
           if (await varsleOmGodkjenning(row.id, row.subject_email, row.approval_token, row.name, row.owner_tenant_id)) varslet++
         }
       } else if (st.status === 'FAILED' || st.status === 'ERROR') {
-        await db().from('user_characters').update({ status: 'failed' }).eq('id', row.id)
+        // Aarsaken ligger i resultatet, ikke i statusen — hent den om den finnes.
+        const detalj = await fetch(`https://queue.fal.run/${endepunkt}/requests/${row.fal_request_id}`, { headers: falAuth })
+          .then(async (r) => feilTekst(r.status, await r.json().catch(() => ({})))).catch(() => `fal: ${st.status}`)
+        await db().from('user_characters').update({ status: 'failed', last_error: detalj }).eq('id', row.id)
         feilet++
       }
     } catch { /* behold 'training' til neste poll */ }

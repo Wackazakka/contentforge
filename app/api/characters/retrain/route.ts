@@ -87,12 +87,8 @@ export async function POST(request: Request) {
     const submitRes = await fetch(`https://queue.fal.run/${valgt.endepunkt}`, {
       method: 'POST',
       headers: { Authorization: `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        images_data_url: bilderUrl,
-        trigger_phrase: trigger,
-        steps: valgt.steps,
-        learning_rate: 0.0002,
-      }),
+      // Kroppen er trenerens egen — de to endepunktene tar ulike felt (se TRENERE).
+      body: JSON.stringify(valgt.kropp(bilderUrl, trigger)),
     })
     const submit = await submitRes.json().catch(() => ({}))
     if (!submitRes.ok || !submit.request_id) {

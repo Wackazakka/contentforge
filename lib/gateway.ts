@@ -109,15 +109,20 @@ const SIZE_MAP: Record<string, { width: number; height: number }> = {
  * proevebilde for en modell som ventet paa godkjenning har derfor noen gang
  * kunnet lages (22.09). Naa velger KALLEREN porten; denne funksjonen genererer.
  */
-export async function submitFaceImageJob(ch: { triggerWord: string; loraUrl: string }, prompt: string, imageSize = '1024x1536'): Promise<FaceImageJob> {
+export async function submitFaceImageJob(ch: { triggerWord: string; loraUrl: string; trainer?: string | null }, prompt: string, imageSize = '1024x1536'): Promise<FaceImageJob> {
   const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
   if (!FAL_KEY) throw new Error('CONTENTFORGE_FAL_KEY mangler')
   const image_size = SIZE_MAP[imageSize] || SIZE_MAP['1024x1536']
+  // 🔑 GRUNNMODELLEN FOELGER TRENEREN. En LoRA trent paa Flux 2 kan ikke
+  // lastes i Flux 1-generatoren (fal-ai/flux-lora) — den ville gitt feil
+  // eller et fremmed ansikt. Fram til 22.09.2026 gikk alt hit uansett trener;
+  // maaleinstrumentet (093) kunne aldri ha vist et Flux 2-bilde.
+  const generator = (ch.trainer || '').includes('flux-2') ? 'fal-ai/flux-2/lora' : 'fal-ai/flux-lora'
   const fullPrompt =
     ch.triggerWord + '. Use the trained ' + ch.triggerWord + ' LoRA with maximum identity fidelity. ' +
     ch.triggerWord + ', natural appearance, natural relaxed posture. Scene: ' + prompt +
     '. Photorealistic, professional photography, cinematic lighting. No text, letters or typography in the image.'
-  const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-lora', {
+  const submitRes = await fetch('https://queue.fal.run/' + generator, {
     method: 'POST',
     headers: { Authorization: 'Key ' + FAL_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt: fullPrompt, loras: [{ path: ch.loraUrl, scale: 1.0 }], image_size, num_images: 1, output_format: 'png' }),
@@ -126,8 +131,8 @@ export async function submitFaceImageJob(ch: { triggerWord: string; loraUrl: str
   if (!submitRes.ok || !submit.request_id) throw new Error('fal submit feilet: ' + JSON.stringify(submit).slice(0, 200))
   return {
     request_id: submit.request_id,
-    status_url: submit.status_url || 'https://queue.fal.run/fal-ai/flux-lora/requests/' + submit.request_id + '/status',
-    response_url: submit.response_url || 'https://queue.fal.run/fal-ai/flux-lora/requests/' + submit.request_id,
+    status_url: submit.status_url || 'https://queue.fal.run/' + generator + '/requests/' + submit.request_id + '/status',
+    response_url: submit.response_url || 'https://queue.fal.run/' + generator + '/requests/' + submit.request_id,
   }
 }
 
