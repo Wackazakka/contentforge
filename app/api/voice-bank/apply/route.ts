@@ -22,13 +22,6 @@ const IMAGE_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
 }
 
-const AUDIO_TYPES: Record<string, string> = {
-  'audio/mpeg': 'mp3',
-  'audio/wav': 'wav',
-  'audio/x-wav': 'wav',
-  'audio/x-m4a': 'm4a',
-  'audio/mp4': 'm4a',
-}
 
 function admin() {
   return createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '')
@@ -72,15 +65,23 @@ export async function POST(request: Request) {
       if (!IMAGE_TYPES[f.type]) return NextResponse.json({ error: 'Bilder maa vaere JPG, PNG eller WebP' }, { status: 415 })
     }
 
-    const samples = form.getAll('samples').filter((f): f is File => f instanceof File).slice(0, 2)
-    // Lydproeve er FRIVILLIG fra 22.09 (Lars): vi screener ikke paa stemmen
-    // foer opptak. Se kommentaren i ApplyForm.tsx. Formatsjekkene under staar —
-    // sender hen en fil, skal den vaere brukbar.
-    // sample_urls har default '[]'::jsonb, saa tom liste trenger ingen migrasjon.
-    for (const f of samples) {
-      if (f.size > MAX_BYTES) return NextResponse.json({ error: 'Lydfil for stor (maks 10 MB)' }, { status: 413 })
-      if (!AUDIO_TYPES[f.type]) return NextResponse.json({ error: 'Kun MP3, WAV eller M4A' }, { status: 415 })
+    // 🔑 SKJEMAET TAR IKKE LENGER IMOT LYD (Lars 22.09). To grunner:
+    // 1) Vi screener ikke paa stemmen — enten har hen et brukbart opptak fra
+    //    foer, eller saa tar vi det sammen i opptaksloeypa (095). En «valgfri
+    //    smakebit» var det verste mellomstedet: verken krevd eller forklart.
+    // 2) Denne ruta KAN ikke ta imot filer av ekte stoerrelse. Bevist paa prod
+    //    samme dag: 12 bilder (23 MB) ga HTTP 400 med tom kropp etter 1 MB —
+    //    Netlify kuttet forespoerselen foer koden kjoerte. Et opptak paa
+    //    30 minutter er ti ganger verre. Filer maa gaa rett til lagring fra
+    //    nettleseren; skjemaet faar bare vite HVILKEN vei hen trenger.
+    // `samples` leses ikke lenger. En klient som sender dem, ignoreres.
+    const harOpptakRaa = String(form.get('hasOwnRecording') || '').trim()
+    // null = ikke spurt (tilbyr bare ansikt). Bare '1'/'0' godtas naar hen
+    // tilbyr stemme — et tomt svar der er et hull i skjemaet, ikke et valg.
+    if (offersVoice && harOpptakRaa !== '1' && harOpptakRaa !== '0') {
+      return NextResponse.json({ error: 'Si om du har et opptak fra foer, eller vil ha hjelp til det' }, { status: 400 })
     }
+    const hasOwnRecording: boolean | null = offersVoice ? harOpptakRaa === '1' : null
 
     const r2 = new S3Client({
       region: 'auto',
@@ -88,17 +89,9 @@ export async function POST(request: Request) {
       credentials: { accessKeyId: R2_ACCESS_KEY_ID!, secretAccessKey: R2_SECRET_ACCESS_KEY! },
     })
     const applicationId = randomUUID()
+    // Alltid tom fra 22.09 — kolonnen beholdes for eldre rader og for den
+    // dagen opplastingslenken skriver hit.
     const sampleUrls: string[] = []
-    for (const f of samples) {
-      const key = `voice-applications/${applicationId}/sample-${Date.now()}-${sampleUrls.length}.${AUDIO_TYPES[f.type]}`
-      await r2.send(new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: key,
-        Body: Buffer.from(await f.arrayBuffer()),
-        ContentType: f.type,
-      }))
-      sampleUrls.push(`${R2_PUBLIC_URL}/${key}`)
-    }
 
     const photoUrls: string[] = []
     for (const f of photos) {
@@ -154,6 +147,7 @@ export async function POST(request: Request) {
       photo_urls: photoUrls,
       wants_face: wantsFace,
       offers_voice: offersVoice,
+      has_own_recording: hasOwnRecording,
       consent_text: String(form.get('consentText') || '').slice(0, 2000) || null,
       gender: kjoennRaa || null,
       playing_age_from: aldFra,

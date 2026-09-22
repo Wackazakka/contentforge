@@ -25,7 +25,6 @@ const MONO = 'var(--font-cfmono), ui-monospace, monospace'
 const DISPLAY = 'var(--font-archivo), system-ui, sans-serif'
 
 const MAX_FILE_MB = 10
-const AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/x-m4a', 'audio/mp4']
 
 type Tilbud = 'stemme' | 'ansikt' | 'begge'
 
@@ -55,7 +54,10 @@ export default function ApplyForm() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [bio, setBio] = useState('')
-  const [files, setFiles] = useState<File[]>([])
+  // Lyd tas ikke imot her lenger (22.09). Skjemaet spoer i stedet om hen har
+  // et brukbart opptak fra foer — og det avgjoer hvilken vei hen sendes.
+  // '' = ikke svart ennaa; ruta avviser tomt svar naar hen tilbyr stemme.
+  const [harOpptak, setHarOpptak] = useState<'' | 'ja' | 'nei'>('')
   // Bildene til ansiktsmodellen (091). Foer dette maatte de komme utenom
   // systemet, til et produkt som selger sporbarhet.
   const [photos, setPhotos] = useState<File[]>([])
@@ -92,6 +94,7 @@ export default function ApplyForm() {
     // den soekeren loeypa ble bygget for: hen uten hjemmestudio.
     // Filen er fortsatt velkommen — en skuespiller med reel faar en bedre
     // profil fra dag én — men den er et tilbud, ikke en terskel.
+    if (offersVoice && !harOpptak) { setError(t('err_recording_choice')); return }
     if (wantsFace && photos.length < 10) { setError('Ansiktsmodellen trenger minst 10 bilder — 15–25 gir merkbart bedre likhet.'); return }
     if (!consent) { setError(t('err_consent')); return }
     const tallOk = (v: string) => v === '' || /^\d{1,3}$/.test(v)
@@ -120,11 +123,17 @@ export default function ApplyForm() {
       fd.append('attributes', JSON.stringify(attr))
       fd.append('appearanceConsent', appearanceConsent ? '1' : '0')
       if (appearanceConsent) fd.append('appearanceConsentText', appearanceConsentText)
-      files.slice(0, 2).forEach((f) => fd.append('samples', f))
+      if (offersVoice) fd.append('hasOwnRecording', harOpptak === 'ja' ? '1' : '0')
       photos.slice(0, 30).forEach((f) => fd.append('photos', f))
       const res = await fetch('/api/voice-bank/apply', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || t('err_generic'))
+      // ⚠️ Les teksten og parse selv. Netlify kutter store forespoersler i
+      // porten og svarer med TOM kropp — da kaster `res.json()` «Unexpected end
+      // of JSON input» rett i ansiktet paa soekeren. Bevist paa prod 22.09 med
+      // 12 bilder. En lesbar feil med statuskode er det minste vi skylder hen.
+      const tekst = await res.text()
+      let data: { error?: string } = {}
+      try { data = tekst ? JSON.parse(tekst) : {} } catch { /* tom eller ikke-JSON */ }
+      if (!res.ok) throw new Error(data.error || (tekst ? t('err_generic') : t('err_too_large_request')))
       setDone(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('err_generic'))
@@ -182,26 +191,28 @@ export default function ApplyForm() {
         </div>
       </div>
 
+      {/* To veier, ikke en boks med forbehold (Lars 22.09). Ingen lyd tas imot
+          her — skjemaet kan ikke baere filer av ekte stoerrelse gjennom
+          Netlify uansett. Svaret avgjoer hvilken oppfoelging hen faar. */}
       {offersVoice && (
         <div style={{ marginBottom: 20 }}>
-          <Etikett>{t('samples_h')}</Etikett>
-          <label style={{ display: 'block', border: '1.5px dashed var(--ds-border-strong)', background: 'var(--paper)', padding: '22px 16px', textAlign: 'center', cursor: busy ? 'default' : 'pointer' }}>
-            <span style={{ display: 'block', fontSize: 14.5, color: 'var(--ink-soft)', marginBottom: 4 }}>
-              {files.length > 0 ? files.map((f) => f.name).join(', ') : t('drop_h')}
-            </span>
-            <span style={{ fontFamily: MONO, fontSize: 11, color: 'var(--text-faint)' }}>{t('samples_note', { mb: MAX_FILE_MB })}</span>
-            <input type="file" accept=".mp3,.wav,.m4a,audio/mpeg,audio/wav,audio/mp4" multiple disabled={busy}
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const valgte = Array.from(e.target.files || []).slice(0, 2)
-                for (const f of valgte) {
-                  if (f.size > MAX_FILE_MB * 1024 * 1024) { setError(t('err_too_big', { name: f.name, mb: MAX_FILE_MB })); e.target.value = ''; return }
-                  if (f.type && !AUDIO_TYPES.includes(f.type)) { setError(t('err_type', { name: f.name })); e.target.value = ''; return }
-                }
-                setError(null)
-                setFiles(valgte)
-              }} />
-          </label>
+          <Etikett>{t('recording_h')}</Etikett>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', border: '1px solid var(--ds-border-strong)' }}>
+            {(['ja', 'nei'] as const).map((v, i) => {
+              const valgt = harOpptak === v
+              return (
+                <button key={v} type="button" disabled={busy} onClick={() => setHarOpptak(v)}
+                  style={{
+                    padding: '14px 16px', textAlign: 'left', fontSize: 14.5, lineHeight: 1.4, cursor: busy ? 'default' : 'pointer',
+                    background: valgt ? 'var(--ink)' : 'var(--paper)', color: valgt ? 'var(--paper)' : 'var(--ink)',
+                    border: 'none', borderLeft: i > 0 ? '1px solid var(--ds-border-strong)' : 'none',
+                  }}>
+                  <span style={{ display: 'block', fontWeight: 600 }}>{t(v === 'ja' ? 'recording_yes' : 'recording_no')}</span>
+                  <span style={{ display: 'block', fontSize: 12.5, opacity: 0.8, marginTop: 3 }}>{t(v === 'ja' ? 'recording_yes_sub' : 'recording_no_sub')}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
 
