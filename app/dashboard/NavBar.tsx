@@ -47,6 +47,9 @@ export default function NavBar() {
   // Invoice-tenants (white-label via partner) skal ikke se CenterForge-priser/billing
   const produksjon: NavLink[] = [
     { href: '/dashboard', label: t('overview') },
+    // Partner-innlogging (1/10): samme konto hos IndigoBoom Shootout — én knapp, ingen nytt passord.
+    // Kun der partneren er satt opp (lib/partnerSso: tenant indigoboom + SHOOTOUT_URL på siten).
+    ...(tenant.slug === 'indigoboom' ? [{ href: '/partner/shootout', label: 'Shootout ↗' }] : []),
     // Kundens katalog over medvirkende (Lars 17/9, omdøpt 20/9). Kun der
     // rettighetsforvaltningen er på, og ikke i enkel modus (Standard Ropert).
     // Het «Stemmer», men inneholder BÅDE stemmer og ansikter — og navnet var
