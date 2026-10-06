@@ -29,6 +29,19 @@ function esc(s: string): string {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+// Velg lesbar knappetekst ut fra aksentfargens luminans. Isabels aksent er lys
+// lilla -> hvit tekst forsvinner; mørk tekst paa lys bakgrunn, lys paa mørk.
+function lesbarTekst(bg: string): string {
+  const m = /^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(String(bg).trim())
+  if (!m) return '#FFFDF8'
+  let h = m[1]
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('')
+  const ch = (i: number) => parseInt(h.slice(i, i + 2), 16) / 255
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))
+  const L = 0.2126 * lin(ch(0)) + 0.7152 * lin(ch(2)) + 0.0722 * lin(ch(4))
+  return L > 0.5 ? '#1C1A16' : '#FFFDF8'
+}
+
 // Standard Webhooks (samme som Supabase signerer med). Secret: «v1,whsec_<b64>».
 function verifiser(secretRaw: string, headers: Headers, body: string): boolean {
   const id = headers.get('webhook-id')
@@ -181,7 +194,7 @@ export async function POST(request: Request) {
       <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5E564A;">${esc(t.intro)}</p>
       <table cellpadding="0" cellspacing="0"><tr>
         <td style="border-radius:10px;background:${esc(aksent)};">
-          <a href="${lenke}" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:#FFFDF8;text-decoration:none;border-radius:10px;">${esc(t.button)}</a>
+          <a href="${lenke}" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:${lesbarTekst(aksent)};text-decoration:none;border-radius:10px;">${esc(t.button)}</a>
         </td>
       </tr></table>
       <p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">${en ? "Button not working? Paste this link into your browser:" : 'Funker ikke knappen? Lim denne lenken inn i nettleseren:'}<br><a href="${lenke}" style="color:#978B79;word-break:break-all;">${lenke}</a></p>
