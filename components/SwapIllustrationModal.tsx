@@ -59,7 +59,9 @@ export default function SwapIllustrationModal({
           .eq('asset_type', 'image')
           .order('created_at', { ascending: false })
         if (error) throw error
-        setAssets(data || [])
+        // Hvert bilde én gang — eldre produksjoner la inn samme bilde flere ganger
+        const sett = new Set<string>()
+        setAssets((data || []).filter((a: any) => !sett.has(a.asset_url) && !!sett.add(a.asset_url)))
       } catch (err) {
         console.error('[SwapIllustration] Assets fetch error:', err)
       } finally {

@@ -406,9 +406,24 @@ function FullProductPage() {
 
   const handleDeleteImage = async (id: string) => {
     if (!confirm(t('deleteImage'))) return
+    const url = assets.find((a) => a.id === id)?.asset_url
+    if (!url) return
     const supabase = getSupabase()
-    await supabase.from('asset_banks').delete().eq('id', id)
-    setAssets((prev) => prev.filter((a) => a.id !== id))
+    // Alle rader for SAMME bilde: listen viser hvert bilde én gang, men eldre
+    // produksjoner kan ha lagt det inn flere ganger. Slettes bare én rad,
+    // dukker bildet opp igjen ved neste lasting.
+    const { data: slettet, error } = await supabase
+      .from('asset_banks')
+      .delete()
+      .eq('product_id', productId)
+      .eq('asset_type', 'image')
+      .eq('asset_url', url)
+      .select('id')
+    if (error || !slettet?.length) {
+      alert('Kunne ikke slette bildet — prøv igjen.')
+      return
+    }
+    setAssets((prev) => prev.filter((a) => a.asset_url !== url))
   }
 
   useEffect(() => {
@@ -478,7 +493,10 @@ function FullProductPage() {
           .order('created_at', { ascending: false })
 
         if (assetsError) throw assetsError
-        setAssets(assetsData || [])
+        // Hvert bilde én gang (nyeste rad vinner) — eldre produksjoner la inn
+        // samme bilde på nytt for hver render.
+        const sett = new Set<string>()
+        setAssets((assetsData || []).filter((a: any) => !sett.has(a.asset_url) && !!sett.add(a.asset_url)))
       } catch (err) {
         console.error('[ProductPage] Assets fetch error:', err)
       } finally {

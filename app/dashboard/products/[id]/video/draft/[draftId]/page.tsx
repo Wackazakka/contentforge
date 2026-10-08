@@ -347,7 +347,9 @@ export default function DraftPage() {
           .eq('product_id', productId)
           .eq('asset_type', 'image')
 
-        setAssets(data || [])
+        // Hvert bilde én gang — eldre produksjoner la inn samme bilde flere ganger
+        const sett = new Set<string>()
+        setAssets((data || []).filter((a: any) => !sett.has(a.asset_url) && !!sett.add(a.asset_url)))
 
         // Hent sluttplakat-fargene + standardene (lenke/logo) fra profilen
         const { data: profile } = await supabase

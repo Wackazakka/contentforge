@@ -107,9 +107,26 @@ export async function POST(request: NextRequest) {
       draftIdForAsset = d?.id ?? null
     } catch { /* koblingen er en bekvemmelighet, aldri en blokker */ }
 
+    // Bare bilder produktet IKKE har fra foer. Hver produksjon sender alle
+    // scenebildene sine, ogsaa gjenbrukte bibliotekbilder og bilder fra en
+    // tidligere render av samme utkast — uten denne sjekken fikk David samme
+    // bilde 5 ganger under «Bilder» (Lars 08.10: 530 overfloedige rader paa
+    // 15 produkter). Feiler oppslaget, registreres de som foer.
+    let nyeBilder: string[] = Array.from(new Set<string>((imageUrls || []).filter(Boolean)))
+    if (finalProductId && nyeBilder.length > 0) {
+      const { data: finnes } = await supabase
+        .from('asset_banks')
+        .select('asset_url')
+        .eq('product_id', finalProductId)
+        .eq('asset_type', 'image')
+        .in('asset_url', nyeBilder)
+      const kjente = new Set((finnes || []).map((r: any) => r.asset_url))
+      nyeBilder = nyeBilder.filter((u) => !kjente.has(u))
+    }
+
     // Store generated assets in asset_banks table
-    if (imageUrls && imageUrls.length > 0) {
-      const assetInserts: Array<Record<string, any>> = imageUrls.map((url: string, index: number) => ({
+    if (nyeBilder.length > 0) {
+      const assetInserts: Array<Record<string, any>> = nyeBilder.map((url: string, index: number) => ({
         job_id: jobId,
         product_id: finalProductId, // Link to product if available
         asset_type: 'image',
@@ -153,7 +170,7 @@ export async function POST(request: NextRequest) {
         console.log(`[api/productions/complete] ✅ Stored ${assetInserts.length} assets in asset_banks`)
       }
     } else {
-      console.warn(`[api/productions/complete] No imageUrls provided (empty array), only storing video`)
+      console.warn(`[api/productions/complete] No new images (${imageUrls.length} sent, all known or none), only storing video`)
       // Still store video even if no images
       const videoAsset = {
         job_id: jobId,
