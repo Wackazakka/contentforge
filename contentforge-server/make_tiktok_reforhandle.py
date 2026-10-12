@@ -41,6 +41,12 @@ _IMAGE_FIT = 'cover'
 # per jobb via config.stillMotion — ellers noeyaktig gammel oppfoersel.
 _STILL_MOTION = False
 
+# Mørkt tekstfelt nederst (Lars/David 12/10: kan slås av per video). Av =
+# ingen boks; teksten får i stedet en mørk kant så den leses på lyse bilder.
+# Settes fra config.textBox — mangler den, gjelder feltet som før.
+_TEXT_BOX = True
+_TEXT_STROKE = 4  # kantbredde i px naar feltet er av
+
 def make_bg_frame(bg_path):
     """Prepare background with overlays as numpy array."""
     bg = Image.open(bg_path).convert("RGBA")
@@ -63,10 +69,11 @@ def make_bg_frame(bg_path):
     bg = Image.alpha_composite(bg, dim)
 
     # Dark text zone bottom 25% (more transparent)
-    bar = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(bar)
-    draw.rectangle([(0, int(H*0.78)), (W, H)], fill=(10, 10, 25, 185))
-    bg = Image.alpha_composite(bg, bar)
+    if _TEXT_BOX:
+        bar = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(bar)
+        draw.rectangle([(0, int(H*0.78)), (W, H)], fill=(10, 10, 25, 185))
+        bg = Image.alpha_composite(bg, bar)
 
     return np.array(bg.convert("RGB"))
 
@@ -158,7 +165,10 @@ def make_text_frame(lines, sub=None, logo_url=None):
                 continue
             bbox = draw.textbbox((0, 0), wline, font=font)
             x = (W - (bbox[2] - bbox[0])) // 2
-            draw.text((x, y), wline, font=font, fill=color)
+            if _TEXT_BOX:
+                draw.text((x, y), wline, font=font, fill=color)
+            else:
+                draw.text((x, y), wline, font=font, fill=color, stroke_width=_TEXT_STROKE, stroke_fill=(0, 0, 0, 230))
             y += bbox[3] - bbox[1] + 8
 
         y += line.get("margin_bottom", 8)
@@ -231,7 +241,10 @@ def make_text_frame(lines, sub=None, logo_url=None):
             x = (W - (bbox[2] - bbox[0])) // 2
             # Drop-shadow for legibility
             draw.text((x + 2, start_y + 2), sline, font=sub_font, fill=(0, 0, 0, 200))
-            draw.text((x, start_y), sline, font=sub_font, fill=COLOR_WHITE)
+            if _TEXT_BOX:
+                draw.text((x, start_y), sline, font=sub_font, fill=COLOR_WHITE)
+            else:
+                draw.text((x, start_y), sline, font=sub_font, fill=COLOR_WHITE, stroke_width=_TEXT_STROKE, stroke_fill=(0, 0, 0, 230))
             start_y += line_h
     return np.array(layer)
 
@@ -319,8 +332,9 @@ def make_segment(bg_path, lines, vo_path, sub=None, logo_url=None, hold=0.0, mot
 def make_dim_bar_overlay():
     """Transparent overlay: light overall dim + dark bottom text bar (matches make_bg_frame)."""
     ov = Image.new("RGBA", (W, H), (0, 0, 0, 45))
-    draw = ImageDraw.Draw(ov)
-    draw.rectangle([(0, int(H*0.78)), (W, H)], fill=(10, 10, 25, 185))
+    if _TEXT_BOX:
+        draw = ImageDraw.Draw(ov)
+        draw.rectangle([(0, int(H*0.78)), (W, H)], fill=(10, 10, 25, 185))
     return np.array(ov)  # (H, W, 4)
 
 
@@ -980,6 +994,9 @@ if __name__ == "__main__":
     if config.get('stillMotion'):
         _STILL_MOTION = True
         print("[stillMotion] langsom bevegelse paa stillbilder")
+    if config.get('textBox') is False:
+        _TEXT_BOX = False
+        print("[textBox] uten mørkt felt; tekst med kant")
     build_video(config["segments"], config["output"], backgroundMusicPath, logoUrl=logoUrl, outroCard=outroCard, mix=config.get("mix"), brandCard=config.get("brandCard"))
 
     # Signal completion to job-queue

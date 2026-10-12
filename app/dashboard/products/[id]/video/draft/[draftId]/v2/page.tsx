@@ -68,6 +68,8 @@ interface Draft {
   include_outro_card?: boolean
   outro_jingle?: string | null
   character_id?: string | null
+  // Mørkt felt bak teksten (106, standard på)
+  text_box?: boolean
   cost_accumulated?: number | null
   outro_config?: { message?: string | null; url?: string; imageUrl?: string | null } | null
   // Merkekort mot rabatt (1/8)
@@ -2225,6 +2227,21 @@ export default function DraftV2Page() {
                     <span className="block text-[13.5px] text-gray-900">Film = musikkens lengde</span>
                     <span className="block text-[12px] text-gray-400 leading-relaxed mt-0.5">
                       Hvert bilde står til neste del av låten. Stemmen får alltid plass.
+                    </span>
+                  </span>
+                </label>
+                {/* David/Lars 12/10: det grå feltet bak teksten kan slås av */}
+                <label className="flex items-start gap-3 py-3 cursor-pointer border-b border-gray-100">
+                  <input
+                    type="checkbox"
+                    checked={draft.text_box !== false}
+                    onChange={(e) => updateDraftFields({ text_box: e.currentTarget.checked })}
+                    className="w-4 h-4 mt-0.5"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-[13.5px] text-gray-900">Mørkt felt bak teksten</span>
+                    <span className="block text-[12px] text-gray-400 leading-relaxed mt-0.5">
+                      Gjør teksten lett å lese på lyse bilder. Uten feltet får teksten en mørk kant i stedet.
                     </span>
                   </span>
                 </label>

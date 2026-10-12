@@ -296,6 +296,8 @@ export async function startProductionForDraft(
       aiMotion: !!aiMotion,
       aiMotionEngine,
       imageFit,
+      // Mørkt felt bak teksten — på med mindre utkastet sier eksplisitt nei (12/10)
+      textBox: (draft as any).text_box !== false,
       stillMotion: erSimpleFilm,
       textStyle: erSimpleFilm ? 'headline' : undefined,
       // «Festlig» (Lars 4/9): Ropert-filmene lages av festlig.py — taktklipp,

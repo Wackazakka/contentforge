@@ -599,6 +599,8 @@ router.post('/', async (req, res) => {
     // scenetekst som overskrift i stedet for liten undertekst.
     stillMotion,
     textStyle,
+    // Mørkt felt bak teksten (12/10): false = av, teksten får mørk kant
+    textBox,
     // «Festlig» (4/9): taktklipp, plakater, konfetti, palett per anledning
     festlig,
     occasionTheme,
@@ -1012,6 +1014,9 @@ router.post('/', async (req, res) => {
           imageFit: imageFit === 'contain' ? 'contain' : 'cover',
           // Langsom zoom/panorering paa stillbilder (4/9) — kun naar jobben ber om det
           stillMotion: !!stillMotion,
+          // Bare et eksplisitt false slår av feltet — eldre klienter uten
+          // feltet får det som foer
+          textBox: textBox !== false,
           jobId,
           campaignId,
           service,
