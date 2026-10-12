@@ -760,6 +760,54 @@ export default function DraftV2Page() {
     })
   }
 
+  // Person i videobildene (Lars 12/10: «valgte Lawrence, men får ingen
+  // bilder»). Skjemaet sendte ?character= videre hit, men v2 leste den aldri —
+  // valget forsvant, og ingen bilder ble laget. Nå lagres personen på utkastet
+  // (start-production leser character_id for ansikts-royalty), og scener uten
+  // bilde får ett bilde med personen. Bare når vi kommer rett fra skjemaet:
+  // parameteren fjernes straks, så en omlasting aldri lager (og tar betalt
+  // for) nye bilder.
+  const [lagerBilder, setLagerBilder] = useState<Set<number>>(new Set())
+  const [personFeil, setPersonFeil] = useState<Record<number, string>>({})
+  const [personNavn, setPersonNavn] = useState('')
+  const personStartet = useRef(false)
+  useEffect(() => {
+    const person = searchParams?.get('character') || ''
+    if (!draft || !person || personStartet.current) return
+    personStartet.current = true
+    const qs = new URLSearchParams(searchParams?.toString() || '')
+    qs.delete('character')
+    router.replace(`/dashboard/products/${productId}/video/draft/${draftId}/v2${qs.toString() ? `?${qs}` : ''}`)
+    setPersonNavn(person === 'lawrence' ? 'Lawrence' : person === 'adam' ? 'Adam' : '')
+    ;(async () => {
+      await updateDraftFields({ character_id: person })
+      const imageSize = ({ '9:16': '1024x1536', '1:1': '1024x1024', '16:9': '1536x1024' } as Record<string, string>)[draft.video_format || '9:16'] || '1024x1536'
+      const mangler = draft.segments
+        .map((s, i) => (!(s.image_url || '').trim() && !s.video_url ? i : -1))
+        .filter((i) => i >= 0)
+      setLagerBilder(new Set(mangler))
+      // Én om gangen: hvert kall tar ~15 s og må holde seg under CDN-taket
+      for (const i of mangler) {
+        const seg = draft.segments[i]
+        try {
+          const res = await fetch('/api/content/generate-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic: seg.image_prompt || seg.text, productId, imageSize, character: person, draftId }),
+          })
+          const d = await res.json().catch(() => null)
+          if (!res.ok || !d?.imageUrl) throw new Error(d?.error || `HTTP ${res.status}`)
+          updateSegment(i, { image_url: d.imageUrl, approved: false })
+        } catch (err) {
+          setPersonFeil((p) => ({ ...p, [i]: err instanceof Error ? err.message : 'Bildet kunne ikke lages' }))
+        } finally {
+          setLagerBilder((p) => { const n = new Set(p); n.delete(i); return n })
+        }
+      }
+      hentSaldo()
+    })()
+  }, [draft]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Redigert innhold sender scenen tilbake til gjennomgang (design-handoff:
   // endret tekst skal aldri seile gjennom som «godkjent»)
   const editText = (index: number, field: 'text' | 'voiceover', value: string) => {
@@ -867,6 +915,8 @@ export default function DraftV2Page() {
   }
 
   const segments = draft.segments || []
+  // Scener der bildet med personen feilet og som fortsatt står uten bilde
+  const aapneFeil = Object.keys(personFeil).map(Number).filter((i) => segments[i] && !(segments[i].image_url || '').trim())
   const approvedCount = segments.filter((s) => s.approved).length
   const allApproved = approvedCount === segments.length && segments.length > 0
   const pendingCount = segments.length - approvedCount
@@ -887,6 +937,17 @@ export default function DraftV2Page() {
             ← Tilbake til artisten
           </Link>
         </div>
+        {lagerBilder.size > 0 && (
+          <div className="mt-4 rounded-lg border border-gray-200 bg-[var(--paper-raised)] px-4 py-3 text-sm text-gray-700 flex items-center gap-3">
+            <div className="w-4 h-4 border-2 border-[var(--ember-deep)] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            Lager bilder med {personNavn || 'personen du valgte'} — {lagerBilder.size} igjen. Det tar omtrent 15 sekunder per bilde, og du kan jobbe videre så lenge.
+          </div>
+        )}
+        {lagerBilder.size === 0 && aapneFeil.length > 0 && (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {aapneFeil.length === 1 ? 'Ett bilde' : `${aapneFeil.length} bilder`} med {personNavn || 'personen'} kunne ikke lages (scene {aapneFeil.map((i) => i + 1).join(', ')}). Velg et bilde selv på de scenene.
+          </div>
+        )}
         <div className="mt-4 flex flex-col sm:flex-row sm:items-end gap-5 sm:gap-8">
           <div className="flex-1 min-w-0">
             <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Godkjenn video-utkastet</h1>
@@ -1009,8 +1070,12 @@ export default function DraftV2Page() {
                           alt=""
                           className={tenant.vertical === 'music' ? 'w-full h-full object-contain' : 'w-full h-full object-cover'}
                         />
+                      ) : lagerBilder.has(index) ? (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                          <div className="w-4 h-4 border-2 border-[var(--ember-deep)] border-t-transparent rounded-full animate-spin" />
+                        </div>
                       ) : (
-                        <div className="w-full h-full bg-gray-100" />
+                        <div className={`w-full h-full ${personFeil[index] ? 'bg-red-100' : 'bg-gray-100'}`} />
                       )}
                     </button>
 
