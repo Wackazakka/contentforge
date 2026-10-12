@@ -40,6 +40,8 @@ export default function NewDraftPage() {
   const [tone, setTone] = useState('Energisk')
   const [character, setCharacter] = useState('')
   const [userChars, setUserChars] = useState<Array<{ id: string; name: string }>>([])
+  // Adam/Lawrence: serveren avgjør hvem som får dem (tenant- og brukersperre)
+  const [builtinChars, setBuiltinChars] = useState<Array<{ id: string; name: string }>>([])
   const [faceActors, setFaceActors] = useState<Array<{ id: string; name: string; faceCharacterId: string; pricePerUseNok: number }>>([])
   useEffect(() => {
     (async () => {
@@ -48,6 +50,7 @@ export default function NewDraftPage() {
         const token = sess?.session?.access_token
         const d = await fetch('/api/characters', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
         setUserChars((d.characters || []).filter((c: any) => c.status === 'ready'))
+        setBuiltinChars(Array.isArray(d.builtin) ? d.builtin : [])
       } catch { /* karakterer utilgjengelige */ }
     })()
     ;(async () => {
@@ -536,9 +539,10 @@ export default function NewDraftPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-[var(--paper-raised)]"
                   >
                     <option value="">{tenant.vertical === 'music' ? 'Ingen — jeg bruker egne bilder' : 'Ingen — vanlige AI-bilder'}</option>
-                    {/* Adam er eksklusiv for rot-tenanten (lib/characters.ts håndhever server-side) */}
-                    {tenant.slug === 'centerforge' && <option value="adam">Adam (Reforhandle)</option>}
-                    <option value="lawrence">Lawrence (Peregrine)</option>
+                    {/* Adam/Lawrence bare der /api/characters sier ja (lib/characters.ts) */}
+                    {builtinChars.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
                     {userChars.map((c) => (
                       <option key={c.id} value={c.id}>{c.name} (egen)</option>
                     ))}

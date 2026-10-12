@@ -126,6 +126,8 @@ export default function DraftPage() {
   // Karakter-modus: konsistent vert (flux-lora) i alle segmentbilder — init fra ?character=
   const [character, setCharacter] = useState<string>(searchParams?.get('character') || '')
   const [userChars, setUserChars] = useState<Array<{ id: string; name: string; status: string }>>([])
+  // Adam/Lawrence: serveren avgjør hvem som får dem (tenant- og brukersperre)
+  const [builtinChars, setBuiltinChars] = useState<Array<{ id: string; name: string }>>([])
   const [faceActors, setFaceActors] = useState<Array<{ id: string; name: string; faceCharacterId: string; pricePerUseNok: number }>>([])
   const [actorVoices, setActorVoices] = useState<BankStemme[]>([])
   const [musicUploading, setMusicUploading] = useState(false)
@@ -440,6 +442,7 @@ export default function DraftPage() {
         const token = sess?.session?.access_token
         const d = await fetch('/api/characters', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
         setUserChars((d.characters || []).filter((c: any) => c.status === 'ready'))
+        setBuiltinChars(Array.isArray(d.builtin) ? d.builtin : [])
       } catch { /* karakterer utilgjengelige */ }
     })()
     ;(async () => {
@@ -1690,9 +1693,10 @@ export default function DraftPage() {
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-[var(--paper-raised)]"
               >
                 <option value="">{tenantInfo.vertical === 'music' ? 'Ingen — jeg bruker egne bilder' : 'Ingen — vanlige AI-bilder'}</option>
-                {/* Adam er eksklusiv for rot-tenanten (lib/characters.ts håndhever server-side) */}
-                {tenantInfo.slug === 'centerforge' && <option value="adam">Adam (Reforhandle)</option>}
-                <option value="lawrence">Lawrence (Peregrine)</option>
+                {/* Adam/Lawrence bare der /api/characters sier ja (lib/characters.ts) */}
+                {builtinChars.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
                 {userChars.map((c) => (
                   <option key={c.id} value={c.id}>{c.name} (egen)</option>
                 ))}

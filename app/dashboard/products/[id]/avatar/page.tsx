@@ -67,6 +67,20 @@ export default function AvatarVideoPage() {
   const [script, setScript] = useState('')
   const pf = useTenant().price_multiplier || 1
   const [avatarImageUrl, setAvatarImageUrl] = useState('')
+  // Hvilke karakter-portretter denne brukeren får se (Adam/Lawrence er sperret
+  // på tenant/bruker — /api/characters avgjør, Lars 12/10)
+  const [tillatteKarakterer, setTillatteKarakterer] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const { data: sess } = await getSupabase().auth.getSession()
+        const token = sess?.session?.access_token
+        if (!token) return
+        const d = await fetch('/api/characters', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
+        setTillatteKarakterer(new Set((Array.isArray(d.builtin) ? d.builtin : []).map((c: { id: string }) => c.id)))
+      } catch { /* ingen portretter å vise */ }
+    })()
+  }, [])
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID)
   const [actorVoices, setActorVoices] = useState<BankStemme[]>([])
   // `productId` følger med: hjemmelen skal slås opp for kunden som eier
@@ -193,10 +207,9 @@ export default function AvatarVideoPage() {
             setProductProfile(data)
             if (data.avatar_image_url && /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(data.avatar_image_url)) {
               setAvatarImageUrl(data.avatar_image_url)
-            } else {
-              // Ingen lagret avatar → standard: Adam (flux-lora-karakteren)
-              setAvatarImageUrl(CHARACTER_AVATARS[0].url)
             }
+            // Ingen lagret avatar → tomt. Før ble Adam standard for ALLE, også
+            // hos white-labels der han er sperret (Lars 12/10).
             if (Array.isArray(data.avatar_image_urls) && data.avatar_image_urls.length > 0) {
               setSavedAvatarImages(data.avatar_image_urls)
             } else if (data.avatar_image_url && /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(data.avatar_image_url)) {
@@ -523,10 +536,11 @@ export default function AvatarVideoPage() {
             </div>
 
             {/* Karakter-avatarer (flux-lora) — konsistente verter, klikk for å bruke */}
+            {CHARACTER_AVATARS.some((c) => tillatteKarakterer.has(c.id)) && (
             <div className="mb-3">
               <p className="text-xs text-gray-500 mb-2">🧑‍🎤 Karakter-avatarer — klikk for å velge:</p>
               <div className="flex flex-wrap gap-2">
-                {CHARACTER_AVATARS.map((c) => (
+                {CHARACTER_AVATARS.filter((c) => tillatteKarakterer.has(c.id)).map((c) => (
                   <button
                     key={c.id}
                     type="button"
@@ -540,6 +554,7 @@ export default function AvatarVideoPage() {
                 ))}
               </div>
             </div>
+            )}
 
             {savedAvatarImages.length > 0 && (
               <div>

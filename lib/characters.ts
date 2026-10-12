@@ -11,9 +11,20 @@ export interface Character {
   loraUrl?: string
   characterBlock: string
   // Eksklusivitet: karakteren tilbys/godtas kun på denne tenant-sluggen.
-  // undefined = åpen for alle tenants (Lars 2026-07-29: Adam eksklusiv, Lawrence åpen).
+  // undefined = åpen for alle tenants (Lars 2026-07-29: Adam eksklusiv).
   restrictToTenantSlug?: string
+  // Bare disse brukerne (auth.users.id) får tilbud om / kan bruke karakteren.
+  restrictToUserIds?: string[]
 }
+
+// Lars' egne kontoer: kilevold@gmail.com, kilevold@online.no, lars@norditech.io.
+// Lars 12/10: «Lawrence skal bare være tilgjengelig for meg» — han lå åpen for
+// alle tenants og ble tilbudt IndigoBoom-artistene i PromoMaker.
+const LARS_USER_IDS = [
+  '831847a0-daf3-4765-a3ea-632a065c5b92',
+  '9c5991fb-9579-40b0-a1f8-68b8dd47612f',
+  'cde8ce70-db9f-4a93-a554-dc480bbcfa47',
+]
 
 export const CHARACTERS: Record<string, Character> = {
   adam: {
@@ -29,6 +40,7 @@ export const CHARACTERS: Record<string, Character> = {
     id: 'lawrence',
     name: 'Lawrence (Peregrine)',
     trigger: 'LK',
+    restrictToUserIds: LARS_USER_IDS,
     loraUrl: process.env.LAWRENCE_LORA_URL,
     // «Ung, pen»-varianten (bevist i fal-kjøringene 2026-07-13) — samme LoRA, penere formulering
     characterBlock:
@@ -42,10 +54,16 @@ export function getCharacter(id?: string | null): Character | null {
   return CHARACTERS[id] || null
 }
 
-// Innebygde karakterer som skal tilbys på gitt tenant (brukes av nedtrekkslistene
-// og håndheves server-side i generate-image).
-export function builtinCharactersForTenant(tenantSlug: string): Character[] {
-  return Object.values(CHARACTERS).filter(
-    (c) => !c.restrictToTenantSlug || c.restrictToTenantSlug === tenantSlug
-  )
+// Får denne brukeren på denne tenanten bruke karakteren? Både tenant- og
+// brukersperre. Uten kjent bruker slipper en brukersperret karakter aldri gjennom.
+export function characterAllowed(c: Character, ctx: { tenantSlug: string; userId?: string | null }): boolean {
+  if (c.restrictToTenantSlug && c.restrictToTenantSlug !== ctx.tenantSlug) return false
+  if (c.restrictToUserIds && (!ctx.userId || !c.restrictToUserIds.includes(ctx.userId))) return false
+  return true
+}
+
+// Innebygde karakterer som skal tilbys (nedtrekkslistene får dem fra
+// /api/characters; generate-image håndhever det samme server-side).
+export function builtinCharactersFor(ctx: { tenantSlug: string; userId?: string | null }): Character[] {
+  return Object.values(CHARACTERS).filter((c) => characterAllowed(c, ctx))
 }
