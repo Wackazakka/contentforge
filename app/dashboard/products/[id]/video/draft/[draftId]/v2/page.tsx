@@ -293,6 +293,46 @@ export default function DraftV2Page() {
       console.warn('[v2] lagring av oppsett feilet:', err)
     }
   }
+
+  // Samme video i et annet format (Lars 12/10: «uten å måtte starte helt fra
+  // toppen igjen»). Er utkastet produsert, lages en KOPI — den ferdige videoens
+  // «Rediger» skal fortsatt åpne sitt eget format. Ellers byttes formatet her.
+  // Alt følger med: tekst, innlesninger, musikk, bilder og animasjonsvalg.
+  // Dropletens klipp-cache skiller ikke på format, så animasjoner som er laget
+  // fra før gjenbrukes uten ny kostnad (start-production spør reuse-check).
+  const [lagerFormat, setLagerFormat] = useState<string | null>(null)
+  const lagIFormat = async (format: string) => {
+    if (!draft || lagerFormat) return
+    const forrige = draft as Draft & Record<string, unknown>
+    if (!forrige.job_id) { await updateDraftFields({ video_format: format }); return }
+    setLagerFormat(format)
+    try {
+      // Det som hører til den forrige produksjonen (jobb, betaling, påløpt
+      // kostnad, merkerabatt) blir igjen; resten kopieres som det er.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, created_at, updated_at, job_id, cost_accumulated, payment_status, price_ore, anon_image_count, brand_discount_nok, ...innhold } = forrige
+      const { data: sess } = await getSupabase().auth.getSession()
+      const grunntittel = String(forrige.title || 'Video').replace(/ · (9:16|1:1|16:9)$/, '')
+      const { data: ny, error: insErr } = await getSupabase()
+        .from('production_drafts')
+        .insert({
+          ...innhold,
+          video_format: format,
+          title: `${grunntittel} · ${format}`,
+          status: 'draft',
+          user_id: sess?.session?.user?.id || forrige.user_id || null,
+        })
+        .select('id')
+        .single()
+      if (insErr || !ny) throw new Error(insErr?.message || 'Kopien ble ikke laget')
+      // Full lasting, ikke router.push: samme side-instans ville tatt med seg
+      // originalens tilstand (forhåndslyttinger, klippstatus, «Lager kopi…»)
+      window.location.href = `/dashboard/products/${productId}/video/draft/${ny.id}/v2`
+    } catch (err) {
+      alert(`Kunne ikke lage videoen i ${format}: ${err instanceof Error ? err.message : 'ukjent feil'}`)
+      setLagerFormat(null)
+    }
+  }
   // ---- Sluttplakat (portert fra gammel side) ----
   const [outroBg, setOutroBg] = useState('#1a1a2e')
   const [outroText, setOutroText] = useState('#ffffff')
@@ -2109,6 +2149,64 @@ export default function DraftV2Page() {
                 </select>
               </SettingRow>
             </div>
+
+            {/* Format — produsert video: lag kopi i et annet format; ellers bytt her */}
+            {(() => {
+              const produsert = !!(draft as Draft & { job_id?: string | null }).job_id
+              const gjeldende = ['9:16', '1:1', '16:9'].includes(draft.video_format || '') ? draft.video_format : '9:16'
+              const formater = [
+                { id: '9:16', navn: 'Stående' },
+                { id: '1:1', navn: 'Kvadrat' },
+                { id: '16:9', navn: 'Liggende' },
+              ]
+              return (
+                <div className="bg-[var(--paper-raised)] rounded-2xl border border-gray-200 overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-gray-100">
+                    <h3 className="text-sm font-semibold text-gray-900">Format</h3>
+                    <p className="text-[12px] text-gray-400 mt-0.5">
+                      {produsert ? 'Lag samme video i et annet format' : 'Velg før du sender i produksjon'}
+                    </p>
+                  </div>
+                  <div className="px-5 py-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      {formater.map((f) => {
+                        const aktiv = gjeldende === f.id
+                        return (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => { if (!aktiv) lagIFormat(f.id) }}
+                            disabled={!!lagerFormat}
+                            aria-pressed={aktiv}
+                            className={`rounded-lg border px-2 py-2 text-center transition-colors ${
+                              aktiv
+                                ? 'border-[var(--ember-deep)] bg-[var(--ember-tint-bg)] cursor-default'
+                                : 'border-gray-300 hover:border-gray-500 disabled:opacity-50 disabled:cursor-wait'
+                            }`}
+                          >
+                            <span className={`block text-[13px] font-medium ${aktiv ? 'text-[var(--ember-deep)]' : 'text-gray-900'}`}>{f.id}</span>
+                            <span className="block text-[11px] text-gray-400">
+                              {lagerFormat === f.id ? 'Lager kopi…' : aktiv ? `${f.navn} · denne` : f.navn}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {produsert && (
+                      <p className="text-[12px] text-gray-400 leading-relaxed mt-3">
+                        Lager en kopi med tekst, innlesninger, musikk, bilder og animasjoner, som du sender i produksjon som vanlig.
+                        Animasjoner som allerede er laget, brukes om igjen uten ny kostnad. Videoen du har, blir som den er.
+                      </p>
+                    )}
+                    <p className="text-[12px] text-gray-400 leading-relaxed mt-2">
+                      {tenant.vertical === 'music'
+                        ? 'Bildene vises hele. Stående bilder får sorte felt på sidene i liggende format.'
+                        : 'Bildene beskjæres til formatet — bytt bilde der det blir feil.'}
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Bilde og bevegelse */}
             <div className="bg-[var(--paper-raised)] rounded-2xl border border-gray-200 overflow-hidden">
