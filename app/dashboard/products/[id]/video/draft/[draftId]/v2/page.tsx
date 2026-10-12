@@ -180,7 +180,7 @@ export default function DraftV2Page() {
   useEffect(() => { if (productId) hentKlipp() }, [productId]) // eslint-disable-line react-hooks/exhaustive-deps
   // Artistens stemmebibliotek — alle AI-innlesninger, uavhengig av produksjon
   // (Lars 3/8). Speiler klippbiblioteket.
-  const [stemmeBank, setStemmeBank] = useState<Array<{ name: string; url: string; voiceId: string; scene: number | null; laget: string | null }>>([])
+  const [stemmeBank, setStemmeBank] = useState<Array<{ name: string; url: string; voiceId: string; scene: number | null; laget: string | null; tekst?: string | null }>>([])
   const [stemmeVelgerFor, setStemmeVelgerFor] = useState<number | null>(null)
   const hentStemmer = async () => {
     try {
@@ -1198,7 +1198,7 @@ export default function DraftV2Page() {
                                 className="px-3 py-2 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400"
                                 title="Alle innlesninger du har laget — gratis å bruke om igjen"
                               >
-                                🎙️ Stemmene dine ({stemmeBank.length})
+                                🎙️ Innlesningene dine ({stemmeBank.length})
                               </button>
                             )}
                             <button
@@ -1274,7 +1274,7 @@ export default function DraftV2Page() {
                           {stemmeVelgerFor === index && (
                             <div>
                               <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-1.5">
-                                Stemmene dine — gratis å bruke om igjen
+                                Innlesningene dine — gratis å bruke om igjen
                               </p>
                               <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                                 {stemmeBank.map((o) => {
@@ -1282,6 +1282,11 @@ export default function DraftV2Page() {
                                   const brukbar = passerStemmen(o.voiceId)
                                   return (
                                     <div key={o.name} className={`flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 ${aktiv ? 'bg-[var(--ember-tint-bg)]' : 'bg-gray-50'}`}>
+                                      {/* Hva som blir sagt — uten det var et opptak fra «scene 4»
+                                          umulig å velge riktig (Lars 12/10) */}
+                                      <span className={`w-full text-[12.5px] line-clamp-2 ${o.tekst ? 'text-gray-700' : 'text-gray-400 italic'}`}>
+                                        {o.tekst ? `«${o.tekst}»` : 'Teksten er ikke lagret for dette opptaket'}
+                                      </span>
                                       <audio controls src={o.url} preload="none" className="h-8 flex-1 min-w-[180px]" />
                                       <span className="text-[11px] text-gray-400">
                                         {voiceNavn(o.voiceId)}
@@ -1315,8 +1320,8 @@ export default function DraftV2Page() {
                               </div>
                               <p className="text-[11px] text-gray-400 mt-1">
                                 Alt du har lest inn, nyeste først. Opptak laget med en annen stemme enn den
-                                scenen bruker nå, kan ikke velges — bytt stemme i sidepanelet først, ellers
-                                ville filmen fått to forskjellige røster.
+                                som er valgt under Stemme i sidepanelet, kan ikke velges — bytt stemme der
+                                først, ellers ville filmen fått to forskjellige røster.
                               </p>
                             </div>
                           )}

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, ListObjectsV2Command, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 
 // Artistens stemmebibliotek (Lars 3/8). Speiler klippbiblioteket: hver
@@ -53,6 +53,29 @@ function tydFilnavn(navn: string): { voiceId: string; scene: number | null } {
   return { voiceId: m[1], scene: Number(m[2]) }
 }
 
+// Hva ble lest i hvert opptak? (Lars 12/10: «vis teksten»). Kilde 1: utkastenes
+// innlesningshistorikk — den lagrer nøyaktig teksten som ble lest. Scenens
+// NÅVÆRENDE tekst brukes bevisst ikke: den kan være endret etter opptaket.
+async function tekstFraUtkast(token: string, productId: string): Promise<Map<string, string>> {
+  const tekster = new Map<string, string>()
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    )
+    const { data } = await supabase.from('production_drafts').select('segments').eq('product_id', productId)
+    for (const d of data || []) {
+      for (const s of (Array.isArray(d.segments) ? d.segments : [])) {
+        for (const h of (Array.isArray(s?.voice_history) ? s.voice_history : [])) {
+          if (h?.url && h?.text && !tekster.has(h.url)) tekster.set(h.url, String(h.text))
+        }
+      }
+    }
+  } catch { /* uten tekst vises opptaket som før */ }
+  return tekster
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url)
   const productId = url.searchParams.get('productId') || ''
@@ -80,8 +103,26 @@ export async function GET(request: Request) {
           scene,
           size: Number(o.Size || 0),
           laget: o.LastModified?.toISOString() || null,
+          tekst: null as string | null,
         }
       })
+    // Kilde 2: teksten lagret på selve lydfila (nye opptak fra 12/10) — for
+    // opptak der utkastet er slettet. Bare de som mangler, og maks 60 oppslag.
+    const fraUtkast = await tekstFraUtkast(token, productId)
+    const mangler: typeof opptak = []
+    for (const o of opptak) {
+      const t = fraUtkast.get(o.url)
+      if (t) o.tekst = t
+      else mangler.push(o)
+    }
+    const klient = r2()
+    await Promise.all(mangler.slice(0, 60).map(async (o) => {
+      try {
+        const h = await klient.send(new HeadObjectCommand({ Bucket: BUCKET, Key: `artist-voices/${productId}/${o.name}` }))
+        const meta = h.Metadata?.tekst
+        if (meta) o.tekst = decodeURIComponent(meta)
+      } catch { /* teksten er ukjent */ }
+    }))
     return NextResponse.json({ opptak })
   } catch (err: any) {
     console.error('[products/voices] listing feilet:', err?.message || err)

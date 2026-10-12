@@ -136,12 +136,21 @@ export async function POST(request: Request) {
       : `voiceovers/${draftId}/segment_${segmentIndex}_${timestamp}.mp3`
     console.log(`[preview-voiceover] Uploading to R2: ${key}`)
 
+    // Teksten følger opptaket (Lars 12/10: «vis teksten» i Innlesningene dine).
+    // Utkastenes voice_history har den også, men forsvinner med utkastet.
+    // Metadata er HTTP-headere (ASCII, ~2 KB): URL-kodes, kortes ned per tegn
+    // (Array.from, så et emoji aldri deles og gjør kodingen ugyldig).
+    let tegn = Array.from(String(text || '')).slice(0, 300)
+    let tekstMeta = encodeURIComponent(tegn.join(''))
+    while (tekstMeta.length > 1800) { tegn = tegn.slice(0, -10); tekstMeta = encodeURIComponent(tegn.join('')) }
+
     await r2.send(
       new PutObjectCommand({
         Bucket: R2_BUCKET_NAME,
         Key: key,
         Body: Buffer.from(audioBuffer),
         ContentType: 'audio/mpeg',
+        Metadata: { tekst: tekstMeta },
       })
     )
 
