@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { admin, hashToken, nyttToken, hentTenant, tenantOrigin, velkomstEpost, GYLDIG_TIMER } from '@/lib/velkomst'
+import { admin, hashToken, nyttToken, hentTenant, tenantOrigin, velkomstEpost, visningsfaktor, GYLDIG_TIMER } from '@/lib/velkomst'
 
 // Sender velkomst-e-postene som er forfalt (send_at <= nå, ikke sendt).
 // Kalles av droplet-cron med x-cron-secret = WELCOME_SEND_SECRET
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const sb = admin()
   const { data: forfalt, error } = await sb
     .from('welcome_invites')
-    .select('id, email, full_name, tenant_slug, credits')
+    .select('id, email, full_name, tenant_slug, credits, notat')
     .is('sent_at', null)
     .lte('send_at', new Date().toISOString())
     .limit(50)
@@ -46,7 +46,8 @@ export async function POST(request: Request) {
     if (!krevd?.length) continue // et annet kall tok den
 
     const lenke = `${tenantOrigin(tenant)}/velkommen?t=${encodeURIComponent(token)}`
-    const { subject, html, fra } = velkomstEpost(tenant, lenke, inv.full_name, inv.credits != null ? Number(inv.credits) : null)
+    const pf = await visningsfaktor(tenant)
+    const { subject, html, fra } = velkomstEpost(tenant, lenke, inv.full_name, inv.credits != null ? Number(inv.credits) : null, pf, inv.notat || null)
     try {
       const { error: sendErr } = await resend.emails.send({ from: fra, to: inv.email, subject, html })
       if (sendErr) throw new Error(sendErr.message)

@@ -27,3 +27,7 @@ revoke all on welcome_invites from anon, authenticated;
 
 -- Kredittene testeren fikk — vises i velkomst-e-posten (null = nevnes ikke)
 alter table welcome_invites add column if not exists credits numeric;
+
+-- Fritt notat til akkurat denne invitasjonen (f.eks. møtetid for en testgruppe),
+-- vises uthevet i velkomst-e-posten. Ren tekst — escapes ved utsending.
+alter table welcome_invites add column if not exists notat text;
