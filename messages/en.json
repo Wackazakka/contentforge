@@ -240,7 +240,12 @@
     "setNewPassword": "Set new password",
     "saving": "Saving...",
     "errorPasswordTooShort": "Password must be at least 8 characters",
-    "errorPasswordsDoNotMatch": "Passwords do not match"
+    "errorPasswordsDoNotMatch": "Passwords do not match",
+    "welcomeVerifying": "Getting your account ready...",
+    "welcomeTitle": "Choose your password",
+    "welcomeSubtitle": "Then you're ready to make your first video",
+    "welcomePasswordLabel": "Password",
+    "welcomeSubmit": "Save and get started"
   },
   "dashboard": {
     "enrollCta": "Sign up as a voice or face",

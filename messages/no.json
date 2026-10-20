@@ -240,7 +240,12 @@
     "setNewPassword": "Sett nytt passord",
     "saving": "Lagrer...",
     "errorPasswordTooShort": "Passord må være minst 8 tegn",
-    "errorPasswordsDoNotMatch": "Passordene stemmer ikke overens"
+    "errorPasswordsDoNotMatch": "Passordene stemmer ikke overens",
+    "welcomeVerifying": "Gjør klar kontoen din...",
+    "welcomeTitle": "Velg passordet ditt",
+    "welcomeSubtitle": "Så er du klar til å lage din første video",
+    "welcomePasswordLabel": "Passord",
+    "welcomeSubmit": "Lagre og kom i gang"
   },
   "dashboard": {
     "enrollCta": "Meld deg på som stemme eller ansikt",

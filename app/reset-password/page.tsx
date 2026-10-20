@@ -14,6 +14,12 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  // ?velkommen=1: kom fra velkomstlenken (migrasjon 107) — ny bruker som velger
+  // sitt FØRSTE passord, ikke «nytt». Leses i nettleseren (ingen Suspense-krav).
+  const [velkommen, setVelkommen] = useState(false)
+  useEffect(() => {
+    setVelkommen(new URLSearchParams(window.location.search).get('velkommen') === '1')
+  }, [])
 
   useEffect(() => {
     // Supabase puts the session token in the URL hash after redirect
@@ -52,18 +58,18 @@ export default function ResetPasswordPage() {
         className="min-h-screen flex items-center justify-center px-4"
         style={{ background: 'var(--paper)', color: '#6B6358', fontFamily: 'var(--font-hanken), sans-serif', fontSize: 15 }}
       >
-        {t('verifying')}
+        {velkommen ? t('welcomeVerifying') : t('verifying')}
       </div>
     )
   }
 
   return (
-    <AuthShell title={t('title')} subtitle={t('subtitle')}>
+    <AuthShell title={velkommen ? t('welcomeTitle') : t('title')} subtitle={velkommen ? t('welcomeSubtitle') : t('subtitle')}>
       {error && <AuthBanner variant="error">{error}</AuthBanner>}
 
       <form onSubmit={handleSubmit}>
         <AuthField
-          label={t('newPasswordLabel')}
+          label={velkommen ? t('welcomePasswordLabel') : t('newPasswordLabel')}
           type="password"
           autoComplete="new-password"
           value={password}
@@ -83,7 +89,7 @@ export default function ResetPasswordPage() {
           disabled={loading}
           placeholder="••••••••"
         />
-        <AuthSubmit loading={loading} loadingLabel={t('saving')}>{t('setNewPassword')}</AuthSubmit>
+        <AuthSubmit loading={loading} loadingLabel={t('saving')}>{velkommen ? t('welcomeSubmit') : t('setNewPassword')}</AuthSubmit>
       </form>
     </AuthShell>
   )
