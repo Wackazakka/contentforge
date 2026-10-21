@@ -802,6 +802,9 @@ function FullProductPage() {
 
           {openSections.brandProfile && (
           <div>
+          {/* Lars 21.10: bare «Skrifttype» var merket valgfri, så de andre så
+              påkrevde ut. Ingenting her er påkrevd — sagt én gang øverst. */}
+          <p className="text-sm text-gray-500 mb-4">{t('brandProfileOptional')}</p>
           {profileMessage && (
             <div className="mb-4 p-3 rounded-lg bg-gray-50 border border-gray-200 text-sm">
               {profileMessage}

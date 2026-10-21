@@ -457,7 +457,8 @@
     "endCardDefault": "default",
     "endCardSample": "Out now",
     "logoSuggestion": "Suggested from your logo:",
-    "logoSuggestionUse": "Use"
+    "logoSuggestionUse": "Use",
+    "brandProfileOptional": "Everything here is optional. Fill in what you like and leave the rest blank."
   },
   "videoProduction": {
     "backToProduct": "← Back to product",

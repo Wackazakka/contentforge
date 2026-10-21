@@ -457,7 +457,8 @@
     "endCardDefault": "standard",
     "endCardSample": "Ute nå",
     "logoSuggestion": "Forslag fra logoen:",
-    "logoSuggestionUse": "Bruk"
+    "logoSuggestionUse": "Bruk",
+    "brandProfileOptional": "Alt her er valgfritt. Fyll ut det du vil, resten kan stå tomt."
   },
   "videoProduction": {
     "backToProduct": "← Tilbake til produkt",

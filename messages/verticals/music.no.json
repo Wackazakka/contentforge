@@ -62,7 +62,7 @@
     "websiteUrlLabel": "Nettside eller Linktree",
     "websiteUrlPlaceholder": "f.eks. northernlights.no eller linktr.ee/northernlights",
     "websiteUrlHint": "Vises på sluttplakaten i videoene.",
-    "fontFamilyLabel": "Skrifttype (valgfri)",
+    "fontFamilyLabel": "Skrifttype",
     "fontFamilyPlaceholder": "La stå tom hvis du ikke har en egen skrifttype",
     "backToDashboard": "← Alle artister"
   },
