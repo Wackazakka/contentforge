@@ -1293,6 +1293,42 @@ function FullProductPage() {
           return tenant.vertical === 'music' ? <>{laater}{bilder}</> : <>{bilder}{laater}</>
         })()}
 
+        {/* Neste steg (Lars 21.10: «når jeg har lastet opp bilder … er det
+            ingenting som forteller meg hva jeg skal gjøre»). Låter og bilder
+            lagres i det de lastes opp, men siden sa det ikke, og «Lag video»
+            sto langt oppe. Bare for musikk — der er låt og bilder grunnlaget. */}
+        {tenant.vertical === 'music' && (() => {
+          const harLaat = trackBank.length > 0
+          const harBilder = imageLibrary.length > 0
+          const klar = harLaat && harBilder
+          const mangler = !harLaat && !harBilder
+            ? 'Last opp en låt og noen bilder over'
+            : !harLaat ? 'Last opp en låt under «Låtene dine»' : 'Last opp noen bilder under «Bildene dine»'
+          return (
+            <div
+              className="rounded-lg border p-5 mb-6 flex flex-wrap items-center justify-between gap-3"
+              style={{ background: 'var(--ember-tint-bg)', borderColor: 'var(--ember-tint-border, transparent)' }}
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900">{klar ? 'Neste steg: lag en video' : 'Neste steg'}</p>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  {klar
+                    ? 'Låtene og bildene dine er lagret. Nå kan du lage en video med dem.'
+                    : `${mangler}, så kan du lage en video. Alt du laster opp, lagres med en gang.`}
+                </p>
+              </div>
+              {klar && (
+                <Link
+                  href={`/dashboard/products/${productId}/video/draft/new`}
+                  className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 whitespace-nowrap"
+                >
+                  🎬 Lag video →
+                </Link>
+              )}
+            </div>
+          )
+        })()}
+
 
         {/* Active jobs */}
         {activeJobs.length > 0 && (
