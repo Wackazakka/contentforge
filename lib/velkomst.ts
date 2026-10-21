@@ -106,7 +106,7 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
     html += p('Tips: Trykker du «Rediger» på en ferdig video, kan du endre den uten å starte på nytt: bytte bilder, tekst, stemme eller musikk, eller lage den i et annet format (stående, kvadrat eller liggende). Det du ikke endrer, brukes om igjen uten ny kostnad.')
   }
   html += h('Dette koster kreditter')
-  html += p('Det du lager selv, er gratis: egne bilder, egen musikk og din egen stemme. Du betaler bare for det programmet lager for deg:')
+  html += p('Det du har bidratt med selv, er gratis: egne bilder, egen musikk og din egen stemme. Du betaler bare for det programmet lager for deg:')
   html += `<table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 12px;font-size:14px;color:#5E564A;">
     <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">AI-stemme som leser teksten</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">${fmtCredits(stemme)} per scene</td></tr>
     <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">Bevegelse – bildet blir levende (5 sek)</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">${fmtCredits(bevegelse)} per scene</td></tr>
