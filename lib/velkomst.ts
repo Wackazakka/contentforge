@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
-import { produktnavn } from '@/lib/tenantNames'
+import { produktnavn, fulltNavn } from '@/lib/tenantNames'
 import { COSTS_NOK, fmtCredits, TRENING_RAAKOST_NOK, treningListeprisNok } from '@/lib/costs'
 import { chainFactorByTenantId } from '@/lib/tenantBilling'
 import { wholesaleFactor } from '@/lib/platformMarkup'
@@ -117,7 +117,7 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
   return html
 }
 
-export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | null, kreditter: number | null, pf = 1, notat: string | null = null, svarTil: string | null = null) {
+export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | null, kreditter: number | null, pf = 1, notat: string | null = null, svarTil: string | null = null, hilsenFra: string | null = null) {
   const produkt = (produktnavn(t as any) || 'CenterForge').replace(/[<>"]/g, '')
   const aksent = (t.colors && t.colors['--ember']) || '#1C1A16'
   const fornavn = (navn || '').trim().split(/\s+/)[0]
@@ -142,6 +142,7 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
       ${notat ? `<div style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;border-left:4px solid ${esc(aksent)};font-size:14.5px;line-height:1.6;color:#1C1A16;">${esc(notat)}</div>` : ''}
       ${veiledning(t, pf, kreditter)}
       ${svarTil ? `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;"><strong>Får du det ikke til?</strong> Svar på denne e-posten, så hjelper vi deg.</p>` : ''}
+      ${hilsenFra ? `<p style="margin:24px 0 0;font-size:15px;line-height:1.6;color:#5E564A;">Hilsen<br><strong style="color:#1C1A16;">${esc(hilsenFra)}</strong><br>${esc(fulltNavn(t as any))}</p>` : ''}
       <p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Lenken virker i ${GYLDIG_TIMER} timer og kan brukes én gang. Har den gått ut, går du til <a href="${origin}/login" style="color:#978B79;">${esc(origin.replace('https://', ''))}/login</a> og trykker «Glemt passord» med denne e-postadressen.</p>
       <p style="margin:12px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Funker ikke knappen? Lim denne lenken inn i nettleseren:<br><a href="${lenke}" style="color:#978B79;word-break:break-all;">${lenke}</a></p>
     </div>

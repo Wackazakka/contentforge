@@ -35,3 +35,6 @@ alter table welcome_invites add column if not exists notat text;
 -- Svaradresse for velkomst-e-posten (avsender er no-reply). Når satt, får
 -- e-posten «Får du det ikke til? Svar på denne e-posten …» og reply-to hit.
 alter table welcome_invites add column if not exists svar_til text;
+
+-- Hvem e-posten er fra («Hilsen <navn>» + tjenestens fulle navn). Lars 21.10.
+alter table welcome_invites add column if not exists hilsen_fra text;
