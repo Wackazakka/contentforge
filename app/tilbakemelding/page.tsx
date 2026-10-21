@@ -109,6 +109,15 @@ export default function TilbakemeldingPage() {
     }
   }
 
+  // Ikke vis skjemaet før vi vet om noen er innlogget — ellers blinker hele
+  // skjemaet forbi før innloggingsbeskjeden for den som ikke er det
+  if (innlogget === null) {
+    return (
+      <div className="flex items-center justify-center py-24" style={{ minHeight: '100vh', background: 'var(--paper)' }}>
+        <div className="cf-spinner" />
+      </div>
+    )
+  }
   if (innlogget === false) {
     return (
       <AuthShell title="Tilbakemelding" subtitle={`Logg inn på ${produkt} for å svare.`}>
