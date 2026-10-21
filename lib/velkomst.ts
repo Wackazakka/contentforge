@@ -95,7 +95,7 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
   if (t.vertical === 'music') {
     html += h('Slik kommer du i gang')
     html += `<table cellpadding="0" cellspacing="0">${[
-      'Når du har valgt passord, er du inne. Trykk «+ Legg til artisten min» og skriv inn artistnavnet.',
+      'Når du har valgt passord og er inne, trykker du «+ Legg til artisten min» og skriver inn artistnavnet.',
       'På artistsiden laster du opp låten under «Låtene dine» (MP3) og noen bilder under «Bildene dine». Stående bilder, som fra mobilen, fyller skjermen best på TikTok og Reels.',
       'Trykk «Lag video». Velg låten og hvilken del av den som skal brukes, og skriv kort hva videoen skal handle om. Trykk «Opprett draft», så lager PromoMaker et forslag med tekst til hver scene.',
       'Gå gjennom scenene: velg bilde, rett teksten, og velg stemme i panelet til høyre. Trykk «Lag stemmen» i hver scene, eller kryss av for «Uten tale». Vil du at bildene skal bevege seg, kryss av for «AI-bevegelse».',
@@ -135,6 +135,7 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
           <a href="${lenke}" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:${lesbarTekst(aksent)};text-decoration:none;border-radius:10px;">Velg passord og kom i gang</a>
         </td>
       </tr></table>
+      <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#5E564A;">Knappen åpner ${esc(produkt)} i nettleseren. Trykk på knappen der én gang til, så kommer du til siden der du velger passordet ditt. Skriv det to ganger (minst 8 tegn) og trykk «Lagre og kom i gang». Da er du inne.</p>
       ${notat ? `<div style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;border-left:4px solid ${esc(aksent)};font-size:14.5px;line-height:1.6;color:#1C1A16;">📍 ${esc(notat)}</div>` : ''}
       ${veiledning(t, pf, kreditter)}
       <p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Lenken virker i ${GYLDIG_TIMER} timer og kan brukes én gang. Har den gått ut, går du til <a href="${origin}/login" style="color:#978B79;">${esc(origin.replace('https://', ''))}/login</a> og trykker «Glemt passord» med denne e-postadressen.</p>
