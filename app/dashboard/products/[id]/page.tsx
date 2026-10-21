@@ -1076,7 +1076,8 @@ function FullProductPage() {
         {/* Content Production */}
         <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('contentProduction')}</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
+          {/* Musikk har bare «Lag video» igjen — da fyller det hele bredden */}
+          <div className={`grid gap-3 ${tenant.vertical === 'music' ? '' : 'sm:grid-cols-2'}`}>
             <Link
               href={`/dashboard/products/${productId}/video/draft/new`}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-[var(--ember-deep)] hover:bg-[var(--ember-tint-bg)] transition-all text-left block"
@@ -1100,7 +1101,10 @@ function FullProductPage() {
             </Link>
             )}
 
-            {offersProduction(tenant.vertical, 'avatar') && (
+            {/* Avatar-video ikke for artister (Lars 21.10: «Kanskje det bare
+                forvirrer?»). Aldri brukt i PromoMaker; «en AI-vert fremfører
+                manuset ditt» er en programleder, ikke musikk. Siden finnes. */}
+            {offersProduction(tenant.vertical, 'avatar') && tenant.vertical !== 'music' && (
             <Link
               href={`/dashboard/products/${productId}/avatar`}
               className="p-6 border-2 border-gray-200 rounded-lg hover:border-[#7C3AED] hover:bg-[#F5F3FF] transition-all text-left block"
