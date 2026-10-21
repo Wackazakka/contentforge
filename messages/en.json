@@ -411,7 +411,7 @@
     "websiteUrlLabel": "Website / product URL",
     "websiteUrlPlaceholder": "https://example.com",
     "websiteUrlHint": "Used as a subtle link in articles",
-    "ctaTextLabel": "CTA text (optional)",
+    "ctaTextLabel": "CTA text",
     "ctaTextPlaceholder": "E.g. Ready to start? Visit example.com and see how.",
     "ctaTextHint": "Used verbatim as closing in articles. Leave blank to auto-generate CTA.",
     "saveProfile": "Save profile",

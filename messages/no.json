@@ -411,7 +411,7 @@
     "websiteUrlLabel": "Nettside / produkt-URL",
     "websiteUrlPlaceholder": "https://eksempel.no",
     "websiteUrlHint": "Brukes som subtil lenke i artikler",
-    "ctaTextLabel": "CTA-tekst (valgfri)",
+    "ctaTextLabel": "CTA-tekst",
     "ctaTextPlaceholder": "F.eks. Klar til å begynne? Gå til eksempel.no og se hvordan.",
     "ctaTextHint": "Brukes verbatim som avslutning i artikler. Lar du feltet stå tomt, lages CTA automatisk.",
     "saveProfile": "Lagre profil",

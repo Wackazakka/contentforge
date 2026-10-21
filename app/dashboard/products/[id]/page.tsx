@@ -68,6 +68,27 @@ interface AssetBank {
   video_format?: string | null
 }
 
+// Lagret profil → skjemaverdier. Brukes både til å fylle skjemaet og til å
+// avgjøre om «Lagre profil» har noe å lagre (tom profil = tomt skjema).
+function profilTilSkjema(profile: ProductProfile | null) {
+  const p = (profile || {}) as Partial<ProductProfile> & Record<string, any>
+  return {
+    logo_url: p.logo_url || '',
+    article_logo_url: p.article_logo_url || '',
+    primary_color: p.primary_color || '',
+    secondary_color: p.secondary_color || '',
+    accent_color: p.accent_color || '',
+    font_family: p.font_family || '',
+    brand_voice: p.brand_voice || '',
+    brand_guidelines: p.brand_guidelines ? String(p.brand_guidelines) : '',
+    website_url: p.website_url || '',
+    cta_text: p.cta_text || '',
+    service_area: p.service_area || '',
+    phone: p.phone || '',
+    address: p.address || '',
+  }
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', {
     day: 'numeric',
@@ -249,24 +270,12 @@ function FullProductPage() {
   }, [productId, session?.user?.id])
 
   useEffect(() => {
-    if (profile) {
-      setProfileForm({
-        logo_url: profile.logo_url || '',
-        article_logo_url: profile.article_logo_url || '',
-        primary_color: profile.primary_color || '',
-        secondary_color: profile.secondary_color || '',
-        accent_color: profile.accent_color || '',
-        font_family: profile.font_family || '',
-        brand_voice: profile.brand_voice || '',
-        brand_guidelines: profile.brand_guidelines ? String(profile.brand_guidelines) : '',
-        website_url: (profile as any).website_url || '',
-        cta_text: (profile as any).cta_text || '',
-        service_area: (profile as any).service_area || '',
-        phone: (profile as any).phone || '',
-        address: (profile as any).address || '',
-      })
-    }
+    if (profile) setProfileForm(profilTilSkjema(profile))
   }, [profile])
+  // «Lagre profil» er bare aktiv når skjemaet avviker fra det som er lagret
+  // (Lars 21.10: knappen ble grå et sekund og rosa igjen etter lagring, som om
+  // noe fortsatt var ulagret). Logoen lagres alt ved opplasting og teller ikke.
+  const profilEndret = JSON.stringify(profileForm) !== JSON.stringify(profilTilSkjema(profile))
 
   const handleSaveProfile = async () => {
     if (!productId) return
@@ -1051,9 +1060,10 @@ function FullProductPage() {
 
             <button
               onClick={handleSaveProfile}
-              disabled={profileSaving}
-              className="w-full disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-              style={{ backgroundColor: profileSaving ? undefined : 'var(--ember-deep)' }}
+              disabled={profileSaving || !profilEndret}
+              title={!profilEndret && !profileSaving ? 'Ingen endringer å lagre' : undefined}
+              className="w-full disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              style={{ backgroundColor: profileSaving || !profilEndret ? undefined : 'var(--ember-deep)' }}
             >
               {profileSaving ? t('saving') : t('saveProfile')}
             </button>
