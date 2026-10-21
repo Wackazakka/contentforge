@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
+import { innloggingHeader } from '@/lib/innlogging'
 import { useTranslations } from 'next-intl'
 
 function renderMarkdown(text: string) {
@@ -167,7 +168,7 @@ export default function ArticlePage() {
         setImageLoading(true)
         fetch('/api/content/generate-image', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await innloggingHeader()) },
           body: JSON.stringify({
             topic: firstArticle.title || topic,
             productId,

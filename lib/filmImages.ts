@@ -1,6 +1,7 @@
 'use client'
 
 import { getSupabase } from '@/lib/supabaseClient'
+import { innloggingHeader } from '@/lib/innlogging'
 
 // Bildene til en Ropert-film lages i nettleseren (Netlify-funksjoner taaler
 // ~26 s, ett bilde tar ~10 s). Delt mellom filmsiden (gratis omgjoering) og
@@ -24,7 +25,7 @@ export async function fillMissingImages(opts: {
     try {
       const r = await fetch('/api/content/generate-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await innloggingHeader()) },
         body: JSON.stringify({
           topic: segments[i].image_prompt || `${segments[i].text} (${title})`,
           productId,

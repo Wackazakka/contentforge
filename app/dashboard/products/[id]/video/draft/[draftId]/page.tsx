@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
+import { innloggingHeader } from '@/lib/innlogging'
 import { useTranslations } from 'next-intl'
 import { COSTS_NOK, fmtNok, fmtCredits } from '@/lib/costs'
 import { MOTION_STYLES } from '@/lib/motionStyles'
@@ -674,7 +675,7 @@ export default function DraftPage() {
         try {
           response = await fetch('/api/content/generate-image', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(await innloggingHeader()) },
             body: JSON.stringify({ topic: segment.text, productId, imageSize, imageStyle, character: character || undefined, draftId }),
             signal: controller.signal,
           })
@@ -845,7 +846,7 @@ export default function DraftPage() {
 
       const response = await fetch('/api/content/generate-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await innloggingHeader()) },
         body: JSON.stringify({
           topic: (segment.image_prompt && segment.image_prompt.trim()) || segment.text,
           productId,

@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
+import { innloggingHeader } from '@/lib/innlogging'
 import { useTenant } from '@/lib/tenantContext'
 import { fetchMusicLibrary, ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
 import { FILM_LIBRARY_FOLDER } from '@/lib/filmVoices'
@@ -378,7 +379,7 @@ export default function FilmPage() {
     try {
       const r = await fetch('/api/content/generate-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await innloggingHeader()) },
         body: JSON.stringify({ topic: personPromptFor(category), productId, imageSize: '1024x1536', imageStyle: 'papercut', draftId: review.draftId, referenceImageUrl: photoUrl }),
         signal: AbortSignal.timeout(58000),
       })

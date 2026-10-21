@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import { compositeLogoOnImage } from '@/lib/image-logo'
-import { getCharacter } from '@/lib/characters'
+import { getCharacter, characterAllowed } from '@/lib/characters'
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
@@ -33,7 +33,6 @@ interface GenerateImageRequest {
 }
 
 // Anonyme drafts: tak på antall bildegenereringer (hindrer API-brenning før betaling)
-const ANON_IMAGE_CAP = 24
 
 const VIDEO_STYLE_PROMPTS: Record<string, string> = {
   tech:      'Cutting-edge technology product scene, ultra-sharp macro details, dramatic directional lighting with deep contrasting shadows, floating holographic elements, premium industrial materials — brushed metal, matte glass, anodized surfaces — shot as if for a flagship product launch. Sophisticated and visually arresting.',
@@ -134,15 +133,14 @@ async function editImageBuffer(topic: string, referenceImageUrl: string, imageSi
 // Karakter-modus: generer segmentbildet med fal flux-lora (trent persona) i stedet
 // for gpt-image — samme vert i alle segmenter. Trigger-ord + karakterblokk + scene.
 // Slå opp karakter: innebygd (Adam/Lawrence) eller brukerens egen (user_characters).
-async function resolveCharacter(characterId: string) {
+async function resolveCharacter(characterId: string, userId: string) {
   const builtin = getCharacter(characterId)
   if (builtin) {
-    // Eksklusivitet håndheves server-side: begrenset karakter avvises på feil tenant
-    if (builtin.restrictToTenantSlug) {
-      const { getTenant } = await import('@/lib/tenantServer')
-      const tenant = await getTenant()
-      if (tenant.slug !== builtin.restrictToTenantSlug) return null
-    }
+    // Eksklusivitet håndheves server-side: tenant- OG brukersperre
+    // (Lawrence bare for Lars, Adam bare på rot — lib/characters, 21.10)
+    const { getTenant } = await import('@/lib/tenantServer')
+    const tenant = await getTenant()
+    if (!characterAllowed(builtin, { tenantSlug: tenant.slug, userId })) return null
     return builtin
   }
   const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
@@ -184,9 +182,10 @@ async function resolveCharacter(characterId: string) {
 async function generateCharacterImageBuffer(
   topic: string,
   characterId: string,
-  imageSize: string = '1024x1536'
+  imageSize: string = '1024x1536',
+  userId: string = ''
 ): Promise<Buffer> {
-  const ch = await resolveCharacter(characterId)
+  const ch = await resolveCharacter(characterId, userId)
   if (!ch) throw new Error('Ukjent eller ikke-klar karakter: ' + characterId)
   if (!ch.loraUrl) throw new Error('LoRA-URL mangler for ' + ch.name + ' (sett env ' + ch.id.toUpperCase() + '_LORA_URL i Netlify)')
   if (!FAL_KEY) throw new Error('CONTENTFORGE_FAL_KEY mangler i Netlify env')
@@ -281,34 +280,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OPENAI_API_KEY not set' }, { status: 500 })
     }
 
-    // Anon-caps: for drafts uten eier begrenses antall genereringer, og
-    // karakter-modus (dyrere flux-lora) er forbeholdt registrerte.
-    // KUN når billing er aktivert — i gratisfasen har alle drafts user_id NULL.
-    if (draftId && process.env.BILLING_ENABLED === 'true') {
-      const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
-      const { data: draft } = await supabase
-        .from('production_drafts')
-        .select('user_id, anon_image_count')
-        .eq('id', draftId)
-        .single()
-      if (draft && !draft.user_id) {
-        if (character) {
-          return NextResponse.json({ error: 'Karakter-modus krever konto. Registrer deg (33 % rabatt) for å bruke egne karakterer.' }, { status: 403 })
-        }
-        if ((draft.anon_image_count || 0) >= ANON_IMAGE_CAP) {
-          return NextResponse.json({ error: 'Grensen for bildegenerering uten konto er nådd. Registrer deg for å fortsette (33 % rabatt).' }, { status: 429 })
-        }
-        await supabase
-          .from('production_drafts')
-          .update({ anon_image_count: (draft.anon_image_count || 0) + 1 })
-          .eq('id', draftId)
-      }
+    // Innlogging + eierskap (21.10.2026). Før var ruta åpen: hvem som helst
+    // kunne bruke opp fal/OpenAI-kreditter, legge bilder i andres bildebank og
+    // føre kostnader på andres organisasjon. Den gamle «anon-sperren» (utkast
+    // uten user_id) slo dessuten inn for INNLOGGEDE artister, fordi utkast
+    // opprettes uten user_id: bilder med egen AI-versjon ble avvist med
+    // «Karakter-modus krever konto». Nå vet vi hvem som spør.
+    const auth = request.headers.get('authorization')
+    if (!auth?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Logg inn for å lage bilder' }, { status: 401 })
+    }
+    const token = auth.slice(7)
+    const { data: brukerData } = await createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '').auth.getUser(token)
+    const userId = brukerData?.user?.id
+    if (!userId) {
+      return NextResponse.json({ error: 'Logg inn for å lage bilder' }, { status: 401 })
+    }
+    // Eierskap: produktet må være synlig for brukeren (RLS, samme mønster som
+    // bilde- og stemmebiblioteket)
+    const somBruker = createClient(SUPABASE_URL || '', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '', {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    })
+    const { data: eget } = await somBruker.from('products').select('id').eq('id', productId).maybeSingle()
+    if (!eget) {
+      return NextResponse.json({ error: 'Ingen tilgang til denne artisten' }, { status: 403 })
     }
 
     console.log('[generateImage] ===== START:  + topic +  =====')
 
     let imageBuffer = character
-      ? await generateCharacterImageBuffer(topic, character, imageSize)
+      ? await generateCharacterImageBuffer(topic, character, imageSize, userId)
       : referenceImageUrl
         ? await editImageBuffer(topic, String(referenceImageUrl), imageSize, imageStyle)
         : await generateImageBuffer(topic, imageSize, imageStyle)
