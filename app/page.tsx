@@ -467,6 +467,7 @@ export default function Home() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {/* «Bli white-label-partner» selger plattformen fra artistens egen
                   fot (Lars 3/8). Hoerer hjemme paa CenterForge, ikke hos Isabel. */}
+              <Link href="/hjelp?fra=/" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_help')}</Link>
               {!erArtist && (
                 <Link href="/white-label" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--text-muted)', textDecoration: 'none' }}>{t('foot_whitelabel')}</Link>
               )}

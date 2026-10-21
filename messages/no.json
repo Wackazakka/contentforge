@@ -167,7 +167,8 @@
     "ill2_s_radio": "RADIOSPOT",
     "ill2_s_article": "ARTIKKEL",
     "ill2_audio": "https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev/assets/hero-voice-no.mp3",
-    "pf1_d_partner": "Hele plattformen på ditt domene, med dine farger, din prising og dine egne kunder — satt opp på dager, ikke måneder."
+    "pf1_d_partner": "Hele plattformen på ditt domene, med dine farger, din prising og dine egne kunder — satt opp på dager, ikke måneder.",
+    "foot_help": "Hjelp"
   },
   "login": {
     "title": "Velkommen tilbake",

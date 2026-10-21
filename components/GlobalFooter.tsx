@@ -36,6 +36,8 @@ export default function GlobalFooter() {
         }}
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 20 }}>
+          {/* Supportsiden (109, Lars 21.10): først, så den er lett å finne */}
+          <Link href={`/hjelp?fra=${encodeURIComponent(pathname)}`} className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--ink)', opacity: 0.6, textDecoration: 'none' }}>{t('foot_help')}</Link>
           <Link href="/white-label" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--ink)', opacity: 0.6, textDecoration: 'none' }}>{t('foot_whitelabel')}</Link>
           {tenant.slug === 'centerforge' && (
             <Link href="/twinledger" className="cf-nav-link" style={{ fontFamily: HANKEN, fontSize: 13, color: 'var(--ink)', opacity: 0.6, textDecoration: 'none' }}>{t('foot_twinledger')}</Link>
