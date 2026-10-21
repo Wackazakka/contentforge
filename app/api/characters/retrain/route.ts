@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { treningListeprisNok } from '@/lib/costs'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
 import { getTenant } from '@/lib/tenantServer'
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
         organizationId: null,
         userId: u.user.id,
         eventType: 'character_training',
-        costNok: valgt.raakostNok,
+        costNok: treningListeprisNok(valgt.raakostNok), // råkost × 2, som alt annet (Lars 21.10)
         meta: { characterId: data!.id, name: data!.name, trainer: valgt.endepunkt, retrainOf: k.id },
       })
     } catch { /* maaling velter aldri trening */ }

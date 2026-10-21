@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
-import { TRENING_RAAKOST_NOK } from '@/lib/costs'
+import { TRENING_RAAKOST_NOK, treningListeprisNok } from '@/lib/costs'
 
 const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
 
@@ -224,7 +224,7 @@ export async function POST(request: Request) {
         eventType: 'character_training',
         // ⚠️ Raakost per trener, ikke en fast sats. Flux 2 koster fem ganger
         // saa mye, og en maaling som foerer feil tall er ingen maaling.
-        costNok: valgt.raakostNok,
+        costNok: treningListeprisNok(valgt.raakostNok), // råkost × 2, som alt annet (Lars 21.10)
         meta: { characterId: data.id, name: name.trim(), trainer: valgt.endepunkt },
       })
     } catch { /* maaling velter aldri trening */ }

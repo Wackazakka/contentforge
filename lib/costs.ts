@@ -15,10 +15,17 @@ export const COSTS_NOK = {
   characterTraining: 40,
 }
 
-// Råkost per karaktertrening, slik /api/characters/train faktisk TREKKER den
-// (costNok = råkost, deretter tenantens påslag). NB: ikke ×2 som COSTS_NOK over.
-// Delt med karaktersiden, så prisen på knappen er den som trekkes (Lars 21.10).
+// Råkost per karaktertrening (fal: portrett ~$2, Flux 2 ~$9,60).
 export const TRENING_RAAKOST_NOK = { portrait: 20, flux2: 96 } as const
+
+// Listepris = råkost × 2, samme regel som COSTS_NOK over — deretter tenantens
+// påslag ved logging. Før 21.10 ble treningen trukket med RÅKOSTEN som
+// grunnlag, så plattformpåslaget ble bare 25 % i stedet for 150 % (Lars: «Vi
+// må jo ha påslag for karakter-produksjon også»). Brukes av train, retrain og
+// knappen på karaktersiden, så prisen som vises er den som trekkes.
+export function treningListeprisNok(raakostNok: number): number {
+  return raakostNok * 2
+}
 
 export function fmtNok(n: number): string {
   return n.toFixed(2).replace('.', ',') + ' kr'

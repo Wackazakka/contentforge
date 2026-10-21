@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useDashboardRole } from '@/lib/useDashboardRole'
 import { useTenant } from '@/lib/tenantContext'
-import { fmtCredits, TRENING_RAAKOST_NOK } from '@/lib/costs'
+import { fmtCredits, TRENING_RAAKOST_NOK, treningListeprisNok } from '@/lib/costs'
 
 interface UserCharacter {
   id: string
@@ -40,11 +40,11 @@ export default function CharactersPage() {
   const role = useDashboardRole()
   // Artistene skal ikke møte «Kari fra kundeservice» (Lars 21.10): music-
   // vertikalen får egne ord. Prisen på knappen er den som faktisk trekkes:
-  // råkost × tenantens påslag (samme som /api/characters/train).
+  // listepris (råkost × 2) × tenantens påslag, likt trekket i /api/characters/train.
   const tenant = useTenant()
   const musikk = tenant.vertical === 'music'
   const [trainer, setTrainer] = useState<'portrait' | 'flux2'>('portrait')
-  const treningPris = fmtCredits(TRENING_RAAKOST_NOK[trainer] * (tenant.price_multiplier || 1))
+  const treningPris = fmtCredits(treningListeprisNok(TRENING_RAAKOST_NOK[trainer]) * (tenant.price_multiplier || 1))
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
