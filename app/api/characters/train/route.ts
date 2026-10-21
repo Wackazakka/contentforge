@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
+import { TRENING_RAAKOST_NOK } from '@/lib/costs'
 
 const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
 
@@ -32,7 +33,7 @@ export const TRENERE = {
     generator: 'fal-ai/flux-lora',
     steps: 1500,
     // ~$2 per kjoering, uavhengig av steg.
-    raakostNok: 20,
+    raakostNok: TRENING_RAAKOST_NOK.portrait,
     kropp: (bilderUrl: string, trigger: string) => ({
       images_data_url: bilderUrl,
       trigger_phrase: trigger,
@@ -46,7 +47,7 @@ export const TRENERE = {
     generator: 'fal-ai/flux-2/lora',
     steps: 1500,
     // $0,0064 per steg x 1500 = $9,60. USD->NOK ~10.
-    raakostNok: 96,
+    raakostNok: TRENING_RAAKOST_NOK.flux2,
     kropp: (bilderUrl: string, trigger: string) => ({
       image_data_url: bilderUrl,
       // Zipen har ingen tekstfiler; uten default_caption feiler treningen.

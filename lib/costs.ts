@@ -15,6 +15,11 @@ export const COSTS_NOK = {
   characterTraining: 40,
 }
 
+// Råkost per karaktertrening, slik /api/characters/train faktisk TREKKER den
+// (costNok = råkost, deretter tenantens påslag). NB: ikke ×2 som COSTS_NOK over.
+// Delt med karaktersiden, så prisen på knappen er den som trekkes (Lars 21.10).
+export const TRENING_RAAKOST_NOK = { portrait: 20, flux2: 96 } as const
+
 export function fmtNok(n: number): string {
   return n.toFixed(2).replace('.', ',') + ' kr'
 }

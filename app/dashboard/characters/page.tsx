@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useDashboardRole } from '@/lib/useDashboardRole'
+import { useTenant } from '@/lib/tenantContext'
+import { fmtCredits, TRENING_RAAKOST_NOK } from '@/lib/costs'
 
 interface UserCharacter {
   id: string
@@ -36,7 +38,13 @@ export default function CharactersPage() {
   // Trenervalget er ADMIN-styrt: en kunde kan ikke vurdere spoersmaalet, og
   // et galt valg gir daarligere likhet hen faar skylden for selv.
   const role = useDashboardRole()
+  // Artistene skal ikke møte «Kari fra kundeservice» (Lars 21.10): music-
+  // vertikalen får egne ord. Prisen på knappen er den som faktisk trekkes:
+  // råkost × tenantens påslag (samme som /api/characters/train).
+  const tenant = useTenant()
+  const musikk = tenant.vertical === 'music'
   const [trainer, setTrainer] = useState<'portrait' | 'flux2'>('portrait')
+  const treningPris = fmtCredits(TRENING_RAAKOST_NOK[trainer] * (tenant.price_multiplier || 1))
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -131,17 +139,19 @@ export default function CharactersPage() {
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link href="/dashboard" className="text-[var(--ember-deep)] hover:text-[var(--ink)] mb-4 inline-block">← Tilbake</Link>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">🧑‍🎤 Karakterer</h1>
-        <p className="text-gray-600 mb-8">Tren din egen AI-karakter fra bilder. Karakteren kan så være vert i videoene dine — samme person i alle segmentbildene.</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">🧑‍🎤 {musikk ? 'AI-versjoner av deg og bandet' : 'Karakterer'}</h1>
+        <p className="text-gray-600 mb-8">{musikk
+          ? 'Lag en AI-versjon av deg selv eller et bandmedlem fra bilder. Den kan opptre i scenene i videoene dine — samme person i alle bildene.'
+          : 'Tren din egen AI-karakter fra bilder. Karakteren kan så være vert i videoene dine — samme person i alle segmentbildene.'}</p>
 
         <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
-          <h2 className="font-semibold text-gray-900 mb-4">Lag ny karakter</h2>
+          <h2 className="font-semibold text-gray-900 mb-4">{musikk ? 'Lag en ny AI-versjon' : 'Lag ny karakter'}</h2>
 
           <label className="block text-sm font-medium text-gray-700 mb-1">Navn</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="F.eks. «Kari fra kundeservice»"
+            placeholder={musikk ? 'F.eks. artistnavnet ditt eller «Kari, vokalist»' : 'F.eks. «Kari fra kundeservice»'}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4"
           />
 
@@ -230,13 +240,13 @@ export default function CharactersPage() {
             disabled={!!busy}
             className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-50 transition-colors"
           >
-            {busy || 'Tren karakter (~6 min)'}
+            {busy || `${musikk ? 'Lag AI-versjon' : 'Tren karakter'} – ${treningPris} (ca. 6 min)`}
           </button>
         </div>
 
-        <h2 className="font-semibold text-gray-900 mb-3">Dine karakterer</h2>
+        <h2 className="font-semibold text-gray-900 mb-3">{musikk ? 'Dine AI-versjoner' : 'Dine karakterer'}</h2>
         {chars.length === 0 ? (
-          <p className="text-gray-400 text-sm">Ingen egne karakterer ennå.</p>
+          <p className="text-gray-400 text-sm">{musikk ? 'Ingen AI-versjoner ennå.' : 'Ingen egne karakterer ennå.'}</p>
         ) : (
           <div className="space-y-2">
             {chars.map((c) => (
