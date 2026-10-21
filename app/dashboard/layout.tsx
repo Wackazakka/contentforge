@@ -1,5 +1,7 @@
 import { getTenant } from '@/lib/tenantServer'
 import NavBar from './NavBar'
+import TilbakemeldingBanner from '@/components/TilbakemeldingBanner'
+import { UNDERSOKELSE } from '@/lib/tilbakemelding'
 
 export default async function DashboardLayout({
   children,
@@ -24,6 +26,8 @@ export default async function DashboardLayout({
             : { maxWidth: 1080, margin: '0 auto', padding: 'clamp(36px,5vw,64px) 26px 80px' }),
         }}
       >
+        {/* Tilbakemeldingsskjemaet (108) — bare på tenanten undersøkelsen gjelder */}
+        {tenant.slug === UNDERSOKELSE.tenantSlug && <TilbakemeldingBanner />}
         {children}
       </main>
     </div>
