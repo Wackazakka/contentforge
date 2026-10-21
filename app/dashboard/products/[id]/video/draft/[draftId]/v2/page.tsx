@@ -850,6 +850,38 @@ export default function DraftV2Page() {
     })()
   }, [draft]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // «Lag AI-bilde» per scene (Lars 21.10, alternativ 1): artister uten nok
+  // egne bilder får et tydelig, betalt valg FØR produksjon, i stedet for at
+  // tomme scener stille fylles med generiske bilder. For musikk er det et
+  // stemningsbilde UTEN personer — et AI-bilde av «et band» er feil band.
+  // Trekket skjer i generate-image (imageStandard × påslag, 10 kreditter i PromoMaker).
+  const lagAiBilde = async (index: number) => {
+    if (!draft || lagerBilder.has(index)) return
+    const seg = draft.segments[index]
+    const grunnlag = (seg.image_prompt || seg.text || seg.voiceover || '').trim() || 'music, mood, atmosphere'
+    const topic = tenant.vertical === 'music'
+      ? `${grunnlag}. Atmospheric mood image for a music video: places, light, weather, objects or nature. No people, no faces, no hands, no text.`
+      : grunnlag
+    const imageSize = ({ '9:16': '1024x1536', '1:1': '1024x1024', '16:9': '1536x1024' } as Record<string, string>)[draft.video_format || '9:16'] || '1024x1536'
+    setLagerBilder((p) => new Set(p).add(index))
+    try {
+      const token = (await getSupabase().auth.getSession()).data?.session?.access_token
+      const res = await fetch('/api/content/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ topic, productId, imageSize, imageStyle: draft.image_style || 'editorial', draftId }),
+      })
+      const d = await res.json().catch(() => null)
+      if (!res.ok || !d?.imageUrl) throw new Error(d?.error || `HTTP ${res.status}`)
+      updateSegment(index, { image_url: d.imageUrl, approved: false })
+      hentSaldo()
+    } catch (err) {
+      alert(`Bildet kunne ikke lages: ${err instanceof Error ? err.message : 'ukjent feil'}`)
+    } finally {
+      setLagerBilder((p) => { const n = new Set(p); n.delete(index); return n })
+    }
+  }
+
   // Redigert innhold sender scenen tilbake til gjennomgang (design-handoff:
   // endret tekst skal aldri seile gjennom som «godkjent»)
   const editText = (index: number, field: 'text' | 'voiceover', value: string) => {
@@ -959,8 +991,16 @@ export default function DraftV2Page() {
   const segments = draft.segments || []
   // Scener der bildet med personen feilet og som fortsatt står uten bilde
   const aapneFeil = Object.keys(personFeil).map(Number).filter((i) => segments[i] && !(segments[i].image_url || '').trim())
+  // Musikk: alle scener må ha bilde (eget, video eller «Lag AI-bilde») før
+  // produksjon — ellers fylte produksjonen dem stille med generiske bilder.
+  const manglerBilde = tenant.vertical === 'music'
+    ? segments.map((s, i) => (!(s.image_url || '').trim() && !s.video_url ? i + 1 : 0)).filter((n) => n > 0)
+    : []
+  const manglerTekst = manglerBilde.length === 0 ? ''
+    : `Scene ${manglerBilde.length === 1 ? manglerBilde[0] : manglerBilde.slice(0, -1).join(', ') + ' og ' + manglerBilde[manglerBilde.length - 1]} mangler bilde. Velg et av bildene dine, eller trykk «Lag AI-bilde».`
   const approvedCount = segments.filter((s) => s.approved).length
   const allApproved = approvedCount === segments.length && segments.length > 0
+  const klarForProduksjon = allApproved && manglerBilde.length === 0
   const pendingCount = segments.length - approvedCount
   const paaloptNok = (Number(draft.cost_accumulated) || 0) * pf
 
@@ -1004,15 +1044,15 @@ export default function DraftV2Page() {
                 Du har <span className="font-semibold text-gray-900 tabular-nums">{fmtCredits(saldo)}</span> igjen
               </p>
             )}
-            <p className={`text-[13px] font-medium ${allApproved ? 'text-green-700' : 'text-amber-700'}`}>
-              {allApproved
+            <p className={`text-[13px] font-medium ${klarForProduksjon ? 'text-green-700' : 'text-amber-700'}`}>
+              {manglerTekst ? manglerTekst : allApproved
                 ? `Alle ${segments.length} scenene er godkjent`
                 : `${pendingCount} scene${pendingCount === 1 ? '' : 'r'} venter på godkjenning`}
             </p>
             <button
               type="button"
               onClick={startProduction}
-              disabled={!allApproved || starting}
+              disabled={!klarForProduksjon || starting}
               className="px-6 py-3 rounded-xl text-[14.5px] font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {starting ? 'Starter…' : 'Start produksjon'}
@@ -1252,6 +1292,15 @@ export default function DraftV2Page() {
                                   en tom scene lovet noe som ikke fantes (IndigoBoom pkt. 10,
                                   Lars 15/9). */}
                               {seg.image_url ? '📸 Bytt bilde' : '📸 Legg inn bilde'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => lagAiBilde(index)}
+                              disabled={lagerBilder.has(index)}
+                              title={tenant.vertical === 'music' ? 'Lager et stemningsbilde uten personer, ut fra teksten i scenen' : 'Lager et AI-bilde ut fra teksten i scenen'}
+                              className="px-3 py-2 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400 disabled:opacity-50 disabled:cursor-wait"
+                            >
+                              {lagerBilder.has(index) ? 'Lager bilde…' : `🎨 Lag AI-bilde · ${fmtCredits(COSTS_NOK.imageStandard * pf)}`}
                             </button>
                             <label className="flex items-center gap-2 text-[13px] text-gray-600 cursor-pointer ml-auto">
                               <input
@@ -1788,15 +1837,15 @@ export default function DraftV2Page() {
           {/* Start produksjon også NEDERST: man er ved siste scene når alt er
               godkjent, og skal ikke måtte scrolle til toppen (Lars 31/7) */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
-            <p className={`text-[13px] font-medium ${allApproved ? 'text-green-700' : 'text-amber-700'}`}>
-              {allApproved
+            <p className={`text-[13px] font-medium ${klarForProduksjon ? 'text-green-700' : 'text-amber-700'}`}>
+              {manglerTekst ? manglerTekst : allApproved
                 ? `Alle ${segments.length} scenene er godkjent — klar for produksjon`
                 : `${pendingCount} scene${pendingCount === 1 ? '' : 'r'} venter på godkjenning`}
             </p>
             <button
               type="button"
               onClick={startProduction}
-              disabled={!allApproved || starting}
+              disabled={!klarForProduksjon || starting}
               className="px-6 py-3 rounded-xl text-[14.5px] font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {starting ? 'Starter…' : 'Start produksjon'}
@@ -1823,7 +1872,8 @@ export default function DraftV2Page() {
                   : []
                 const nMove = ms.filter((m) => m === 'move').length
                 const nTalk = ms.filter((m) => m === 'talk').length
-                const nImg = segments.filter((s) => !s.image_url || !s.image_url.trim()).length
+                // Musikk: tomme scener stopper produksjonen (de lages med «Lag AI-bilde» og trekkes da)
+                const nImg = tenant.vertical === 'music' ? 0 : segments.filter((s) => !s.image_url || !s.image_url.trim()).length
                 const est = (nMove * COSTS_NOK.animate5s + nTalk * COSTS_NOK.lipsyncTypical + nImg * COSTS_NOK.imageStandard) * pf
                 const nok = saldo
                 const dekning = nok !== null && est > 0 ? nok >= est : null

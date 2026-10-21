@@ -90,6 +90,9 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
   const lipsync = COSTS_NOK.lipsyncTypical * pf
   // Samme regel som knappen på karaktersiden og trekket (lib/costs, Lars 21.10)
   const trening = treningListeprisNok(TRENING_RAAKOST_NOK.portrait) * pf
+  // «Lag AI-bilde» i editoren og bilder med AI-versjonen av deg (generate-image)
+  const aiBilde = COSTS_NOK.imageStandard * pf
+  const personBilde = COSTS_NOK.imageCharacter * pf
   const eksempel = 8 * (stemme + bevegelse) // 8 scener med stemme og bevegelse
   const antall = kreditter ? Math.floor(kreditter / (eksempel * 10)) : 0
 
@@ -100,7 +103,7 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
       'Når du har valgt passord og er inne, trykker du «+ Legg til artisten min» og skriver inn artistnavnet.',
       'På artistsiden laster du opp låten under «Låtene dine» (MP3) og noen bilder under «Bildene dine». Stående bilder, som fra mobilen, fyller skjermen best på TikTok og Reels.',
       'Trykk «Lag video». Velg låten og hvilken del av den som skal brukes, og skriv kort hva videoen skal handle om. Trykk «Opprett draft», så lager PromoMaker et forslag med tekst til hver scene.',
-      'Gå gjennom scenene: velg bilde, rett teksten, og velg stemme i panelet til høyre. Trykk «Lag stemmen» i hver scene, eller kryss av for «Uten tale». Vil du at bildene skal bevege seg, kryss av for «AI-bevegelse».',
+      'Gå gjennom scenene: velg bilde, rett teksten, og velg stemme i panelet til høyre. Mangler du et bilde til en scene, trykker du «Lag AI-bilde», så lager programmet et stemningsbilde. Trykk «Lag stemmen» i hver scene, eller kryss av for «Uten tale». Vil du at bildene skal bevege seg, kryss av for «AI-bevegelse».',
       'Godkjenn scenene og trykk «Start produksjon». Videoen er klar etter noen minutter.',
     ].map((s, i) => steg(i + 1, s)).join('')}</table>`
     html += p('Tips: Trykker du «Rediger» på en ferdig video, kan du endre den uten å starte på nytt: bytte bilder, tekst, stemme eller musikk, eller lage den i et annet format (stående, kvadrat eller liggende). Det du ikke endrer, brukes om igjen uten ny kostnad.')
@@ -111,6 +114,8 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
     <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">AI-stemme som leser teksten</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">${fmtCredits(stemme)} per scene</td></tr>
     <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">Bevegelse – bildet blir levende (5 sek)</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">${fmtCredits(bevegelse)} per scene</td></tr>
     <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">Lip-sync – personen i bildet synger eller snakker</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">ca. ${fmtCredits(lipsync)} per scene</td></tr>
+    <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">${t.vertical === 'music' ? 'AI-bilde – stemningsbilde uten personer' : 'AI-bilde'}</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">${fmtCredits(aiBilde)} per bilde</td></tr>
+    <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">${t.vertical === 'music' ? 'Bilde med AI-versjonen av deg' : 'Bilde med egen AI-karakter'}</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">${fmtCredits(personBilde)} per bilde</td></tr>
     <tr><td style="padding:5px 0;">${t.vertical === 'music' ? 'AI-versjon av deg selv (lages én gang)' : 'Egen AI-karakter (lages én gang)'}</td><td style="padding:5px 0;text-align:right;white-space:nowrap;">${fmtCredits(trening)}</td></tr>
   </table>`
   html += p(`En video på 8 scener med stemme og bevegelse i alle scenene koster rundt ${fmtCredits(eksempel)}.${antall >= 2 ? ` Med kredittene dine kan du lage omtrent ${antall} slike, og mange flere uten bevegelse.` : ''} Du ser alltid prisen før du trykker, og saldoen står øverst når du redigerer en video.`)
