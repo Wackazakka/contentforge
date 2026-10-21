@@ -31,3 +31,7 @@ alter table welcome_invites add column if not exists credits numeric;
 -- Fritt notat til akkurat denne invitasjonen (f.eks. møtetid for en testgruppe),
 -- vises uthevet i velkomst-e-posten. Ren tekst — escapes ved utsending.
 alter table welcome_invites add column if not exists notat text;
+
+-- Svaradresse for velkomst-e-posten (avsender er no-reply). Når satt, får
+-- e-posten «Får du det ikke til? Svar på denne e-posten …» og reply-to hit.
+alter table welcome_invites add column if not exists svar_til text;

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const sb = admin()
   const { data: forfalt, error } = await sb
     .from('welcome_invites')
-    .select('id, email, full_name, tenant_slug, credits, notat')
+    .select('id, email, full_name, tenant_slug, credits, notat, svar_til')
     .is('sent_at', null)
     .lte('send_at', new Date().toISOString())
     .limit(50)
@@ -47,9 +47,10 @@ export async function POST(request: Request) {
 
     const lenke = `${tenantOrigin(tenant)}/velkommen?t=${encodeURIComponent(token)}`
     const pf = await visningsfaktor(tenant)
-    const { subject, html, fra } = velkomstEpost(tenant, lenke, inv.full_name, inv.credits != null ? Number(inv.credits) : null, pf, inv.notat || null)
+    const { subject, html, fra } = velkomstEpost(tenant, lenke, inv.full_name, inv.credits != null ? Number(inv.credits) : null, pf, inv.notat || null, inv.svar_til || null)
     try {
-      const { error: sendErr } = await resend.emails.send({ from: fra, to: inv.email, subject, html })
+      // Avsender er no-reply; svar går til svar_til når den er satt (Lars 21.10)
+      const { error: sendErr } = await resend.emails.send({ from: fra, to: inv.email, subject, html, ...(inv.svar_til ? { replyTo: inv.svar_til } : {}) })
       if (sendErr) throw new Error(sendErr.message)
       resultat.push({ email: inv.email, ok: true })
     } catch (err) {

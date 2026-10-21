@@ -114,7 +114,7 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
   return html
 }
 
-export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | null, kreditter: number | null, pf = 1, notat: string | null = null) {
+export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | null, kreditter: number | null, pf = 1, notat: string | null = null, svarTil: string | null = null) {
   const produkt = (produktnavn(t as any) || 'CenterForge').replace(/[<>"]/g, '')
   const aksent = (t.colors && t.colors['--ember']) || '#1C1A16'
   const fornavn = (navn || '').trim().split(/\s+/)[0]
@@ -138,6 +138,7 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
       <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#5E564A;">Knappen åpner ${esc(produkt)} i nettleseren. Trykk på knappen der én gang til, så kommer du til siden der du velger passordet ditt. Skriv det to ganger (minst 8 tegn) og trykk «Lagre og kom i gang». Da er du inne.</p>
       ${notat ? `<div style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;border-left:4px solid ${esc(aksent)};font-size:14.5px;line-height:1.6;color:#1C1A16;">📍 ${esc(notat)}</div>` : ''}
       ${veiledning(t, pf, kreditter)}
+      ${svarTil ? `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;"><strong>Får du det ikke til?</strong> Svar på denne e-posten, så hjelper vi deg.</p>` : ''}
       <p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Lenken virker i ${GYLDIG_TIMER} timer og kan brukes én gang. Har den gått ut, går du til <a href="${origin}/login" style="color:#978B79;">${esc(origin.replace('https://', ''))}/login</a> og trykker «Glemt passord» med denne e-postadressen.</p>
       <p style="margin:12px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Funker ikke knappen? Lim denne lenken inn i nettleseren:<br><a href="${lenke}" style="color:#978B79;word-break:break-all;">${lenke}</a></p>
     </div>
