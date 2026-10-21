@@ -43,6 +43,10 @@ export default function NewDraftPage() {
   // Adam/Lawrence: serveren avgjør hvem som får dem (tenant- og brukersperre)
   const [builtinChars, setBuiltinChars] = useState<Array<{ id: string; name: string }>>([])
   const [faceActors, setFaceActors] = useState<Array<{ id: string; name: string; faceCharacterId: string; pricePerUseNok: number }>>([])
+  // Personmenyen vises bare når det finnes noe å velge (Lars 21.10: en meny
+  // med bare «Ingen» ga ingen mening). Vent på begge listene før vi avgjør.
+  const [karakterLastet, setKarakterLastet] = useState(false)
+  const [ansiktLastet, setAnsiktLastet] = useState(false)
   useEffect(() => {
     (async () => {
       try {
@@ -51,7 +55,7 @@ export default function NewDraftPage() {
         const d = await fetch('/api/characters', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
         setUserChars((d.characters || []).filter((c: any) => c.status === 'ready'))
         setBuiltinChars(Array.isArray(d.builtin) ? d.builtin : [])
-      } catch { /* karakterer utilgjengelige */ }
+      } catch { /* karakterer utilgjengelige */ } finally { setKarakterLastet(true) }
     })()
     ;(async () => {
       try {
@@ -59,7 +63,7 @@ export default function NewDraftPage() {
         const token = sess?.session?.access_token
         const d = await fetch('/api/face-actors', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined).then((r) => r.json())
         setFaceActors((d.faces || []).filter((f: any) => f.faceCharacterId))
-      } catch { /* ansiktsbank utilgjengelig */ }
+      } catch { /* ansiktsbank utilgjengelig */ } finally { setAnsiktLastet(true) }
     })()
       .catch(() => {})
   }, [])
@@ -228,6 +232,7 @@ export default function NewDraftPage() {
           cta,
           videoFormat,
           includeOutroCard,
+          imageStyle,
         }),
       })
 
@@ -528,7 +533,16 @@ export default function NewDraftPage() {
                 {/* Karakter (konsistent vert i alle segmentbilder via flux-lora).
                     For music-vertikalen forklares forskjellen fra artistbildet
                     eksplisitt (Lars' funn 2026-07-30: «jeg har jo allerede
-                    lastet opp et artistbilde») — de er to ulike ting. */}
+                    lastet opp et artistbilde») — de er to ulike ting.
+                    Finnes det ingen personer å velge, vises bare lenken for å
+                    lage en — ikke en meny med ett valg (Lars 21.10). */}
+                {!(karakterLastet && ansiktLastet) ? null : builtinChars.length + userChars.length + faceActors.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  🧑‍🎤 {tenant.vertical === 'music'
+                    ? <>Vil du være med i scenene selv? <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag en AI-versjon av deg selv →</a></>
+                    : <>Vil du ha samme person i alle videobildene? <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag din egen karakter →</a></>}
+                </p>
+                ) : (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     🧑‍🎤 {tenant.vertical === 'music' ? 'En person i videobildene (valgfritt)' : 'Karakter (valgfritt)'}
@@ -560,6 +574,7 @@ export default function NewDraftPage() {
                       : <>Samme vert i alle videobildene (AI-persona). <a href="/dashboard/characters" className="text-[var(--ember-deep)] hover:underline">Lag din egen karakter →</a></>}
                   </p>
                 </div>
+                )}
               </div>
             </div>
 
@@ -593,7 +608,10 @@ export default function NewDraftPage() {
               </div>
             </div>
 
-            {/* BILDESTIL Section */}
+            {/* BILDESTIL Section — ikke for musikk (Lars 21.10): artistene bruker
+                egne bilder, og stilen gjelder bare scener som står uten bilde.
+                Da brukes den nøytrale standarden (editorial). */}
+            {tenant.vertical !== 'music' && (
             <div>
               <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-4 block">
                 {t('sectionImageStyle')}
@@ -622,6 +640,7 @@ export default function NewDraftPage() {
                 ))}
               </div>
             </div>
+            )}
 
             {/* OUTRO Section */}
             <div>

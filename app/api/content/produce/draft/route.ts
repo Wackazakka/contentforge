@@ -25,7 +25,12 @@ interface DraftRequest {
   musicStyle?: string
   musicFile?: string | null
   includeOutroCard?: boolean
+  imageStyle?: string
 }
+
+// Stilene workeren kjenner (contentforge-server/job-queue.js). Brukes bare for
+// scener som står uten bilde ved produksjon.
+const BILDESTILER = new Set(['editorial', 'tech', 'warm', 'minimal', 'painterly'])
 
 interface Segment {
   index: number
@@ -161,6 +166,7 @@ export async function POST(request: NextRequest) {
       musicStyle,
       musicFile,
       includeOutroCard,
+      imageStyle,
     } = body
 
     if (!productId || !campaignId || !topic) {
@@ -229,6 +235,10 @@ export async function POST(request: NextRequest) {
         tone: tone || 'Energisk',
         cta: cta || '',
         video_format: videoFormat || '9:16',
+        // Bildestilen fra skjemaet ble aldri lagret: den gikk som ?imageStyle=
+        // til v1, som sendte videre til v2, som ikke leste den — alle fikk
+        // 'editorial' (Lars 21.10). Nå lagres den her, der utkastet lages.
+        image_style: imageStyle && BILDESTILER.has(imageStyle) ? imageStyle : 'editorial',
         music_style: musicStyle || 'Upbeat',
         music_file: musicFile || null,
       })
