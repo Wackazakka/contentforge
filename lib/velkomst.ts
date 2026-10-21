@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { produktnavn } from '@/lib/tenantNames'
-import { COSTS_NOK, fmtCredits } from '@/lib/costs'
+import { COSTS_NOK, fmtCredits, TRENING_RAAKOST_NOK, treningListeprisNok } from '@/lib/costs'
 import { chainFactorByTenantId } from '@/lib/tenantBilling'
 import { wholesaleFactor } from '@/lib/platformMarkup'
 
@@ -88,6 +88,8 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
   const stemme = COSTS_NOK.voiceoverPreview * pf
   const bevegelse = COSTS_NOK.animate5s * pf
   const lipsync = COSTS_NOK.lipsyncTypical * pf
+  // Samme regel som knappen på karaktersiden og trekket (lib/costs, Lars 21.10)
+  const trening = treningListeprisNok(TRENING_RAAKOST_NOK.portrait) * pf
   const eksempel = 8 * (stemme + bevegelse) // 8 scener med stemme og bevegelse
   const antall = kreditter ? Math.floor(kreditter / (eksempel * 10)) : 0
 
@@ -108,7 +110,8 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
   html += `<table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 12px;font-size:14px;color:#5E564A;">
     <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">AI-stemme som leser teksten</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">${fmtCredits(stemme)} per scene</td></tr>
     <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">Bevegelse – bildet blir levende (5 sek)</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">${fmtCredits(bevegelse)} per scene</td></tr>
-    <tr><td style="padding:5px 0;">Lip-sync – personen i bildet synger eller snakker</td><td style="padding:5px 0;text-align:right;white-space:nowrap;">ca. ${fmtCredits(lipsync)} per scene</td></tr>
+    <tr><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;">Lip-sync – personen i bildet synger eller snakker</td><td style="padding:5px 0;border-bottom:1px solid #EFE7D8;text-align:right;white-space:nowrap;">ca. ${fmtCredits(lipsync)} per scene</td></tr>
+    <tr><td style="padding:5px 0;">${t.vertical === 'music' ? 'AI-versjon av deg selv (lages én gang)' : 'Egen AI-karakter (lages én gang)'}</td><td style="padding:5px 0;text-align:right;white-space:nowrap;">${fmtCredits(trening)}</td></tr>
   </table>`
   html += p(`En video på 8 scener med stemme og bevegelse i alle scenene koster rundt ${fmtCredits(eksempel)}.${antall >= 2 ? ` Med kredittene dine kan du lage omtrent ${antall} slike, og mange flere uten bevegelse.` : ''} Du ser alltid prisen før du trykker, og saldoen står øverst når du redigerer en video.`)
   return html
