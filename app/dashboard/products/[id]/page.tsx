@@ -12,6 +12,7 @@ import OccasionSimplePage from '@/components/OccasionSimplePage'
 import { uploadTrack } from '@/lib/uploadTrack'
 import { fetchMusicLibrary } from '@/lib/musicLibrary'
 import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
+import { fargerFraLogo } from '@/lib/logoFarger'
 
 function renderMarkdown(text: string) {
   const clean = text.replace(/\n/g, ' ').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -201,6 +202,11 @@ function FullProductPage() {
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMessage, setProfileMessage] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
+  // Sluttplakatens farger foreslått fra logoen (Lars 21.10). Fylles inn rett
+  // når feltene er tomme; ellers vises forslaget med en «Bruk»-knapp, så
+  // farger artisten har valgt selv aldri overskrives.
+  const [logoForslag, setLogoForslag] = useState<{ bakgrunn: string; tekst: string } | null>(null)
+  const [logoForslagBrukt, setLogoForslagBrukt] = useState(false)
   const [articleLogoUploading, setArticleLogoUploading] = useState(false)
 
   useEffect(() => {
@@ -335,6 +341,13 @@ function FullProductPage() {
       if (data.url) {
         setProfile((prev) => (prev ? { ...prev, logo_url: data.url } : null))
         setProfileForm((prev) => ({ ...prev, logo_url: data.url }))
+        const forslag = await fargerFraLogo(file)
+        if (forslag) {
+          const tomme = !profileForm.primary_color && !profileForm.secondary_color
+          setLogoForslag(forslag)
+          setLogoForslagBrukt(tomme)
+          if (tomme) setProfileForm((prev) => ({ ...prev, primary_color: forslag.bakgrunn, secondary_color: forslag.tekst }))
+        }
       }
     } catch (err) {
       console.error('Logo upload failed:', err)
@@ -857,66 +870,81 @@ function FullProductPage() {
               <p className="mt-1 text-xs text-gray-400">{tenant.vertical === 'music' ? 'Brukes på bildene som genereres til promoene. Hvis ikke satt, brukes logoen over.' : 'Brukes på illustrasjoner i artikler. Hvis ikke satt, brukes standard-logoen.'}</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('primaryColorLabel')}</label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={profileForm.primary_color || '#000000'}
-                  onChange={(e) => setProfileForm({ ...profileForm, primary_color: e.target.value })}
-                  className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={profileForm.primary_color}
-                  onChange={(e) => setProfileForm({ ...profileForm, primary_color: e.target.value })}
-                  placeholder="#000000"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('secondaryColorLabel')}</label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={profileForm.secondary_color || '#000000'}
-                  onChange={(e) =>
-                    setProfileForm({ ...profileForm, secondary_color: e.target.value })
-                  }
-                  className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={profileForm.secondary_color}
-                  onChange={(e) =>
-                    setProfileForm({ ...profileForm, secondary_color: e.target.value })
-                  }
-                  placeholder="#000000"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('accentColorLabel')}</label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={profileForm.accent_color || '#000000'}
-                  onChange={(e) => setProfileForm({ ...profileForm, accent_color: e.target.value })}
-                  className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={profileForm.accent_color}
-                  onChange={(e) => setProfileForm({ ...profileForm, accent_color: e.target.value })}
-                  placeholder="#000000"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
-                />
-              </div>
-            </div>
+            {/* Sluttplakaten (Lars 21.10): feltene het «Primær-/Sekundær-/Aksent-
+                farge» uten å si hva de gjorde. De styrer bare sluttplakaten
+                (lib/production.ts: bakgrunn/tekst); aksentfargen ble ikke brukt
+                noe sted og er fjernet fra skjemaet (verdien lagres urørt). Tomme
+                felt viser standardfargene produksjonen faktisk bruker. */}
+            {(() => {
+              const STD_BG = '#1a1a2e'
+              const STD_TEKST = '#ffffff'
+              const bg = profileForm.primary_color || STD_BG
+              const tekst = profileForm.secondary_color || STD_TEKST
+              const felt = (verdi: string, std: string, sett: (v: string) => void, etikett: string) => (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{etikett}</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={verdi || std}
+                      onChange={(e) => sett(e.target.value)}
+                      className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={verdi}
+                      onChange={(e) => sett(e.target.value)}
+                      placeholder={`${std} (${t('endCardDefault')})`}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ember-deep)]"
+                    />
+                  </div>
+                </div>
+              )
+              const forslagNytt = logoForslag && !logoForslagBrukt &&
+                (logoForslag.bakgrunn !== profileForm.primary_color || logoForslag.tekst !== profileForm.secondary_color)
+              return (
+                <div>
+                  <p className="text-sm font-medium text-gray-700">{t('endCardTitle')}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 mb-3">
+                    {t('endCardHint')}
+                    {logoForslagBrukt ? ' ' + t('endCardFromLogo', { knapp: t('saveProfile') }) : ''}
+                  </p>
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-1 min-w-0 space-y-3">
+                      {felt(profileForm.primary_color, STD_BG, (v) => { setLogoForslagBrukt(false); setProfileForm({ ...profileForm, primary_color: v }) }, t('primaryColorLabel'))}
+                      {felt(profileForm.secondary_color, STD_TEKST, (v) => { setLogoForslagBrukt(false); setProfileForm({ ...profileForm, secondary_color: v }) }, t('secondaryColorLabel'))}
+                      {forslagNytt && logoForslag && (
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                          {t('logoSuggestion')}
+                          <span className="inline-block w-5 h-5 rounded border border-gray-300" style={{ background: logoForslag.bakgrunn }} title={logoForslag.bakgrunn} />
+                          <span className="inline-block w-5 h-5 rounded border border-gray-300" style={{ background: logoForslag.tekst }} title={logoForslag.tekst} />
+                          <button
+                            type="button"
+                            onClick={() => { setProfileForm({ ...profileForm, primary_color: logoForslag.bakgrunn, secondary_color: logoForslag.tekst }); setLogoForslagBrukt(true) }}
+                            className="px-2.5 py-1 rounded-full border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)]"
+                          >
+                            {t('logoSuggestionUse')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {/* Forhåndsvisning: logoen oppå bakgrunnen, med tekstfargen */}
+                    <div
+                      className="w-20 aspect-[9/16] rounded-lg border border-gray-300 flex flex-col items-center justify-center gap-2 px-1.5 flex-shrink-0"
+                      style={{ background: bg }}
+                      aria-label={t('endCardTitle')}
+                    >
+                      {profileForm.logo_url ? (
+                        <img src={profileForm.logo_url} alt="" className="max-w-[85%] max-h-[35%] object-contain" />
+                      ) : null}
+                      <span className="text-[9px] font-semibold text-center leading-tight" style={{ color: tekst }}>
+                        {t('endCardSample')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('fontFamilyLabel')}</label>

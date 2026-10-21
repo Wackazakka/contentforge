@@ -399,8 +399,8 @@
     "or": "eller",
     "uploading": "⏳ Laster opp...",
     "upload": "📁 Last opp",
-    "primaryColorLabel": "Primærfarge",
-    "secondaryColorLabel": "Sekundærfarge",
+    "primaryColorLabel": "Bakgrunn",
+    "secondaryColorLabel": "Tekst",
     "accentColorLabel": "Aksentfarge",
     "fontFamilyLabel": "Skriftfamilie",
     "fontFamilyPlaceholder": "f.eks. 'Arial', 'Helvetica Neue'",
@@ -450,7 +450,14 @@
     "statusGenerating": "⚙️ Genererer innhold",
     "statusRendering": "🎬 Rendrer video",
     "statusLabel": "Status",
-    "formatLabel": "Format"
+    "formatLabel": "Format",
+    "endCardTitle": "Sluttplakaten",
+    "endCardHint": "Det siste bildet i videoen, med logoen og budskapet ditt.",
+    "endCardFromLogo": "Fargene er foreslått ut fra logoen. Trykk «{knapp}» for å beholde dem.",
+    "endCardDefault": "standard",
+    "endCardSample": "Ute nå",
+    "logoSuggestion": "Forslag fra logoen:",
+    "logoSuggestionUse": "Bruk"
   },
   "videoProduction": {
     "backToProduct": "← Tilbake til produkt",

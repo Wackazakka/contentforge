@@ -399,8 +399,8 @@
     "or": "or",
     "uploading": "⏳ Uploading...",
     "upload": "📁 Upload",
-    "primaryColorLabel": "Primary color",
-    "secondaryColorLabel": "Secondary color",
+    "primaryColorLabel": "Background",
+    "secondaryColorLabel": "Text",
     "accentColorLabel": "Accent color",
     "fontFamilyLabel": "Font family",
     "fontFamilyPlaceholder": "e.g., 'Arial', 'Helvetica Neue'",
@@ -450,7 +450,14 @@
     "statusGenerating": "⚙️ Generating content",
     "statusRendering": "🎬 Rendering video",
     "statusLabel": "Status",
-    "formatLabel": "Format"
+    "formatLabel": "Format",
+    "endCardTitle": "End card",
+    "endCardHint": "The last frame of the video, with your logo and message.",
+    "endCardFromLogo": "The colours are suggested from your logo. Press “{knapp}” to keep them.",
+    "endCardDefault": "default",
+    "endCardSample": "Out now",
+    "logoSuggestion": "Suggested from your logo:",
+    "logoSuggestionUse": "Use"
   },
   "videoProduction": {
     "backToProduct": "← Back to product",
