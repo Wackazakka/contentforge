@@ -832,9 +832,11 @@ export default function DraftV2Page() {
       for (const i of mangler) {
         const seg = draft.segments[i]
         try {
+          // Token med: ruta skal kreve innlogging (egen oppgave, ikke ferdig 21.10)
+          const token = (await getSupabase().auth.getSession()).data?.session?.access_token
           const res = await fetch('/api/content/generate-image', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
             body: JSON.stringify({ topic: seg.image_prompt || seg.text, productId, imageSize, character: person, draftId }),
           })
           const d = await res.json().catch(() => null)
