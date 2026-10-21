@@ -28,6 +28,20 @@ export function produktnavn(t: Navn): string {
  * Dublett-vernet (Lars 3/8) står ved lag: heter selskapet allerede
  * «Isabel's VideoMaker», skal produktnavnet ikke legges på en gang til.
  */
+/**
+ * Fullt navn: «<selskap> <produkt>» når tjenesten har eget navn
+ * («IndigoBoom PromoMaker»), ellers bare selskapet («CenterForge»,
+ * «Isabel's VideoMaker»). Som merkekortTekst, men UTEN «VideoMaker»-
+ * reserven — brukes i tekst, f.eks. velkomsten på dashbordet (Lars 21.10).
+ */
+export function fulltNavn(t: Navn): string {
+  const selskap = (t.app_name || '').trim()
+  const produkt = (t.product_name || '').trim()
+  if (!produkt) return selskap
+  if (!selskap) return produkt
+  return selskap.toLowerCase().includes(produkt.toLowerCase()) ? selskap : `${selskap} ${produkt}`
+}
+
 export function merkekortTekst(t: Navn): string {
   const selskap = (t.app_name || '').trim()
   const produkt = (t.product_name || '').trim() || 'VideoMaker'
