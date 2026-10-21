@@ -125,12 +125,14 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
   const logo = t.logo_url
     ? `<img src="${esc(t.logo_url)}" alt="${esc(produkt)}" height="38" style="height:38px;max-width:220px;object-fit:contain;display:block;margin:0 auto;" />`
     : `<span style="font-size:22px;font-weight:700;color:#1C1A16;">${esc(produkt)}</span>`
-  const subject = `Velkommen til ${produkt}`
+  // Fullt navn i overskrift og emne (Lars 21.10: «IndigoBoom PromoMaker»)
+  const fullt = (fulltNavn(t as any) || produkt).replace(/[<>"]/g, '')
+  const subject = `Velkommen til ${fullt}`
   const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F4EEE2;padding:40px 16px;">
   <div style="max-width:520px;margin:0 auto;">
     <div style="text-align:center;padding-bottom:26px;">${logo}</div>
     <div style="background:#FFFDF8;border:1px solid #E6DDCC;border-radius:16px;padding:36px 36px 30px;">
-      <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1C1A16;">${fornavn ? `Hei, ${esc(fornavn)}! ` : ''}Velkommen til ${esc(produkt)}</h1>
+      <h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1C1A16;">${fornavn ? `Hei, ${esc(fornavn)}! ` : ''}Velkommen til ${esc(fullt)}</h1>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#5E564A;">${kreditter ? `Du har fått en testkonto med <strong>${Math.round(kreditter).toLocaleString('nb-NO')} kreditter</strong>. Lenger ned ser du hva de rekker til.` : 'Kontoen din er klar.'}</p>
       <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5E564A;">For å lage en video trenger du bare fotografier og musikk. Programmet gjør bildene levende.</p>
       <table cellpadding="0" cellspacing="0"><tr>
@@ -142,7 +144,11 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
       ${notat ? `<div style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;border-left:4px solid ${esc(aksent)};font-size:14.5px;line-height:1.6;color:#1C1A16;">${esc(notat)}</div>` : ''}
       ${veiledning(t, pf, kreditter)}
       ${svarTil ? `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;"><strong>Får du det ikke til?</strong> Svar på denne e-posten, så hjelper vi deg.</p>` : ''}
-      ${hilsenFra ? `<p style="margin:24px 0 0;font-size:15px;line-height:1.6;color:#5E564A;">Hilsen<br><strong style="color:#1C1A16;">${esc(hilsenFra)}</strong><br>${esc(fulltNavn(t as any))}</p>` : ''}
+      ${hilsenFra ? (() => {
+        // Første linje er navnet (uthevet), resten står under — f.eks. firma (Lars 21.10)
+        const [navnLinje, ...resten] = hilsenFra.split('\n').map((l) => l.trim()).filter(Boolean)
+        return `<p style="margin:24px 0 0;font-size:15px;line-height:1.6;color:#5E564A;">Hilsen<br><strong style="color:#1C1A16;">${esc(navnLinje || '')}</strong>${resten.map((l) => `<br>${esc(l)}`).join('')}</p>`
+      })() : ''}
       <p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Lenken virker i ${GYLDIG_TIMER} timer og kan brukes én gang. Har den gått ut, går du til <a href="${origin}/login" style="color:#978B79;">${esc(origin.replace('https://', ''))}/login</a> og trykker «Glemt passord» med denne e-postadressen.</p>
       <p style="margin:12px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Funker ikke knappen? Lim denne lenken inn i nettleseren:<br><a href="${lenke}" style="color:#978B79;word-break:break-all;">${lenke}</a></p>
     </div>
