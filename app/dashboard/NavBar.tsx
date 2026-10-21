@@ -13,6 +13,8 @@ import { isSimpleMode } from '@/lib/verticals'
 import { useDashboardRole } from '@/lib/useDashboardRole'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
+// Shootout-knappen i menyen (IndigoBoom). Av til lansering (Lars 21.10).
+const SHOOTOUT_I_MENYEN = false
 
 export default function NavBar() {
   const pathname = usePathname()
@@ -49,7 +51,9 @@ export default function NavBar() {
     { href: '/dashboard', label: t('overview') },
     // Partner-innlogging (1/10): samme konto hos IndigoBoom Shootout — én knapp, ingen nytt passord.
     // Kun der partneren er satt opp (lib/partnerSso: tenant indigoboom + SHOOTOUT_URL på siten).
-    ...(tenant.slug === 'indigoboom' ? [{ href: '/partner/shootout', label: 'Shootout ↗' }] : []),
+    // SKJULT 21.10 (Lars: «Vi skal ikke lansere den foreløpig»). /partner/shootout
+    // virker fortsatt; sett SHOOTOUT_I_MENYEN = true når den skal lanseres.
+    ...(SHOOTOUT_I_MENYEN && tenant.slug === 'indigoboom' ? [{ href: '/partner/shootout', label: 'Shootout ↗' }] : []),
     // Kundens katalog over medvirkende (Lars 17/9, omdøpt 20/9). Kun der
     // rettighetsforvaltningen er på, og ikke i enkel modus (Standard Ropert).
     // Het «Stemmer», men inneholder BÅDE stemmer og ansikter — og navnet var
