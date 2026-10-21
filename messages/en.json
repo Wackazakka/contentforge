@@ -17,7 +17,8 @@
     "audition": "Audition",
     "group_production": "Production",
     "group_management": "Management",
-    "group_me": "Me"
+    "group_me": "Me",
+    "help": "Help"
   },
   "home": {
     "nav_pricing": "Pricing",
@@ -187,7 +188,9 @@
     "signUp_rights": "Apply to join",
     "errorInvalidEmail": "Invalid email address",
     "errorPasswordRequired": "Password is required",
-    "errorUnexpected": "An unexpected error occurred"
+    "errorUnexpected": "An unexpected error occurred",
+    "needHelp": "Can’t sign in, or have a question?",
+    "getHelp": "Get help"
   },
   "register": {
     "title": "Create account",

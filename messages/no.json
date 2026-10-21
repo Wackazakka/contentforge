@@ -17,7 +17,8 @@
     "audition": "Audition",
     "group_production": "Produksjon",
     "group_management": "Forvaltning",
-    "group_me": "Meg"
+    "group_me": "Meg",
+    "help": "Hjelp"
   },
   "home": {
     "nav_pricing": "Priser",
@@ -187,7 +188,9 @@
     "signUp_rights": "Søk om å bli det",
     "errorInvalidEmail": "Ugyldig e-postadresse",
     "errorPasswordRequired": "Passord er påkrevd",
-    "errorUnexpected": "En uventet feil oppstod"
+    "errorUnexpected": "En uventet feil oppstod",
+    "needHelp": "Får du ikke logget inn, eller lurer du på noe?",
+    "getHelp": "Få hjelp"
   },
   "register": {
     "title": "Opprett konto",

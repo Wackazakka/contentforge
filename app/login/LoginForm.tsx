@@ -126,6 +126,8 @@ export function LoginForm() {
       ) : (
         <AuthSwitch prompt={t('noAccount')} linkLabel={t('signUp')} href="/register" />
       )}
+      {/* Supportsiden (109, Lars 21.10): den som ikke kommer inn, trenger den mest */}
+      <AuthSwitch prompt={t('needHelp')} linkLabel={t('getHelp')} href="/hjelp?fra=/login" />
     </AuthShell>
   )
 }

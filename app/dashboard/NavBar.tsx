@@ -71,6 +71,8 @@ export default function NavBar() {
     ...(enkel ? [] : tenant.billing_mode === 'invoice'
       ? [{ href: '/dashboard/credits', label: t('buy_credits') }]
       : [{ href: '/dashboard/billing', label: t('billing') }]),
+    // Supportsiden (109, Lars 21.10): spørsmål går til Lars på e-post
+    { href: '/hjelp', label: t('help') },
   ]
   // Admin-lenker (kun tenant-admins — vanlige artister ser dem aldri).
   // Stemmebanken er skjult for artist-tenanter inntil videre (Lars 1/8):
