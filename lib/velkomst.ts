@@ -103,7 +103,7 @@ function veiledning(t: VelkomstTenant, pf: number, kreditter: number | null): st
       'Gå gjennom scenene: velg bilde, rett teksten, og velg stemme i panelet til høyre. Trykk «Lag stemmen» i hver scene, eller kryss av for «Uten tale». Vil du at bildene skal bevege seg, kryss av for «AI-bevegelse».',
       'Godkjenn scenene og trykk «Start produksjon». Videoen er klar etter noen minutter.',
     ].map((s, i) => steg(i + 1, s)).join('')}</table>`
-    html += p('Tips: Trykker du «Rediger» på en ferdig video, kan du lage den i et annet format (stående, kvadrat eller liggende) uten å starte på nytt.')
+    html += p('Tips: Trykker du «Rediger» på en ferdig video, kan du endre den uten å starte på nytt: bytte bilder, tekst, stemme eller musikk, eller lage den i et annet format (stående, kvadrat eller liggende). Det du ikke endrer, brukes om igjen uten ny kostnad.')
   }
   html += h('Dette koster kreditter')
   html += p('Det du lager selv, er gratis: egne bilder, egen musikk og din egen stemme. Du betaler bare for det programmet lager for deg:')
