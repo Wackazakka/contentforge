@@ -64,7 +64,8 @@
     "websiteUrlHint": "Vises på sluttplakaten i videoene.",
     "fontFamilyLabel": "Skrifttype",
     "fontFamilyPlaceholder": "La stå tom hvis du ikke har en egen skrifttype",
-    "backToDashboard": "← Alle artister"
+    "backToDashboard": "← Alle artister",
+    "images": "Bilder fra videoene dine ({count})"
   },
   "newDraft": {
     "segmentsLabel": "Antall scener",

@@ -64,7 +64,8 @@
     "websiteUrlHint": "Shown on the end card in your videos.",
     "fontFamilyLabel": "Typeface",
     "fontFamilyPlaceholder": "Leave empty if you don't have your own typeface",
-    "backToDashboard": "← All artists"
+    "backToDashboard": "← All artists",
+    "images": "Images from your videos ({count})"
   },
   "newDraft": {
     "segmentsLabel": "Number of scenes",
