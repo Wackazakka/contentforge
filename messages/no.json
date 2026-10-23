@@ -2087,11 +2087,12 @@
     "tlid_label": "TLID",
     "version_n": "versjon {n}",
     "versions_h": "Versjoner",
-    "versions_hint": "En ny versjon lages når ansiktsmodellen eller stemmen byttes. En lisens gjelder versjonen den ble gitt for — en ny versjon krever en ny lisens.",
+    "versions_hint": "En ny versjon lages når ansiktsmodellen eller stemmen byttes, eller når en aldersmodell legges til, fjernes eller klareres. En lisens gjelder versjonen den ble gitt for — en ny versjon krever en ny lisens.",
     "version_change_opprettet": "opprettet",
     "version_change_ansikt": "nytt ansikt",
     "version_change_stemme": "ny stemme",
-    "version_change_ansikt_stemme": "nytt ansikt og ny stemme"
+    "version_change_ansikt_stemme": "nytt ansikt og ny stemme",
+    "version_change_aldersmodeller": "aldersmodeller endret"
   },
   "licences": {
     "back": "← Tilbake til skuespilleren",

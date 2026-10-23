@@ -2087,11 +2087,12 @@
     "tlid_label": "TLID",
     "version_n": "version {n}",
     "versions_h": "Versions",
-    "versions_hint": "A new version is created when the face model or the voice is replaced. A licence covers the version it was granted for — a new version needs a new licence.",
+    "versions_hint": "A new version is created when the face model or the voice is replaced, or when an age model is added, removed or cleared. A licence covers the version it was granted for — a new version needs a new licence.",
     "version_change_opprettet": "created",
     "version_change_ansikt": "new face",
     "version_change_stemme": "new voice",
-    "version_change_ansikt_stemme": "new face and voice"
+    "version_change_ansikt_stemme": "new face and voice",
+    "version_change_aldersmodeller": "age models changed"
   },
   "licences": {
     "back": "← Back to the performer",

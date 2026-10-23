@@ -1,6 +1,6 @@
 // Regelen for tvillingversjoner (migrasjon 112): når dekker en lisens en bruk?
 // Kjør:  node --experimental-strip-types scripts/test-versjoner.mjs
-import { komponentAv, versjonForModell, lisensDekkerModell, skillPaaVersjon, modellForLisens } from '../lib/twinVersions.ts'
+import { komponentAv, modellerAv, versjonForModell, lisensDekkerModell, skillPaaVersjon, modellForLisens } from '../lib/twinVersions.ts'
 
 let ok = 0, feil = 0
 const sjekk = (navn, faktisk, forventet) => {
@@ -43,6 +43,24 @@ sjekk('lisens v1 → generer med ansikt A selv om B er gjeldende', modellForLise
 sjekk('ingen lisens → gjeldende modell og dens versjon', modellForLisens(V, null, 'face', 'B'), { modell: 'B', versjon: 3, festet: false })
 sjekk('lisensens versjon mangler komponenten → gjeldende', modellForLisens(
   [{ actor_id: 'a', version: 1, face_character_id: null, elevenlabs_voice_id: 'X' }, ...V.slice(1)], 1, 'face', 'B'), { modell: 'B', versjon: 3, festet: false })
+
+// Aldersmodellene (113): v1 bare standardansikt A · v2 aldersmodell «A30» lagt
+// til, UKLARERT · v3 samme aldersmodell, nå klarert
+const AV = [
+  { actor_id: 'b', version: 1, face_character_id: 'A', elevenlabs_voice_id: 'X', age_models: [] },
+  { actor_id: 'b', version: 2, face_character_id: 'A', elevenlabs_voice_id: 'X', age_models: [{ character_id: 'A30', source_cleared: false }] },
+  { actor_id: 'b', version: 3, face_character_id: 'A', elevenlabs_voice_id: 'X', age_models: [{ character_id: 'A30', source_cleared: true }] },
+]
+sjekk('modellerAv v2: uklarert aldersmodell dekkes ikke', modellerAv(AV[1], 'face'), ['A'])
+sjekk('modellerAv v3: klarert aldersmodell dekkes', modellerAv(AV[2], 'face'), ['A', 'A30'])
+sjekk('modellerAv stemme: aldersmodeller gjelder ikke stemmen', modellerAv(AV[2], 'voice'), ['X'])
+sjekk('ansiktslisens v1 dekker IKKE en aldersmodell lagt til senere', lisensDekkerModell(AV, 1, 'face', 'A30'), false)
+sjekk('ansiktslisens v2 dekker IKKE en uklarert aldersmodell', lisensDekkerModell(AV, 2, 'face', 'A30'), false)
+sjekk('ansiktslisens v3 dekker den klarerte aldersmodellen', lisensDekkerModell(AV, 3, 'face', 'A30'), true)
+sjekk('ansiktslisens v3 dekker fortsatt standardansiktet', lisensDekkerModell(AV, 3, 'face', 'A'), true)
+sjekk('ansiktslisens v1 dekker standardansiktet etter at en aldersmodell kom til', lisensDekkerModell(AV, 1, 'face', 'A'), true)
+sjekk('aldersmodell brukt → nyeste versjon som hadde den (v3)', versjonForModell(AV, 'face', 'A30'), 3)
+sjekk('gamle versjoner uten age_models-felt tåles', modellerAv({ actor_id: 'c', version: 1, face_character_id: 'F', elevenlabs_voice_id: null }, 'face'), ['F'])
 
 console.log(`${ok}/${ok + feil} sjekker ok`)
 process.exit(feil ? 1 : 0)

@@ -16,11 +16,22 @@
 
 export type Komponent = 'voice' | 'face'
 
+/** Én aldersmodell (082) slik den sto i versjonen (113). */
+export interface AldersmodellBilde {
+  character_id: string
+  source_cleared?: boolean
+  label?: string
+  age_from?: number | null
+  age_to?: number | null
+}
+
 export interface TvillingVersjon {
   actor_id: string
   version: number
   face_character_id: string | null
   elevenlabs_voice_id: string | null
+  /** Aldersmodellene i versjonen (113), uten standardraden. */
+  age_models?: AldersmodellBilde[] | null
   change?: string
   created_at?: string
 }
@@ -32,6 +43,27 @@ export function komponentAv(v: TvillingVersjon, type: Komponent): string | null 
 }
 
 /**
+ * Alle modellene en versjon DEKKER for komponenten (113). For ansikt:
+ * standardmodellen pluss de KLARERTE aldersmodellene. 🔑 Uklarerte
+ * aldersmodeller er med i bildet, men dekkes aldri — source_cleared er en
+ * port (082), og en lisens skal ikke kunne selge det porten stenger.
+ */
+export function modellerAv(v: TvillingVersjon, type: Komponent): string[] {
+  const standard = komponentAv(v, type)
+  if (type === 'voice') return standard ? [standard] : []
+  const alder = (v.age_models || [])
+    .filter((m) => m && m.source_cleared === true && m.character_id)
+    .map((m) => String(m.character_id))
+  return [...(standard ? [standard] : []), ...alder]
+}
+
+/** Finnes modellen i versjonen i det hele tatt — også uklarert? For å finne eieren, ikke for å dekke bruk. */
+function harModell(v: TvillingVersjon, type: Komponent, modell: string): boolean {
+  if (komponentAv(v, type) === modell) return true
+  return type === 'face' && (v.age_models || []).some((m) => m && String(m.character_id) === modell)
+}
+
+/**
  * Hvilken versjon ble brukt? Den nyeste som hadde akkurat denne modellen.
  * (Ble bare stemmen byttet, finnes samme ansikt i flere versjoner — da er
  * den nyeste av dem det ærligste svaret.) Null når modellen ikke finnes i
@@ -39,7 +71,7 @@ export function komponentAv(v: TvillingVersjon, type: Komponent): string | null 
  */
 export function versjonForModell(versjoner: TvillingVersjon[], type: Komponent, modell: string | null | undefined): number | null {
   if (!modell) return null
-  const treff = versjoner.filter((v) => komponentAv(v, type) === modell).map((v) => v.version)
+  const treff = versjoner.filter((v) => harModell(v, type, modell)).map((v) => v.version)
   return treff.length ? Math.max(...treff) : null
 }
 
@@ -49,8 +81,8 @@ export function versjonForModell(versjoner: TvillingVersjon[], type: Komponent, 
  * - `modell` ukjent (kalleren sa ikke hva som ble brukt) → ja: regelen kan
  *   ikke anvendes, og oppførselen er som før versjonene.
  * - Lisensen uten versjon, eller versjonen finnes ikke → nei.
- * - Ellers: ja bare når versjonens modell for komponenten er nøyaktig den
- *   som ble brukt.
+ * - Ellers: ja bare når modellen som ble brukt er blant dem versjonen dekker
+ *   (modellerAv): standardmodellen, og for ansikt de klarerte aldersmodellene.
  */
 export function lisensDekkerModell(
   versjoner: TvillingVersjon[], lisensVersjon: number | null | undefined, type: Komponent, modell: string | null | undefined,
@@ -58,7 +90,7 @@ export function lisensDekkerModell(
   if (!modell) return true
   if (lisensVersjon == null) return false
   const v = versjoner.find((x) => x.version === lisensVersjon)
-  return !!v && komponentAv(v, type) === modell
+  return !!v && modellerAv(v, type).includes(modell)
 }
 
 /** Del lisensradene i de som dekker modellen og de som er festet til en annen. */

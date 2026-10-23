@@ -36,7 +36,7 @@ const komponent = (assetType?: string | null): Komponent => (assetType === 'face
 export async function hentVersjoner(actorIds: string[]): Promise<TvillingVersjon[]> {
   if (actorIds.length === 0) return []
   const { data } = await admin().from('twin_versions')
-    .select('actor_id, version, face_character_id, elevenlabs_voice_id, change, created_at')
+    .select('actor_id, version, face_character_id, elevenlabs_voice_id, age_models, change, created_at')
     .in('actor_id', actorIds).order('version')
   return (data || []) as TvillingVersjon[]
 }
@@ -48,9 +48,16 @@ export async function hentVersjoner(actorIds: string[]): Promise<TvillingVersjon
  * modell, fant ingen, og returnerte stille. Nå finnes den i historikken.
  */
 export async function skuespillereForModell(assetType: string, modell: string): Promise<string[]> {
-  const kol = komponent(assetType) === 'face' ? 'face_character_id' : 'elevenlabs_voice_id'
+  const type = komponent(assetType)
+  const kol = type === 'face' ? 'face_character_id' : 'elevenlabs_voice_id'
   const { data } = await admin().from('twin_versions').select('actor_id').eq(kol, modell)
-  return [...new Set(((data || []) as Array<{ actor_id: string }>).map((r) => r.actor_id))]
+  let eiere = ((data || []) as Array<{ actor_id: string }>).map((r) => r.actor_id)
+  // Aldersmodellene (113) er også ansiktsmodeller med en eier.
+  if (type === 'face') {
+    const { data: alder } = await admin().from('twin_versions').select('actor_id').contains('age_models', [{ character_id: modell }])
+    eiere = [...eiere, ...((alder || []) as Array<{ actor_id: string }>).map((r) => r.actor_id)]
+  }
+  return [...new Set(eiere)]
 }
 
 /** Versjonsnummeret en bruk med `modell` hører til (nyeste med den modellen). */
