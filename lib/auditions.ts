@@ -145,6 +145,8 @@ export interface AuditionInput {
   scenePrompt: string
   actorIds: string[]
   createdBy?: string | null
+  /** Alder i scenen (114). Gir aldersmodellen som dekker den, der den finnes. */
+  targetAge?: number | null
 }
 
 export async function opprettAudition(i: AuditionInput) {
@@ -156,17 +158,34 @@ export async function opprettAudition(i: AuditionInput) {
     direction: i.direction ?? 'noytral',
     scene_prompt: i.scenePrompt,
     created_by: i.createdBy ?? null,
+    ...(i.targetAge != null ? { target_age: i.targetAge } : {}),
   }).select('id').single()
   if (error) throw new Error(error.message)
   const auditionId = (data as { id: string }).id
+
+  // 🔑 ALDERSMODELLEN VELGES NÅR RUNDEN LAGES (114), og står på opptaket.
+  // Plukkeren fant henne på alderen; filmen skal vise henne på alderen. Har
+  // hun ingen modell som dekker den, brukes standardansiktet — og opptaket
+  // sier det (tom etikett), så castern ser at det er dagens ansikt.
+  const modellFor = new Map<string, { ref: string; label: string }>()
+  if (i.targetAge != null) {
+    const { brukbareAldersmodeller } = await import('@/lib/ageModels')
+    const { velgForAlder } = await import('@/lib/aldersvalg')
+    const alle = await brukbareAldersmodeller(i.actorIds)
+    for (const actorId of i.actorIds) {
+      const treff = velgForAlder(alle.filter((m) => m.actorId === actorId), i.targetAge)
+      if (treff) modellFor.set(actorId, { ref: treff.characterId, label: treff.label })
+    }
+  }
 
   await admin().from('audition_takes').insert(
     i.actorIds.map((actorId) => ({
       audition_id: auditionId, actor_id: actorId, stage: 'queued',
       cost_nok: AUDITION_FILM_NOK, actor_nok: honorarFor(AUDITION_FILM_NOK),
+      ...(modellFor.has(actorId) ? { face_model_ref: modellFor.get(actorId)!.ref, face_model_label: modellFor.get(actorId)!.label } : {}),
     }))
   )
-  return { id: auditionId, takes: i.actorIds.length }
+  return { id: auditionId, takes: i.actorIds.length, ageModels: modellFor.size }
 }
 
 /**
@@ -292,8 +311,11 @@ export async function flyttTake(takeId: string): Promise<void> {
       // Porten: kaster om rettighetshaveren har trukket ansiktet tilbake.
       // Se lib/faceWithdrawal — ett oppslag for alle genereringsveiene.
       const { hentAnsiktForGenerering } = await import('@/lib/faceWithdrawal')
-      if (!actor!.face_character_id) throw new Error(`${actor!.name} har ingen ansiktsmodell`)
-      const ch = await hentAnsiktForGenerering(actor!.face_character_id)
+      // Aldersmodellen opptaket ble satt opp med (114), ellers standardansiktet.
+      // Samme port for begge: stengt eller ikke godkjent → kaster.
+      const ref = (t.face_model_ref as string | null) || actor!.face_character_id
+      if (!ref) throw new Error(`${actor!.name} har ingen ansiktsmodell`)
+      const ch = await hentAnsiktForGenerering(ref)
       const trig = ch.triggerWord
       const id = await falSubmit(FLUX, {
         prompt: `${trig}. Use the trained ${trig} LoRA with maximum identity fidelity. ${trig}, natural appearance. Scene: ${a!.scene_prompt}. Photorealistic, cinematic. No text, letters or typography in the image.`,
@@ -334,8 +356,14 @@ export async function flyttTake(takeId: string): Promise<void> {
         actor_rate_nok: Number(t.actor_nok ?? honorarFor(AUDITION_FILM_NOK)),
         customer_price_nok: Number(t.cost_nok ?? AUDITION_FILM_NOK),
         asset_type: 'face',
-        twin_version: (actor as { twin_version?: number | null } | null)?.twin_version ?? null,
-        meta: { kind: 'audition', audition_id: a!.id, includes_voice: true, licence_match: 'preview' },
+        // Versjonen modellen hørte til (112/113) — ved aldersmodell den som hadde den.
+        twin_version: t.face_model_ref
+          ? await (await import('@/lib/licenceMatch')).versjonForBruk(actor!.id, 'face', t.face_model_ref as string)
+          : (actor as { twin_version?: number | null } | null)?.twin_version ?? null,
+        meta: {
+          kind: 'audition', audition_id: a!.id, includes_voice: true, licence_match: 'preview',
+          ...(t.face_model_ref ? { model: t.face_model_ref, age_model: t.face_model_label } : {}),
+        },
       })
       await sett({ stage: 'done', video_url: videoUrl })
       return

@@ -1542,7 +1542,10 @@
     "to_holder_short": "Til {name}",
     "go_with": "Gå videre med {name}",
     "round_meta": "{title} · regi: {direction}",
-    "takes_n": "{n} takes"
+    "takes_n": "{n} takes",
+    "field_age": "Alder i scenen (valgfri)",
+    "age_placeholder": "For eksempel 30",
+    "age_model_used": "Aldersmodell: {label}"
   },
   "twinledger": {
     "why_note": "Det vi leverer i dag er samtykket, lisensen og hovedboken — bevis for hva som ble tillatt og hva som ble brukt. Merking av selve innholdet (C2PA) står på veikartet, ikke på siden.",

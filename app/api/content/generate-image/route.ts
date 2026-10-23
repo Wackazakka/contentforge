@@ -150,6 +150,17 @@ async function resolveCharacter(characterId: string, userId: string) {
   // være ja samtidig som rettighetshaveren har sagt nei. Hens nei veier
   // tyngst. Se lib/faceWithdrawal.
   if (data?.withdrawn_at) return null
+  // ⚠️ VENTER PÅ GODKJENNING = STENGT (091). Gatewayen og audition stengte en
+  // modell hun ennå ikke har sett prøvebildene av — denne veien gjorde det
+  // ikke (funnet 23.10). Et nei setter withdrawn_at og fanges over.
+  if (data?.approval_status === 'pending') return null
+  // En aldersmodell (082) som er slått av eller ikke klarert er stengt, også
+  // for den som kjenner id-en: source_cleared er en port, ikke et notat.
+  if (data) {
+    const { data: alder } = await supabase.from('actor_face_models')
+      .select('is_active, source_cleared').eq('character_id', characterId).eq('is_default', false)
+    if ((alder || []).some((r: { is_active: boolean; source_cleared: boolean }) => !r.is_active || !r.source_cleared)) return null
+  }
   if (data && data.status === 'ready' && data.lora_url) {
     // Sikring (2026-07-29): karakteren må være tilgjengelig for HOST-tenanten —
     // enten eid i egen kjede, eller ansiktet på en tilgjengelig bankrad.
@@ -164,6 +175,13 @@ async function resolveCharacter(characterId: string, userId: string) {
       if (!ownedInChain && tenant.id !== 'root') {
         const faces = await getAvailableFaceActors(tenant.id)
         viaBank = faces.some((f) => (f as { face_character_id?: string | null }).face_character_id === characterId)
+        // En aldersmodell (082) er like tilgjengelig som standardansiktet til
+        // samme rettighetshaver — men bare en brukbar en (klarert, godkjent,
+        // ikke stengt). Samme oppslag som ansiktsvalget bruker.
+        if (!viaBank) {
+          const { brukbareAldersmodeller } = await import('@/lib/ageModels')
+          viaBank = (await brukbareAldersmodeller(faces.map((f) => f.id))).some((m) => m.characterId === characterId)
+        }
       }
       // Rot-tenanten (inkl. dropletens server-til-server-render) beholder full tilgang
       if (tenant.id !== 'root' && !ownedInChain && !viaBank) return null

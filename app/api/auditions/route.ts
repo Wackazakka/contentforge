@@ -129,12 +129,19 @@ export async function POST(request: Request) {
     if (actorIds.length < 1) return NextResponse.json({ error: 'Velg minst én skuespiller' }, { status: 400 })
     if (actorIds.length > 8) return NextResponse.json({ error: 'Maks åtte i én runde' }, { status: 400 })
 
+    // Alder i scenen (114): valgfri. Ugyldig verdi avvises — en rund
+    // «omtrent» gir en annen modell enn kunden tror.
+    const { lesAlder } = await import('@/lib/aldersvalg')
+    const targetAge = lesAlder(body.targetAge)
+    if (targetAge === null) return NextResponse.json({ error: 'Alderen må være et helt tall mellom 0 og 120' }, { status: 400 })
+
     const res = await opprettAudition({
       tenantId: tenant.id,
       organizationId: body.organizationId ?? null,
       title: body.title ?? null,
       line, direction: body.direction ?? 'noytral', scenePrompt,
       actorIds, createdBy: email ?? null,
+      targetAge: targetAge ?? null,
     })
     return NextResponse.json({ ok: true, ...res })
   } catch (err) {

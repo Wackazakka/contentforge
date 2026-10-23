@@ -30,7 +30,7 @@ import type { Kandidat } from '@/lib/castingAttributes'
 // hvert take ett steg videre (se lib/auditions.ts).
 
 interface Read { id: string; take_id: string; audio_url: string | null; direction: string | null; is_chosen: boolean; model: string | null; tag: string | null }
-interface Take { id: string; actor_id: string; stage: string; still_url: string | null; video_url: string | null; feil: string | null; cost_nok: number | null; reads: Read[] }
+interface Take { id: string; actor_id: string; stage: string; still_url: string | null; video_url: string | null; feil: string | null; cost_nok: number | null; reads: Read[]; face_model_label?: string | null }
 
 // Bare verdiene ligger i koden; etikettene hentes per språk. Verdiene er
 // API-kontrakt (de går til ElevenLabs-presetene og til basen).
@@ -71,6 +71,8 @@ export default function AuditionPage() {
   const [direction, setDirection] = useState<string>('noytral')
   const [scene, setScene] = useState('a quiet room with soft daylight, plain background, facing the camera')
   const [tittel, setTittel] = useState('')
+  // Alder i scenen (114): valgfri. Gir aldersmodellen som dekker den.
+  const [alder, setAlder] = useState('')
   const [auditionId, setAuditionId] = useState<string | null>(null)
   const [takes, setTakes] = useState<Take[]>([])
   const [ferdig, setFerdig] = useState(false)
@@ -150,7 +152,7 @@ export default function AuditionPage() {
       const res = await fetch('/api/auditions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ line, direction, scenePrompt: scene, actorIds: valgte, title: tittel || null }),
+        body: JSON.stringify({ line, direction, scenePrompt: scene, actorIds: valgte, title: tittel || null, ...(alder ? { targetAge: Number(alder) } : {}) }),
       })
       const d = await res.json()
       if (!res.ok) { setError(d.error || t('err_start')); return }
@@ -290,6 +292,10 @@ export default function AuditionPage() {
                     <Etikett>{t('field_scene')}</Etikett>
                     <input value={scene} onChange={(e) => setScene(e.target.value)} style={felt} />
                   </label>
+                  <label>
+                    <Etikett>{t('field_age')}</Etikett>
+                    <input value={alder} inputMode="numeric" maxLength={3} onChange={(e) => setAlder(e.target.value.replace(/\D/g, ''))} placeholder={t('age_placeholder')} style={felt} />
+                  </label>
                 </div>
                 <p style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--text-faint)', margin: '-18px 0 28px' }}>{t('scene_hint_short')}</p>
 
@@ -382,6 +388,10 @@ export default function AuditionPage() {
                   return (
                     <div key={`h-${x.id}`} className="au-cell" style={{ background: 'var(--paper-raised)', borderBottomColor: 'var(--ds-border-strong)' }}>
                       <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 14.5, letterSpacing: '-0.01em' }}>{navn(x.actor_id)}</span>
+                      {/* Hvilken modell opptaket viser (114): en aldersmodell, eller dagens ansikt. */}
+                      {x.face_model_label && (
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ember-deep)' }}>{t('age_model_used', { label: x.face_model_label })}</span>
+                      )}
                       {k && (
                         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                           {[k.playingAgeFrom != null && k.playingAgeTo != null ? `${k.playingAgeFrom}–${k.playingAgeTo}` : null,

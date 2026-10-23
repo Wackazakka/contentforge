@@ -10,6 +10,10 @@ export async function GET(request: Request) {
   if (!auth) return NextResponse.json({ error: 'Ugyldig eller manglende API-nøkkel' }, { status: 401 })
 
   const actors = await getAvailableVoiceActors(auth.tenantId)
+  // Alderstrinnene (082) per ansikt, så kunden vet hvilke `age` som virker på
+  // /image. Bare etikett og spenn — aldri modell-id-en bak.
+  const { brukbareAldersmodeller } = await import('@/lib/ageModels')
+  const alder = await brukbareAldersmodeller(actors.filter((a) => a.face_character_id).map((a) => a.id))
   const assets = await Promise.all(
     actors.map(async (a) => {
       // Capabilities per aktivum: en rad kan være stemme, ansikt eller begge
@@ -23,7 +27,8 @@ export async function GET(request: Request) {
         capabilities.push('image')
         pricePerUse.image = await customerPriceFor(auth, a, 'face')
       }
-      return { id: a.id, tlid: a.tlid ?? null, name: a.name, capabilities, pricePerUse }
+      const ageModels = alder.filter((m) => m.actorId === a.id).map((m) => ({ label: m.label, ageFrom: m.ageFrom, ageTo: m.ageTo }))
+      return { id: a.id, tlid: a.tlid ?? null, name: a.name, capabilities, pricePerUse, ...(ageModels.length ? { ageModels } : {}) }
     })
   )
   return NextResponse.json({ assets })

@@ -1542,7 +1542,10 @@
     "to_holder_short": "To {name}",
     "go_with": "Go on with {name}",
     "round_meta": "{title} · direction: {direction}",
-    "takes_n": "{n} takes"
+    "takes_n": "{n} takes",
+    "field_age": "Age in the scene (optional)",
+    "age_placeholder": "For example 30",
+    "age_model_used": "Age model: {label}"
   },
   "twinledger": {
     "why_note": "What we deliver today is the consent, the licence and the ledger — proof of what was permitted and what was used. Marking the content itself (C2PA) is on the roadmap, not on this page.",

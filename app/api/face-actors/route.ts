@@ -45,14 +45,25 @@ export async function GET(request: Request) {
     })
 
     const pf = Number(tenant.price_multiplier) || 1
+    // 🔑 ALDERSMODELLENE (082) SOM EGNE VALG. En produksjon som trenger
+    // henne som 30-åring, velger «Navn · 30 år» — samme person, samme sats,
+    // en annen modell. Bare de brukbare: klarert, godkjent av henne, ikke
+    // stengt (lib/ageModels). Hovedboken finner eieren via versjonshistorikken.
+    const { brukbareAldersmodeller } = await import('@/lib/ageModels')
+    const alder = await brukbareAldersmodeller(actors.map((a) => a.id))
     return NextResponse.json({
-      faces: actors.map((a) => ({
-        id: a.id,
-        name: a.name,
-        faceCharacterId: (a as { face_character_id?: string | null }).face_character_id,
-        pricePerUseNok: Math.round(ratesForKind(a, 'face').price * pf * 100) / 100,
-        photoUrl: Array.isArray((a as { photo_urls?: string[] }).photo_urls) ? (a as { photo_urls?: string[] }).photo_urls![0] || null : null,
-      })),
+      faces: actors.flatMap((a) => {
+        const grunn = {
+          id: a.id,
+          name: a.name,
+          faceCharacterId: (a as { face_character_id?: string | null }).face_character_id,
+          pricePerUseNok: Math.round(ratesForKind(a, 'face').price * pf * 100) / 100,
+          photoUrl: Array.isArray((a as { photo_urls?: string[] }).photo_urls) ? (a as { photo_urls?: string[] }).photo_urls![0] || null : null,
+        }
+        return [grunn, ...alder.filter((m) => m.actorId === a.id).map((m) => ({
+          ...grunn, name: `${a.name} · ${m.label}`, faceCharacterId: m.characterId, ageModel: m.label,
+        }))]
+      }),
     })
   } catch (err: any) {
     return NextResponse.json({ faces: [], error: err.message })

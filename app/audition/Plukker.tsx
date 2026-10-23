@@ -57,6 +57,9 @@ export default function Plukker({ kandidater, valgte, setValgte, maks = 8 }: {
         const n = Number(tall)
         const fra = k.playingAgeFrom ?? 0, til = k.playingAgeTo ?? 120
         if (n >= fra && n <= til) return true
+        // Aldersmodellene (082): en veteran med en 30-årsmodell skal komme opp
+        // på «30» — og filmen lages med den modellen når «Alder i scenen» er satt.
+        if ((k.modelAges ?? []).some((m) => (m.from == null || n >= m.from) && (m.to == null || n <= m.to) && (m.from != null || m.to != null))) return true
       }
       return false
     })

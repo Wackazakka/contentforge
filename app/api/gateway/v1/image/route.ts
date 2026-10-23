@@ -5,7 +5,10 @@ import { ratesForKind } from '@/lib/voiceBank'
 
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
-// POST /api/gateway/v1/image  { assetId, prompt, imageSize? }
+// POST /api/gateway/v1/image  { assetId, prompt, imageSize?, age? }
+// age (valgfri, 0–120): generer med aldersmodellen som dekker alderen (082).
+// Finnes ingen, svares 404 NO_AGE_MODEL med alderstrinnene som finnes — aldri
+// en annen alder i stillhet.
 // Genererer et bilde fra en skuespillers ansikt (Flux LoRA). LoRA-vektene
 // forlater aldri serveren; kunden får bildet, ikke modellen. Logges i samme
 // royalty-hovedbok (asset_type='face') og trekker forskuddssaldoen.
@@ -17,7 +20,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nøkkelen har ikke tilgang til bilde', code: 'SCOPE_DENIED' }, { status: 403 })
     }
 
-    const { assetId, prompt, imageSize } = await request.json()
+    const { assetId, prompt, imageSize, age } = await request.json()
+    const { lesAlder, velgForAlder, spennTekst } = await import('@/lib/aldersvalg')
+    const alder = lesAlder(age)
+    if (alder === null) return NextResponse.json({ error: 'age må være et helt tall mellom 0 og 120', code: 'BAD_AGE' }, { status: 400 })
     if (!assetId || !prompt || typeof prompt !== 'string') {
       return NextResponse.json({ error: 'Mangler assetId eller prompt' }, { status: 400 })
     }
@@ -39,9 +45,29 @@ export async function POST(request: Request) {
     // 🔑 KUNDEN FÅR VERSJONEN DEN KLARERTE (112). Har kunden én gyldig lisens
     // på dette ansiktet, genereres det med modellen lisensen er festet til —
     // ikke med den nyeste. Uten lisens: gjeldende modell.
-    const { modellForKunde } = await import('@/lib/licenceMatch')
-    const valg = await modellForKunde({ actorId: actor.id, organizationId: auth.organizationId, assetType: 'face', gjeldende: actor.face_character_id })
-    const modell = valg.modell || actor.face_character_id
+    const { modellForKunde, versjonForBruk } = await import('@/lib/licenceMatch')
+    let valg = await modellForKunde({ actorId: actor.id, organizationId: auth.organizationId, assetType: 'face', gjeldende: actor.face_character_id })
+    let modell = valg.modell || actor.face_character_id
+
+    // 🔑 ALDER (082/113): aldersmodellen som dekker alderen, ellers et tydelig
+    // nei. Hjemmelen avgjøres som for standardansiktet — en ansiktslisens
+    // dekker bare de klarerte aldersmodellene i versjonen den er festet til.
+    let aldersmodell: { label: string; span: string | null } | null = null
+    if (alder !== undefined) {
+      const { brukbareAldersmodeller } = await import('@/lib/ageModels')
+      const modeller = await brukbareAldersmodeller([actor.id])
+      const treff = velgForAlder(modeller, alder)
+      if (!treff) {
+        return NextResponse.json({
+          error: `Ingen aldersmodell for ${alder} år på denne tvillingen`,
+          code: 'NO_AGE_MODEL',
+          available: modeller.map((m) => ({ label: m.label, ageFrom: m.ageFrom, ageTo: m.ageTo })),
+        }, { status: 404 })
+      }
+      modell = treff.characterId
+      valg = { modell, versjon: await versjonForBruk(actor.id, 'face', modell), festet: false }
+      aldersmodell = { label: treff.label, span: spennTekst(treff) }
+    }
 
     // Generer bildet med VÅR fal-nøkkel + den ekte LoRA-stien (aldri utlevert)
     let png: Buffer
@@ -99,7 +125,7 @@ export async function POST(request: Request) {
       customer_price_nok: price,
       asset_type: 'face',
       twin_version: valg.versjon,
-      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, licence_match: hjemmel.match, model: modell },
+      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, licence_match: hjemmel.match, model: modell, ...(aldersmodell ? { age_model: aldersmodell.label } : {}) },
     })
 
     // Meter kundens forbruk (trekker forskuddssaldoen)
@@ -113,7 +139,7 @@ export async function POST(request: Request) {
       meta: { source: 'gateway', asset_id: actor.id, api_key_id: auth.keyId },
     })
 
-    return NextResponse.json({ url, charged_nok: customerPrice, tlid: actor.tlid ?? null, twin_version: valg.versjon })
+    return NextResponse.json({ url, charged_nok: customerPrice, tlid: actor.tlid ?? null, twin_version: valg.versjon, ...(aldersmodell ? { age_model: aldersmodell } : {}) })
   } catch (err: any) {
     console.error('[gateway/image] Feil:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
