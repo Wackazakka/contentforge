@@ -179,7 +179,7 @@ export async function lagLesning(takeId: string, regi?: string | null) {
   if (!t) throw new Error('Finnes ikke')
   const { data: a } = await supabase.from('auditions').select('*').eq('id', t.audition_id).single()
   const { data: actor } = await supabase.from('voice_actors')
-    .select('id, name, elevenlabs_voice_id').eq('id', t.actor_id).single()
+    .select('id, name, elevenlabs_voice_id, twin_version').eq('id', t.actor_id).single()
   if (!actor?.elevenlabs_voice_id) throw new Error(`${actor?.name ?? 'Skuespilleren'} har ingen stemme`)
 
   const valgt = regi || a!.direction || 'noytral'
@@ -240,6 +240,8 @@ export async function lagLesning(takeId: string, regi?: string | null) {
     actor_rate_nok: honorarFor(AUDITION_READ_NOK),
     customer_price_nok: AUDITION_READ_NOK,
     asset_type: 'voice',
+    // Versjonen som leste (112) — gjeldende, siden lesningen bruker gjeldende stemme.
+    twin_version: (actor as { twin_version?: number | null }).twin_version ?? null,
     meta: { kind: 'audition_read', audition_id: a!.id, chars: String(a!.line).length, licence_match: 'preview' },
   })
 
@@ -281,7 +283,7 @@ export async function flyttTake(takeId: string): Promise<void> {
 
   const { data: a } = await supabase.from('auditions').select('*').eq('id', t.audition_id).single()
   const { data: actor } = await supabase.from('voice_actors')
-    .select('id, name, elevenlabs_voice_id, face_character_id').eq('id', t.actor_id).single()
+    .select('id, name, elevenlabs_voice_id, face_character_id, twin_version').eq('id', t.actor_id).single()
   const sett = async (felt: Record<string, unknown>) =>
     supabase.from('audition_takes').update({ ...felt, updated_at: new Date().toISOString() }).eq('id', takeId)
 
@@ -332,6 +334,7 @@ export async function flyttTake(takeId: string): Promise<void> {
         actor_rate_nok: Number(t.actor_nok ?? honorarFor(AUDITION_FILM_NOK)),
         customer_price_nok: Number(t.cost_nok ?? AUDITION_FILM_NOK),
         asset_type: 'face',
+        twin_version: (actor as { twin_version?: number | null } | null)?.twin_version ?? null,
         meta: { kind: 'audition', audition_id: a!.id, includes_voice: true, licence_match: 'preview' },
       })
       await sett({ stage: 'done', video_url: videoUrl })

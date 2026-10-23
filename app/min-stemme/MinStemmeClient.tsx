@@ -14,7 +14,7 @@ import LeveringPanel from '@/components/LeveringPanel'
 interface Payout { id: string; periode_fra: string; periode_til: string; amount_nok: number; betalt_dato: string; note: string | null }
 interface Usage { id: number; at: string; kind: string; chars: number | null; assetType: string; usedBy: string; toYouNok: number; licenceId: string | null; licenceLabel: string | null }
 interface Actor {
-  id: string; tlid: string | null; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
+  id: string; tlid: string | null; twinVersion: number; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
   defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
   uses: number; earnedNok: number; meterNok: number; licenceNok: number; royaltyNok: number; paidNok: number; dueNok: number
   payouts: Payout[]; events: Usage[]; licences: Licence[]
@@ -29,6 +29,7 @@ interface Fradrag { label: string; pct: number | null; amountNok: number }
 interface Steg { trigger: string; label: string | null; status: string; toYouNok: number }
 interface Licence {
   id: string; kind: 'campaign' | 'work'; assetType: string; status: string
+  twinVersion: number | null
   workTitle: string | null; productionTier: string | null; roleScope: string | null
   mediaClass: string | null; territory: string | null
   termStart: string | null; termEnd: string | null; exclusivity: string
@@ -141,6 +142,7 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
               <p className="text-sm mb-1" title={t('tlid_hint')}>
                 <span className="text-gray-500">{t('tlid_label')}: </span>
                 <span className="font-mono font-semibold tracking-wide select-all">{a.tlid}</span>
+                <span className="text-gray-500"> · {t('version_n', { n: a.twinVersion })}</span>
               </p>
             )}
             <p className="text-sm text-gray-500 mb-6">
@@ -293,6 +295,8 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                             <div className="font-medium">
                               {l.kind === 'work' ? (l.workTitle || t('lic_work')) : t('lic_campaign')}
                               <span className="ml-2 text-xs font-normal text-gray-500">{ord('licstatus', l.status) || l.status}</span>
+                              {/* 112: lisensen gjelder versjonen den ble gitt for. */}
+                              {l.twinVersion != null && <span className="ml-2 text-xs font-normal text-gray-500">· {t('version_n', { n: l.twinVersion })}</span>}
                             </div>
                             <div className="text-gray-600 mt-0.5">{omfang.filter(Boolean).join(' · ')}</div>
                           </div>

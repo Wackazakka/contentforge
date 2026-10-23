@@ -54,6 +54,9 @@ export async function createPendingApproval(a: {
   // Hvilken API-nøkkel som utløste bruken — følger med til hovedboken ved
   // godkjenning, så en kunde med flere nøkler kan se hvilken som ble brukt.
   apiKeyId?: string | null
+  // Modellen innholdet ble laget med (112): leveringen føres på DEN versjonen,
+  // også om modellen byttes mens godkjenningen venter.
+  modelRef?: string | null
 }): Promise<{ id: string; expiresAt: string } | null> {
   try {
     const token = generateReviewToken()
@@ -72,6 +75,7 @@ export async function createPendingApproval(a: {
       expires_at: expiresAt,
     }
     if (a.apiKeyId) row.api_key_id = a.apiKeyId
+    if (a.modelRef) row.model_ref = a.modelRef
     let { data, error } = await admin().from('usage_approvals').insert(row).select('id').single()
     // Kolonnen kommer i migrasjon 073. Mangler den i prod ennå, skal
     // godkjenningen fortsatt opprettes — bare uten nøkkel-sporing.
@@ -134,16 +138,19 @@ export async function logApprovedDelivery(row: {
   actor_rate_nok: number
   customer_price_nok: number
   api_key_id?: string | null
+  model_ref?: string | null
 }): Promise<void> {
   try {
     const supabase = admin()
     const apiKeyId = row.api_key_id ?? null
     // Hjemmelen slås opp ved LEVERING, ikke da godkjenningen ble opprettet:
     // det er leveringen som er bruken, og en avtale kan ha kommet i mellomtiden.
-    const { finnLisensFor } = await import('@/lib/licenceMatch')
+    // Modellen er derimot den innholdet ble LAGET med (112).
+    const { finnLisensFor, versjonForBruk } = await import('@/lib/licenceMatch')
     const hjemmel = await finnLisensFor({
-      actorId: row.actor_id, organizationId: row.organization_id, assetType: row.asset_type,
+      actorId: row.actor_id, organizationId: row.organization_id, assetType: row.asset_type, modell: row.model_ref ?? null,
     })
+    const twinVersion = await versjonForBruk(row.actor_id, row.asset_type, row.model_ref ?? null)
     await supabase.from('voice_usage_events').insert({
       actor_id: row.actor_id,
       used_by_tenant_id: row.tenant_id,
@@ -151,6 +158,7 @@ export async function logApprovedDelivery(row: {
       actor_rate_nok: row.actor_rate_nok,
       customer_price_nok: row.customer_price_nok,
       asset_type: row.asset_type,
+      twin_version: twinVersion,
       meta: { kind: row.kind, source: 'gateway', organization_id: row.organization_id, api_key_id: apiKeyId, approved: true, licence_match: hjemmel.match },
     })
     const pf = await chainFactorByTenantId(row.tenant_id)

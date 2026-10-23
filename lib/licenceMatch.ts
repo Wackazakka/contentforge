@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { dekkerPerioden } from '@/lib/licenceMath'
+import { skillPaaVersjon, versjonForModell, modellForLisens, type Komponent, type TvillingVersjon } from '@/lib/twinVersions'
 
 // Hvilken lisens hjemler denne genereringen?
 //
@@ -22,8 +23,67 @@ function admin() {
   )
 }
 
-/** Hvorfor raden fikk (eller ikke fikk) en hjemmel. Lagres i meta, så hullene kan revideres. */
-export type LisensTreff = 'explicit' | 'inferred' | 'none' | 'ambiguous' | 'no_customer'
+/**
+ * Hvorfor raden fikk (eller ikke fikk) en hjemmel. Lagres i meta, så hullene kan revideres.
+ * `version_mismatch` (112): det finnes en lisens som ellers ville gjeldt, men
+ * den er festet til en annen versjon av modellen enn den som ble brukt.
+ */
+export type LisensTreff = 'explicit' | 'inferred' | 'none' | 'ambiguous' | 'no_customer' | 'version_mismatch'
+
+const komponent = (assetType?: string | null): Komponent => (assetType === 'face' ? 'face' : 'voice')
+
+/** Versjonshistorikken for en eller flere tvillinger (112). Tom ved feil — da dekker ingen lisens en kjent modell. */
+export async function hentVersjoner(actorIds: string[]): Promise<TvillingVersjon[]> {
+  if (actorIds.length === 0) return []
+  const { data } = await admin().from('twin_versions')
+    .select('actor_id, version, face_character_id, elevenlabs_voice_id, change, created_at')
+    .in('actor_id', actorIds).order('version')
+  return (data || []) as TvillingVersjon[]
+}
+
+/**
+ * Hvem eide denne modellen — også etter at den er byttet ut? Produksjoner som
+ * ble satt opp før et modellbytte, bruker fortsatt den gamle modellen. Før 112
+ * ble den bruken ikke ført i det hele tatt: oppslaget så bare på gjeldende
+ * modell, fant ingen, og returnerte stille. Nå finnes den i historikken.
+ */
+export async function skuespillereForModell(assetType: string, modell: string): Promise<string[]> {
+  const kol = komponent(assetType) === 'face' ? 'face_character_id' : 'elevenlabs_voice_id'
+  const { data } = await admin().from('twin_versions').select('actor_id').eq(kol, modell)
+  return [...new Set(((data || []) as Array<{ actor_id: string }>).map((r) => r.actor_id))]
+}
+
+/** Versjonsnummeret en bruk med `modell` hører til (nyeste med den modellen). */
+export async function versjonForBruk(actorId: string, assetType: string, modell: string | null | undefined): Promise<number | null> {
+  if (!modell) return null
+  try { return versjonForModell(await hentVersjoner([actorId]), komponent(assetType), modell) } catch { return null }
+}
+
+/**
+ * Hvilken modell skal kunden generere med (gatewayen)? Har kunden én entydig,
+ * gyldig lisens på denne tvillingen for komponenten, er svaret modellen den
+ * lisensen er festet til — produksjonen får det den klarerte. Ellers den
+ * gjeldende. Feiler mot den gjeldende: oppslaget skal aldri stoppe en
+ * generering, og hovedboken avgjør uansett hjemmelen etterpå.
+ */
+export async function modellForKunde(e: {
+  actorId: string; organizationId?: string | null; assetType: string; gjeldende: string | null; at?: Date
+}): Promise<{ modell: string | null; versjon: number | null; festet: boolean }> {
+  try {
+    const type = komponent(e.assetType)
+    const versjoner = await hentVersjoner([e.actorId])
+    if (!e.organizationId) return modellForLisens(versjoner, null, type, e.gjeldende)
+    const dag = (e.at ?? new Date()).toISOString().slice(0, 10)
+    const { data } = await admin().from('licences')
+      .select('id, term_start, term_end, twin_version')
+      .eq('actor_id', e.actorId).eq('organization_id', e.organizationId).eq('status', 'active')
+      .in('asset_type', type === 'face' ? ['face', 'both'] : ['voice', 'both'])
+    const gyldige = ((data || []) as LisensRad[]).filter((l) => dekkerPerioden(l.term_start, l.term_end, dag))
+    return modellForLisens(versjoner, gyldige.length === 1 ? gyldige[0].twin_version : null, type, e.gjeldende)
+  } catch {
+    return { modell: e.gjeldende, versjon: null, festet: false }
+  }
+}
 
 export interface LisensKobling {
   licenceId: string | null
@@ -45,33 +105,44 @@ export async function finnLisensFor(e: {
   /** 'voice' | 'face' — 'both'-lisenser dekker begge. */
   assetType?: string | null
   licenceId?: string | null
+  /**
+   * Modellen som faktisk ble brukt (ansiktsmodell-id eller stemme-id). Med
+   * den dekker en lisens bare bruk av versjonen den er festet til (112).
+   * Uten den gjelder regelen som før versjonene — alle kallsteder skal sende den.
+   */
+  modell?: string | null
   at?: Date
 }): Promise<LisensKobling> {
   try {
     const supabase = admin()
+    const type = komponent(e.assetType)
+    const versjoner = e.modell ? await hentVersjoner([e.actorId]) : []
 
     if (e.licenceId) {
       const { data } = await supabase
-        .from('licences').select('id, actor_id, status')
+        .from('licences').select('id, actor_id, status, twin_version')
         .eq('id', e.licenceId).maybeSingle()
       const ok = data && data.actor_id === e.actorId && data.status === 'active'
-      return ok ? { licenceId: e.licenceId, match: 'explicit' } : { licenceId: null, match: 'none' }
+      if (!ok) return { licenceId: null, match: 'none' }
+      // Et eksplisitt valg kan heller ikke feste bruk av en annen versjon.
+      const { dekket } = skillPaaVersjon([data as { twin_version?: number | null }], versjoner, type, e.modell)
+      return dekket.length ? { licenceId: e.licenceId, match: 'explicit' } : { licenceId: null, match: 'version_mismatch' }
     }
 
     if (!e.organizationId) return { licenceId: null, match: 'no_customer' }
 
     const dag = (e.at ?? new Date()).toISOString().slice(0, 10)
-    const dekker = e.assetType === 'face' ? ['face', 'both'] : ['voice', 'both']
+    const dekker = type === 'face' ? ['face', 'both'] : ['voice', 'both']
 
     const { data } = await supabase
       .from('licences')
-      .select('id, term_start, term_end')
+      .select('id, term_start, term_end, twin_version')
       .eq('actor_id', e.actorId)
       .eq('organization_id', e.organizationId)
       .eq('status', 'active')
       .in('asset_type', dekker)
 
-    return velgHjemmel((data || []) as LisensRad[], dag)
+    return velgHjemmel((data || []) as LisensRad[], dag, e.modell ? { versjoner, type, modell: e.modell } : undefined)
   } catch {
     // Hjemmelsoppslaget skal ALDRI stoppe en logging. En rad uten hjemmel er
     // langt bedre enn ingen rad — da forsvinner både royaltyen og sporet.
@@ -79,7 +150,10 @@ export async function finnLisensFor(e: {
   }
 }
 
-export interface LisensRad { id: string; actor_id?: string; term_start: string | null; term_end: string | null }
+export interface LisensRad { id: string; actor_id?: string; term_start: string | null; term_end: string | null; twin_version?: number | null }
+
+/** Versjonskonteksten for én dom (112): historikken og modellen bruken gjelder. */
+export interface VersjonsKontekst { versjoner: TvillingVersjon[]; type: Komponent; modell: string }
 
 /**
  * Dommen over ÉN skuespillers lisensrader. Eneste sted regelen står.
@@ -90,12 +164,17 @@ export interface LisensRad { id: string; actor_id?: string; term_start: string |
  * hovedboken skriver et hull — og da lyver produktet om nøyaktig det ene det
  * selger. Derfor én funksjon, ikke to like.
  */
-function velgHjemmel(rader: LisensRad[], dag: string): LisensKobling {
+function velgHjemmel(rader: LisensRad[], dag: string, versjon?: VersjonsKontekst): LisensKobling {
   // Perioden filtreres i koden, ikke i spørringen: null betyr «ingen grense»
   // i begge ender, og det uttrykkes tungt i PostgREST.
-  const gyldige = rader.filter((l) => dekkerPerioden(l.term_start, l.term_end, dag))
+  const iPerioden = rader.filter((l) => dekkerPerioden(l.term_start, l.term_end, dag))
+  // 🔑 VERSJONEN (112) ETTER PERIODEN. En lisens som gjelder i dag, men er
+  // festet til en annen modell, er ikke «ingen lisens» — den er en lisens på
+  // noe annet. Det skillet er hele grunnen til at kunden skal få vite det.
+  const gyldige = versjon ? skillPaaVersjon(iPerioden, versjon.versjoner, versjon.type, versjon.modell).dekket : iPerioden
   if (gyldige.length === 1) return { licenceId: gyldige[0].id, match: 'inferred' }
   if (gyldige.length > 1) return { licenceId: null, match: 'ambiguous' }
+  if (iPerioden.length > 0) return { licenceId: null, match: 'version_mismatch' }
   return { licenceId: null, match: 'none' }
 }
 
@@ -107,7 +186,9 @@ function velgHjemmel(rader: LisensRad[], dag: string): LisensKobling {
  * vegne av en avtale som gjelder en annen. Rene inndata, ingen nettverk.
  */
 export function fordelPaaSkuespillere(
-  rader: LisensRad[], actorIds: string[], dag: string
+  rader: LisensRad[], actorIds: string[], dag: string,
+  /** Per skuespiller: versjonskonteksten (gjeldende modell + historikk). Uten den: regelen før 112. */
+  versjonFor?: (actorId: string) => VersjonsKontekst | undefined,
 ): Record<string, LisensKobling> {
   const perSkuespiller = new Map<string, LisensRad[]>()
   for (const rad of rader) {
@@ -116,7 +197,7 @@ export function fordelPaaSkuespillere(
     perSkuespiller.set(id, [...(perSkuespiller.get(id) || []), rad])
   }
   return Object.fromEntries(
-    actorIds.map((id) => [id, velgHjemmel(perSkuespiller.get(id) || [], dag)])
+    actorIds.map((id) => [id, velgHjemmel(perSkuespiller.get(id) || [], dag, versjonFor?.(id))])
   )
 }
 
@@ -149,13 +230,29 @@ export async function lisensStatusFor(e: {
 
     const { data } = await admin()
       .from('licences')
-      .select('id, actor_id, term_start, term_end')
+      .select('id, actor_id, term_start, term_end, twin_version')
       .in('actor_id', e.actorIds)
       .eq('organization_id', e.organizationId)
       .eq('status', 'active')
       .in('asset_type', dekker)
 
-    return fordelPaaSkuespillere((data || []) as LisensRad[], e.actorIds, dag)
+    // 🔑 SAMME VERSJONSREGEL SOM VED LOGGING (112). Flaten spør om den
+    // GJELDENDE modellen — det er den produksjonen ville brukt. Uten dette
+    // ville skjermen sagt «Lisens på plass» for en lisens festet til en
+    // modell som er byttet ut, mens hovedboken skrev et hull.
+    const type = komponent(e.assetType)
+    const kol = type === 'face' ? 'face_character_id' : 'elevenlabs_voice_id'
+    const [{ data: aktoerer }, versjoner] = await Promise.all([
+      admin().from('voice_actors').select(`id, ${kol}`).in('id', e.actorIds),
+      hentVersjoner(e.actorIds),
+    ])
+    const gjeldende = new Map(((aktoerer || []) as unknown as Array<Record<string, string | null>>).map((a) => [String(a.id), a[kol] ? String(a[kol]) : null]))
+    const versjonFor = (id: string): VersjonsKontekst | undefined => {
+      const modell = gjeldende.get(id)
+      return modell ? { versjoner: versjoner.filter((v) => v.actor_id === id), type, modell } : undefined
+    }
+
+    return fordelPaaSkuespillere((data || []) as LisensRad[], e.actorIds, dag, versjonFor)
   } catch {
     // Feiler oppslaget, er svaret «vet ikke» — og da skal ingen flate påstå at
     // hjemmelen mangler. `ambiguous` er det ærlige svaret: noe står uavklart.

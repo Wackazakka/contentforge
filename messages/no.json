@@ -1790,7 +1790,8 @@
     "step_streamer_pickup": "Strømmepickup",
     "step_custom": "Annet",
     "tlid_label": "Din TLID",
-    "tlid_hint": "Den permanente referansen i registeret. Lisensene og kontoutdraget ditt henger på den, og den endres aldri."
+    "tlid_hint": "Den permanente referansen i registeret. Lisensene og kontoutdraget ditt henger på den, og den endres aldri.",
+    "version_n": "versjon {n}"
   },
   "catalog": {
     "h1": "Stemmer",
@@ -2081,7 +2082,14 @@
     "kind_face": "Ansikt (karakter)",
     "kind_preview": "Prøvelytt",
     "kind_ukjent": "Ukjent",
-    "tlid_label": "TLID"
+    "tlid_label": "TLID",
+    "version_n": "versjon {n}",
+    "versions_h": "Versjoner",
+    "versions_hint": "En ny versjon lages når ansiktsmodellen eller stemmen byttes. En lisens gjelder versjonen den ble gitt for — en ny versjon krever en ny lisens.",
+    "version_change_opprettet": "opprettet",
+    "version_change_ansikt": "nytt ansikt",
+    "version_change_stemme": "ny stemme",
+    "version_change_ansikt_stemme": "nytt ansikt og ny stemme"
   },
   "licences": {
     "back": "← Tilbake til skuespilleren",
@@ -2194,7 +2202,8 @@
     "comp_royalty_hint": "Ingenting nå, alt i andel. Størst oppside, lengst vei til første krone.",
     "chan_trickletracks": "TrickleTracks",
     "chan_indigoboom": "IndigoBoom",
-    "chan_other": "Annen distribusjon"
+    "chan_other": "Annen distribusjon",
+    "version_n": "versjon {n}"
   },
   "payouts": {
     "back": "← Stemme- og ansiktsbank",

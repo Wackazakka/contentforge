@@ -214,6 +214,8 @@ export async function logPreviewRoyalty(e: {
       actor_rate_nok: actorNok,
       customer_price_nok: customerNok,
       asset_type: 'voice',
+      // Prøvelytt bruker gjeldende stemme, altså gjeldende versjon (112).
+      twin_version: (actor as { twin_version?: number | null }).twin_version ?? null,
       // BEVISST uten licence_id: prøvelytt er utforskning FØR en avtale
       // finnes. Å kreve hjemmel her ville gjort det umulig å vurdere en
       // stemme uten først å inngå lisens — og iterasjon skal være billig.
@@ -244,13 +246,21 @@ export async function logFaceUsage(e: {
     // Samme tilgjengelighetslogikk som stemmer: kjede + delt + library —
     // delte/library-ansikter blir dermed fakturerbare også utenfor eierkjeden
     const available = await getAvailableFaceActors(e.usedByTenantId)
-    const actor = available.find((a) => (a as { face_character_id?: string | null }).face_character_id === e.characterId) as VoiceActor | undefined
+    const { finnLisensFor, skuespillereForModell, versjonForBruk } = await import('@/lib/licenceMatch')
+    let actor = available.find((a) => (a as { face_character_id?: string | null }).face_character_id === e.characterId) as VoiceActor | undefined
+    // 🔑 OGSÅ EN UTSKIFTET MODELL HAR EN EIER (112). En produksjon satt opp
+    // før modellbyttet bruker den gamle. Før ble den bruken ikke ført — nå
+    // finnes eieren i versjonshistorikken.
+    if (!actor) {
+      const eiere = await skuespillereForModell('face', e.characterId).catch(() => [] as string[])
+      actor = available.find((a) => eiere.includes(a.id)) as VoiceActor | undefined
+    }
     if (!actor) return
     const { rate, price } = ratesForKind(actor, 'face')
-    const { finnLisensFor } = await import('@/lib/licenceMatch')
     const hjemmel = await finnLisensFor({
-      actorId: actor.id, organizationId: e.organizationId, assetType: 'face',
+      actorId: actor.id, organizationId: e.organizationId, assetType: 'face', modell: e.characterId,
     })
+    const twinVersion = await versjonForBruk(actor.id, 'face', e.characterId)
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
@@ -264,9 +274,11 @@ export async function logFaceUsage(e: {
       actor_rate_nok: rate,
       customer_price_nok: price,
       asset_type: 'face',
+      // Hvilken versjon av tvillingen som ble brukt (112).
+      twin_version: twinVersion,
       // licence_match lagres selv når ingen hjemmel ble funnet: da er hullet
       // revisjonerbart («ingen avtale» vs «flere avtale-kandidater»).
-      meta: { kind: 'face', licence_match: hjemmel.match },
+      meta: { kind: 'face', licence_match: hjemmel.match, model: e.characterId },
     })
     console.log(`[voiceBank] Ansikts-royalty: ${actor.name} brukt av tenant ${e.usedByTenantId}`)
   } catch (err) {
@@ -291,15 +303,22 @@ export async function logVoiceUsage(e: {
   try {
     if (!e.elevenlabsVoiceId || !e.usedByTenantId) return
     const actors = await getAvailableVoiceActors(e.usedByTenantId)
-    const actor = actors.find((a) => a.elevenlabs_voice_id === e.elevenlabsVoiceId)
+    const { finnLisensFor, skuespillereForModell, versjonForBruk } = await import('@/lib/licenceMatch')
+    let actor = actors.find((a) => a.elevenlabs_voice_id === e.elevenlabsVoiceId)
+    // Også en utskiftet stemme har en eier (112) — se logFaceUsage.
+    if (!actor) {
+      const eiere = await skuespillereForModell('voice', e.elevenlabsVoiceId).catch(() => [] as string[])
+      actor = actors.find((a) => eiere.includes(a.id))
+    }
     if (!actor) return
     // Takst etter brukstype (meta.kind) — fryses på raden
     const { rate, price } = ratesForKind(actor, typeof e.meta?.kind === 'string' ? e.meta.kind : null)
-    const { finnLisensFor } = await import('@/lib/licenceMatch')
     const hjemmel = await finnLisensFor({
       actorId: actor.id, organizationId: e.organizationId, assetType: 'voice',
       licenceId: typeof e.meta?.licence_id === 'string' ? e.meta.licence_id : null,
+      modell: e.elevenlabsVoiceId,
     })
+    const twinVersion = await versjonForBruk(actor.id, 'voice', e.elevenlabsVoiceId)
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
@@ -312,6 +331,7 @@ export async function logVoiceUsage(e: {
       job_id: e.jobId ?? null,
       actor_rate_nok: rate,
       customer_price_nok: price,
+      twin_version: twinVersion,
       meta: { ...(e.meta ?? {}), licence_match: hjemmel.match },
     })
     console.log(`[voiceBank] Royalty-hendelse: ${actor.name} brukt av tenant ${e.usedByTenantId} (hjemmel: ${hjemmel.match})`)

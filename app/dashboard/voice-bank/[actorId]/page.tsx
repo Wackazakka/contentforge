@@ -73,6 +73,8 @@ export default function VoiceActorPage() {
   const [opptakBusy, setOpptakBusy] = useState(false)
   // Kildefilene (110): hvor mange leverte filer som har fingeravtrykk og erklæring.
   const [kilder, setKilder] = useState<{ n: number; medHash: number; erklaert: number } | null>(null)
+  // Versjonshistorikken (112), nyeste først.
+  const [versjoner, setVersjoner] = useState<Array<{ version: number; change: string; created_at: string }>>([])
   const [events, setEvents] = useState<Array<{ id: number; actor_rate_nok: number; customer_price_nok: number; meta: { kind?: string }; created_at: string }>>([])
   const [byMonth, setByMonth] = useState<Agg[]>([])
   const [byKind, setByKind] = useState<Agg[]>([])
@@ -200,6 +202,7 @@ export default function VoiceActorPage() {
       setActor(data.actor)
       setFaceWithdrawnAt(data.faceWithdrawnAt ?? null)
       setFaceConsent(data.faceConsent ?? null)
+      setVersjoner(Array.isArray(data.versions) ? data.versions : [])
       try {
         const { data: s4 } = await getSupabase().auth.getSession()
         const t4 = s4?.session?.access_token
@@ -538,9 +541,25 @@ export default function VoiceActorPage() {
               {actor.tlid && (
                 <span className="text-sm text-gray-500">
                   {t('tlid_label')} <span className="font-mono font-semibold text-gray-900 select-all">{actor.tlid}</span>
+                  {versjoner[0] && <> · {t('version_n', { n: versjoner[0].version })}</>}
                 </span>
               )}
             </div>
+            {/* Versjonene (112): én linje per bytte av modell. En lisens gjelder
+                versjonen den ble gitt for — det er dette lisenslista viser mot. */}
+            {versjoner.length > 1 && (
+              <details className="mb-3 text-sm text-gray-600">
+                <summary className="cursor-pointer text-gray-500">{t('versions_h')} ({versjoner.length})</summary>
+                <p className="text-xs text-gray-500 mt-1 max-w-xl">{t('versions_hint')}</p>
+                <ul className="mt-1 space-y-0.5">
+                  {versjoner.map((v) => (
+                    <li key={v.version} className="font-mono text-xs">
+                      v{v.version} · {new Date(v.created_at).toLocaleDateString('nb-NO')} · {t.has(`version_change_${v.change.replace('+', '_')}`) ? t(`version_change_${v.change.replace('+', '_')}`) : v.change}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
             <p className="text-gray-500 mb-8">
               {actor.elevenlabs_voice_id ? <>{t('el_id')} <span className="font-mono">{actor.elevenlabs_voice_id}</span></> : <span className="text-amber-700">{t('waiting_share')}</span>}
               {Number(actor.honorarium_nok) > 0 && <>{t('honorarium', { sum: nok(Number(actor.honorarium_nok)) })}</>}

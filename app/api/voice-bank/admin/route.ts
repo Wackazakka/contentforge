@@ -134,11 +134,16 @@ export async function GET(request: Request) {
         faceWithdrawnAt = c?.withdrawn_at ?? null
         faceConsent = c ? { subject: c.consent_subject ?? null, at: c.consent_declared_at ?? null, trainingSet: c.training_set_url ?? null } : null
       }
+      // Versjonshistorikken (112): hva tvillingen har vært, og når den ble byttet.
+      const { data: versions } = await supabase.from('twin_versions')
+        .select('version, change, created_at, face_character_id, elevenlabs_voice_id')
+        .eq('actor_id', (actor as { id: string }).id).order('version', { ascending: false })
       return NextResponse.json({
         tenant: { id: tenant.id, name: tenant.app_name },
         actor,
         faceWithdrawnAt,
         faceConsent,
+        versions: versions || [],
         events: events.slice(0, 200),
         byMonth: agg((e) => String(e.created_at).slice(0, 7)).sort((a, b) => b.key.localeCompare(a.key)),
         byKind: agg((e) => e.meta?.kind || 'ukjent'),

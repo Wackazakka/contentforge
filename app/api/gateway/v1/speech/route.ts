@@ -42,8 +42,13 @@ export async function POST(request: Request) {
       return NextResponse.json(BALANCE_REFUSAL[balance.reason], { status: 402 })
     }
 
+    // 🔑 KUNDEN FÅR VERSJONEN DEN KLARERTE (112) — se /image.
+    const { modellForKunde } = await import('@/lib/licenceMatch')
+    const valg = await modellForKunde({ actorId: actor.id, organizationId: auth.organizationId, assetType: 'voice', gjeldende: actor.elevenlabs_voice_id })
+    const stemme = valg.modell || actor.elevenlabs_voice_id
+
     // Generer tale med VÅR ElevenLabs-nøkkel + den ekte voice-ID-en
-    const elevenRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${actor.elevenlabs_voice_id}`, {
+    const elevenRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${stemme}`, {
       method: 'POST',
       headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY!, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -58,6 +63,16 @@ export async function POST(request: Request) {
       // Skuespilleren kan ha trukket tilbake stemmen sin — en normal hendelse, ikke
       // en driftsfeil. Da skal kunden få klar beskjed, og stemmen ut av banken.
       if (isVoiceWithdrawn(elevenRes.status, detail)) {
+        // ⚠️ BARE GJELDENDE STEMME DEAKTIVERER RADEN (112). Er det den
+        // lisensfestede, ELDRE stemmen som er borte, er rettighetshaveren ikke
+        // trukket tilbake — kunden trenger en lisens på den nye versjonen.
+        if (stemme !== actor.elevenlabs_voice_id) {
+          console.warn('[gateway/speech] lisensens stemmeversjon finnes ikke lenger:', actor.id, valg.versjon)
+          return NextResponse.json({
+            error: `Lisensen gjelder versjon ${valg.versjon ?? '?'} av stemmen, og den finnes ikke lenger. Be om lisens på den gjeldende versjonen.`,
+            code: 'LICENSED_VERSION_GONE',
+          }, { status: 409 })
+        }
         console.warn('[gateway/speech] stemme tilbaketrukket av eier:', actor.elevenlabs_voice_id)
         await deactivateWithdrawnActor(admin(), { actorId: actor.id })
         return NextResponse.json(
@@ -90,7 +105,7 @@ export async function POST(request: Request) {
         actorId: actor.id, organizationId: auth.organizationId, tenantId: auth.tenantId,
         assetType: 'voice', kind: 'speech', contentUrl: url, detail: text,
         actorRateNok: rate, customerPriceNok: price, timeoutHours: approval.timeoutHours,
-        apiKeyId: auth.keyId,
+        apiKeyId: auth.keyId, modelRef: stemme,
       })
       if (!pending) return NextResponse.json({ error: 'Kunne ikke opprette godkjenning' }, { status: 500 })
       return NextResponse.json({ status: 'pending_approval', reviewId: pending.id, expiresAt: pending.expiresAt })
@@ -99,7 +114,7 @@ export async function POST(request: Request) {
     // Royalty-hendelse i samme hovedbok (frosne satser, merket som gateway-bruk)
     const { finnLisensFor } = await import('@/lib/licenceMatch')
     const hjemmel = await finnLisensFor({
-      actorId: actor.id, organizationId: auth.organizationId, assetType: 'voice',
+      actorId: actor.id, organizationId: auth.organizationId, assetType: 'voice', modell: stemme,
     })
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
@@ -108,6 +123,7 @@ export async function POST(request: Request) {
       actor_rate_nok: rate,
       customer_price_nok: price,
       asset_type: 'voice',
+      twin_version: valg.versjon,
       // api_key_id: hvilken av kundens nøkler som ble brukt — organisasjonen alene
       // skiller dem ikke når en kunde har flere.
       meta: { kind: 'speech', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, chars: text.length, licence_match: hjemmel.match },
@@ -125,7 +141,7 @@ export async function POST(request: Request) {
       meta: { source: 'gateway', asset_id: actor.id, api_key_id: auth.keyId, chars: text.length },
     })
 
-    return NextResponse.json({ url, format: format || 'mp3', charged_nok: customerPrice, tlid: actor.tlid ?? null })
+    return NextResponse.json({ url, format: format || 'mp3', charged_nok: customerPrice, tlid: actor.tlid ?? null, twin_version: valg.versjon })
   } catch (err: any) {
     console.error('[gateway/speech] Feil:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

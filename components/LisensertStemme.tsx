@@ -120,6 +120,7 @@ function Merke({ s }: { s: BankStemme }) {
   const { match } = s.licence
   const paaPlass = match === 'explicit' || match === 'inferred'
   const uavklart = match === 'ambiguous'
+  const annenVersjon = match === 'version_mismatch'
   return (
     <span
       style={{
@@ -129,7 +130,7 @@ function Merke({ s }: { s: BankStemme }) {
         color: paaPlass ? 'var(--ink)' : 'var(--ember-deep)',
       }}
     >
-      {paaPlass ? 'Lisens på plass' : uavklart ? 'Uavklart' : 'Ingen lisens'}
+      {paaPlass ? 'Lisens på plass' : uavklart ? 'Uavklart' : annenVersjon ? 'Lisens på eldre versjon' : 'Ingen lisens'}
     </span>
   )
 }
@@ -147,6 +148,8 @@ export default function LisensertStemme({
   const valgtStemme = stemmer.find((s) => s.voiceId === valgt)
   const sperret = rettighetsmodus && !!valgtStemme && !harHjemmel(valgtStemme)
   const uavklart = sperret && valgtStemme?.licence?.match === 'ambiguous'
+  // 112: lisensen finnes, men er festet til en stemme som siden er byttet ut.
+  const annenVersjon = sperret && valgtStemme?.licence?.match === 'version_mismatch'
   const kant = rettighetsmodus ? 0 : 8
 
   return (
@@ -192,7 +195,9 @@ export default function LisensertStemme({
           <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink)' }}>
             {uavklart
               ? 'Flere aktive lisenser dekker denne bruken. Hovedboken kan ikke velge mellom dem, og produksjonen ville blitt stående uten hjemmel.'
-              : `Det finnes ingen aktiv lisens på ${valgtStemme?.name} for denne kunden. Produksjonen er stengt til lisensen er på plass.`}
+              : annenVersjon
+                ? `Lisensen på ${valgtStemme?.name} gjelder en tidligere versjon av stemmen. Stemmen er byttet siden, og en lisens dekker bare versjonen den ble gitt for. Produksjonen er stengt til det er lisens på den gjeldende.`
+                : `Det finnes ingen aktiv lisens på ${valgtStemme?.name} for denne kunden. Produksjonen er stengt til lisensen er på plass.`}
           </p>
           {/* ⚠️ GÅR TIL KUNDENS DØR, IKKE INN I ADMIN. Lenken pekte tidligere på
               /dashboard/voice-bank, som er admin-beskyttet: en ekte kunde fikk

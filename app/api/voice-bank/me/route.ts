@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
     let q = supabase
       .from('voice_actors')
-      .select('id, tlid, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
+      .select('id, tlid, twin_version, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
       .ilike('actor_email', email)
     if (tenant.id !== 'root') q = q.eq('owner_tenant_id', tenant.id)
     const { data: rows } = await q.order('created_at', { ascending: true })
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
           enrolled_at: e.enrolled_at ?? new Date().toISOString(),
           identity_basis: 'self_declared',
         })
-        .select('id, tlid, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
+        .select('id, tlid, twin_version, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
         .single()
       if (nyFeil) console.error('[me] Kunne ikke opprette paameldt rad:', nyFeil.message)
       else if (ny) actors = [ny as any]
@@ -150,7 +150,7 @@ export async function GET(request: Request) {
       // /min-stemme.
       const { data: lics } = await supabase
         .from('licences')
-        .select('id, kind, asset_type, status, media_class, territory, term_start, term_end, exclusivity, work_title, production_tier, role_scope, fee_actor_nok, comp_model, royalty_pct, release_channel, release_title, created_at')
+        .select('id, kind, asset_type, status, twin_version, media_class, territory, term_start, term_end, exclusivity, work_title, production_tier, role_scope, fee_actor_nok, comp_model, royalty_pct, release_channel, release_title, created_at')
         .eq('actor_id', a.id)
         .in('status', ['quote', 'active', 'expired'])
         .order('created_at', { ascending: false })
@@ -198,6 +198,8 @@ export async function GET(request: Request) {
       out.push({
         id: a.id,
         tlid: (a.tlid as string | null) ?? null,
+        // Gjeldende versjon av tvillingen (112) — lisensene viser hvilken de gjelder.
+        twinVersion: Number((a as { twin_version?: number | null }).twin_version) || 1,
         name: a.name,
         hasVoice: !!a.elevenlabs_voice_id,
         hasFace: !!a.face_character_id,
@@ -240,6 +242,7 @@ export async function GET(request: Request) {
             kind: l.kind,
             assetType: l.asset_type,
             status: l.status,
+            twinVersion: (l as { twin_version?: number | null }).twin_version ?? null,
             workTitle: l.work_title,
             productionTier: l.production_tier,
             roleScope: l.role_scope,

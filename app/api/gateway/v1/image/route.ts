@@ -36,10 +36,17 @@ export async function POST(request: Request) {
       return NextResponse.json(BALANCE_REFUSAL[balance.reason], { status: 402 })
     }
 
+    // 🔑 KUNDEN FÅR VERSJONEN DEN KLARERTE (112). Har kunden én gyldig lisens
+    // på dette ansiktet, genereres det med modellen lisensen er festet til —
+    // ikke med den nyeste. Uten lisens: gjeldende modell.
+    const { modellForKunde } = await import('@/lib/licenceMatch')
+    const valg = await modellForKunde({ actorId: actor.id, organizationId: auth.organizationId, assetType: 'face', gjeldende: actor.face_character_id })
+    const modell = valg.modell || actor.face_character_id
+
     // Generer bildet med VÅR fal-nøkkel + den ekte LoRA-stien (aldri utlevert)
     let png: Buffer
     try {
-      png = await generateFaceImage(actor.face_character_id, prompt, imageSize || '1024x1536')
+      png = await generateFaceImage(modell, prompt, imageSize || '1024x1536')
     } catch (genErr: any) {
       // ⚠️ EN TILBAKETREKKING ER IKKE EN DRIFTSFEIL. Uten dette skillet meldes
       // «rettighetshaveren har sagt nei» som «noe gikk galt», og kunden ringer
@@ -73,7 +80,7 @@ export async function POST(request: Request) {
         actorId: actor.id, organizationId: auth.organizationId, tenantId: auth.tenantId,
         assetType: 'face', kind: 'face', contentUrl: url, detail: prompt,
         actorRateNok: rate, customerPriceNok: price, timeoutHours: approval.timeoutHours,
-        apiKeyId: auth.keyId,
+        apiKeyId: auth.keyId, modelRef: modell,
       })
       if (!pending) return NextResponse.json({ error: 'Kunne ikke opprette godkjenning' }, { status: 500 })
       return NextResponse.json({ status: 'pending_approval', reviewId: pending.id, expiresAt: pending.expiresAt })
@@ -82,7 +89,7 @@ export async function POST(request: Request) {
     // Royalty-hendelse (frosne face-satser, merket gateway-bruk)
     const { finnLisensFor } = await import('@/lib/licenceMatch')
     const hjemmel = await finnLisensFor({
-      actorId: actor.id, organizationId: auth.organizationId, assetType: 'face',
+      actorId: actor.id, organizationId: auth.organizationId, assetType: 'face', modell,
     })
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
@@ -91,7 +98,8 @@ export async function POST(request: Request) {
       actor_rate_nok: rate,
       customer_price_nok: price,
       asset_type: 'face',
-      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, licence_match: hjemmel.match },
+      twin_version: valg.versjon,
+      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, licence_match: hjemmel.match, model: modell },
     })
 
     // Meter kundens forbruk (trekker forskuddssaldoen)
@@ -105,7 +113,7 @@ export async function POST(request: Request) {
       meta: { source: 'gateway', asset_id: actor.id, api_key_id: auth.keyId },
     })
 
-    return NextResponse.json({ url, charged_nok: customerPrice, tlid: actor.tlid ?? null })
+    return NextResponse.json({ url, charged_nok: customerPrice, tlid: actor.tlid ?? null, twin_version: valg.versjon })
   } catch (err: any) {
     console.error('[gateway/image] Feil:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

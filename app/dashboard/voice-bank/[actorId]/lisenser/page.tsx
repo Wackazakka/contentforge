@@ -45,6 +45,8 @@ interface Licence {
   id: string
   kind: Kind
   asset_type: string
+  // Versjonen av tvillingen lisensen er festet til (112). Kan aldri flyttes.
+  twin_version?: number | null
   status: string
   comp_model: 'fee' | 'royalty' | 'hybrid'
   royalty_pct: number | null
@@ -541,6 +543,7 @@ function LisensKort({ l, onEndre, onAvregning }: {
             <span className="text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border border-gray-300 text-gray-600">
               {t.has(`status_${l.status}`) ? t(`status_${l.status}`) : l.status}
             </span>
+            {l.twin_version != null && <span className="text-xs text-gray-500">{t('version_n', { n: l.twin_version })}</span>}
             {l.customer_label && <span className="text-sm text-gray-600">{l.customer_label}</span>}
           </div>
           <p className="text-sm text-gray-700 mt-2">{omfang.filter(Boolean).join(' · ')}</p>

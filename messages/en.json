@@ -1790,7 +1790,8 @@
     "step_streamer_pickup": "Streamer pickup",
     "step_custom": "Other",
     "tlid_label": "Your TLID",
-    "tlid_hint": "Your permanent reference in the register. Your licences and statement hang on it, and it never changes."
+    "tlid_hint": "Your permanent reference in the register. Your licences and statement hang on it, and it never changes.",
+    "version_n": "version {n}"
   },
   "catalog": {
     "h1": "Voices",
@@ -2081,7 +2082,14 @@
     "kind_face": "Face (character)",
     "kind_preview": "Preview",
     "kind_ukjent": "Unknown",
-    "tlid_label": "TLID"
+    "tlid_label": "TLID",
+    "version_n": "version {n}",
+    "versions_h": "Versions",
+    "versions_hint": "A new version is created when the face model or the voice is replaced. A licence covers the version it was granted for — a new version needs a new licence.",
+    "version_change_opprettet": "created",
+    "version_change_ansikt": "new face",
+    "version_change_stemme": "new voice",
+    "version_change_ansikt_stemme": "new face and voice"
   },
   "licences": {
     "back": "← Back to the performer",
@@ -2194,7 +2202,8 @@
     "comp_royalty_hint": "Nothing now, all in a share. Greatest upside, longest road to the first krone.",
     "chan_trickletracks": "TrickleTracks",
     "chan_indigoboom": "IndigoBoom",
-    "chan_other": "Other distribution"
+    "chan_other": "Other distribution",
+    "version_n": "version {n}"
   },
   "payouts": {
     "back": "← Voice and face bank",
