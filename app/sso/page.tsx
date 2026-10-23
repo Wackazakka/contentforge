@@ -18,15 +18,22 @@ function SsoInner() {
     if (ran.current) return
     ran.current = true
     const code = params?.get('code')
+    // Overlevering fra Sangskaper (2026-10-23): token_hash kommer ferdig fra
+    // /api/partner/sangskaper/start — ingen partnerkode å løse inn først.
+    const directTokenHash = params?.get('token_hash')
     const next = params?.get('next')
     const to = next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
-    if (!code) { setError('Mangler innloggingskode.'); return }
+    if (!code && !directTokenHash) { setError('Mangler innloggingskode.'); return }
     ;(async () => {
       try {
-        const r = await fetch('/api/partner/sso/finish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) })
-        const d = await r.json().catch(() => ({}))
-        if (!r.ok) throw new Error(d.error || 'Innlogging feilet')
-        const { error: vErr } = await getSupabase().auth.verifyOtp({ token_hash: d.token_hash, type: 'magiclink' })
+        let token_hash = directTokenHash
+        if (!token_hash) {
+          const r = await fetch('/api/partner/sso/finish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) })
+          const d = await r.json().catch(() => ({}))
+          if (!r.ok) throw new Error(d.error || 'Innlogging feilet')
+          token_hash = d.token_hash
+        }
+        const { error: vErr } = await getSupabase().auth.verifyOtp({ token_hash: token_hash as string, type: 'magiclink' })
         if (vErr) throw vErr
         router.replace(to)
       } catch (e) {
