@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import CastingFelt from './CastingFelt'
+import AldersmodellerPanel from '@/components/AldersmodellerPanel'
 import { useParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
 
@@ -813,6 +814,11 @@ export default function VoiceActorPage() {
                 </button>
               </div>
             )}
+
+            {/* Aldersmodellene (082/113) — ansiktet på flere alderstrinn. Bare
+                når hun har et ansikt: en aldersmodell utfyller standardansiktet.
+                refresh oppdaterer versjonen øverst — en endring kan gi ny versjon. */}
+            {actor.face_character_id && <AldersmodellerPanel actorId={actorId} onEndret={refresh} />}
 
             {/* Presentasjonsside */}
             <h2 className="font-semibold text-gray-900 mb-3">{t('pub_h2')}</h2>
