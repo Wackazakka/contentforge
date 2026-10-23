@@ -77,6 +77,8 @@ interface Forespoersel {
 export default function BeOmLisensPage() {
   const actorId = String(useParams().actorId || '')
   const [navn, setNavn] = useState<string | null>(null)
+  // TLID (111): referansen lisensen vil henge på — den kunden skriver i kontrakten.
+  const [tlid, setTlid] = useState<string | null>(null)
   const [svar, setSvar] = useState<Svar>({ assetType: 'voice', mediaClass: 'online', territory: 'no', exclusivity: 'none' })
   const [termMonths, setTermMonths] = useState(12)
   const [note, setNote] = useState('')
@@ -100,6 +102,7 @@ export default function BeOmLisensPage() {
       const k = await fetch('/api/voice-bank/catalog', { headers: h }).then((r) => r.json())
       const a = (k.actors || []).find((x: { id: string }) => x.id === actorId)
       if (a?.name) setNavn(a.name)
+      if (a?.tlid) setTlid(a.tlid)
     } catch { /* navnet er pynt; skjemaet virker uten */ }
     try {
       const d = await fetch(`/api/licence-requests?actorId=${encodeURIComponent(actorId)}`, { headers: h }).then((r) => r.json())
@@ -138,6 +141,11 @@ export default function BeOmLisensPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Be om lisens{navn ? ` på ${navn}` : ''}
         </h1>
+        {tlid && (
+          <p className="text-sm text-gray-500 mb-2">
+            TLID <span className="font-mono font-semibold text-gray-900 select-all">{tlid}</span> — referansen lisensen henger på
+          </p>
+        )}
         <p className="text-gray-600 mb-8">
           Bruksretten avtales fra gang til gang — derfor spør vi om hva den skal dekke,
           og kommer tilbake med et tilbud. Du blir ikke belastet for noe her.

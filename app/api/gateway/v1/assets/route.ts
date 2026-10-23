@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         capabilities.push('image')
         pricePerUse.image = await customerPriceFor(auth, a, 'face')
       }
-      return { id: a.id, name: a.name, capabilities, pricePerUse }
+      return { id: a.id, tlid: a.tlid ?? null, name: a.name, capabilities, pricePerUse }
     })
   )
   return NextResponse.json({ assets })

@@ -59,7 +59,11 @@ export async function authenticateKey(request: Request): Promise<GatewayAuth | n
 // Gjenbruker kjede-arv + eksklusivitet fra voiceBank.
 export async function resolveAsset(auth: GatewayAuth, assetId: string): Promise<VoiceActor | null> {
   const actors = await getAvailableVoiceActors(auth.tenantId)
-  return actors.find((a) => a.id === assetId) || null
+  // assetId kan være uuid-en ELLER TLID-en (111) — referansen kunden har i
+  // kontrakten sin, i hvilken som helst skrivemåte. Samme tilgangsregler.
+  const { normaliserTlid } = await import('@/lib/tlid')
+  const tlid = normaliserTlid(assetId)
+  return actors.find((a) => a.id === assetId || (!!tlid && a.tlid === tlid)) || null
 }
 
 // Saldo-vakt for gateway-en. Snudd 16.09.2026 (Lars): «ingen forskuddskonto»

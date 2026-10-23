@@ -14,7 +14,7 @@ import LeveringPanel from '@/components/LeveringPanel'
 interface Payout { id: string; periode_fra: string; periode_til: string; amount_nok: number; betalt_dato: string; note: string | null }
 interface Usage { id: number; at: string; kind: string; chars: number | null; assetType: string; usedBy: string; toYouNok: number; licenceId: string | null; licenceLabel: string | null }
 interface Actor {
-  id: string; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
+  id: string; tlid: string | null; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
   defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
   uses: number; earnedNok: number; meterNok: number; licenceNok: number; royaltyNok: number; paidNok: number; dueNok: number
   payouts: Payout[]; events: Usage[]; licences: Licence[]
@@ -136,6 +136,13 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 {a.isActive ? t('active') : t('not_active')}
               </span>
             </div>
+            {/* TLID (111): referansen lisensene og kontoutdraget henger på. */}
+            {a.tlid && (
+              <p className="text-sm mb-1" title={t('tlid_hint')}>
+                <span className="text-gray-500">{t('tlid_label')}: </span>
+                <span className="font-mono font-semibold tracking-wide select-all">{a.tlid}</span>
+              </p>
+            )}
             <p className="text-sm text-gray-500 mb-6">
               {t('managed_since', { tenant: a.managedBy, date: dato(a.since) })}
               {a.hasVoice && a.hasFace ? t('both') : a.hasFace ? t('only_face') : t('only_voice')}

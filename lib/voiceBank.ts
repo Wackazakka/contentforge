@@ -15,6 +15,8 @@ function admin() {
 
 export interface VoiceActor {
   id: string
+  /** Permanent, lesbar referanse (111), f.eks. «TL-7K4M-Q2XD». */
+  tlid?: string | null
   owner_tenant_id: string
   name: string
   elevenlabs_voice_id: string

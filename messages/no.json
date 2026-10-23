@@ -1788,7 +1788,9 @@
     "step_theatrical_release": "Kinopremiere",
     "step_international_sale": "Internasjonalt salg",
     "step_streamer_pickup": "Strømmepickup",
-    "step_custom": "Annet"
+    "step_custom": "Annet",
+    "tlid_label": "Din TLID",
+    "tlid_hint": "Den permanente referansen i registeret. Lisensene og kontoutdraget ditt henger på den, og den endres aldri."
   },
   "catalog": {
     "h1": "Stemmer",
@@ -2078,7 +2080,8 @@
     "kind_radio": "Radio",
     "kind_face": "Ansikt (karakter)",
     "kind_preview": "Prøvelytt",
-    "kind_ukjent": "Ukjent"
+    "kind_ukjent": "Ukjent",
+    "tlid_label": "TLID"
   },
   "licences": {
     "back": "← Tilbake til skuespilleren",

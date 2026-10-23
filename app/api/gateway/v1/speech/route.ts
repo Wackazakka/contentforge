@@ -125,7 +125,7 @@ export async function POST(request: Request) {
       meta: { source: 'gateway', asset_id: actor.id, api_key_id: auth.keyId, chars: text.length },
     })
 
-    return NextResponse.json({ url, format: format || 'mp3', charged_nok: customerPrice })
+    return NextResponse.json({ url, format: format || 'mp3', charged_nok: customerPrice, tlid: actor.tlid ?? null })
   } catch (err: any) {
     console.error('[gateway/speech] Feil:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })

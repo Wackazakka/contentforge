@@ -1788,7 +1788,9 @@
     "step_theatrical_release": "Theatrical release",
     "step_international_sale": "International sale",
     "step_streamer_pickup": "Streamer pickup",
-    "step_custom": "Other"
+    "step_custom": "Other",
+    "tlid_label": "Your TLID",
+    "tlid_hint": "Your permanent reference in the register. Your licences and statement hang on it, and it never changes."
   },
   "catalog": {
     "h1": "Voices",
@@ -2078,7 +2080,8 @@
     "kind_radio": "Radio",
     "kind_face": "Face (character)",
     "kind_preview": "Preview",
-    "kind_ukjent": "Unknown"
+    "kind_ukjent": "Unknown",
+    "tlid_label": "TLID"
   },
   "licences": {
     "back": "← Back to the performer",

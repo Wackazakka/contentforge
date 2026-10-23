@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
     let q = supabase
       .from('voice_actors')
-      .select('id, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
+      .select('id, tlid, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
       .ilike('actor_email', email)
     if (tenant.id !== 'root') q = q.eq('owner_tenant_id', tenant.id)
     const { data: rows } = await q.order('created_at', { ascending: true })
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
           enrolled_at: e.enrolled_at ?? new Date().toISOString(),
           identity_basis: 'self_declared',
         })
-        .select('id, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
+        .select('id, tlid, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
         .single()
       if (nyFeil) console.error('[me] Kunne ikke opprette paameldt rad:', nyFeil.message)
       else if (ny) actors = [ny as any]
@@ -197,6 +197,7 @@ export async function GET(request: Request) {
 
       out.push({
         id: a.id,
+        tlid: (a.tlid as string | null) ?? null,
         name: a.name,
         hasVoice: !!a.elevenlabs_voice_id,
         hasFace: !!a.face_character_id,

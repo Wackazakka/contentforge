@@ -55,6 +55,7 @@ export async function GET(request: Request) {
         if (hasFace) prices.face = pris(ratesForKind(a, 'face').price)
         return {
           id: a.id,
+          tlid: a.tlid ?? null,
           name: a.name,
           bio: x.bio ?? null,
           photo: Array.isArray(x.photo_urls) ? (String((x.photo_urls as unknown[])[0] ?? '') || null) : null,

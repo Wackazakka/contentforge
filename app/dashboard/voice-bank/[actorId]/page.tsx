@@ -12,6 +12,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 
 interface ActorDetail {
   id: string
+  tlid?: string | null
   name: string
   elevenlabs_voice_id: string
   honorarium_nok: number
@@ -534,6 +535,11 @@ export default function VoiceActorPage() {
               <span className={`text-sm font-medium ${actor.is_active ? 'text-green-700' : 'text-gray-400'}`}>
                 {actor.is_active ? t('active') : t('inactive')}
               </span>
+              {actor.tlid && (
+                <span className="text-sm text-gray-500">
+                  {t('tlid_label')} <span className="font-mono font-semibold text-gray-900 select-all">{actor.tlid}</span>
+                </span>
+              )}
             </div>
             <p className="text-gray-500 mb-8">
               {actor.elevenlabs_voice_id ? <>{t('el_id')} <span className="font-mono">{actor.elevenlabs_voice_id}</span></> : <span className="text-amber-700">{t('waiting_share')}</span>}
