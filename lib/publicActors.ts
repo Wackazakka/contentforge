@@ -41,6 +41,9 @@ function admin() {
 
 export interface PublicActor {
   id: string
+  /** TLID (111) og gjeldende versjon (112) — offentlige referanser, ikke hemmeligheter. */
+  tlid: string | null
+  twinVersion: number
   name: string
   bio: string | null
   photos: string[]
@@ -59,10 +62,10 @@ export interface PublicActor {
   modelAges: Array<{ from: number | null; to: number | null }>
 }
 
-const FELT = 'id, owner_tenant_id, name, bio, photo_urls, sample_urls, video_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo, gender, playing_age_from, playing_age_to, height_cm, attributes'
+const FELT = 'id, tlid, twin_version, owner_tenant_id, name, bio, photo_urls, sample_urls, video_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo, gender, playing_age_from, playing_age_to, height_cm, attributes'
 
 type Rad = {
-  id: string; owner_tenant_id: string; name: string; bio: string | null
+  id: string; tlid: string | null; twin_version: number | null; owner_tenant_id: string; name: string; bio: string | null
   photo_urls: unknown; sample_urls: unknown; video_urls: unknown; preview_url: string | null
   elevenlabs_voice_id: string | null; face_character_id: string | null
   is_public: boolean; is_active: boolean; is_exclusive: boolean | null
@@ -94,6 +97,8 @@ function tilPublic(
   const egne = Array.isArray(a.sample_urls) ? (a.sample_urls as unknown[]).map(String) : []
   return {
     id: a.id,
+    tlid: a.tlid ?? null,
+    twinVersion: Number(a.twin_version) || 1,
     name: a.name,
     bio: a.bio,
     photos,
@@ -194,8 +199,31 @@ export async function getPublicActors(tenant: Tenant): Promise<PublicActor[]> {
 }
 
 export async function getPublicActor(tenant: Tenant, actorId: string): Promise<PublicActor | null> {
+  return hentEn(tenant, 'id', actorId)
+}
+
+/**
+ * Det åpne TLID-oppslaget (/tlid). 🔑 SAMME SYNLIGHETSREGEL SOM GALLERIET:
+ * oppslaget finner bare det galleriet alt viser. En TLID for en profil som
+ * ikke er publisert gir samme svar som en TLID som ikke finnes — ellers kunne
+ * oppslaget brukes til å avsløre at en person er registrert hos oss.
+ */
+export async function getPublicActorByTlid(tenant: Tenant, tlid: string): Promise<PublicActor | null> {
+  return hentEn(tenant, 'tlid', tlid)
+}
+
+/** Når gjeldende versjon ble til (112). Null ved feil — datoen er pynt, ikke krav. */
+export async function versjonSiden(actorId: string, versjon: number): Promise<string | null> {
   try {
-    const { data } = await admin().from('voice_actors').select(FELT).eq('id', actorId).single()
+    const { data } = await admin().from('twin_versions').select('created_at')
+      .eq('actor_id', actorId).eq('version', versjon).maybeSingle()
+    return (data as { created_at?: string } | null)?.created_at ?? null
+  } catch { return null }
+}
+
+async function hentEn(tenant: Tenant, kol: 'id' | 'tlid', verdi: string): Promise<PublicActor | null> {
+  try {
+    const { data } = await admin().from('voice_actors').select(FELT).eq(kol, verdi).maybeSingle()
     const a = data as Rad | null
     if (!a) return null
     const chain = tenant.id === 'root' ? null : await kjedeOpp(tenant.id)

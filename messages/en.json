@@ -1460,7 +1460,8 @@
     "chip_face_lc": "face",
     "and": "and",
     "film_alt": "Film {n} with {name}",
-    "not_found_title": "Not found"
+    "not_found_title": "Not found",
+    "tlid_line": "TLID {tlid} · version {n}"
   },
   "audition": {
     "back": "← Cast",
@@ -1791,7 +1792,8 @@
     "step_custom": "Other",
     "tlid_label": "Your TLID",
     "tlid_hint": "Your permanent reference in the register. Your licences and statement hang on it, and it never changes.",
-    "version_n": "version {n}"
+    "version_n": "version {n}",
+    "tlid_lookup": "How the lookup sees it"
   },
   "catalog": {
     "h1": "Voices",
@@ -2407,5 +2409,33 @@
     "p3_h": "No usage meter",
     "p3_p": "You pay for the RIGHT, not per generation. Make fifteen versions of the same spot within the licence and it costs the same as one.",
     "footnote": "All amounts exclude VAT. Rate card {version}. Your price may differ if you come in through an agency — then their card applies."
+  },
+  "tlidLookup": {
+    "meta_title": "TLID lookup",
+    "eyebrow": "The open register",
+    "h1": "Look up a TLID",
+    "lead": "A TLID is the permanent reference to a digital twin in TwinLedger. Here you can see whether it is registered, which version applies, and whether it can be cleared.",
+    "label": "TLID",
+    "button": "Look up",
+    "gallery": "Gallery",
+    "invalid": "“{q}” is not a valid TLID. The format is TL-XXXX-XXXX.",
+    "not_found_h": "Not in the open register",
+    "not_found_p": "{tlid} is not listed here. Either it is not registered, or the profile is not published. We do not show unpublished profiles — nor do we say whether they exist.",
+    "registered": "Registered",
+    "clearable_yes": "can be cleared",
+    "clearable_no": "cannot be cleared right now",
+    "example": "Example profile — not a real person, and cannot be cleared.",
+    "row_name": "Name",
+    "row_managed": "Managed by",
+    "row_version": "Current version",
+    "row_version_since": "{n} · since {date}",
+    "row_voice": "Voice",
+    "row_face": "Face",
+    "available": "available",
+    "unavailable": "not available",
+    "version_note": "A licence is pinned to the version it is granted for. If the face or the voice is replaced, that is a new version — and it needs a new licence.",
+    "cta_profile": "See the profile →",
+    "cta_licence": "Request a licence →",
+    "api_note": "Machine-readable:"
   }
 }

@@ -143,6 +143,9 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 <span className="text-gray-500">{t('tlid_label')}: </span>
                 <span className="font-mono font-semibold tracking-wide select-all">{a.tlid}</span>
                 <span className="text-gray-500"> · {t('version_n', { n: a.twinVersion })}</span>
+                {/* Det åpne oppslaget (/tlid): det andre ser. Står det «ikke i
+                    det åpne registeret», er profilen ikke publisert ennå. */}
+                <a href={`/tlid/${a.tlid}`} className="ml-3 text-xs text-[var(--ember-deep)] underline underline-offset-2">{t('tlid_lookup')}</a>
               </p>
             )}
             <p className="text-sm text-gray-500 mb-6">

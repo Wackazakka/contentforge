@@ -173,6 +173,15 @@ export default async function ActorPresentationPage({ params }: { params: Promis
             <p style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', marginTop: 20, marginBottom: 0 }}>
               {t('managed_by', { tenant: actor.managedBy })}
             </p>
+            {/* TLID (111/112): referansen en kontrakt kan peke på, og veien til
+                det åpne oppslaget. Eksempelprofiler har ingen å peke på. */}
+            {actor.tlid && !actor.isDemo && (
+              <p style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 6, marginBottom: 0 }}>
+                <Link href={`/tlid/${actor.tlid}`} style={{ color: 'var(--text-faint)' }}>
+                  {t('tlid_line', { tlid: actor.tlid, n: actor.twinVersion })}
+                </Link>
+              </p>
+            )}
           </div>
         </div>
 

@@ -1460,7 +1460,8 @@
     "chip_face_lc": "ansikt",
     "and": "og",
     "film_alt": "Film {n} med {name}",
-    "not_found_title": "Ikke funnet"
+    "not_found_title": "Ikke funnet",
+    "tlid_line": "TLID {tlid} · versjon {n}"
   },
   "audition": {
     "back": "← Medvirkende",
@@ -1791,7 +1792,8 @@
     "step_custom": "Annet",
     "tlid_label": "Din TLID",
     "tlid_hint": "Den permanente referansen i registeret. Lisensene og kontoutdraget ditt henger på den, og den endres aldri.",
-    "version_n": "versjon {n}"
+    "version_n": "versjon {n}",
+    "tlid_lookup": "Slik ser oppslaget ut"
   },
   "catalog": {
     "h1": "Stemmer",
@@ -2407,5 +2409,33 @@
     "p3_h": "Ingen målerklokke",
     "p3_p": "Du betaler for RETTEN, ikke per generering. Lager du femten versjoner av samme spot innenfor lisensen, koster det det samme som én.",
     "footnote": "Alle beløp er eks. mva. Takstkort {version}. Prisen din kan avvike hvis du kommer inn gjennom et byrå — da er det deres kort som gjelder."
+  },
+  "tlidLookup": {
+    "meta_title": "TLID-oppslag",
+    "eyebrow": "Det åpne registeret",
+    "h1": "Slå opp en TLID",
+    "lead": "En TLID er den permanente referansen til en digital tvilling i TwinLedger. Her ser du om den er registrert, hvilken versjon som gjelder, og om den kan klareres.",
+    "label": "TLID",
+    "button": "Slå opp",
+    "gallery": "Galleriet",
+    "invalid": "«{q}» er ikke en gyldig TLID. Formatet er TL-XXXX-XXXX.",
+    "not_found_h": "Ikke i det åpne registeret",
+    "not_found_p": "{tlid} finnes ikke her. Enten er den ikke registrert, eller så er profilen ikke publisert. Vi viser ikke upubliserte profiler — og vi sier heller ikke om de finnes.",
+    "registered": "Registrert",
+    "clearable_yes": "kan klareres",
+    "clearable_no": "kan ikke klareres nå",
+    "example": "Eksempelprofil — ikke en ekte person, og kan ikke klareres.",
+    "row_name": "Navn",
+    "row_managed": "Forvaltes av",
+    "row_version": "Gjeldende versjon",
+    "row_version_since": "{n} · siden {date}",
+    "row_voice": "Stemme",
+    "row_face": "Ansikt",
+    "available": "tilgjengelig",
+    "unavailable": "ikke tilgjengelig",
+    "version_note": "En lisens festes til versjonen den gis for. Byttes ansiktet eller stemmen, blir det en ny versjon — og den krever en ny lisens.",
+    "cta_profile": "Se profilen →",
+    "cta_licence": "Be om lisens →",
+    "api_note": "Maskinlesbart:"
   }
 }
