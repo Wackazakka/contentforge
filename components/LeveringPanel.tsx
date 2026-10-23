@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ANBEFALT_BILDER } from '@/lib/levering'
+import { ANBEFALT_BILDER, KILDE_ERKLAERING } from '@/lib/levering'
 
 // Leveringen: bilder til ansiktsmodellen, og opptaket hun alt hadde. Delt
 // mellom tokensida (/levering/<token>, for de gamle soeknadene) og
@@ -45,6 +45,10 @@ export default function LeveringPanel({
   const [laster, setLaster] = useState<{ kind: Kind; n: number; av: number; navn: string } | null>(null)
   const [filFeil, setFilFeil] = useState<string[]>([])
   const [starter, setStarter] = useState(false)
+  // Erklæringen (110): krysses av før opplasting, hver gang sida åpnes. Ruta
+  // nekter uten den; her sier vi hva som mangler i stedet for å låse knappen.
+  const [erklaert, setErklaert] = useState(false)
+  const [maaErklaere, setMaaErklaere] = useState(false)
   const bildeInput = useRef<HTMLInputElement>(null)
   const lydInput = useRef<HTMLInputElement>(null)
 
@@ -85,10 +89,10 @@ export default function LeveringPanel({
       const f = valgte[i]
       setLaster({ kind, n: i + 1, av: valgte.length, navn: f.name })
       try {
-        const l = await post({ handling: 'opplastingslenke', kind, contentType: f.type, size: f.size })
+        const l = await post({ handling: 'opplastingslenke', kind, contentType: f.type, size: f.size, erklaert })
         const put = await fetch(l.uploadUrl, { method: 'PUT', body: f, headers: { 'Content-Type': f.type } })
         if (!put.ok) throw new Error(`opplasting feilet (${put.status})`)
-        siste = await post({ handling: 'registrer', kind, path: l.path })
+        siste = await post({ handling: 'registrer', kind, path: l.path, erklaert })
         setD(siste)
       } catch (e) {
         feilet.push(`${f.name}: ${e instanceof Error ? e.message : 'feil'}`)
@@ -110,6 +114,11 @@ export default function LeveringPanel({
 
   const s = d.status
   const ingenting = !s.trengerBilder && !s.trengerOpptak && !s.venterVeiledetOpptak
+  // Velg-knappene: uten erklæring åpnes ikke filvelgeren — vi sier hvorfor.
+  const velg = (input: React.RefObject<HTMLInputElement | null>) => {
+    if (!erklaert) { setMaaErklaere(true); return }
+    input.current?.click()
+  }
 
   return (
     <div style={{ fontFamily: SANS }}>
@@ -125,6 +134,26 @@ export default function LeveringPanel({
         </Boks>
       )}
 
+      {(s.trengerBilder || s.trengerOpptak) && (
+        <label style={{
+          display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer', marginBottom: kompakt ? 12 : 18,
+          border: `1px solid ${maaErklaere && !erklaert ? 'var(--ember-tint-border)' : 'var(--ds-border-strong)'}`,
+          background: maaErklaere && !erklaert ? 'var(--ember-tint-bg)' : 'var(--paper-raised)', padding: '12px 14px',
+        }}>
+          <input type="checkbox" checked={erklaert} onChange={(e) => { setErklaert(e.target.checked); if (e.target.checked) setMaaErklaere(false) }}
+            style={{ marginTop: 3, width: 16, height: 16, flex: 'none' }} />
+          <span style={{ fontSize: 14, lineHeight: 1.5 }}>
+            {KILDE_ERKLAERING}
+            <span style={{ display: 'block', fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
+              Du trenger ikke huske hvem som tok bildene eller når. Du står inne for at det er deg, og at du har lov til å bruke dem.
+            </span>
+            {maaErklaere && !erklaert && (
+              <strong style={{ display: 'block', fontSize: 13, color: 'var(--ember-deep)', marginTop: 6 }}>Kryss av her før du laster opp.</strong>
+            )}
+          </span>
+        </label>
+      )}
+
       {s.trengerBilder && (
         <Seksjon tittel="Bilder til ansiktsmodellen" teller={`${d.bilder.length} av minst ${d.grenser.minBilder}`} ok={s.bilderOk} kompakt={kompakt}>
           <p style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--ink-soft)', margin: '0 0 12px' }}>
@@ -134,7 +163,7 @@ export default function LeveringPanel({
           </p>
           <input ref={bildeInput} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
             onChange={(e) => { lastOpp('photo', Array.from(e.target.files || [])); e.target.value = '' }} />
-          <Knapp disabled={!!laster} onClick={() => bildeInput.current?.click()}>
+          <Knapp disabled={!!laster} onClick={() => velg(bildeInput)}>
             {laster?.kind === 'photo' ? `Laster opp ${laster.n} av ${laster.av}…` : d.bilder.length ? 'Legg til flere bilder' : 'Velg bilder'}
           </Knapp>
           {laster?.kind === 'photo' && <Framdrift n={laster.n} av={laster.av} navn={laster.navn} />}
@@ -170,7 +199,7 @@ export default function LeveringPanel({
           </p>
           <input ref={lydInput} type="file" accept="audio/*" multiple hidden
             onChange={(e) => { lastOpp('recording', Array.from(e.target.files || [])); e.target.value = '' }} />
-          <Knapp disabled={!!laster} onClick={() => lydInput.current?.click()}>
+          <Knapp disabled={!!laster} onClick={() => velg(lydInput)}>
             {laster?.kind === 'recording' ? `Laster opp ${laster.n} av ${laster.av}…` : d.opptak.length ? 'Legg til flere filer' : 'Velg lydfil'}
           </Knapp>
           {laster?.kind === 'recording' && <Framdrift n={laster.n} av={laster.av} navn={laster.navn} />}

@@ -70,6 +70,8 @@ export default function VoiceActorPage() {
   // Opptaksloeypa for proffklone (095). Ligger i egne tabeller, hentes ved siden av.
   const [opptak, setOpptak] = useState<{ oekt: { status: string; epost: string | null; lenke: string; opprettet: string } | null; fremdrift?: { totaltSek: number; maalSek: number; ferdig: boolean; per: Array<{ register: string; sek: number; maalSek: number; dekket: boolean }> } } | null>(null)
   const [opptakBusy, setOpptakBusy] = useState(false)
+  // Kildefilene (110): hvor mange leverte filer som har fingeravtrykk og erklæring.
+  const [kilder, setKilder] = useState<{ n: number; medHash: number; erklaert: number } | null>(null)
   const [events, setEvents] = useState<Array<{ id: number; actor_rate_nok: number; customer_price_nok: number; meta: { kind?: string }; created_at: string }>>([])
   const [byMonth, setByMonth] = useState<Agg[]>([])
   const [byKind, setByKind] = useState<Agg[]>([])
@@ -115,7 +117,7 @@ export default function VoiceActorPage() {
       const h = { Authorization: `Bearer ${token}` }
       setTrenStatus('Henter bildene…')
       const lev = await fetch(`/api/levering/admin?actorId=${actorId}`, { headers: h }).then((r) => r.json())
-      const bilder: Array<{ url: string | null; navn?: string }> = (lev.bilder || []).filter((b: any) => b.url)
+      const bilder: Array<{ url: string | null; navn?: string; path: string }> = (lev.bilder || []).filter((b: any) => b.url)
       if (bilder.length < 10) throw new Error(`Bare ${bilder.length} bilder tilgjengelig — modellen trenger minst 10.`)
       const JSZip = (await import('jszip')).default
       const zip = new JSZip()
@@ -136,7 +138,9 @@ export default function VoiceActorPage() {
       setTrenStatus('Starter treningen…')
       const tr = await fetch('/api/characters/train', {
         method: 'POST', headers: { ...h, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: actor.name, zipPath: up.path, consentSubject: 'other_consented', subjectEmail: actor.actor_email, trainer: trener }),
+        // actorId + sourcePaths: modellen får vite hvilke leverte filer den
+        // bygger på — fingeravtrykk og erklæring per fil lagres på den (110).
+        body: JSON.stringify({ name: actor.name, zipPath: up.path, consentSubject: 'other_consented', subjectEmail: actor.actor_email, trainer: trener, actorId, sourcePaths: bilder.map((b) => b.path) }),
       })
       const tj = await tr.json()
       if (!tr.ok || !tj.character?.id) throw new Error(tj.error || 'Treningen startet ikke')
@@ -201,8 +205,16 @@ export default function VoiceActorPage() {
         if (t4) {
           const r4 = await fetch(`/api/stemmeopptak/admin?actorId=${actorId}`, { headers: { Authorization: `Bearer ${t4}` } })
           if (r4.ok) setOpptak(await r4.json())
+          if ((data.actor?.photo_paths?.length ?? 0) + (data.actor?.recording_paths?.length ?? 0) > 0) {
+            const r5 = await fetch(`/api/levering/admin?actorId=${actorId}`, { headers: { Authorization: `Bearer ${t4}` } })
+            if (r5.ok) {
+              const l = await r5.json()
+              const alle: Array<{ sha256?: string | null; erklaertAt?: string | null }> = [...(l.bilder || []), ...(l.opptak || [])]
+              setKilder({ n: alle.length, medHash: alle.filter((f) => f.sha256).length, erklaert: alle.filter((f) => f.erklaertAt).length })
+            }
+          }
         }
-      } catch { /* opptaksstatus er tilleggsinfo */ }
+      } catch { /* opptaksstatus og kildefiler er tilleggsinfo */ }
       setEvents(data.events || [])
       setByMonth(data.byMonth || [])
       setByKind(data.byKind || [])
@@ -683,6 +695,14 @@ export default function VoiceActorPage() {
                 <div className="rounded-lg p-5 mb-8" style={{ background: 'var(--paper-raised)', border: '1px solid var(--ds-border-strong, #D8CDB8)' }}>
                   <div className="font-medium text-gray-900 text-sm">Ansiktsmodell fra de {n} leverte bildene</div>
                   <p className={`text-xs mt-0.5 max-w-xl ${ic && ic.ok === false ? 'text-amber-800' : 'text-gray-500'}`}>{idLinje}</p>
+                  {/* Kildematerialet (110): fingeravtrykk per fil, og om hun har stått inne for den. */}
+                  {kilder && kilder.n > 0 && (
+                    <p className="text-xs text-gray-500 mt-0.5 max-w-xl">
+                      Kildefiler: {kilder.medHash} av {kilder.n} med fingeravtrykk · {kilder.erklaert === kilder.n
+                        ? 'erklært av henne for alle'
+                        : kilder.erklaert === 0 ? 'levert før erklæringen fantes' : `erklært av henne for ${kilder.erklaert}`}.
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1 max-w-xl">
                     Settet pakkes her i nettleseren og sendes inn samme port som all annen trening. Hun får tre prøvebilder til godkjenning før modellen kan brukes.
                   </p>

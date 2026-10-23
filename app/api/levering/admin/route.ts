@@ -66,11 +66,22 @@ export async function GET(request: Request) {
     }
     const rad = s
 
+    // Kildefilene (110): erklæring, sha256 og tidspunkt/kamera per fil. Feiler
+    // åpent — før migrasjonen finnes ikke tabellen, og leveringen skal vises likevel.
+    const { kildefilerFor } = await import('@/lib/kildefiler')
+    const kilder = await kildefilerFor(actorId ? 'voice_actors' : 'voice_actor_applications', String(rad.id)).catch(() => [])
+    const kildeFor = new Map(kilder.map((k) => [k.path, k]))
     const signer = async (boette: string, stier: unknown) => {
       const liste = (Array.isArray(stier) ? stier : []).filter((p): p is string => eierSti(rad.id, String(p), prefiks))
       if (liste.length === 0) return []
       const { data } = await admin().storage.from(boette).createSignedUrls(liste, LEVETID_SEK)
-      return (data || []).map((d, i) => ({ path: liste[i], navn: liste[i].split('/').pop(), url: d.signedUrl || null }))
+      return (data || []).map((d, i) => {
+        const k = kildeFor.get(liste[i])
+        return {
+          path: liste[i], navn: liste[i].split('/').pop(), url: d.signedUrl || null,
+          sha256: k?.sha256 ?? null, erklaertAt: k?.declared_at ?? null, exif: k?.exif ?? null,
+        }
+      })
     }
     const vert = tenant.custom_domain ? `https://${tenant.custom_domain}` : `https://${tenant.slug}.norditech.io`
     return NextResponse.json({

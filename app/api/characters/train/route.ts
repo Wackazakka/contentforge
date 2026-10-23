@@ -69,7 +69,7 @@ const STANDARD_TRENER: TrenerId = 'portrait'
 // (samme trener som Lawrence — bevist god ansiktslikhet). Steps/lr fra den beviste kjøringen.
 export async function POST(request: Request) {
   try {
-    const { name, zipPath, consentSubject, subjectEmail: raaEpost, trainer: raaTrener } = await request.json()
+    const { name, zipPath, consentSubject, subjectEmail: raaEpost, trainer: raaTrener, actorId, sourcePaths } = await request.json()
     if (!name?.trim() || !zipPath) {
       return NextResponse.json({ error: 'Mangler navn eller zipPath' }, { status: 400 })
     }
@@ -204,6 +204,27 @@ export async function POST(request: Request) {
       .select()
       .single()
     if (error) return NextResponse.json({ error: 'DB-feil: ' + error.message }, { status: 500 })
+
+    // 🔑 HVA MODELLEN BLE LAGET AV (110). Kommer treningen fra leverte bilder
+    // (skjøten på skuespillersida), lagres fingeravtrykket og erklæringen for
+    // hver fil på modellen — da kan det i ettertid vises nøyaktig hvilke filer
+    // den bygger på. Bare for en skuespiller i denne banken. Egen oppdatering,
+    // ikke en del av innsettingen: feiler den (f.eks. før migrasjonen), står
+    // treningen likevel.
+    if (actorId && Array.isArray(sourcePaths) && sourcePaths.length) {
+      try {
+        const { data: eier } = await supabase.from('voice_actors').select('id')
+          .eq('id', String(actorId)).eq('owner_tenant_id', tenant.id).maybeSingle()
+        if (eier) {
+          const { kildefilerFor } = await import('@/lib/kildefiler')
+          const kilder = new Map((await kildefilerFor('voice_actors', String(eier.id))).map((k) => [k.path, k]))
+          const source_files = (sourcePaths as unknown[]).map(String).map((p) => ({
+            path: p, sha256: kilder.get(p)?.sha256 ?? null, declared_at: kilder.get(p)?.declared_at ?? null,
+          }))
+          await supabase.from('user_characters').update({ source_files }).eq('id', data.id)
+        }
+      } catch (e) { console.error('[train] kildefiler ikke lagret:', e instanceof Error ? e.message : e) }
+    }
 
     // Maaling: treningen kjoerer paa VAAR fal-noekkel (~20 kr raakost) og var
     // UMAALT — gratis GPU per klikk, usynlig i alle regnskap. Foeres naa som

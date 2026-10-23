@@ -124,6 +124,12 @@ export async function POST(request: Request) {
     }).select('id, name').single()
     if (error) return NextResponse.json({ error: 'DB-feil: ' + error.message }, { status: 500 })
 
+    // Samme sett, samme kildefiler (110). Egen oppdatering — feiler den, står retreningen.
+    try {
+      const { data: kilde } = await db.from('user_characters').select('source_files').eq('id', k.id).maybeSingle()
+      if (kilde?.source_files) await db.from('user_characters').update({ source_files: kilde.source_files }).eq('id', data!.id)
+    } catch { /* kildelisten er ikke en forutsetning for å trene */ }
+
     try {
       const { logUsageEvent } = await import('@/lib/tenantBilling')
       await logUsageEvent({

@@ -5,6 +5,14 @@
 // avgjoer om koeen viser henne som klar, og det skal kunne etterproeves uten aa
 // roere prod.
 
+/**
+ * Erklæringen hun avgir før hun laster opp (110). Fryses på hver fil.
+ * 🔑 Ikke «hvem tok bildet og når» — det husker ingen for et ti år gammelt
+ * bilde (Lars 23.10). Hun står inne for at det er henne og at hun har lov.
+ * Endres teksten, gjelder den nye bare for filer levert etterpå.
+ */
+export const KILDE_ERKLAERING = 'Bildene og opptakene jeg laster opp viser meg, og jeg har rett til å bruke dem til dette — også bilder andre har tatt av meg.'
+
 export const MIN_BILDER = 10
 export const ANBEFALT_BILDER = '15–25'
 export const MAKS_BILDER = 30

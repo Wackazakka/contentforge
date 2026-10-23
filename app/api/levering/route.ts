@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import {
-  BILDE_TYPER, LYD_TYPER, MAKS_BILDER, MAKS_FIL_MB,
+  BILDE_TYPER, LYD_TYPER, MAKS_BILDER, MAKS_FIL_MB, KILDE_ERKLAERING,
   eierSti, leveringsSti, leveringsStatus,
 } from '@/lib/levering'
+import { registrerKildefil, fjernKildefil } from '@/lib/kildefiler'
 import { vurderIdentitet, tilVektorTekst, fraVektorTekst, DUBLETT_TERSKEL, type BildeVektor, type IdentitetsVurdering, type Dublett } from '@/lib/identity'
 import { hentAnsikter, embedKonfigurert } from '@/lib/embedClient'
 
@@ -193,6 +194,13 @@ export async function POST(request: Request) {
     const naa: string[] = Array.isArray(s[felt]) ? s[felt] : []
     const eier = (sti: string) => eierSti(s.id, sti, s.prefiks)
 
+    // 🔑 ERKLÆRINGEN (110) HÅNDHEVES HER, IKKE BARE I SKJEMAET. Ingen fil kan
+    // lastes opp eller registreres uten at hun har stått inne for den. Teksten
+    // som fryses er serverens egen, ikke det klienten sender.
+    if ((b.handling === 'opplastingslenke' || b.handling === 'registrer') && b.erklaert !== true) {
+      return NextResponse.json({ error: 'Kryss av for erklæringen før du laster opp.' }, { status: 400 })
+    }
+
     if (b.handling === 'opplastingslenke') {
       const type = String(b.contentType || '')
       const ext = (kind === 'photo' ? BILDE_TYPER : LYD_TYPER)[type]
@@ -225,6 +233,10 @@ export async function POST(request: Request) {
         [felt]: neste, ...(levert && !s.delivered_at ? { delivered_at: levert } : {}),
       }).eq('id', s.id)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      // Kildefila (110): erklæringen hennes + sha256 + tidspunkt/kamera. Feiler åpent.
+      try {
+        await registrerKildefil({ eierTabell: s.tabell, eierId: String(s.id), kind, path: sti, erklaering: KILDE_ERKLAERING })
+      } catch (e) { console.error('[levering] kildefil feilet:', e instanceof Error ? e.message : e) }
       let identity_check = s.identity_check
       if (kind === 'photo' && s.tabell === 'voice_actors') {
         try {
@@ -244,6 +256,7 @@ export async function POST(request: Request) {
       const neste = naa.filter((p) => p !== sti)
       const { error } = await admin().from(s.tabell).update({ [felt]: neste }).eq('id', s.id)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      try { await fjernKildefil(s.tabell, String(s.id), sti) } catch { /* raden er uten fil; ufarlig */ }
       let identity_check = s.identity_check
       if (kind === 'photo' && s.tabell === 'voice_actors') {
         try {
