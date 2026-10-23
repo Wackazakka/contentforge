@@ -4,6 +4,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import { compositeLogoOnImage } from '@/lib/image-logo'
 import { getCharacter, characterAllowed } from '@/lib/characters'
+import { rapporterLeverandorfeil } from '@/lib/driftsvakt'
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const FAL_KEY = process.env.CONTENTFORGE_FAL_KEY
@@ -417,6 +418,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, imageUrl: r2Url })
   } catch (error) {
     console.error('[generateImage] FAILED:', error)
+    // Driftsvakten: tom saldo hos fal/OpenAI varsles Lars med en gang (23.10)
+    await rapporterLeverandorfeil(/fal/i.test(String((error as Error)?.message || '')) ? 'fal' : 'OpenAI', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate image' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { buildSenderContext, fetchVerticalForOrganization } from '@/lib/senderContext.mjs'
+import { rapporterLeverandorfeil } from '@/lib/driftsvakt'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -125,7 +126,8 @@ Make each segment engaging and suitable for short-form video.`
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
     console.error(`[generateDraft] Claude API error`, { status: response.status, error: errorData })
-    throw new Error(`Claude API error: ${response.status}`)
+    // Anthropic-meldingen tas med, så driftsvakten ser «credit balance is too low» (23.10)
+    throw new Error(`Claude API error: ${response.status} ${String((errorData as any)?.error?.message || '').slice(0, 300)}`)
   }
 
   const data = await response.json()
@@ -263,6 +265,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('[generateDraft] ========== ❌ DRAFT GENERATION FAILED ==========')
+    await rapporterLeverandorfeil('Anthropic', error)
     console.error('[generateDraft] Error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate draft' },

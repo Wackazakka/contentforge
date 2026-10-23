@@ -6,6 +6,7 @@ import {
   VOICE_WITHDRAWN,
   VOICE_WITHDRAWN_MESSAGE,
 } from '@/lib/elevenlabsErrors'
+import { rapporterLeverandorfeil } from '@/lib/driftsvakt'
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY
 const R2_ENDPOINT = process.env.R2_ENDPOINT
@@ -49,7 +50,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: VOICE_WITHDRAWN_MESSAGE, code: VOICE_WITHDRAWN }, { status: 409 })
       }
       console.error(`[preview-voiceover] ElevenLabs error:`, error)
-      throw new Error('ElevenLabs API failed')
+      // Svaret tas med, så driftsvakten kan se om kvoten er brukt opp (23.10)
+      throw new Error(`ElevenLabs API failed: ${elevenRes.status} ${String(error).slice(0, 300)}`)
     }
 
     const audioBuffer = await elevenRes.arrayBuffer()
@@ -160,6 +162,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ url, actorExtraNok })
   } catch (err: any) {
     console.error(`[preview-voiceover] Error:`, err.message)
+    await rapporterLeverandorfeil('ElevenLabs', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
