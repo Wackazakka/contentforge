@@ -5,6 +5,8 @@ import type { PublicActor } from '@/lib/publicActors'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
 import { LangToggle } from '@/components/LangToggle'
+import SoekeSkjema from './SoekeSkjema'
+import RensAdresse from './RensAdresse'
 
 // Det åpne TLID-oppslaget, for mennesker. Felles for /tlid (søkefeltet) og
 // /tlid/<TLID> (svaret). Server-komponent: ingenting her trenger JavaScript i
@@ -47,12 +49,10 @@ export default async function Oppslag({ tenant, svar }: { tenant: Tenant; svar: 
         <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(28px, 4vw, 40px)', letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 12px' }}>{t('h1')}</h1>
         <p style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--ink-soft)', margin: '0 0 24px', maxWidth: 560 }}>{t('lead')}</p>
 
-        <form action="/tlid" method="get" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 32 }}>
-          <label htmlFor="tlid-q" style={{ position: 'absolute', left: -9999 }}>{t('label')}</label>
-          <input id="tlid-q" name="q" defaultValue={forhaand} placeholder="TL-XXXX-XXXX" autoComplete="off" spellCheck={false}
-            style={{ flex: '1 1 220px', minWidth: 0, fontFamily: MONO, fontSize: 17, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '12px 14px', border: '1px solid var(--ds-border-strong)', background: 'var(--paper-raised)', color: 'var(--ink)' }} />
-          <button type="submit" style={{ background: 'var(--ink)', color: 'var(--paper)', border: 'none', padding: '12px 22px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: SANS }}>{t('button')}</button>
-        </form>
+        {/* key: et nytt oppslag skal tømme feltet til det nye svaret, ikke
+            beholde det forrige skjemaets tilstand. */}
+        <SoekeSkjema key={forhaand} forhaand={forhaand} label={t('label')} knapp={t('button')} />
+        {(svar.kind === 'funnet' || svar.kind === 'ikke_funnet') && <RensAdresse />}
 
         {svar.kind === 'ugyldig' && (
           <Boks tone="advarsel">{t('invalid', { q: svar.q })}</Boks>
