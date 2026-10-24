@@ -10,7 +10,10 @@ import { wholesaleFactor } from '@/lib/platformMarkup'
 // e-postlenker varer bare 1 time; vår varer GYLDIG_TIMER og lager en fersk
 // Supabase-lenke først når den klikkes (/api/velkommen).
 
-export const GYLDIG_TIMER = 24
+// Én uke (Lars 24.10: ingen av testerne rakk å klikke innen et døgn)
+export const GYLDIG_TIMER = 24 * 7
+// «7 dager» / «24 timer» — til teksten i e-posten
+const GYLDIG_TEKST = GYLDIG_TIMER % 24 === 0 ? `${GYLDIG_TIMER / 24} dager` : `${GYLDIG_TIMER} timer`
 
 export function admin() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
@@ -154,7 +157,7 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
         const [navnLinje, ...resten] = hilsenFra.split('\n').map((l) => l.trim()).filter(Boolean)
         return `<p style="margin:24px 0 0;font-size:15px;line-height:1.6;color:#5E564A;">Hilsen<br><strong style="color:#1C1A16;">${esc(navnLinje || '')}</strong>${resten.map((l) => `<br>${esc(l)}`).join('')}</p>`
       })() : ''}
-      <p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Lenken virker i ${GYLDIG_TIMER} timer og kan brukes én gang. Har den gått ut, går du til <a href="${origin}/login" style="color:#978B79;">${esc(origin.replace('https://', ''))}/login</a> og trykker «Glemt passord» med denne e-postadressen.</p>
+      <p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Lenken virker i ${GYLDIG_TEKST} og kan brukes én gang. Har den gått ut, går du til <a href="${origin}/login" style="color:#978B79;">${esc(origin.replace('https://', ''))}/login</a> og trykker «Glemt passord» med denne e-postadressen.</p>
       <p style="margin:12px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Funker ikke knappen? Lim denne lenken inn i nettleseren:<br><a href="${lenke}" style="color:#978B79;word-break:break-all;">${lenke}</a></p>
     </div>
     <p style="text-align:center;margin:18px 0 0;font-size:11.5px;color:#978B79;">${esc(produkt)} leveres av Norditech</p>
