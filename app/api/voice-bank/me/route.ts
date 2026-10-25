@@ -74,6 +74,7 @@ export async function GET(request: Request) {
       // Kom hen gjennom et byrås lenke? Sjekkes på nytt: et byrå som er slått
       // av siden påmeldingen, går ikke lenger god for noen.
       const { byraaMedId, byraaFelter, varsleByraa } = await import('@/lib/byraa')
+      const { paameldingsFelter } = await import('@/lib/nivaa')
       const byraa = enrollAgent?.tenant_id === tenant.id ? await byraaMedId(enrollAgent.id, tenant.id) : null
       const viaByraa = byraa ? byraaFelter(byraa.id) : null
       const { data: ny, error: nyFeil } = await supabase
@@ -102,6 +103,9 @@ export async function GET(request: Request) {
           identity_basis: 'self_declared',
           // Byrålenken (116) overstyrer: vouched, med byrået og tidspunktet.
           ...(viaByraa || {}),
+          // Nivå og vurdering (123): byrålenken gir «pro» og godtatt; ellers
+          // et nytt ansikt som venter på vurdering før noe trenes.
+          ...paameldingsFelter(byraa && viaByraa ? { agentId: byraa.id } : null),
         })
         .select(FELTER)
         .single()
@@ -158,6 +162,16 @@ export async function GET(request: Request) {
     if (byraaIder.length) {
       const { data: tas } = await supabase.from('talent_agents').select('id, name').in('id', byraaIder)
       for (const x of tas || []) byraaNavn.set(x.id as string, x.name as string)
+    }
+
+    // Nivå og vurdering (123), i eget oppslag: mangler kolonnene, står resten.
+    const nivaaer = new Map<string, { tier: string; intake: string; note: string | null }>()
+    {
+      const { data: nv } = await supabase.from('voice_actors')
+        .select('id, tier, intake_status, intake_note').in('id', actors.map((a) => a.id))
+      for (const x of (nv || []) as Array<{ id: string; tier: string; intake_status: string; intake_note: string | null }>) {
+        nivaaer.set(x.id, { tier: x.tier, intake: x.intake_status, note: x.intake_note })
+      }
     }
 
     const out = []
@@ -252,6 +266,10 @@ export async function GET(request: Request) {
           return null
         })(),
         isPublic: (a as { is_public?: boolean | null }).is_public === true,
+        // Nivå og vurdering (123). Uten kolonnene: godtatt, som før.
+        tier: nivaaer.get(a.id)?.tier ?? 'new',
+        intakeStatus: nivaaer.get(a.id)?.intake ?? 'accepted',
+        intakeNote: nivaaer.get(a.id)?.note ?? null,
         delivered: !!a.delivered_at,
         defaultRateNok: Number(a.actor_rate_nok),
         rates,

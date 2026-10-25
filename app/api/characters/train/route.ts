@@ -138,6 +138,25 @@ export async function POST(request: Request) {
     }
     const valgt = TRENERE[trener]
 
+    // 🔑 VURDERINGEN FØR TRENING (123). Gjelder treningen en rettighetshaver i
+    // banken, må påmeldingen hennes være godtatt: hver trening er en regning
+    // hos fal.ai, og et nytt ansikt vurderes før vi bruker penger på det.
+    // Treninger som ikke gjelder noen i banken, berøres ikke.
+    if (consentSubject === 'other_consented') {
+      const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || '')
+      const { likeSafe } = await import('@/lib/epost')
+      const { kanTrenes } = await import('@/lib/nivaa')
+      let q = db.from('voice_actors').select('id, intake_status').eq('owner_tenant_id', tenant.id)
+      q = actorId ? q.eq('id', String(actorId)) : q.ilike('actor_email', likeSafe(subjectEmail))
+      const { data: rad } = await q.limit(1).maybeSingle()
+      if (rad && !kanTrenes((rad as { intake_status?: string }).intake_status)) {
+        return NextResponse.json({
+          error: 'Påmeldingen hennes er ikke godtatt ennå. Vurder den i banken før modellen trenes.',
+          code: 'INTAKE_NOT_ACCEPTED',
+        }, { status: 409 })
+      }
+    }
+
     // Unikt trigger-ord, f.eks. CHRXKQZW
     const trigger = 'CHR' + Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random() * 24)]).join('')
 

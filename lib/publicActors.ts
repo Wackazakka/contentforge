@@ -65,9 +65,11 @@ export interface PublicActor {
   heightCm: number | null
   attributes: Record<string, string[]>
   modelAges: Array<{ from: number | null; to: number | null }>
+  /** Nivået (123): new · pro · star. Styrer seksjonen i galleriet. */
+  tier: 'new' | 'pro' | 'star'
 }
 
-const FELT = 'id, tlid, twin_version, owner_tenant_id, name, bio, photo_urls, sample_urls, video_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo, gender, playing_age_from, playing_age_to, height_cm, attributes'
+const FELT = 'id, tlid, twin_version, owner_tenant_id, name, bio, photo_urls, sample_urls, video_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo, gender, playing_age_from, playing_age_to, height_cm, attributes, tier'
 
 type Rad = {
   id: string; tlid: string | null; twin_version: number | null; owner_tenant_id: string; name: string; bio: string | null
@@ -77,6 +79,7 @@ type Rad = {
   is_demo: boolean | null
   gender: string | null; playing_age_from: number | null; playing_age_to: number | null
   height_cm: number | null; attributes: Record<string, string[]> | null
+  tier?: string | null
 }
 
 async function kjedeOpp(tenantId: string): Promise<string[]> {
@@ -121,6 +124,7 @@ function tilPublic(
     heightCm: a.height_cm ?? null,
     attributes: offentligeAttributter(a.attributes),
     modelAges: modellAlder?.get(a.id) ?? [],
+    tier: a.tier === 'star' || a.tier === 'pro' ? a.tier : 'new',
   }
 }
 

@@ -25,6 +25,9 @@ interface Actor {
   identity_confirmed_by?: string | null
   delivered_at?: string | null
   is_public?: boolean | null
+  // Nivå og vurdering (123)
+  tier?: 'new' | 'pro' | 'star' | null
+  intake_status?: 'pending' | 'accepted' | 'declined' | null
   // Identitetssjekken (102): {ok, sameCount, withFace, outliers[], duplicates[{actorId,name,similarity}]}
   identity_check?: { ok?: boolean; sameCount?: number; withFace?: number; outliers?: string[]; noFace?: string[]; duplicates?: Array<{ actorId: string; name?: string; similarity: number }> } | null
 }
@@ -397,6 +400,31 @@ export default function VoiceBankAdminPage() {
                   </div>
                 )}
 
+                {/* Vurderingskøen (123): nye ansikter som har meldt seg på
+                    selv. Ingen modell trenes og ingen profil publiseres før
+                    de er godtatt — så de skal ikke bli liggende her. */}
+                {actors.filter((a) => a.intake_status === 'pending').length > 0 && (
+                  <div style={{ border: '2px solid var(--ember-deep)', padding: 18, marginBottom: 8 }}>
+                    <h2 className="font-semibold text-gray-900 mb-1">
+                      {(() => { const n = actors.filter((a) => a.intake_status === 'pending').length; return n === 1 ? '1 venter på vurdering' : `${n} venter på vurdering` })()}
+                    </h2>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Nye ansikter som har meldt seg på selv. Se gjennom profil og bilder, og godta eller avslå før noe trenes.
+                    </p>
+                    <div className="space-y-2">
+                      {actors.filter((a) => a.intake_status === 'pending').map((a) => (
+                        <div key={a.id} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-3 flex flex-wrap items-center gap-3">
+                          <div className="flex-1 min-w-[240px] font-medium text-gray-900 text-sm">{a.name}</div>
+                          <Link href={`/dashboard/voice-bank/${a.id}`}
+                            className="flex-none px-3 py-1.5 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)]">
+                            Vurder →
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {applications.filter((a) => a.status === 'new').length > 0 && (
                   <div style={{ border: '2px solid var(--ember-deep)', padding: 18, marginBottom: 8 }}>
                     <h2 className="font-semibold text-gray-900 mb-3">
@@ -732,6 +760,17 @@ export default function VoiceBankAdminPage() {
                                     title={a.identity_check.duplicates!.map((d) => `${d.name || d.actorId} (${Math.round(d.similarity * 100)} %)`).join(', ')}>
                                     Mulig dublett: {a.identity_check.duplicates![0].name || 'annen rad'}
                                   </span>
+                                )}
+                                {a.tier && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-600">
+                                    {a.tier === 'star' ? 'Kjent navn' : a.tier === 'pro' ? 'Profesjonell' : 'Nytt ansikt'}
+                                  </span>
+                                )}
+                                {a.intake_status === 'pending' && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-amber-800">Venter på vurdering</span>
+                                )}
+                                {a.intake_status === 'declined' && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-red-300 bg-red-50 text-red-800">Avslått</span>
                                 )}
                                 {a.identity_basis === 'self_declared' && (
                                   <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-500" title="Bare en avkryssing gaar god for at personen finnes. Kan delta, men ikke publiseres foer byraa eller BankID (116).">

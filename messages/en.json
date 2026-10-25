@@ -1399,6 +1399,9 @@
     "deleteFailed": "Could not remove the film. Please try again."
   },
   "gallery": {
+    "tier_star": "Known names",
+    "tier_pro": "Professionals",
+    "tier_new": "New faces",
     "title": "Voices and faces",
     "meta_description": "Hear the voices and see the faces {tenant} manages. Real people, licensed use, paid every time.",
     "intro": "Real people who agreed that their voice or face may be used in your production — and who are paid every time it happens. Listen to the samples, and open the one you want to know more about.",
@@ -1701,6 +1704,9 @@
     "agency_invalid": "The link from the agency no longer works. You can still sign up, or ask the agency for a new link."
   },
   "myLedger": {
+    "intake_pending": "Your enrolment is being reviewed. Deliver your photos and recordings in the meantime — that is what we look at. We train no model and publish nothing until your enrolment is accepted.",
+    "intake_declined": "Your enrolment was not accepted. Your account and what you delivered have not been deleted.",
+    "intake_reason": "Reason: {reason}",
     "meta_title": "Your ledger — {tenant}",
     "header_label": "Your ledger",
     "account": "Account",
@@ -2565,5 +2571,30 @@
     "err_generic": "Something went wrong",
     "err_name": "The agency needs a name",
     "err_email": "The agency needs an email address"
+  },
+  "tierAdmin": {
+    "h": "Tier and review",
+    "hint": "The tier says who she is to customers. The review decides whether we train a model of her. No model is trained and no profile is published until the enrolment is accepted.",
+    "tier_label": "Tier",
+    "tier_new": "New face",
+    "tier_pro": "Professional",
+    "tier_star": "Known name",
+    "tier_new_note": "Enrolled on their own. The rate card suggests half rate. Own section in the gallery.",
+    "tier_pro_note": "Agency or documented career. The rate card as it stands. Main gallery.",
+    "tier_star_note": "By invitation only. Price is negotiated, and she approves each delivery when no other rule is set for the customer.",
+    "intake_pending": "Awaiting review",
+    "intake_accepted": "Enrolment accepted",
+    "intake_declined": "Enrolment declined",
+    "intake_pending_note": "Look through the profile and the photos she delivered. Training and publishing are blocked until the enrolment is accepted.",
+    "intake_decided": "By {who}, {date}",
+    "by_agency": "the agency",
+    "by_migration": "set before reviews existed",
+    "accept": "Accept",
+    "decline": "Decline",
+    "confirm_decline": "Decline the enrolment? The profile is taken down and no model can be trained. Her account and what she delivered remain.",
+    "note_label": "Reason (shown to her on her page)",
+    "note_ph": "For example: Too few or too similar photos to train a good model.",
+    "err_login": "Not signed in",
+    "err_generic": "Something went wrong"
   }
 }

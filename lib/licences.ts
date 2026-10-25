@@ -118,10 +118,25 @@ export function sjekkOppgjoersvalg(i: {
   return null
 }
 
+/**
+ * Nivåets faktor på kortets forslag (123): nye ansikter halv sats. Feiler
+ * oppslaget, er faktoren 1 — forslaget blir aldri lavere ved en feil.
+ */
+async function nivaaFaktor(actorId: string): Promise<number> {
+  try {
+    const { data } = await admin().from('voice_actors').select('tier').eq('id', actorId).maybeSingle()
+    const { prisFaktor } = await import('@/lib/nivaa')
+    return data ? prisFaktor((data as { tier?: string }).tier) : 1
+  } catch {
+    return 1
+  }
+}
+
 /** Listepris etter kortet, uten å lagre noe. Brukes til å forhåndsutfylle. */
 export async function foreslaaPris(i: LisensInput): Promise<{ card: RateCard; listeNok: number; honorarNok: number }> {
   const card = await hentTakstkort(i.tenantId)
-  const listeNok = i.kind === 'campaign'
+  const faktor = await nivaaFaktor(i.actorId)
+  const kortpris = i.kind === 'campaign'
     ? quoteCampaign(card, {
         asset: i.asset,
         mediaClass: (i.mediaClass || 'online') as MediaClass,
@@ -134,6 +149,7 @@ export async function foreslaaPris(i: LisensInput): Promise<{ card: RateCard; li
         productionTier: (i.productionTier || 'national') as ProductionTier,
         roleScope: (i.roleScope || 'supporting') as RoleScope,
       })
+  const listeNok = kr(kortpris * faktor)
   return { card, listeNok, honorarNok: foreslaattHonorar(card, listeNok) }
 }
 

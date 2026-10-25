@@ -25,6 +25,8 @@ interface Actor {
   enrolled: boolean; identityBasis: string | null; delivered: boolean
   identityConfirmedBy?: { kind: 'agency' | 'admin' | 'bankid'; name: string | null } | null
   isPublic?: boolean
+  // Nivå og vurdering (123)
+  tier?: 'new' | 'pro' | 'star'; intakeStatus?: 'pending' | 'accepted' | 'declined'; intakeNote?: string | null
   // Ansiktsmodellen (091): status + proevebildene hun svarte paa, signert 10 min
   faceModel: { status: string; approval: string | null; withdrawn: boolean; samples: string[] } | null
 }
@@ -166,6 +168,17 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 <p className="text-sm text-gray-600 mb-4">
                   Du er påmeldt. Det som gjenstår står under — ingenting publiseres før du har levert og vi har sett gjennom det sammen.
                 </p>
+                {/* Vurderingen (123): et nytt ansikt vurderes før vi trener
+                    noen modell. Hun kan levere i mellomtiden — det er det vi
+                    vurderer. Et avslag sier hvorfor, når vi har skrevet det. */}
+                {a.intakeStatus === 'pending' && (
+                  <p className="text-sm mb-4 text-amber-800">{t('intake_pending')}</p>
+                )}
+                {a.intakeStatus === 'declined' && (
+                  <p className="text-sm mb-4 text-red-700">
+                    {t('intake_declined')}{a.intakeNote ? ` ${t('intake_reason', { reason: a.intakeNote })}` : ''}
+                  </p>
+                )}
                 {/* Identiteten (116): avgjør om profilen KAN publiseres. Hun
                     skal vite det før hun lurer på hvorfor den ikke er det. */}
                 <p className={`text-sm mb-4 ${a.identityBasis === 'self_declared' ? 'text-amber-800' : 'text-gray-600'}`}>

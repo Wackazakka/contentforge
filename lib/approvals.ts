@@ -15,7 +15,8 @@ export interface ApprovalMode {
 }
 
 // Godkjenningsmodus for (skuespiller × kunde). Ingen rad = 'auto' (carte blanche,
-// = dagens oppførsel; byrået setter 'review' der skuespilleravtalen krever det).
+// = dagens oppførsel; byrået setter 'review' der skuespilleravtalen krever det)
+// — unntatt kjente navn, som får 'review' når ingen regel er satt (123).
 export async function getApprovalMode(actorId: string, organizationId: string): Promise<ApprovalMode> {
   try {
     // Voice Library-delte stemmer: åpen distribusjon er allerede samtykket —
@@ -29,6 +30,12 @@ export async function getApprovalMode(actorId: string, organizationId: string): 
       .eq('organization_id', organizationId)
       .single()
     if (data?.mode === 'review') return { mode: 'review', timeoutHours: Number(data.timeout_hours) || 24 }
+    if (data) return { mode: 'auto', timeoutHours: 24 }
+    // Ingen regel for denne kunden: nivået avgjør (123). Kjente navn får
+    // godkjenning per leveranse som standard; en uttrykkelig «auto» over står.
+    const { data: n } = await admin().from('voice_actors').select('tier').eq('id', actorId).maybeSingle()
+    const { standardGodkjenning } = await import('@/lib/nivaa')
+    if (standardGodkjenning((n as { tier?: string } | null)?.tier) === 'review') return { mode: 'review', timeoutHours: 24 }
     return { mode: 'auto', timeoutHours: 24 }
   } catch {
     return { mode: 'auto', timeoutHours: 24 }

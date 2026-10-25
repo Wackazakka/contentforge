@@ -85,6 +85,7 @@ export async function POST(request: Request) {
 
     // Byrålenken (116): nøkkelen sjekkes her, på serveren, før raden lages.
     const { byraaForNoekkel, byraaFelter, varsleByraa } = await import('@/lib/byraa')
+    const { paameldingsFelter } = await import('@/lib/nivaa')
     const byraa = b.agentToken ? await byraaForNoekkel(b.agentToken, tenant.id) : null
     if (b.agentToken && !byraa) {
       return NextResponse.json({ error: 'Lenken fra byrået virker ikke lenger. Be byrået om en ny, eller meld deg på uten.', code: 'AGENT_LINK_INVALID' }, { status: 400 })
@@ -108,6 +109,8 @@ export async function POST(request: Request) {
       consent_text: consentText, consent_at: naa, enrolled_at: naa,
       identity_basis: 'self_declared',
       ...(viaByraa || {}),
+      // Nivå og vurdering (123) — samme regel som /me.
+      ...paameldingsFelter(byraa && viaByraa ? { agentId: byraa.id } : null, naa),
     }).select('id').single()
     if (error) return NextResponse.json({ error: `Kunne ikke melde deg på (${error.message})` }, { status: 500 })
 

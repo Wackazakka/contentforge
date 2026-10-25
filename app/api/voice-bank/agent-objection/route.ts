@@ -15,7 +15,8 @@ import { erGyldigNoekkel } from '@/lib/identitet'
 //
 // Virkning: bekreftelsen trekkes (self_declared), koblingen til byrået
 // fjernes, og profilen tas ned. Den kan ikke publiseres igjen før identiteten
-// er bekreftet på en annen måte.
+// er bekreftet på en annen måte. Nivået går tilbake til nytt ansikt, og
+// påmeldingen må vurderes på nytt (123).
 
 function db() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', process.env.SUPABASE_SERVICE_ROLE_KEY || '')
@@ -24,9 +25,9 @@ function db() {
 async function hent(token: unknown) {
   if (!erGyldigNoekkel(token)) return null
   const { data } = await db().from('voice_actors')
-    .select('id, name, notes, talent_agent_id, talent_agents(name)')
+    .select('id, name, notes, tier, talent_agent_id, talent_agents(name)')
     .eq('agent_objection_token', token).maybeSingle()
-  return data as { id: string; name: string; notes: string | null; talent_agent_id: string | null; talent_agents: { name: string } | { name: string }[] | null } | null
+  return data as { id: string; name: string; notes: string | null; tier: string | null; talent_agent_id: string | null; talent_agents: { name: string } | { name: string }[] | null } | null
 }
 
 const byraaNavn = (r: NonNullable<Awaited<ReturnType<typeof hent>>>) =>
@@ -52,6 +53,10 @@ export async function POST(request: Request) {
       identity_confirmed_at: null,
       agent_objection_token: null,
       is_public: false,
+      // Byrået gikk god for henne; nå gjør det ikke det. Tilbake til nytt
+      // ansikt som venter på vurdering (123) — det er byrået som ga «pro».
+      // Et kjent navn er satt av oss, ikke av byrået, og røres ikke.
+      ...(r.tier === 'star' ? {} : { tier: 'new', intake_status: 'pending', intake_decided_at: null, intake_decided_by: null }),
       notes: [r.notes, `${byraaNavn(r) || 'Byrået'}: «ikke vår klient» ${dato}`].filter(Boolean).join(' · '),
     }).eq('id', r.id).eq('agent_objection_token', b.token)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -517,6 +517,25 @@ export async function PATCH(request: Request) {
       }
       patch.rates = clean
     }
+    // Nivå og vurdering (123). Bare her — nivået kan aldri komme fra
+    // påmeldingen utover «new» eller byrålenkens «pro». Et avslag tar
+    // profilen ned; kontoen og det hun har levert, blir stående.
+    if (body.tier !== undefined) {
+      const { erNivaa } = await import('@/lib/nivaa')
+      if (!erNivaa(body.tier)) return NextResponse.json({ error: 'Ukjent nivå' }, { status: 400 })
+      patch.tier = body.tier
+    }
+    if (body.intake !== undefined) {
+      const { erVurdering } = await import('@/lib/nivaa')
+      if (!erVurdering(body.intake)) return NextResponse.json({ error: 'Ukjent vurdering' }, { status: 400 })
+      patch.intake_status = body.intake
+      patch.intake_decided_at = body.intake === 'pending' ? null : new Date().toISOString()
+      patch.intake_decided_by = body.intake === 'pending' ? null : `admin:${g.email}`
+      if (body.intake !== 'accepted') patch.is_public = false
+    }
+    if (body.intakeNote !== undefined) {
+      patch.intake_note = body.intakeNote ? String(body.intakeNote).slice(0, 1000) : null
+    }
     // 🔑 SPERREN PÅ PUBLISERING (116). En selverklært profil — bare en
     // avkryssing går god for at personen finnes — publiseres ikke før
     // identiteten er bekreftet med BankID eller av et byrå. Adminen kan
@@ -527,6 +546,17 @@ export async function PATCH(request: Request) {
       const { data: id } = await admin().from('voice_actors')
         .select('identity_basis').eq('id', actorId).eq('owner_tenant_id', tenant.id).maybeSingle()
       const grunnlag = (id as { identity_basis?: string | null } | null)?.identity_basis ?? null
+      // Påmeldingen må være godtatt (123) — med mindre den godtas i samme
+      // kall. Eget oppslag, så identitetssjekken over står uansett.
+      const { data: vr } = await admin().from('voice_actors')
+        .select('intake_status').eq('id', actorId).eq('owner_tenant_id', tenant.id).maybeSingle()
+      const vurdering = (patch.intake_status as string | undefined) ?? (vr as { intake_status?: string | null } | null)?.intake_status ?? 'accepted'
+      if (patch.is_public === true && vurdering !== 'accepted') {
+        return NextResponse.json({
+          error: 'Påmeldingen er ikke godtatt ennå. Vurder den først — så kan profilen publiseres.',
+          code: 'INTAKE_NOT_ACCEPTED',
+        }, { status: 409 })
+      }
       if (body.vouchIdentity === true) {
         if (grunnlag !== 'self_declared') {
           return NextResponse.json({ error: 'Identiteten er alt bekreftet' }, { status: 409 })
@@ -556,6 +586,9 @@ export async function PATCH(request: Request) {
     // Basen stoppet publiseringen (et kappløp med en annen endring) — samme svar.
     if (error && /IDENTITY_UNCONFIRMED|bekreftet med BankID/.test(`${error.hint || ''} ${error.message}`)) {
       return NextResponse.json({ error: error.message, code: 'IDENTITY_UNCONFIRMED' }, { status: 409 })
+    }
+    if (error && /INTAKE_NOT_ACCEPTED/.test(`${error.hint || ''} ${error.message}`)) {
+      return NextResponse.json({ error: error.message, code: 'INTAKE_NOT_ACCEPTED' }, { status: 409 })
     }
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     if (!data || data.length === 0) return NextResponse.json({ error: 'Skuespilleren finnes ikke i denne banken' }, { status: 404 })

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import CastingFelt from './CastingFelt'
 import AldersmodellerPanel from '@/components/AldersmodellerPanel'
+import NivaaPanel from '@/components/NivaaPanel'
 import { useParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
 
@@ -32,6 +33,12 @@ interface ActorDetail {
   identity_basis?: 'self_declared' | 'vouched' | 'bankid' | null
   identity_confirmed_by?: string | null
   identity_confirmed_at?: string | null
+  // Nivå og vurdering (123)
+  tier?: 'new' | 'pro' | 'star' | null
+  intake_status?: 'pending' | 'accepted' | 'declined' | null
+  intake_decided_at?: string | null
+  intake_decided_by?: string | null
+  intake_note?: string | null
   bio: string | null
   photo_urls: string[]
   sample_urls: string[]
@@ -857,6 +864,13 @@ export default function VoiceActorPage() {
 
             {/* Presentasjonsside */}
             <h2 className="font-semibold text-gray-900 mb-3">{t('pub_h2')}</h2>
+            {/* Nivå og vurdering (123) — står over publiseringen, fordi en
+                påmelding må være godtatt før profilen kan publiseres. */}
+            {actor.intake_status && (
+              <NivaaPanel actorId={actorId} tier={actor.tier || 'new'} intake={actor.intake_status}
+                decidedBy={actor.intake_decided_by ?? null} decidedAt={actor.intake_decided_at ?? null}
+                note={actor.intake_note ?? null} onEndret={refresh} />
+            )}
             <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div>

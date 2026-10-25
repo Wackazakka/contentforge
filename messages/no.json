@@ -1399,6 +1399,9 @@
     "deleteFailed": "Kunne ikke fjerne filmen. Prøv igjen."
   },
   "gallery": {
+    "tier_star": "Kjente navn",
+    "tier_pro": "Profesjonelle",
+    "tier_new": "Nye ansikter",
     "title": "Stemmer og ansikter",
     "meta_description": "Hør stemmene og se ansiktene {tenant} forvalter. Ekte mennesker, lisensiert bruk, betalt for hver gang.",
     "intro": "Ekte mennesker som har sagt ja til at stemmen eller ansiktet deres kan brukes i din produksjon — og som får betalt hver gang det skjer. Hør prøvene, og gå inn på den du vil vite mer om.",
@@ -1701,6 +1704,9 @@
     "agency_invalid": "Lenken fra byrået virker ikke lenger. Du kan melde deg på likevel, eller be byrået om en ny lenke."
   },
   "myLedger": {
+    "intake_pending": "Påmeldingen din vurderes. Lever bildene og opptakene dine i mellomtiden — det er dem vi ser på. Vi trener ingen modell og publiserer ingenting før påmeldingen er godtatt.",
+    "intake_declined": "Påmeldingen din ble ikke godtatt. Kontoen og det du har levert, er ikke slettet.",
+    "intake_reason": "Begrunnelse: {reason}",
     "meta_title": "Din hovedbok — {tenant}",
     "header_label": "Din hovedbok",
     "account": "Konto",
@@ -2565,5 +2571,30 @@
     "err_generic": "Noe gikk galt",
     "err_name": "Byrået må ha et navn",
     "err_email": "Byrået trenger en e-postadresse"
+  },
+  "tierAdmin": {
+    "h": "Nivå og vurdering",
+    "hint": "Nivået sier hvem hun er for kunden. Vurderingen avgjør om vi trener en modell av henne. Ingen modell trenes og ingen profil publiseres før påmeldingen er godtatt.",
+    "tier_label": "Nivå",
+    "tier_new": "Nytt ansikt",
+    "tier_pro": "Profesjonell",
+    "tier_star": "Kjent navn",
+    "tier_new_note": "Meldte seg på selv. Takstkortet foreslår halv sats. Egen seksjon i galleriet.",
+    "tier_pro_note": "Byrå eller dokumentert karriere. Takstkortet som det står. Hovedgalleriet.",
+    "tier_star_note": "Bare på invitasjon. Prisen forhandles, og hver leveranse godkjennes av henne når ingen annen regel er satt for kunden.",
+    "intake_pending": "Venter på vurdering",
+    "intake_accepted": "Påmeldingen er godtatt",
+    "intake_declined": "Påmeldingen er avslått",
+    "intake_pending_note": "Se gjennom profilen og bildene hun har levert. Trening og publisering er sperret til påmeldingen er godtatt.",
+    "intake_decided": "Av {who}, {date}",
+    "by_agency": "byrået",
+    "by_migration": "innført før vurderingen fantes",
+    "accept": "Godta",
+    "decline": "Avslå",
+    "confirm_decline": "Avslå påmeldingen? Profilen tas ned, og det kan ikke trenes noen modell. Kontoen og det hun har levert, blir stående.",
+    "note_label": "Begrunnelse (vises for henne på hennes side)",
+    "note_ph": "For eksempel: Bildene er for få eller for like til å trene en god modell.",
+    "err_login": "Ikke innlogget",
+    "err_generic": "Noe gikk galt"
   }
 }

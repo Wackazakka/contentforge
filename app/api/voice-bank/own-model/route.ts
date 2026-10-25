@@ -36,6 +36,7 @@ function admin() {
 type Aktoer = {
   id: string; name: string; actor_email: string | null; owner_tenant_id: string
   wants_face: boolean | null; face_character_id: string | null; face_embedding: unknown
+  intake?: string
 }
 
 async function hentEgen(request: Request, actorId: string): Promise<{ a: Aktoer; userId: string } | NextResponse> {
@@ -49,10 +50,17 @@ async function hentEgen(request: Request, actorId: string): Promise<{ a: Aktoer;
     .select('id, name, actor_email, owner_tenant_id, wants_face, face_character_id, face_embedding')
     .eq('id', actorId).ilike('actor_email', likeSafe(epost)).eq('owner_tenant_id', tenant.id).maybeSingle()
   if (!data) return NextResponse.json({ error: 'Fant ikke profilen din' }, { status: 404 })
-  return { a: data as Aktoer, userId: u.user.id }
+  // Vurderingen (123), i eget oppslag: mangler kolonnen, står resten.
+  const { data: v } = await admin().from('voice_actors').select('intake_status').eq('id', (data as Aktoer).id).maybeSingle()
+  const intake = (v as { intake_status?: string } | null)?.intake_status ?? 'accepted'
+  return { a: { ...(data as Aktoer), intake }, userId: u.user.id }
 }
 
-const kanLasteOpp = (a: Aktoer) => !!a.face_embedding
+// Egen modell krever levert bilder (vi sjekker modellen mot dem) og en
+// godtatt påmelding (123) — samme port som trening.
+const ikkeGodtatt = 'Påmeldingen din er ikke vurdert ennå. Du kan laste opp modellen når den er godtatt.'
+const kanLasteOpp = (a: Aktoer) => !!a.face_embedding && a.intake === 'accepted'
+const hindring = (a: Aktoer) => a.intake !== 'accepted' ? ikkeGodtatt : 'Last opp bildene dine først — vi sjekker modellen mot dem.'
 
 async function status(a: Aktoer) {
   const { data } = await admin().from('user_characters')
@@ -61,7 +69,7 @@ async function status(a: Aktoer) {
     .like('trainer', 'egen:%').order('created_at', { ascending: false }).limit(10)
   return {
     eligible: kanLasteOpp(a),
-    reason: kanLasteOpp(a) ? null : 'Last opp bildene dine først — vi sjekker modellen mot dem.',
+    reason: kanLasteOpp(a) ? null : hindring(a),
     maxMb: MAKS_MB,
     declaration: MODELL_ERKLAERING,
     hasFace: !!a.face_character_id,
@@ -84,7 +92,7 @@ export async function POST(request: Request) {
     const r = await hentEgen(request, String(b.actorId || ''))
     if (r instanceof NextResponse) return r
     const { a, userId } = r
-    if (!kanLasteOpp(a)) return NextResponse.json({ error: 'Last opp bildene dine først — vi sjekker modellen mot dem.' }, { status: 409 })
+    if (!kanLasteOpp(a)) return NextResponse.json({ error: hindring(a) }, { status: 409 })
     const mappe = `models/${a.id}`
 
     if (b.handling === 'lenke') {

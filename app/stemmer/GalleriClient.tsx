@@ -7,6 +7,7 @@ import { useCastingFiltre, useKandidatlinje } from '@/components/CastingFiltre'
 import CastingSidebar from '@/components/CastingSidebar'
 import { OFFENTLIGE_FASETTER, type Kandidat } from '@/lib/castingAttributes'
 import type { PublicActor } from '@/lib/publicActors'
+import { GALLERI_REKKEFOLGE } from '@/lib/nivaa'
 
 // Katalogen (Claude Design 5A, 21.09.2026).
 //
@@ -83,6 +84,69 @@ export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
     el.play().catch(() => setSpiller(null))
   }
 
+  // Nivåene (123): kjente navn, profesjonelle og nye ansikter i hver sin
+  // seksjon — et reklamebyrå som vil ha vanlige folk, skal ikke måtte bla
+  // forbi kjente skuespillere. Står alle på samme nivå, er det ingen seksjoner.
+  const seksjoner = useMemo(
+    () => GALLERI_REKKEFOLGE.map((n) => ({ nivaa: n, aktorer: synlige.filter((a) => a.tier === n) })).filter((x) => x.aktorer.length > 0),
+    [synlige])
+  const delt = seksjoner.length > 1
+
+  const kort = (a: PublicActor) => {
+    const erPaa = spiller === a.id
+    const under = linje(somKandidat(a))
+    return (
+      <article key={a.id} className="gal-card">
+        <Link href={`/stemme/${a.id}`} style={{ display: 'block' }} aria-label={a.name}>
+          {a.photos[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            // object-top: i en castingkatalog ER ansiktet varen, og
+            // en sentrert 4:3-beskjæring kapper det bort.
+            <img src={a.photos[0]} alt={a.name} loading="lazy" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', objectPosition: 'top', display: 'block' }} />
+          ) : (
+            <div style={{ aspectRatio: '4/3', background: '#E4E4E0', display: 'flex', alignItems: 'flex-end', padding: 12 }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>{tc('portrait')}</span>
+            </div>
+          )}
+        </Link>
+        <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h3 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 17, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
+            <Link href={`/stemme/${a.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{a.name}</Link>
+          </h3>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {a.isDemo && <Merke nøytral>{t('chip_example')}</Merke>}
+            {a.hasVoice && <Merke>{t('chip_voice')}</Merke>}
+            {a.hasFace && <Merke>{t('chip_face')}</Merke>}
+          </div>
+          {under && <p style={{ fontSize: 13.5, color: 'var(--text-muted)', margin: 0 }}>{under}</p>}
+
+          {/* Avspilling i kortet: en regissør skal kunne høre
+              stemmen uten å åpne profilen. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, paddingTop: 12, borderTop: '1px solid var(--ds-border)' }}>
+            <button className="gal-play" onClick={() => toggle(a)} disabled={!a.samples[0]}
+              aria-pressed={erPaa} aria-label={a.samples[0] ? (erPaa ? t('stop') : t('play')) : t('no_sample')}>
+              <span aria-hidden="true">{erPaa ? '■' : '▶'}</span>
+            </button>
+            {a.samples[0] ? (
+              <>
+                <span style={{ display: 'flex', alignItems: 'flex-end', gap: 2.5, height: 18, flex: 1 }} aria-hidden="true">
+                  {BOLGE.map((h, i) => (
+                    <span key={i} style={{ width: 2.5, height: `${h}%`, background: erPaa ? 'var(--ember-deep)' : 'var(--ds-border-strong)' }} />
+                  ))}
+                </span>
+                <Link href={`/stemme/${a.id}`} style={{ fontFamily: MONO, fontSize: 11, color: 'var(--ember-deep)', textDecoration: 'none', flex: 'none' }}>
+                  {t('see_more')}
+                </Link>
+              </>
+            ) : (
+              <span style={{ fontSize: 12.5, color: 'var(--text-faint)' }}>{t('no_sample')}</span>
+            )}
+          </div>
+        </div>
+      </article>
+    )
+  }
+
   const visAktiva = antall.stemme > 0 && antall.ansikt > 0 && (antall.stemme < antall.alle || antall.ansikt < antall.alle)
 
   // Har ingen fylt castingfelt, har kolonnen ingenting å vise. Da sier vi det
@@ -151,62 +215,18 @@ export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
           {synlige.length === 0 ? (
             <p style={{ color: 'var(--ink-soft)', marginTop: 24 }}>{tc('no_hits_body')}</p>
           ) : (
+            delt ? seksjoner.map((sek) => (
+              <section key={sek.nivaa} style={{ marginTop: 28 }}>
+                <h2 style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)', margin: 0 }}>
+                  {t(`tier_${sek.nivaa}`)} <span style={{ opacity: 0.7 }}>{sek.aktorer.length}</span>
+                </h2>
+                <div className="gal-grid" style={{ marginTop: 14 }}>{sek.aktorer.map(kort)}</div>
+              </section>
+            )) : (
             <div className="gal-grid">
-              {synlige.map((a) => {
-                const erPaa = spiller === a.id
-                const under = linje(somKandidat(a))
-                return (
-                  <article key={a.id} className="gal-card">
-                    <Link href={`/stemme/${a.id}`} style={{ display: 'block' }} aria-label={a.name}>
-                      {a.photos[0] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        // object-top: i en castingkatalog ER ansiktet varen, og
-                        // en sentrert 4:3-beskjæring kapper det bort.
-                        <img src={a.photos[0]} alt={a.name} loading="lazy" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', objectPosition: 'top', display: 'block' }} />
-                      ) : (
-                        <div style={{ aspectRatio: '4/3', background: '#E4E4E0', display: 'flex', alignItems: 'flex-end', padding: 12 }}>
-                          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>{tc('portrait')}</span>
-                        </div>
-                      )}
-                    </Link>
-                    <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <h3 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 17, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
-                        <Link href={`/stemme/${a.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{a.name}</Link>
-                      </h3>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {a.isDemo && <Merke nøytral>{t('chip_example')}</Merke>}
-                        {a.hasVoice && <Merke>{t('chip_voice')}</Merke>}
-                        {a.hasFace && <Merke>{t('chip_face')}</Merke>}
-                      </div>
-                      {under && <p style={{ fontSize: 13.5, color: 'var(--text-muted)', margin: 0 }}>{under}</p>}
-
-                      {/* Avspilling i kortet: en regissør skal kunne høre
-                          stemmen uten å åpne profilen. */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, paddingTop: 12, borderTop: '1px solid var(--ds-border)' }}>
-                        <button className="gal-play" onClick={() => toggle(a)} disabled={!a.samples[0]}
-                          aria-pressed={erPaa} aria-label={a.samples[0] ? (erPaa ? t('stop') : t('play')) : t('no_sample')}>
-                          <span aria-hidden="true">{erPaa ? '■' : '▶'}</span>
-                        </button>
-                        {a.samples[0] ? (
-                          <>
-                            <span style={{ display: 'flex', alignItems: 'flex-end', gap: 2.5, height: 18, flex: 1 }} aria-hidden="true">
-                              {BOLGE.map((h, i) => (
-                                <span key={i} style={{ width: 2.5, height: `${h}%`, background: erPaa ? 'var(--ember-deep)' : 'var(--ds-border-strong)' }} />
-                              ))}
-                            </span>
-                            <Link href={`/stemme/${a.id}`} style={{ fontFamily: MONO, fontSize: 11, color: 'var(--ember-deep)', textDecoration: 'none', flex: 'none' }}>
-                              {t('see_more')}
-                            </Link>
-                          </>
-                        ) : (
-                          <span style={{ fontSize: 12.5, color: 'var(--text-faint)' }}>{t('no_sample')}</span>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                )
-              })}
+              {synlige.map(kort)}
             </div>
+            )
           )}
         </div>
       </div>
