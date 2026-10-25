@@ -98,6 +98,8 @@ export default function VoiceBankAdminPage() {
   // Lisensforespoersler fra kunder (090). Staar ved siden av soeknadskoeen
   // fordi begge er noen som venter paa svar fra OSS -- og en forespoersel
   // ingen ser, er en kunde som tror hen ble oversett.
+  // Hovedbokens kjede (118): rader, brudd og rotverdien.
+  const [hovedbok, setHovedbok] = useState<{ rows: number; breaks: number; unchained: number; firstBreak: number | null; root: string | null; intact: boolean } | null>(null)
   const [lisensKo, setLisensKo] = useState<Array<{ id: string; actor_id: string; asset_type: string; media_class: string; territory: string; term_months: number; exclusivity: string; note: string | null; requested_email: string | null; created_at: string }>>([])
   const [acceptApps, setAcceptApps] = useState(false)
   const [appsMigrated, setAppsMigrated] = useState(true)
@@ -185,6 +187,11 @@ export default function VoiceBankAdminPage() {
         const ldata = await lres.json()
         if (lres.ok) setLisensKo((ldata.requests || []).filter((r: { status: string }) => r.status === 'open'))
       } catch { /* lisenskøen er tilleggsinfo, ikke krav */ }
+      try {
+        // Hovedbokens kjede (118) — bare på TwinLedgers egen dør; ellers 404 og ingen linje.
+        const hres = await authedFetchTo('/api/voice-bank/ledger')
+        if (hres.ok) setHovedbok(await hres.json())
+      } catch { /* kontrollen er tilleggsinfo */ }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -532,6 +539,17 @@ export default function VoiceBankAdminPage() {
                 className="ml-0 sm:ml-6 mt-2 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 hover:border-[var(--ember-deep)] text-gray-800">
                 {t('agencies_link')}
               </Link>
+              {/* Hovedbokens kjede (118). Rotverdien er siste fingeravtrykk —
+                  den avhenger av hver rad før den, og er det som skal
+                  deponeres hos en tredjepart. */}
+              {hovedbok && (
+                <p className={`text-xs mt-3 break-all ${hovedbok.intact ? 'text-gray-500' : 'text-red-700 font-semibold'}`}
+                  title={hovedbok.root ? t('ledger_root_title', { root: hovedbok.root }) : undefined}>
+                  {hovedbok.intact
+                    ? t('ledger_intact', { n: hovedbok.rows, root: (hovedbok.root || '').slice(0, 12) })
+                    : t('ledger_broken', { breaks: hovedbok.breaks, first: hovedbok.firstBreak ?? '—', unchained: hovedbok.unchained })}
+                </p>
+              )}
             </div>
 
             {/* Skuespillere */}

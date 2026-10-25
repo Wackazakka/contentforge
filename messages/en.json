@@ -1984,7 +1984,10 @@
     "assets_both": "Voice, face",
     "assets_voice": "Voice",
     "assets_face": "Face",
-    "agencies_link": "Agencies and sign-up links"
+    "agencies_link": "Agencies and sign-up links",
+    "ledger_intact": "Ledger: {n} rows in the chain, no breaks · root {root}…",
+    "ledger_broken": "Ledger: {breaks} breaks in the chain, first at row {first} · {unchained} rows outside the chain. Investigate before the next settlement.",
+    "ledger_root_title": "Root value (latest fingerprint): {root}"
   },
   "actorAdmin": {
     "back": "← The bank",

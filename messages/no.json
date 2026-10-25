@@ -1984,7 +1984,10 @@
     "assets_both": "Stemme, ansikt",
     "assets_voice": "Stemme",
     "assets_face": "Ansikt",
-    "agencies_link": "Byråer og påmeldingslenker"
+    "agencies_link": "Byråer og påmeldingslenker",
+    "ledger_intact": "Hovedboken: {n} rader i kjeden, ingen brudd · rotverdi {root}…",
+    "ledger_broken": "Hovedboken: {breaks} brudd i kjeden, første i rad {first} · {unchained} rader uten kjede. Undersøk før neste avregning.",
+    "ledger_root_title": "Rotverdi (siste fingeravtrykk): {root}"
   },
   "actorAdmin": {
     "back": "← Stemmebanken",
