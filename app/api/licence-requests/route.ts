@@ -23,11 +23,16 @@ function admin() {
   )
 }
 
-const LOVLIG = {
-  asset_type: ['voice', 'face', 'both'],
+const LOVLIG_KAMPANJE = {
   media_class: ['internal', 'online', 'broadcast'],
   territory: ['no', 'nordic', 'world'],
   exclusivity: ['none', 'category', 'full'],
+} as const
+const LOVLIG_ASSET = ['voice', 'face', 'both'] as const
+// Verkets akser (078): samme verdier som takstkortet i lib/rateCard.ts.
+const LOVLIG_VERK = {
+  production_tier: ['short', 'national', 'major', 'international'],
+  role_scope: ['line', 'supporting', 'lead'],
 } as const
 
 /** Hvem spør? E-post og id fra verifisert JWT — aldri fra klientdata. */
@@ -122,14 +127,28 @@ export async function POST(request: Request) {
     const actorId = String(b.actorId || '')
     if (!actorId) return NextResponse.json({ error: 'Mangler actorId' }, { status: 400 })
 
-    for (const [felt, lovlige] of Object.entries(LOVLIG)) {
-      const v = b[felt.replace(/_(.)/g, (_, c) => c.toUpperCase())]
-      if (!(lovlige as readonly string[]).includes(v)) {
-        return NextResponse.json({ error: `Ugyldig eller manglende verdi for ${felt}` }, { status: 400 })
-      }
+    // 🔑 ÉN FORESPØRSEL PER PRODUKSJON (124). Kampanje eller verk, med navn —
+    // så samme kunde kan be om samme skuespiller til en reklame og en film
+    // samtidig, mens et dobbeltklikk på samme produksjon fortsatt stoppes.
+    const kind: 'campaign' | 'work' = b.kind === 'work' ? 'work' : 'campaign'
+    const tittel = String(b.productionTitle || '').trim().slice(0, 200)
+    if (!tittel) {
+      return NextResponse.json({ error: kind === 'work' ? 'Skriv tittelen på verket' : 'Gi kampanjen et navn', code: 'TITLE_REQUIRED' }, { status: 400 })
     }
-    const termMonths = Number(b.termMonths)
-    if (![3, 12, 0].includes(termMonths)) {
+    if (!(LOVLIG_ASSET as readonly string[]).includes(b.assetType)) {
+      return NextResponse.json({ error: 'Ugyldig eller manglende verdi for asset_type' }, { status: 400 })
+    }
+    const sjekk = (akser: Record<string, readonly string[]>) => {
+      for (const [felt, lovlige] of Object.entries(akser)) {
+        const v = b[felt.replace(/_(.)/g, (_, c) => c.toUpperCase())]
+        if (!lovlige.includes(v)) return felt
+      }
+      return null
+    }
+    const feilFelt = kind === 'campaign' ? sjekk(LOVLIG_KAMPANJE) : sjekk(LOVLIG_VERK)
+    if (feilFelt) return NextResponse.json({ error: `Ugyldig eller manglende verdi for ${feilFelt}` }, { status: 400 })
+    const termMonths = kind === 'campaign' ? Number(b.termMonths) : null
+    if (kind === 'campaign' && ![3, 12, 0].includes(termMonths as number)) {
       return NextResponse.json({ error: 'Ugyldig periode' }, { status: 400 })
     }
 
@@ -152,20 +171,24 @@ export async function POST(request: Request) {
       requested_by: bruker.id,
       requested_email: bruker.email,
       asset_type: b.assetType,
-      media_class: b.mediaClass,
-      territory: b.territory,
+      kind,
+      production_title: tittel,
+      media_class: kind === 'campaign' ? b.mediaClass : null,
+      territory: kind === 'campaign' ? b.territory : null,
       term_months: termMonths,
-      exclusivity: b.exclusivity,
+      exclusivity: kind === 'campaign' ? b.exclusivity : null,
+      production_tier: kind === 'work' ? b.productionTier : null,
+      role_scope: kind === 'work' ? b.roleScope : null,
       note: b.note ? String(b.note).slice(0, 2000) : null,
     }).select('id').single()
 
     if (error) {
-      // Den unike indeksen på (actor, org) der status='open'. Å svare «finnes
-      // allerede» er riktigere enn å lage duplikat nummer fem: kunden har
-      // spurt, og det som mangler er vårt svar — ikke enda et spørsmål.
+      // Den unike indeksen på (actor, org, type, produksjon) der status='open'
+      // (124). Å svare «finnes allerede» er riktigere enn å lage duplikat
+      // nummer fem: kunden har spurt, og det som mangler er vårt svar.
       if (String(error.code) === '23505') {
         return NextResponse.json(
-          { error: 'Dere har allerede en åpen forespørsel på denne rettighetshaveren. Vi svarer på den.', code: 'ALREADY_OPEN' },
+          { error: `Dere har allerede en åpen forespørsel på denne rettighetshaveren for «${tittel}». Vi svarer på den.`, code: 'ALREADY_OPEN' },
           { status: 409 }
         )
       }
@@ -185,7 +208,9 @@ export async function POST(request: Request) {
       actorId,
       actorName: actor.name,
       kundeEpost: bruker.email,
-      akser: `${b.assetType} · ${b.mediaClass} · ${b.territory} · ${termMonths === 0 ? 'uten sluttdato' : `${termMonths} mnd`} · eksklusivitet: ${b.exclusivity}`,
+      akser: kind === 'work'
+        ? `Verk «${tittel}» · ${b.assetType} · ${b.productionTier} · ${b.roleScope}`
+        : `Kampanje «${tittel}» · ${b.assetType} · ${b.mediaClass} · ${b.territory} · ${termMonths === 0 ? 'uten sluttdato' : `${termMonths} mnd`} · eksklusivitet: ${b.exclusivity}`,
       note: b.note ? String(b.note).slice(0, 500) : null,
     }).catch(() => { /* se over */ })
 
@@ -211,7 +236,7 @@ export async function GET(request: Request) {
 
     let q = admin()
       .from('licence_requests')
-      .select('id, actor_id, asset_type, media_class, territory, term_months, exclusivity, note, status, created_at, requested_email, organization_id')
+      .select('id, actor_id, asset_type, kind, production_title, production_tier, role_scope, media_class, territory, term_months, exclusivity, note, status, created_at, requested_email, organization_id')
       .order('created_at', { ascending: false })
       .limit(200)
 

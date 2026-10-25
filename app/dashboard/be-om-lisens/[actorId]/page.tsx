@@ -60,16 +60,41 @@ const PERIODER: Array<[number, string]> = [
   [0, 'Uten sluttdato'],
 ]
 
+// Verkets akser (078/124) — de samme takstkortet priser verk etter.
+const VERK_AKSER = {
+  productionTier: {
+    etikett: 'Hva slags produksjon',
+    valg: [
+      ['short', 'Kortfilm eller studentproduksjon'],
+      ['national', 'Norsk film, serie eller spill'],
+      ['major', 'Stor nordisk produksjon'],
+      ['international', 'Internasjonal produksjon'],
+    ],
+  },
+  roleScope: {
+    etikett: 'Hvor stor er rollen',
+    valg: [
+      ['line', 'Replikk eller kort innslag'],
+      ['supporting', 'Birolle'],
+      ['lead', 'Hovedrolle'],
+    ],
+  },
+} as const
+
 type Svar = { assetType: string; mediaClass: string; territory: string; exclusivity: string }
+type VerkSvar = { productionTier: string; roleScope: string }
+type Type = 'campaign' | 'work'
 
 interface Forespoersel {
   id: string
   actor_id: string
   asset_type: string
-  media_class: string
-  territory: string
-  term_months: number
-  exclusivity: string
+  kind?: Type | null
+  production_title?: string | null
+  media_class: string | null
+  territory: string | null
+  term_months: number | null
+  exclusivity: string | null
   status: string
   created_at: string
 }
@@ -81,13 +106,18 @@ export default function BeOmLisensPage() {
   const [tlid, setTlid] = useState<string | null>(null)
   const [svar, setSvar] = useState<Svar>({ assetType: 'voice', mediaClass: 'online', territory: 'no', exclusivity: 'none' })
   const [termMonths, setTermMonths] = useState(12)
+  // Én forespørsel per produksjon (124): type og navn skiller dem.
+  const [type, setType] = useState<Type>('campaign')
+  const [tittel, setTittel] = useState('')
+  const [verk, setVerk] = useState<VerkSvar>({ productionTier: 'national', roleScope: 'supporting' })
   const [note, setNote] = useState('')
   const [mine, setMine] = useState<Forespoersel[]>([])
   // Admin ser en snarvei inn i banken: samme doer betjener begge roller, og
   // produksjonsflaten slipper to ekstra nettverkskall for aa vite hvem som ser.
   const [erAdmin, setErAdmin] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [sendt, setSendt] = useState(false)
+  // Navnet på produksjonen som sist ble sendt — skjemaet står åpent for neste.
+  const [sendt, setSendt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const headers = useCallback(async (): Promise<Record<string, string>> => {
@@ -114,16 +144,21 @@ export default function BeOmLisensPage() {
   useEffect(() => { hent() }, [hent])
 
   const send = async () => {
-    setError(null); setBusy(true)
+    setError(null)
+    if (!tittel.trim()) { setError(type === 'work' ? 'Skriv tittelen på verket.' : 'Gi kampanjen et navn.'); return }
+    setBusy(true)
     try {
       const res = await fetch('/api/licence-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await headers()) },
-        body: JSON.stringify({ actorId, ...svar, termMonths, note: note || null }),
+        body: JSON.stringify(type === 'work'
+          ? { actorId, kind: 'work', productionTitle: tittel, assetType: svar.assetType, ...verk, note: note || null }
+          : { actorId, kind: 'campaign', productionTitle: tittel, ...svar, termMonths, note: note || null }),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || 'Forespørselen kom ikke fram')
-      setSendt(true)
+      setSendt(tittel.trim())
+      setTittel(''); setNote('')
       await hent()
     } catch (e: any) {
       setError(e.message)
@@ -132,7 +167,6 @@ export default function BeOmLisensPage() {
     }
   }
 
-  const aapen = mine.find((m) => m.status === 'open')
 
   return (
     <div className="min-h-screen bg-[var(--paper)]">
@@ -160,23 +194,38 @@ export default function BeOmLisensPage() {
           </div>
         )}
 
-        {(sendt || aapen) && (
+        {sendt && (
           <div className="mb-8 p-4 rounded-lg" style={{ background: 'var(--ember-tint-bg)', border: '2px solid var(--ember-deep)' }}>
             <p className="text-sm text-gray-900 m-0">
-              <strong>Forespørselen er mottatt.</strong> Vi kommer tilbake med et tilbud på
-              bruksretten. Fram til den er på plass er produksjon med denne rettighetshaveren stengt.
+              <strong>Forespørselen om «{sendt}» er mottatt.</strong> Vi kommer tilbake med et tilbud på
+              bruksretten. Trenger dere samme rettighetshaver i en annen produksjon, kan dere sende en ny forespørsel under.
             </p>
-            {aapen && (
-              <p className="text-xs text-gray-600 mt-2 mb-0">
-                Sendt {new Date(aapen.created_at).toLocaleDateString('nb-NO')}.
-              </p>
-            )}
           </div>
         )}
 
-        {!aapen && !sendt && (
+        {(
           <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
-            {(Object.entries(AKSER) as Array<[keyof Svar, typeof AKSER[keyof typeof AKSER]]>).map(([felt, spec]) => (
+            <fieldset className="mb-5">
+              <legend className="text-sm font-medium text-gray-700 mb-2">Hva slags bruk</legend>
+              {([['campaign', 'Kampanje — reklame og markedsføring, for en periode'], ['work', 'Verk — film, serie, spill eller lydbok']] as Array<[Type, string]>).map(([v, tekst]) => (
+                <label key={v} className="flex items-start gap-2 mb-1.5 text-sm text-gray-700 cursor-pointer">
+                  <input type="radio" name="type" checked={type === v} onChange={() => setType(v)} className="mt-0.5 h-4 w-4" />
+                  <span>{tekst}</span>
+                </label>
+              ))}
+            </fieldset>
+
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {type === 'work' ? 'Tittelen på verket' : 'Navnet på kampanjen'}
+            </label>
+            <input value={tittel} onChange={(e) => setTittel(e.target.value)} maxLength={200}
+              placeholder={type === 'work' ? 'F.eks. «Fjellet» (arbeidstittel)' : 'F.eks. «Vårkampanje 2027»'}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-1" />
+            <p className="text-xs text-gray-400 mb-5">
+              Én forespørsel per produksjon. Navnet skiller dem, så dere kan be om samme rettighetshaver til flere.
+            </p>
+
+            {(Object.entries(AKSER).filter(([felt]) => type === 'campaign' || felt === 'assetType') as Array<[keyof Svar, typeof AKSER[keyof typeof AKSER]]>).map(([felt, spec]) => (
               <fieldset key={felt} className="mb-5">
                 <legend className="text-sm font-medium text-gray-700 mb-2">{spec.etikett}</legend>
                 {spec.valg.map(([verdi, tekst]) => (
@@ -189,6 +238,7 @@ export default function BeOmLisensPage() {
               </fieldset>
             ))}
 
+            {type === 'campaign' ? (
             <fieldset className="mb-5">
               <legend className="text-sm font-medium text-gray-700 mb-2">Hvor lenge</legend>
               {PERIODER.map(([v, tekst]) => (
@@ -199,6 +249,20 @@ export default function BeOmLisensPage() {
                 </label>
               ))}
             </fieldset>
+            ) : (
+              (Object.entries(VERK_AKSER) as Array<[keyof VerkSvar, typeof VERK_AKSER[keyof typeof VERK_AKSER]]>).map(([felt, spec]) => (
+                <fieldset key={felt} className="mb-5">
+                  <legend className="text-sm font-medium text-gray-700 mb-2">{spec.etikett}</legend>
+                  {spec.valg.map(([verdi, tekst]) => (
+                    <label key={verdi} className="flex items-start gap-2 mb-1.5 text-sm text-gray-700 cursor-pointer">
+                      <input type="radio" name={felt} checked={verk[felt] === verdi}
+                        onChange={() => setVerk((s) => ({ ...s, [felt]: verdi }))} className="mt-0.5 h-4 w-4" />
+                      <span>{tekst}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              ))
+            )}
 
             <label className="block text-sm font-medium text-gray-700 mb-1">Hva skal det brukes til? (valgfritt)</label>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3}
@@ -224,7 +288,8 @@ export default function BeOmLisensPage() {
               {mine.map((m) => (
                 <div key={m.id} className="flex items-center justify-between bg-[var(--paper-raised)] border border-gray-200 rounded-lg px-4 py-3">
                   <div className="text-sm text-gray-700">
-                    {new Date(m.created_at).toLocaleDateString('nb-NO')} — {m.media_class} · {m.territory} · {m.term_months === 0 ? 'uten sluttdato' : `${m.term_months} mnd`}
+                    {new Date(m.created_at).toLocaleDateString('nb-NO')} — {m.production_title ? <strong>«{m.production_title}»</strong> : null}{m.production_title ? ' · ' : ''}
+                    {m.kind === 'work' ? 'verk' : <>{m.media_class} · {m.territory} · {m.term_months === 0 ? 'uten sluttdato' : `${m.term_months} mnd`}</>}
                   </div>
                   <span className="text-xs px-3 py-1 rounded-full font-medium bg-gray-100 text-gray-700">
                     {m.status === 'open' ? 'Venter på tilbud' : m.status === 'quoted' ? 'Tilbud sendt' : 'Avsluttet'}

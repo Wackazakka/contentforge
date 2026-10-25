@@ -103,7 +103,7 @@ export default function VoiceBankAdminPage() {
   // ingen ser, er en kunde som tror hen ble oversett.
   // Hovedbokens kjede (118): rader, brudd og rotverdien.
   const [hovedbok, setHovedbok] = useState<{ rows: number; breaks: number; unchained: number; firstBreak: number | null; root: string | null; intact: boolean } | null>(null)
-  const [lisensKo, setLisensKo] = useState<Array<{ id: string; actor_id: string; asset_type: string; media_class: string; territory: string; term_months: number; exclusivity: string; note: string | null; requested_email: string | null; created_at: string }>>([])
+  const [lisensKo, setLisensKo] = useState<Array<{ id: string; actor_id: string; asset_type: string; kind?: 'campaign' | 'work' | null; production_title?: string | null; production_tier?: string | null; role_scope?: string | null; media_class: string | null; territory: string | null; term_months: number | null; exclusivity: string | null; note: string | null; requested_email: string | null; created_at: string }>>([])
   const [acceptApps, setAcceptApps] = useState(false)
   const [appsMigrated, setAppsMigrated] = useState(true)
   const [appBusy, setAppBusy] = useState<string | null>(null)
@@ -383,8 +383,10 @@ export default function VoiceBankAdminPage() {
                                 <span className="font-normal text-gray-500"> — {r.requested_email || 'ukjent kunde'}</span>
                               </div>
                               <div className="text-xs text-gray-500 mt-0.5">
-                                {r.asset_type} · {r.media_class} · {r.territory} ·{' '}
-                                {r.term_months === 0 ? 'uten sluttdato' : `${r.term_months} mnd`} · eksklusivitet: {r.exclusivity}
+                                {r.production_title && <><strong className="text-gray-700">«{r.production_title}»</strong> · </>}
+                                {r.kind === 'work'
+                                  ? <>verk · {r.asset_type} · {r.production_tier} · {r.role_scope}</>
+                                  : <>{r.asset_type} · {r.media_class} · {r.territory} · {r.term_months === 0 ? 'uten sluttdato' : `${r.term_months} mnd`} · eksklusivitet: {r.exclusivity}</>}
                                 {' · '}{new Date(r.created_at).toLocaleDateString('nb-NO')}
                               </div>
                               {r.note && <p className="text-xs text-gray-600 mt-1 mb-0 italic">«{r.note}»</p>}

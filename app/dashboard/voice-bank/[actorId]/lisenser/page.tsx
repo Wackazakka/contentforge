@@ -179,12 +179,21 @@ export default function LisenserPage() {
         const d = await res.json()
         const r = (d.requests || [])[0]
         if (!r || avbrutt) return
-        setKind('campaign')
         setAsset(r.asset_type)
-        setMediaClass(r.media_class)
-        setTerritory(r.territory)
-        setTermMonths(r.term_months)
-        setExclusivity(r.exclusivity)
+        // Verk eller kampanje (124): forespørselen sier hvilken, og tittelen
+        // følger med som verkets tittel.
+        if (r.kind === 'work') {
+          setKind('work')
+          if (r.production_tier) setProductionTier(r.production_tier)
+          if (r.role_scope) setRoleScope(r.role_scope)
+          if (r.production_title) setWorkTitle(r.production_title)
+        } else {
+          setKind('campaign')
+          setMediaClass(r.media_class)
+          setTerritory(r.territory)
+          setTermMonths(r.term_months)
+          setExclusivity(r.exclusivity)
+        }
         if (r.requested_email) setCustomerLabel(r.requested_email)
         setFra({ id: r.id, requested_email: r.requested_email, note: r.note, created_at: r.created_at })
       } catch { /* uten forespoerselen er skjemaet bare tomt, ikke oedelagt */ }
