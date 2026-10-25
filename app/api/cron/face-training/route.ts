@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cronVakt } from '@/lib/cronVakt'
 import { fullfoerTreninger } from '@/lib/faceTraining'
 
 // Fullfoerer ansiktstreninger som er ferdige hos fal — uavhengig av om noen
@@ -18,11 +19,8 @@ import { fullfoerTreninger } from '@/lib/faceTraining'
 // approval_sent_at er tom (se lib/faceTraining).
 
 export async function POST(request: Request) {
-  const secret = process.env.CRON_SECRET
-  if (secret) {
-    const gitt = request.headers.get('x-cron-secret') || new URL(request.url).searchParams.get('secret')
-    if (gitt !== secret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const stopp = cronVakt(request)
+  if (stopp) return stopp
   try {
     const resultat = await fullfoerTreninger()
     return NextResponse.json({ ok: true, ...resultat })

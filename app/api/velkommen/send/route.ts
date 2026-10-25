@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cronVakt } from '@/lib/cronVakt'
 import { Resend } from 'resend'
 import { admin, hashToken, nyttToken, hentTenant, tenantOrigin, velkomstEpost, visningsfaktor, GYLDIG_TIMER } from '@/lib/velkomst'
 
@@ -14,10 +15,8 @@ import { admin, hashToken, nyttToken, hentTenant, tenantOrigin, velkomstEpost, v
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
-  const secret = process.env.WELCOME_SEND_SECRET
-  if (!secret || request.headers.get('x-cron-secret') !== secret) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const stopp = cronVakt(request, 'WELCOME_SEND_SECRET')
+  if (stopp) return stopp
 
   const sb = admin()
   const { data: forfalt, error } = await sb

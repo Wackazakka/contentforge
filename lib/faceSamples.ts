@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { likeSafe } from '@/lib/epost'
 import { submitFaceImageJob, hentFaceImageResultat, type FaceImageJob } from '@/lib/gateway'
 import { hentAnsikter, embedKonfigurert } from '@/lib/embedClient'
 import { cosinus, fraVektorTekst, PROEVE_LIKHET_MIN, PROEVE_BILDE_MIN, avgjoerProever, type ProeveGrunn } from '@/lib/identity'
@@ -117,7 +118,7 @@ export async function hentFerdigeProever(characterId: string, sample_urls: unkno
 /** Sentroiden av hennes leverte bilder (102), om hun har levert. Matcher paa e-post innen tenanten. */
 export async function hentSentroide(subjectEmail: string | null, tenantId: string | null): Promise<number[] | null> {
   if (!subjectEmail) return null
-  let q = admin().from('voice_actors').select('face_embedding').ilike('actor_email', subjectEmail).not('face_embedding', 'is', null)
+  let q = admin().from('voice_actors').select('face_embedding').ilike('actor_email', likeSafe(subjectEmail)).not('face_embedding', 'is', null)
   if (tenantId) q = q.eq('owner_tenant_id', tenantId)
   const { data } = await q.limit(1).maybeSingle()
   return data ? fraVektorTekst((data as { face_embedding: unknown }).face_embedding) : null

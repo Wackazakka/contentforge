@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cronVakt } from '@/lib/cronVakt'
 import { createClient } from '@supabase/supabase-js'
 import { finishPendingPublications } from '@/lib/instagramPublish'
 
 async function runCron(request?: NextRequest) {
   // Allow internal Netlify scheduler (no secret) or requests with the correct secret
-  const secret = process.env.CRON_SECRET
-  if (secret && request) {
-    const provided =
-      request.headers.get('x-cron-secret') ||
-      new URL(request.url).searchParams.get('secret')
-    if (provided !== secret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-  }
+  const stopp = cronVakt(request)
+  if (stopp) return stopp
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { likeSafe } from '@/lib/epost'
 import { createClient } from '@supabase/supabase-js'
 
 // Rettighetshaverens godkjenning av sin egen ansiktsmodell (migrasjon 091).
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
       // adminen tar, ikke en bieffekt av en godkjenning.
       if (ja && (rad.trainer || '').startsWith('egen:') && rad.subject_email && rad.owner_tenant_id) {
         await admin().from('voice_actors').update({ face_character_id: rad.id })
-          .ilike('actor_email', rad.subject_email).eq('owner_tenant_id', rad.owner_tenant_id).is('face_character_id', null)
+          .ilike('actor_email', likeSafe(rad.subject_email)).eq('owner_tenant_id', rad.owner_tenant_id).is('face_character_id', null)
       }
       return NextResponse.json({ ok: true, status: ja ? 'approved' : 'rejected' })
     }

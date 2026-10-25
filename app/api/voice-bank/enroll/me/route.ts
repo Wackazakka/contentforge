@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { likeSafe } from '@/lib/epost'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { KJOENN, rensAttributter } from '@/lib/castingAttributes'
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
 
     const { data: finnes } = await admin()
       .from('voice_actors').select('id')
-      .eq('owner_tenant_id', tenant.id).ilike('actor_email', email).limit(1)
+      .eq('owner_tenant_id', tenant.id).ilike('actor_email', likeSafe(email)).limit(1)
     if (finnes && finnes.length > 0) {
       return NextResponse.json({ error: 'Du er allerede påmeldt her — siden din ligger på /min-stemme', code: 'ALREADY_ENROLLED' }, { status: 409 })
     }
@@ -151,7 +152,7 @@ export async function PATCH(request: Request) {
       .select('id, is_active, offers_voice, wants_face, has_own_recording, elevenlabs_voice_id, face_character_id')
       .eq('id', String(b.actorId || ''))
       .eq('owner_tenant_id', tenant.id)
-      .ilike('actor_email', email)
+      .ilike('actor_email', likeSafe(email))
       .maybeSingle()
     if (!rad) return NextResponse.json({ error: 'Fant ikke raden din' }, { status: 404 })
 

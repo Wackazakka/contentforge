@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cronVakt } from '@/lib/cronVakt'
 import { createClient } from '@supabase/supabase-js'
 
 // Purring på ubesvarte ansiktsgodkjenninger (migrasjon 092).
@@ -37,11 +38,8 @@ async function sendEpost(til: string | string[], emne: string, html: string): Pr
 }
 
 async function kjor(request?: NextRequest) {
-  const secret = process.env.CRON_SECRET
-  if (secret && request) {
-    const gitt = request.headers.get('x-cron-secret') || new URL(request.url).searchParams.get('secret')
-    if (gitt !== secret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const stopp = cronVakt(request)
+  if (stopp) return stopp
 
   const db = admin()
   const { data, error } = await db

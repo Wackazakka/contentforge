@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { likeSafe } from '@/lib/epost'
 import { randomBytes } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
       .select('id, name, actor_email, offers_voice, has_own_recording')
       .eq('id', actorId)
       .eq('owner_tenant_id', tenant.id)
-      .ilike('actor_email', epost)
+      .ilike('actor_email', likeSafe(epost))
       .maybeSingle()
     if (!actor) return NextResponse.json({ error: 'Fant ikke raden din' }, { status: 404 })
     if (actor.offers_voice === false) return NextResponse.json({ error: 'Denne raden gjelder ikke stemme' }, { status: 400 })

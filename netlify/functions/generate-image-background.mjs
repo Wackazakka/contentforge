@@ -57,6 +57,15 @@ const STYLE_PROMPTS = {
 }
 
 export default async function handler(req) {
+  // 🔑 BARE FRA VÅRE EGNE RUTER (sikkerhetsgjennomgangen 25.10). Netlify-
+  // funksjoner er offentlige adresser: uten dette kunne hvem som helst
+  // starte betalt generering og overskrive artikler med service-nøkkelen.
+  // Samme hemmelighet som cron-funksjonene; mangler den, nektes alt.
+  const hemmelighet = process.env.CRON_SECRET || ''
+  const gitt = req.headers.get('x-cron-secret') || ''
+  if (!hemmelighet || gitt.length !== hemmelighet.length || !timingSafeEqual(Buffer.from(gitt), Buffer.from(hemmelighet))) {
+    return new Response('Unauthorized', { status: 401 })
+  }
   let body
   try {
     body = await req.json()

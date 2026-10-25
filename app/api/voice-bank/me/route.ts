@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { likeSafe } from '@/lib/epost'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { actorSettlement } from '@/lib/actorLedger'
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
     let q = supabase
       .from('voice_actors')
       .select(FELTER)
-      .ilike('actor_email', email)
+      .ilike('actor_email', likeSafe(email))
     if (tenant.id !== 'root') q = q.eq('owner_tenant_id', tenant.id)
     const { data: rows } = await q.order('created_at', { ascending: true })
     let actors = rows || []

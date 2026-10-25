@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { likeSafe } from '@/lib/epost'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import {
@@ -63,7 +64,7 @@ async function hentEgenRad(bearer: string, actorId: string): Promise<Rad | null 
     .from('voice_actors')
     .select('id, name, is_active, wants_face, offers_voice, has_own_recording, photo_paths, recording_paths, delivered_at, identity_check')
     .eq('id', actorId)
-    .ilike('actor_email', epost)
+    .ilike('actor_email', likeSafe(epost))
     .eq('owner_tenant_id', tenant.id)
     .maybeSingle()
   if (!data) return null

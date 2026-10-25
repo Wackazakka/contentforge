@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { likeSafe } from '@/lib/epost'
 import { randomBytes } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
@@ -46,7 +47,7 @@ async function hentEgen(request: Request, actorId: string): Promise<{ a: Aktoer;
   const tenant = await getTenant()
   const { data } = await admin().from('voice_actors')
     .select('id, name, actor_email, owner_tenant_id, wants_face, face_character_id, face_embedding')
-    .eq('id', actorId).ilike('actor_email', epost).eq('owner_tenant_id', tenant.id).maybeSingle()
+    .eq('id', actorId).ilike('actor_email', likeSafe(epost)).eq('owner_tenant_id', tenant.id).maybeSingle()
   if (!data) return NextResponse.json({ error: 'Fant ikke profilen din' }, { status: 404 })
   return { a: data as Aktoer, userId: u.user.id }
 }
@@ -56,7 +57,7 @@ const kanLasteOpp = (a: Aktoer) => !!a.face_embedding
 async function status(a: Aktoer) {
   const { data } = await admin().from('user_characters')
     .select('id, name, status, approval_status, approval_sent_at, last_error, created_at, trainer')
-    .ilike('subject_email', a.actor_email || '').eq('owner_tenant_id', a.owner_tenant_id)
+    .ilike('subject_email', likeSafe(a.actor_email)).eq('owner_tenant_id', a.owner_tenant_id)
     .like('trainer', 'egen:%').order('created_at', { ascending: false }).limit(10)
   return {
     eligible: kanLasteOpp(a),

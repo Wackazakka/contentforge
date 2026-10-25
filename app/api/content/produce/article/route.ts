@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://contentforge-610.netlify.app'
     fetch(SITE_URL + '/.netlify/functions/generate-article-background', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
       body: JSON.stringify({ articleId, topic, platform, includeLink, websiteUrl, ctaText, productId, logoUrl: logoUrl || null, imageStyle: imageStyle || 'magasin' }),
     }).catch(() => {})
 

@@ -36,7 +36,7 @@ export async function PATCH(
       console.log(`[article-image-patch] Triggering bg function for article ${id} (style=${imageStyle || 'tech'})`)
       fetch(SITE_URL + '/.netlify/functions/generate-image-background', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
         body: JSON.stringify({
           articleId: id,
           topic,

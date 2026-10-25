@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cronVakt } from '@/lib/cronVakt'
 import { varsle } from '@/lib/driftsvakt'
 
 // Driftsvakten (lib/driftsvakt, migrasjon 110). Kalles hver time fra
@@ -43,10 +44,8 @@ async function elevenLabsIgjen(): Promise<{ igjen: number; grense: number; forny
 }
 
 export async function POST(request: Request) {
-  const secret = process.env.DRIFTSVAKT_SECRET
-  if (!secret || request.headers.get('x-cron-secret') !== secret) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const stopp = cronVakt(request, 'DRIFTSVAKT_SECRET')
+  if (stopp) return stopp
   const test = new URL(request.url).searchParams.get('test') === '1'
   const status: Record<string, unknown> = {}
   const sendt: string[] = []

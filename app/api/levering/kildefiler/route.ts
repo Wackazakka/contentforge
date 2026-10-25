@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cronVakt } from '@/lib/cronVakt'
 import { fyllEtterslep } from '@/lib/kildefiler'
 
 // Etterslepet for kildefiler (110): fingeravtrykk for filer levert før
@@ -8,10 +9,8 @@ import { fyllEtterslep } from '@/lib/kildefiler'
 // på hennes vegne (declaration null = «levert før erklæringen fantes»).
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.CRON_SECRET
-  if (!secret || request.headers.get('x-cron-secret') !== secret) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const stopp = cronVakt(request)
+  if (stopp) return stopp
   try {
     return NextResponse.json({ ok: true, ...(await fyllEtterslep(15)) })
   } catch (e) {
