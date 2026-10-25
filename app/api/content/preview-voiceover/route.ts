@@ -17,7 +17,14 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740fe
 
 export async function POST(request: Request) {
   try {
-    const { text, voiceId, draftId, segmentIndex, languageCode } = await request.json()
+    const { text, voiceId, draftId, segmentIndex: rawIndex, languageCode } = await request.json()
+    // Utkastet er PÅKREVD (25.10): uten det ble verken kost eller royalty ført,
+    // og lyden havnet under «voiceovers/undefined/» i den offentlige bøtta.
+    // Begge editorene sender det alltid. Sjekkes før stemmetilgangen, ellers
+    // hopper sjekkStemmeTilgang over eierskapet (utkast er valgfritt der).
+    if (!draftId) return NextResponse.json({ error: 'draftId kreves' }, { status: 400 })
+    // Indeksen havner i R2-nøkkelen — kun et heltall
+    const segmentIndex = Math.max(0, parseInt(String(rawIndex ?? ''), 10) || 0)
     // 🔑 Innlogget, stemmen i banken, utkastet brukerens eget (25.10). Før var
     // ruta åpen: hvem som helst kunne lage tale i en klonet stemme med vår
     // nøkkel — se lib/stemmeTilgang.
