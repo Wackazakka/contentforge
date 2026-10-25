@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { authFetch } from '@/lib/authFetch'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import { useEffect, useState } from 'react'
@@ -117,7 +118,7 @@ export default function NavBar() {
   useEffect(() => {
     const userId = session?.user?.id
     if (!userId) return
-    fetch(`/api/credits?userId=${userId}`)
+    authFetch(`/api/credits?userId=${userId}`)
       .then((r) => r.json())
       .then((d) => setCredits(d.balance ?? null))
       .catch(() => {})

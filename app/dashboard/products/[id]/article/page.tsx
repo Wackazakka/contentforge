@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { authFetch } from '@/lib/authFetch'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import Link from 'next/link'
@@ -111,7 +112,7 @@ export default function ArticlePage() {
 
       // Call API for each platform in parallel
       const promises = selectedPlatforms.map((platform) =>
-        fetch('/api/content/produce/article', {
+        authFetch('/api/content/produce/article', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

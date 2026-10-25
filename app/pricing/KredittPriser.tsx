@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { authFetch } from '@/lib/authFetch'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/authContext'
 import { PLANS } from '@/lib/stripe'
@@ -42,7 +43,7 @@ export default function KredittPriser() {
 
     setLoading(plan)
     try {
-      const res = await fetch('/api/stripe/checkout', {
+      const res = await authFetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

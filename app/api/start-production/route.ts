@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { innloggetBruker } from '@/lib/innlogget'
+import { eierUtkast } from '@/lib/eierskap'
 import { createClient } from '@supabase/supabase-js'
 import { checkAndDeductCredits } from '@/lib/credits'
 import { startProductionForDraft } from '@/lib/production'
@@ -8,8 +10,14 @@ import { startProductionForDraft } from '@/lib/production'
 // ikke kan gjenbrukes. Med flagget av: gratis som før.
 export async function POST(request: Request) {
   try {
-    const { draftId, userId, imageStyle, includeOutroCard, outroJingle, aiMotion, aiMotionEngine, character } = await request.json()
+    const { draftId, imageStyle, includeOutroCard, outroJingle, aiMotion, aiMotionEngine, character } = await request.json()
     if (!draftId) return NextResponse.json({ error: 'Missing draftId' }, { status: 400 })
+    // 🔑 Brukeren fra sesjonen, aldri fra klienten (25.10). Før kunne hvem som
+    // helst oppgi en vilkårlig bruker-id.
+    const bruker = await innloggetBruker(request)
+    if (!bruker) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    const userId = bruker.id
+    if (!(await eierUtkast(userId, String(draftId)))) return NextResponse.json({ error: 'Utkastet tilhører ikke deg' }, { status: 403 })
 
     const billingOn = process.env.BILLING_ENABLED === 'true'
     const supabase = createClient(

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { innloggetBruker } from '@/lib/innlogget'
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -10,8 +11,10 @@ export async function DELETE(
 ) {
   try {
     const { jobId } = await params
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // 🔑 Bare egne jobber (25.10). Før holdt det at headeren FANTES — hvem
+    // som helst kunne slette en hvilken som helst jobb.
+    const bruker = await innloggetBruker(request)
+    if (!bruker) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
@@ -21,6 +24,7 @@ export async function DELETE(
       .from('production_jobs')
       .delete()
       .eq('id', jobId)
+      .eq('created_by', bruker.id)
 
     if (error) throw error
 

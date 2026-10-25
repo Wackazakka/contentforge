@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { getAvailableVoiceActors } from '@/lib/voiceBank'
 import { VOICES } from '@/lib/voices'
+import { eierUtkast } from '@/lib/eierskap'
 
 // Hvem får lage tale med en stemme? (sikkerhetsgjennomgangen 25.10.2026)
 //
@@ -30,10 +31,6 @@ function anon() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '')
 }
 
-function admin() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', process.env.SUPABASE_SERVICE_ROLE_KEY || '')
-}
-
 export async function sjekkStemmeTilgang(request: Request, voiceId: unknown, draftId?: unknown): Promise<StemmeTilgang> {
   const auth = request.headers.get('authorization')
   if (!auth?.startsWith('Bearer ')) return { ok: false, status: 401, error: 'Logg inn for å lage forhåndsvisning' }
@@ -59,20 +56,4 @@ export async function sjekkStemmeTilgang(request: Request, voiceId: unknown, dra
     .find((a) => a.elevenlabs_voice_id === id && (a as { is_active?: boolean | null }).is_active !== false)
   if (!aktoer) return { ok: false, status: 403, error: 'Stemmen finnes ikke i denne banken' }
   return { ok: true, userId, tenantId: tenant.id, actorId: aktoer.id }
-}
-
-/** Eier brukeren organisasjonen bak utkastet, eller er medlem av den? */
-async function eierUtkast(userId: string, draftId: string): Promise<boolean> {
-  if (!/^[0-9a-f-]{36}$/i.test(draftId)) return false
-  const db = admin()
-  const { data: d } = await db.from('production_drafts').select('product_id').eq('id', draftId).maybeSingle()
-  const productId = (d as { product_id?: string | null } | null)?.product_id
-  if (!productId) return false
-  const { data: p } = await db.from('products').select('organization_id').eq('id', productId).maybeSingle()
-  const orgId = (p as { organization_id?: string | null } | null)?.organization_id
-  if (!orgId) return false
-  const { data: o } = await db.from('organizations').select('id').eq('id', orgId).eq('owner_id', userId).maybeSingle()
-  if (o) return true
-  const { data: m } = await db.from('organization_members').select('organization_id').eq('organization_id', orgId).eq('user_id', userId).maybeSingle()
-  return !!m
 }

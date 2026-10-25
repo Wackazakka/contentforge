@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { innloggetBruker } from '@/lib/innlogget'
 import { createClient } from '@supabase/supabase-js'
 import { getStripe } from '@/lib/stripe'
 
@@ -6,7 +7,12 @@ const BASE_URL = 'https://contentforge-610.netlify.app'
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await request.json()
+    await request.json().catch(() => ({}))
+    // 🔑 Brukeren fra sesjonen, aldri fra klienten (25.10). Før kunne hvem som
+    // helst oppgi en vilkårlig bruker-id.
+    const bruker = await innloggetBruker(request)
+    if (!bruker) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    const userId = bruker.id
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

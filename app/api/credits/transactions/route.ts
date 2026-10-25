@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
+import { innloggetBruker } from '@/lib/innlogget'
 import { createClient } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
-    }
+    // 🔑 Brukeren fra sesjonen, aldri fra klienten (25.10). Før kunne hvem som
+    // helst oppgi en vilkårlig bruker-id.
+    const bruker = await innloggetBruker(request)
+    if (!bruker) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    const userId = bruker.id
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

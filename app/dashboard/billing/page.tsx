@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { authFetch } from '@/lib/authFetch'
 import { useAuth } from '@/lib/authContext'
 import { PLANS, PlanKey } from '@/lib/stripe'
 import { useTranslations } from 'next-intl'
@@ -46,8 +47,8 @@ export default function BillingPage() {
     const load = async () => {
       try {
         const [creditsRes, txRes] = await Promise.all([
-          fetch(`/api/credits?userId=${userId}`),
-          fetch(`/api/credits/transactions?userId=${userId}`),
+          authFetch(`/api/credits?userId=${userId}`),
+          authFetch(`/api/credits/transactions?userId=${userId}`),
         ])
         const creditsData = await creditsRes.json()
         const txData = await txRes.json()
@@ -66,7 +67,7 @@ export default function BillingPage() {
   const handleManage = async () => {
     setPortalLoading(true)
     try {
-      const res = await fetch('/api/stripe/portal', {
+      const res = await authFetch('/api/stripe/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),

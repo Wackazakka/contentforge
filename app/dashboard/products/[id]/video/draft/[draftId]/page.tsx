@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { authFetch } from '@/lib/authFetch'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
@@ -1149,7 +1150,7 @@ export default function DraftPage() {
       // outroJingle kommer fra state (velgeren nedenfor), init fra ?jingle=
 
       // Call start-production API with draftId
-      const response = await fetch('/api/start-production', {
+      const response = await authFetch('/api/start-production', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

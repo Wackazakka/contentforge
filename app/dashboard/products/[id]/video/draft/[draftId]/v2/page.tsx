@@ -8,6 +8,7 @@
 // «dagens lyse drakt, mottakelig for fargeendringer som de andre sidene»).
 
 import { useState, useEffect, useRef } from 'react'
+import { authFetch } from '@/lib/authFetch'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
@@ -956,7 +957,7 @@ export default function DraftV2Page() {
     setStarting(true)
     try {
       const { data: sess } = await getSupabase().auth.getSession()
-      const res = await fetch('/api/start-production', {
+      const res = await authFetch('/api/start-production', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

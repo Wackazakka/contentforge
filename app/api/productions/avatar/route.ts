@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { innloggetBruker } from '@/lib/innlogget'
+import { eierProdukt } from '@/lib/eierskap'
 import { createClient } from '@supabase/supabase-js'
 
 const DROPLET_URL = 'http://139.59.212.218:3002'
@@ -34,16 +36,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 })
     }
 
-    const token = authHeader.substring(7)
-    let userId: string
-    try {
-      const parts = token.split('.')
-      if (parts.length !== 3) throw new Error('Invalid token format')
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'))
-      userId = payload.sub
-      if (!userId) throw new Error('No user ID in token')
-    } catch (err) {
-      return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 })
+    // 🔑 Tokenet verifiseres hos Supabase (25.10). Før ble det bare dekodet:
+    // en forfalsket {"sub": "<offer>"} holdt. Og produktet må være brukerens.
+    const bruker = await innloggetBruker(request)
+    if (!bruker) return NextResponse.json({ error: 'Invalid authentication token' }, { status: 401 })
+    const userId: string = bruker.id
+    if (productId && !(await eierProdukt(userId, String(productId)))) {
+      return NextResponse.json({ error: 'Produktet tilhører ikke deg' }, { status: 403 })
     }
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {

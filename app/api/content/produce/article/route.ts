@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { innloggetBruker } from '@/lib/innlogget'
+import { eierProdukt } from '@/lib/eierskap'
 import { createClient } from '@supabase/supabase-js'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
@@ -239,11 +241,17 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateArticleRequest & { userId?: string } = await request.json()
-    const { productId, campaignId, topic, platform, userId, logoUrl, imageStyle, includeLink, websiteUrl } = body
+    const { productId, campaignId, topic, platform, logoUrl, imageStyle, includeLink, websiteUrl } = body
 
     if (!productId || !campaignId || !topic || !platform) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+    // 🔑 Brukeren fra sesjonen, aldri fra klienten (25.10). Før kunne hvem som
+    // helst oppgi en vilkårlig bruker-id.
+    const bruker = await innloggetBruker(request)
+    if (!bruker) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    const userId = bruker.id
+    if (!(await eierProdukt(userId, String(productId)))) return NextResponse.json({ error: 'Produktet tilhører ikke deg' }, { status: 403 })
 
     if (userId) {
       const credit = await checkAndDeductCredits(

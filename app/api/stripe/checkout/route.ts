@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { innloggetBruker } from '@/lib/innlogget'
 import { createClient } from '@supabase/supabase-js'
 import { getStripe, PLANS, PlanKey } from '@/lib/stripe'
 
@@ -6,7 +7,13 @@ const BASE_URL = 'https://contentforge-610.netlify.app'
 
 export async function POST(request: Request) {
   try {
-    const { plan, userId, userEmail } = await request.json()
+    const { plan } = await request.json()
+    // 🔑 Brukeren fra sesjonen, aldri fra klienten (25.10). Før kunne hvem som
+    // helst oppgi en vilkårlig bruker-id.
+    const bruker = await innloggetBruker(request)
+    if (!bruker) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
+    const userId = bruker.id
+    const userEmail = bruker.email
 
     if (!plan || !userId || !userEmail) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })

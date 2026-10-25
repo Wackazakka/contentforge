@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { authFetch } from '@/lib/authFetch'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -44,7 +45,7 @@ export default function FilmPaidPage() {
         })
         void segs
         setState('starting')
-        const res = await fetch('/api/start-production', {
+        const res = await authFetch('/api/start-production', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ draftId, imageStyle: 'papercut', includeOutroCard: false, aiMotion: !!draft.ai_motion, aiMotionEngine: 'kling' }),
