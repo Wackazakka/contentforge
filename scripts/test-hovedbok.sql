@@ -28,25 +28,25 @@ begin
     -- Endring stoppes
     begin
       update public.voice_usage_events set actor_rate_nok = 999 where kjede_seq = ny.kjede_seq;
-      res := res || 'endring av beløp: SLAPP GJENNOM — FEIL';
+      res := res || ('endring av beløp: SLAPP GJENNOM — FEIL'::text);
     exception when others then res := res || ('endring av beløp stoppet — ok'::text); end;
 
     -- Sletting stoppes
     begin
       delete from public.voice_usage_events where kjede_seq = ny.kjede_seq;
-      res := res || 'sletting: SLAPP GJENNOM — FEIL';
+      res := res || ('sletting: SLAPP GJENNOM — FEIL'::text);
     exception when others then res := res || ('sletting stoppet — ok'::text); end;
 
     -- Tømming stoppes
     begin
       truncate public.voice_usage_events;
-      res := res || 'tømming: SLAPP GJENNOM — FEIL';
+      res := res || ('tømming: SLAPP GJENNOM — FEIL'::text);
     exception when others then res := res || ('tømming stoppet — ok'::text); end;
 
     -- Frakobling av en peker er lov (on delete set null)
     begin
       update public.voice_usage_events set organization_id = null where kjede_seq = ny.kjede_seq;
-      res := res || 'frakobling av organisasjon tillatt — ok';
+      res := res || ('frakobling av organisasjon tillatt — ok'::text);
     exception when others then
       get stacked diagnostics feil = message_text;
       res := res || ('frakobling av organisasjon: ' || feil || ' — FEIL');
