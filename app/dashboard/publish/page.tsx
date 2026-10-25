@@ -244,9 +244,13 @@ function PublishPage() {
         // ingen avgrensning, saa alle koblingene brukeren har noen gang laget
         // dukket opp uansett hvilken tjeneste han var inne paa (Lars 3/8: hans
         // BilDeal-side sto paa Isabels domene).
+        // 🔑 BARE DE UFARLIGE KOLONNENE (120). Raden bærer også Facebook- og
+        // LinkedIn-nøklene (access_token, user_access_token); de skal aldri til
+        // en nettleser, og databasen gir fra 120 ikke lenger SELECT på dem.
+        // `*` ville da feilet for alle.
         const { data, error } = await supabase
           .from('social_connections')
-          .select('*')
+          .select('id, platform, page_id, page_name, created_at, organization_id')
           .in('organization_id', tenantOrgs.map((o: { id: string }) => o.id))
           .order('created_at', { ascending: false })
 
