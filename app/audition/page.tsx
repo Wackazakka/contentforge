@@ -48,6 +48,33 @@ const felt: React.CSSProperties = {
   border: '1px solid var(--ds-border-strong)', background: 'var(--paper-raised)', color: 'var(--ink)',
 }
 
+// 🔑 OPPTAKENE KOMMER SOM LENKER SOM GÅR UT (privat bøtte, 10 min — se
+// lib/auditions). To ting følger av det:
+//   1) Hver poll signerer på nytt, og en ny src på et <audio>/<video> som
+//      spiller, starter det fra begynnelsen. Derfor beholdes lenken siden
+//      allerede har for samme fil, til den nærmer seg utløp.
+//   2) Står siden åpen etter at pollingen har stoppet, går lenkene ut. Feiler
+//      et opptak, hentes runden på nytt — men ikke for en lenke som er
+//      fersk, så en fil som faktisk mangler ikke gir en løkke.
+type Lenker = Map<string, { url: string; fra: number }>
+const filAv = (url: string) => url.split('?')[0]
+
+function stabilLenke(lenker: Lenker, url: string | null) {
+  if (!url) return url
+  const har = lenker.get(filAv(url))
+  if (har && Date.now() - har.fra < 8 * 60_000) return har.url
+  lenker.set(filAv(url), { url, fra: Date.now() })
+  return url
+}
+
+/** Glem en lenke som feilet, så neste poll gir en ny. Usann for en fersk lenke. */
+function glemUtloept(lenker: Lenker, url: string) {
+  const har = lenker.get(filAv(url))
+  if (har && Date.now() - har.fra < 30_000) return false
+  lenker.delete(filAv(url))
+  return true
+}
+
 function Etikett({ children }: { children: React.ReactNode }) {
   return (
     <span style={{ display: 'block', fontFamily: MONO, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 7 }}>
@@ -84,6 +111,9 @@ export default function AuditionPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Opptakslenkene som er delt ut, per fil (se stabilLenke).
+  const lenker = useRef<Lenker>(new Map())
 
   const token = async () => {
     const tok = session?.access_token
@@ -125,7 +155,12 @@ export default function AuditionPage() {
         return
       }
       setError(null)
-      setTakes(d.takes || [])
+      setTakes(((d.takes || []) as Take[]).map((x) => ({
+        ...x,
+        still_url: stabilLenke(lenker.current, x.still_url),
+        video_url: stabilLenke(lenker.current, x.video_url),
+        reads: (x.reads || []).map((r) => ({ ...r, audio_url: stabilLenke(lenker.current, r.audio_url) })),
+      })))
       if (d.audition?.line) setRundeLine(d.audition.line)
       if (d.audition?.title) setRundeTittel(d.audition.title)
       if (d.audition?.direction) setRundeRegi(d.audition.direction)
@@ -138,6 +173,11 @@ export default function AuditionPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session])
+
+  /** onError på et opptak: lenken har trolig gått ut — hent nye. */
+  const utloept = (url: string | null) => {
+    if (url && auditionId && glemUtloept(lenker.current, url)) poll(auditionId)
+  }
 
   useEffect(() => {
     if (!auditionId || ferdig || authLoading || !session) return
@@ -362,7 +402,7 @@ export default function AuditionPage() {
                 {takes.filter((x) => x.video_url || x.stage === 'still' || x.stage === 'video').map((x) => (
                   <div key={x.id}>
                     {x.video_url ? (
-                      <video controls preload="metadata" playsInline src={x.video_url}
+                      <video controls preload="metadata" playsInline src={x.video_url} onError={() => utloept(x.video_url)}
                         style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', background: 'var(--ink)', display: 'block' }} />
                     ) : (
                       <div style={{ aspectRatio: '4/5', background: '#E4E4E0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -428,7 +468,7 @@ export default function AuditionPage() {
                       return (
                         <div key={r.id} className="au-cell" style={r.is_chosen ? { background: 'var(--ember-tint-bg)' } : undefined}>
                           {r.audio_url ? (
-                            <audio controls preload="none" src={r.audio_url} style={{ width: '100%', height: 32 }} />
+                            <audio controls preload="none" src={r.audio_url} onError={() => utloept(r.audio_url)} style={{ width: '100%', height: 32 }} />
                           ) : (
                             <span style={{ fontSize: 12.5, color: 'var(--text-faint)' }}>{t('reading_in')}</span>
                           )}

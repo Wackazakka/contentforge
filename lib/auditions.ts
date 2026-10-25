@@ -126,14 +126,54 @@ async function falSjekk(model: string, requestId: string) {
 const FLUX = 'fal-ai/flux-lora'
 const FABRIC = 'veed/fabric-1.0'
 
-async function tilR2(buf: Buffer, key: string, type: string): Promise<string> {
-  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3')
-  const r2 = new S3Client({
-    region: 'auto', endpoint: process.env.R2_ENDPOINT!,
-    credentials: { accessKeyId: process.env.R2_ACCESS_KEY_ID!, secretAccessKey: process.env.R2_SECRET_ACCESS_KEY! },
-  })
-  await r2.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET_NAME || 'contentforge-assets', Key: key, Body: buf, ContentType: type }))
-  return `${process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'}/${key}`
+// 🔑 OPPTAKENE ER EKTE MENNESKERS ANSIKT OG STEMME, og ligger derfor PRIVAT
+// (Lars 25.10.2026). Fram til da gikk lyd, stillbilde og film til R2-bøtta,
+// som er eksponert i sin helhet gjennom `pub-…r2.dev` — en lenke som virket
+// for alle, for alltid. Samme hull som treningsbildene hadde, og samme
+// løsning: den private bøtta, STIEN på raden, og en signert lenke med kort
+// levetid hver gang noen åpner opptaket.
+//
+// Stiene er de samme som nøklene i R2 var (`auditions/<audition>/…`), så de
+// gamle opptakene kunne flyttes uten å bytte navn
+// (scripts/flytt-audition-opptak.mjs).
+export const AUDITION_BOETTE = 'training-sets'
+/** Lenkene siden får. Siden bytter dem selv før de går ut (app/audition). */
+const VIS_SEK = 600
+/** Lenkene fal får til lyd og stillbilde. En jobb kan stå i kø en stund før den henter dem. */
+const FAL_SEK = 3600
+
+async function lagrePrivat(buf: Buffer, sti: string, type: string): Promise<string> {
+  // upsert: en film som startes på nytt etter en feil skriver samme still-sti igjen.
+  const { error } = await admin().storage.from(AUDITION_BOETTE).upload(sti, buf, { contentType: type, upsert: true })
+  if (error) throw new Error(`Lagring feilet (${sti}): ${error.message}`)
+  return sti
+}
+
+/**
+ * Stier → signerte lenker, i én runde. Eldre http-adresser slippes gjennom som
+ * de er, som i signerProever. En sti som ikke lar seg signere blir null —
+ * pollingen skal ikke stoppe fordi én fil mangler.
+ */
+async function signer(stier: Array<string | null | undefined>, sek: number): Promise<Map<string, string | null>> {
+  const ut = new Map<string, string | null>()
+  const privat = new Set<string>()
+  for (const s of stier) {
+    if (!s) continue
+    if (/^https?:\/\//.test(s)) ut.set(s, s)
+    else privat.add(s)
+  }
+  if (privat.size) {
+    const { data, error } = await admin().storage.from(AUDITION_BOETTE).createSignedUrls([...privat], sek)
+    if (error) console.warn('[audition] signering feilet:', error.message)
+    for (const d of data || []) if (d.path) ut.set(d.path, d.signedUrl || null)
+  }
+  return ut
+}
+
+async function signerEn(sti: string, sek: number): Promise<string> {
+  const url = (await signer([sti], sek)).get(sti)
+  if (!url) throw new Error(`Kunne ikke signere ${sti}`)
+  return url
 }
 
 export interface AuditionInput {
@@ -239,10 +279,10 @@ export async function lagLesning(takeId: string, regi?: string | null) {
     console.log(`[audition] regi=${valgt} modell=${brukt.model} tagg=${brukt.tag ?? '—'}${feil.length ? ` (falt fra: ${feil.join(' | ')})` : ''}`)
   }
 
-  const url = await tilR2(lyd, `auditions/${t.audition_id}/${takeId}-${Date.now()}.mp3`, 'audio/mpeg')
+  const sti = await lagrePrivat(lyd, `auditions/${t.audition_id}/${takeId}-${Date.now()}.mp3`, 'audio/mpeg')
 
   const { data: read } = await supabase.from('audition_reads').insert({
-    take_id: takeId, audio_url: url, direction: valgt,
+    take_id: takeId, audio_url: sti, direction: valgt,
     stability: st.stability, style: st.style, chars: String(a!.line).length,
     // Hvilken modell som faktisk leste. Uten denne kan to lesninger av samme
     // regi låte helt ulikt uten at noen kan se hvorfor.
@@ -265,7 +305,8 @@ export async function lagLesning(takeId: string, regi?: string | null) {
   })
 
   await supabase.from('audition_takes').update({ stage: 'ready', updated_at: new Date().toISOString() }).eq('id', takeId)
-  return { id: (read as { id: string }).id, audioUrl: url, direction: valgt }
+  // Lesningen er lagret og ført; en signeringshikke her skal ikke se ut som at den feilet.
+  return { id: (read as { id: string }).id, audioUrl: (await signer([sti], VIS_SEK)).get(sti) ?? null, direction: valgt }
 }
 
 /** Velg hvilken lesning filmen skal bygges på. Én per plass. */
@@ -332,9 +373,15 @@ export async function flyttTake(takeId: string): Promise<void> {
       const url = s.res?.images?.[0]?.url
       if (!url) throw new Error('ingen stillbilde-url')
       const bilde = Buffer.from(await (await fetch(url)).arrayBuffer())
-      const stillUrl = await tilR2(bilde, `auditions/${t.audition_id}/${takeId}-still.png`, 'image/png')
-      const id = await falSubmit(FABRIC, { image_url: stillUrl, audio_url: t.audio_url, resolution: '720p' })
-      await sett({ stage: 'video', request_id: id, still_url: stillUrl })
+      const stillSti = await lagrePrivat(bilde, `auditions/${t.audition_id}/${takeId}-still.png`, 'image/png')
+      // fal henter lyd og bilde selv, og får en signert lenke — ikke en
+      // offentlig adresse. Raden beholder stiene.
+      const id = await falSubmit(FABRIC, {
+        image_url: await signerEn(stillSti, FAL_SEK),
+        audio_url: await signerEn(String(t.audio_url), FAL_SEK),
+        resolution: '720p',
+      })
+      await sett({ stage: 'video', request_id: id, still_url: stillSti })
       return
     }
 
@@ -344,7 +391,7 @@ export async function flyttTake(takeId: string): Promise<void> {
       const url = s.res?.video?.url || s.res?.output?.video?.url
       if (!url) throw new Error('ingen video-url')
       const vid = Buffer.from(await (await fetch(url)).arrayBuffer())
-      const videoUrl = await tilR2(vid, `auditions/${t.audition_id}/${takeId}.mp4`, 'video/mp4')
+      const videoSti = await lagrePrivat(vid, `auditions/${t.audition_id}/${takeId}.mp4`, 'video/mp4')
 
       // Filmen er det kunden BESTILTE. Raden skrives først her, så en hengende
       // kø verken belaster kunden eller krediterer skuespilleren.
@@ -365,7 +412,7 @@ export async function flyttTake(takeId: string): Promise<void> {
           ...(t.face_model_ref ? { model: t.face_model_ref, age_model: t.face_model_label } : {}),
         },
       })
-      await sett({ stage: 'done', video_url: videoUrl })
+      await sett({ stage: 'done', video_url: videoSti })
       return
     }
   } catch (err) {
@@ -390,10 +437,19 @@ export async function pollAudition(auditionId: string) {
         .in('take_id', ids).order('created_at')
     : { data: [] as Array<Record<string, unknown>> }
 
+  // Raden har stier; siden får lenker som går ut.
+  const lenke = await signer([
+    ...(etter || []).flatMap((t) => [t.still_url as string | null, t.video_url as string | null]),
+    ...(reads || []).map((r) => r.audio_url as string | null),
+  ], VIS_SEK)
+  const signert = (s: unknown) => (s ? lenke.get(String(s)) ?? null : null)
+
   return {
     takes: (etter || []).map((t) => ({
       ...t,
-      reads: (reads || []).filter((r) => r.take_id === t.id),
+      still_url: signert(t.still_url),
+      video_url: signert(t.video_url),
+      reads: (reads || []).filter((r) => r.take_id === t.id).map((r) => ({ ...r, audio_url: signert(r.audio_url) })),
     })),
     // «Ferdig» er nå bare fase 2. Fase 1 venter på et menneske, og skal ikke
     // få pollingen til å gi seg.
