@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getTenant } from '@/lib/tenantServer'
 import { getAvailableFaceActors, ratesForKind } from '@/lib/voiceBank'
+import { signerMedier, somListe } from '@/lib/actorMedia'
 
 // Ansiktsbanken for gjeldende tenant (host-basert) — speiler /api/voice-actors.
 // Samme tilgjengelighetslås (kjede-arv + eksklusivitet + Voice Library) og samme
@@ -51,6 +52,9 @@ export async function GET(request: Request) {
     // stengt (lib/ageModels). Hovedboken finner eieren via versjonshistorikken.
     const { brukbareAldersmodeller } = await import('@/lib/ageModels')
     const alder = await brukbareAldersmodeller(actors.map((a) => a.id))
+    // Kortbildet ligger privat (lib/actorMedia) — lenken lages her.
+    const forsteFoto = (a: (typeof actors)[number]) => somListe((a as { photo_urls?: unknown }).photo_urls)[0]
+    const lenke = await signerMedier(actors.map((a) => ({ actorId: a.id, verdier: [forsteFoto(a)].filter((v): v is string => !!v) })))
     return NextResponse.json({
       faces: actors.flatMap((a) => {
         const grunn = {
@@ -58,7 +62,7 @@ export async function GET(request: Request) {
           name: a.name,
           faceCharacterId: (a as { face_character_id?: string | null }).face_character_id,
           pricePerUseNok: Math.round(ratesForKind(a, 'face').price * pf * 100) / 100,
-          photoUrl: Array.isArray((a as { photo_urls?: string[] }).photo_urls) ? (a as { photo_urls?: string[] }).photo_urls![0] || null : null,
+          photoUrl: forsteFoto(a) ? lenke(a.id, forsteFoto(a)) : null,
         }
         return [grunn, ...alder.filter((m) => m.actorId === a.id).map((m) => ({
           ...grunn, name: `${a.name} · ${m.label}`, faceCharacterId: m.characterId, ageModel: m.label,

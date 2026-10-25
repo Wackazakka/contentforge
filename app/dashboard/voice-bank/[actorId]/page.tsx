@@ -68,6 +68,9 @@ export default function VoiceActorPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actor, setActor] = useState<ActorDetail | null>(null)
+  // Kortets filer ligger privat (lib/actorMedia): raden har stier, dette er
+  // lenkene til dem. Stien er fortsatt det «fjern» sender tilbake.
+  const [mediaLinks, setMediaLinks] = useState<Record<string, string>>({})
   // Av-bryteren paa ansiktet (088). Ligger paa user_characters, ikke paa
   // skuespillerraden, og hentes derfor som eget felt. Se lib/faceWithdrawal.
   const [faceWithdrawnAt, setFaceWithdrawnAt] = useState<string | null>(null)
@@ -211,6 +214,7 @@ export default function VoiceActorPage() {
       setError(null)
       setOrigin(window.location.origin)
       setActor(data.actor)
+      setMediaLinks(data.mediaLinks || {})
       setIdentityAgency(data.identityAgency ?? null)
       setFaceWithdrawnAt(data.faceWithdrawnAt ?? null)
       setFaceConsent(data.faceConsent ?? null)
@@ -929,7 +933,7 @@ export default function VoiceActorPage() {
                     {(actor.photo_urls || []).map((url) => (
                       <div key={url} className="relative">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt="" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+                        <img src={mediaLinks[url] || url} alt="" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
                         <button onClick={() => removeMedia('photo', url)}
                           className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs leading-none">×</button>
                       </div>
@@ -946,7 +950,7 @@ export default function VoiceActorPage() {
                   <div className="space-y-2 mb-2">
                     {(actor.sample_urls || []).map((url, i) => (
                       <div key={url} className="flex items-center gap-2">
-                        <audio controls preload="none" src={url} className="flex-1 h-9" />
+                        <audio controls preload="none" src={mediaLinks[url] || url} className="flex-1 h-9" />
                         <button onClick={() => removeMedia('sample', url)} className="text-red-500 hover:text-red-700 text-sm">{t('remove')}</button>
                       </div>
                     ))}

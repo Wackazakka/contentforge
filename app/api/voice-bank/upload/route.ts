@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getTenant } from '@/lib/tenantServer'
 import { isTenantAdmin } from '@/lib/voiceBank'
+import { lagreMedie, signerMedier, slettMedier, somListe } from '@/lib/actorMedia'
 
 function admin() {
   return createClient(
@@ -11,10 +11,10 @@ function admin() {
   )
 }
 
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
-
 // Last opp bilde/lydprøve til en skuespillers presentasjonsside.
 // Samme tilgang som stemmebank-adminen: tenantens admins + leddene over.
+// Fila går til den PRIVATE bøtta og raden får stien (lib/actorMedia) — ikke
+// en offentlig R2-adresse som virker for alltid.
 export async function POST(request: Request) {
   try {
     const tenant = await getTenant()
@@ -47,28 +47,25 @@ export async function POST(request: Request) {
       .single()
     if (!actor) return NextResponse.json({ error: 'Skuespilleren finnes ikke i denne banken' }, { status: 404 })
 
+    const field = kind === 'photo' ? 'photo_urls' : 'sample_urls'
+    const list = somListe((actor as Record<string, unknown>)[field])
+    // Før: .slice(0, 12) kastet den NYE stille når lista var full — og fila
+    // ble liggende uten at noe pekte på den.
+    if (list.length >= 12) return NextResponse.json({ error: 'Maks 12 per liste — fjern en først' }, { status: 400 })
+
     const buffer = Buffer.from(await file.arrayBuffer())
     const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '')
-    const key = `voice-actors/${actorId}/${kind}-${Date.now()}.${ext}`
-    const r2 = new S3Client({
-      region: 'auto',
-      endpoint: process.env.R2_ENDPOINT!,
-      credentials: { accessKeyId: process.env.R2_ACCESS_KEY_ID!, secretAccessKey: process.env.R2_SECRET_ACCESS_KEY! },
-    })
-    await r2.send(new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME || 'contentforge-assets',
-      Key: key,
-      Body: buffer,
-      ContentType: file.type || undefined,
-    }))
-    const url = `${R2_PUBLIC_URL}/${key}`
+    const sti = await lagreMedie(actorId, `${kind}-${Date.now()}.${ext}`, buffer, file.type || undefined)
 
-    // Legg URL-en på riktig liste
-    const field = kind === 'photo' ? 'photo_urls' : 'sample_urls'
-    const list = Array.isArray((actor as any)[field]) ? (actor as any)[field] : []
-    await supabase.from('voice_actors').update({ [field]: [...list, url].slice(0, 12) }).eq('id', actorId)
+    // Legg stien på riktig liste. Feiler det, skal fila ikke bli liggende.
+    const { error: upErr } = await supabase.from('voice_actors').update({ [field]: [...list, sti] }).eq('id', actorId)
+    if (upErr) {
+      await slettMedier(actorId, [sti])
+      return NextResponse.json({ error: upErr.message }, { status: 500 })
+    }
 
-    return NextResponse.json({ ok: true, url })
+    const url = (await signerMedier([{ actorId, verdier: [sti] }]))(actorId, sti)
+    return NextResponse.json({ ok: true, path: sti, url })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

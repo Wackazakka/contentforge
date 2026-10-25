@@ -3,6 +3,7 @@ import { KJOENN, KREVER_SAMTYKKE, rensAttributter } from '@/lib/castingAttribute
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { isTenantAdmin, PLATFORM_RIGHTS_FEE_PCT, ACTOR_SUBSCRIPTION_NOK } from '@/lib/voiceBank'
+import { signerMedier, slettMedier, somListe } from '@/lib/actorMedia'
 
 function admin() {
   return createClient(
@@ -147,9 +148,18 @@ export async function GET(request: Request) {
         const { data: ta } = await supabase.from('talent_agents').select('name').eq('id', actorUt.talent_agent_id as string).maybeSingle()
         identityAgency = (ta as { name?: string } | null)?.name ?? null
       }
+      // Kortets filer ligger privat (lib/actorMedia): raden har stier, siden
+      // trenger lenker. Stiene beholdes på raden i svaret — det er dem
+      // «fjern» sender tilbake.
+      const kort = actor as { id: string; photo_urls?: unknown; sample_urls?: unknown; video_urls?: unknown }
+      const medier = [...somListe(kort.photo_urls), ...somListe(kort.sample_urls), ...somListe(kort.video_urls)]
+      const lenke = await signerMedier([{ actorId: kort.id, verdier: medier }])
+      const mediaLinks: Record<string, string> = {}
+      for (const v of medier) { const l = lenke(kort.id, v); if (l) mediaLinks[v] = l }
       return NextResponse.json({
         tenant: { id: tenant.id, name: tenant.app_name },
         actor: actorUt,
+        mediaLinks,
         identityAgency,
         faceWithdrawnAt,
         faceConsent,
@@ -350,8 +360,27 @@ export async function PATCH(request: Request) {
     // plassen — uten en ny migrasjon.
     if (typeof body.isDemo === 'boolean') patch.is_demo = body.isDemo
     if (body.bio !== undefined) patch.bio = body.bio ? String(body.bio).slice(0, 2000) : null
-    if (Array.isArray(body.photoUrls)) patch.photo_urls = body.photoUrls.map(String).slice(0, 12)
-    if (Array.isArray(body.sampleUrls)) patch.sample_urls = body.sampleUrls.map(String).slice(0, 12)
+    // Kortets lister (lib/actorMedia) kan bare KRYMPE her: nye filer kommer
+    // via /api/voice-bank/upload. Ellers kunne en sti til noe annet i den
+    // private bøtta smugles inn på et offentlig kort. Det som fjernes, slettes
+    // når raden er oppdatert — å ta lenken ut av lista er ikke å fjerne fila.
+    const fjernet: string[] = []
+    if (Array.isArray(body.photoUrls) || Array.isArray(body.sampleUrls)) {
+      const { data: naa } = await admin()
+        .from('voice_actors').select('photo_urls, sample_urls')
+        .eq('id', actorId).eq('owner_tenant_id', tenant.id).maybeSingle()
+      if (!naa) return NextResponse.json({ error: 'Skuespilleren finnes ikke i denne banken' }, { status: 404 })
+      for (const [inn, kol] of [[body.photoUrls, 'photo_urls'], [body.sampleUrls, 'sample_urls']] as const) {
+        if (!Array.isArray(inn)) continue
+        const gamle = somListe((naa as Record<string, unknown>)[kol])
+        const nye = [...new Set((inn as unknown[]).map(String))]
+        if (nye.some((v) => !gamle.includes(v))) {
+          return NextResponse.json({ error: 'Nye filer lastes opp, de kan ikke legges til her' }, { status: 400 })
+        }
+        patch[kol] = nye
+        fjernet.push(...gamle.filter((v) => !nye.includes(v)))
+      }
+    }
     if (body.actorRateNok !== undefined) {
       const v = Number(body.actorRateNok)
       if (!(v >= 0)) return NextResponse.json({ error: 'Ugyldig skuespillersats' }, { status: 400 })
@@ -530,6 +559,7 @@ export async function PATCH(request: Request) {
     }
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     if (!data || data.length === 0) return NextResponse.json({ error: 'Skuespilleren finnes ikke i denne banken' }, { status: 404 })
+    if (fjernet.length) await slettMedier(actorId, fjernet)
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
