@@ -134,14 +134,14 @@ async function editImageBuffer(topic: string, referenceImageUrl: string, imageSi
 // Karakter-modus: generer segmentbildet med fal flux-lora (trent persona) i stedet
 // for gpt-image — samme vert i alle segmenter. Trigger-ord + karakterblokk + scene.
 // Slå opp karakter: innebygd (Adam/Lawrence) eller brukerens egen (user_characters).
-async function resolveCharacter(characterId: string, userId: string) {
+async function resolveCharacter(characterId: string, bruker: { id: string; email: string | null }) {
   const builtin = getCharacter(characterId)
   if (builtin) {
     // Eksklusivitet håndheves server-side: tenant- OG brukersperre
     // (Lawrence bare for Lars, Adam bare på rot — lib/characters, 21.10)
     const { getTenant } = await import('@/lib/tenantServer')
     const tenant = await getTenant()
-    if (!characterAllowed(builtin, { tenantSlug: tenant.slug, userId })) return null
+    if (!characterAllowed(builtin, { tenantSlug: tenant.slug, userId: bruker.id })) return null
     return builtin
   }
   const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
@@ -163,30 +163,45 @@ async function resolveCharacter(characterId: string, userId: string) {
     if ((alder || []).some((r: { is_active: boolean; source_cleared: boolean }) => !r.is_active || !r.source_cleared)) return null
   }
   if (data && data.status === 'ready' && data.lora_url) {
-    // Sikring (2026-07-29): karakteren må være tilgjengelig for HOST-tenanten —
-    // enten eid i egen kjede, eller ansiktet på en tilgjengelig bankrad.
-    // Defensivt: mangler owner-kolonnen (pre-migrasjon) regnes eierskapet som ukjent → tillat kjede-stien ikke; bank-stien sjekkes uansett.
+    // 🔑 HVEM FÅR BRUKE ANSIKTET (25.10.2026) — se lib/ansiktTilgang. Før var
+    // «eid i tenantkjeden» nok, for ALLE innloggede, og rot-tenanten hadde
+    // full tilgang til alt. På twinledger.ai kan hvem som helst registrere
+    // seg: en karakter-id var nok til å lage bilder med en annens ansikt.
+    // Nå: egen modell, admin i tenanten, eller et bankansikt tenanten har.
+    // (Rot-unntaket gjaldt «dropletens server-til-server-render», men ruta
+    // krever innlogget bruker siden 21.10 — det kallet finnes ikke lenger.)
+    //
+    // ⚠️ FEIL I OPPSLAGET STENGER. Før slapp en feil her ansiktet gjennom.
+    // Samme vurdering som i hentAnsiktForGenerering: et bilde av en annens
+    // ansikt vi ikke fikk bekreftet lov til, kan ikke gjøres om.
     try {
       const { getTenant } = await import('@/lib/tenantServer')
-      const { tenantChainUp, getAvailableFaceActors } = await import('@/lib/voiceBank')
+      const { tenantChainUp, getAvailableFaceActors, isTenantAdmin } = await import('@/lib/voiceBank')
+      const { kanBrukeAnsikt } = await import('@/lib/ansiktTilgang')
       const tenant = await getTenant()
-      const chain = tenant.id === 'root' ? [] : await tenantChainUp(tenant.id)
-      const ownedInChain = data.owner_tenant_id ? chain.includes(data.owner_tenant_id) : false
-      let viaBank = false
-      if (!ownedInChain && tenant.id !== 'root') {
-        const faces = await getAvailableFaceActors(tenant.id)
-        viaBank = faces.some((f) => (f as { face_character_id?: string | null }).face_character_id === characterId)
-        // En aldersmodell (082) er like tilgjengelig som standardansiktet til
-        // samme rettighetshaver — men bare en brukbar en (klarert, godkjent,
-        // ikke stengt). Samme oppslag som ansiktsvalget bruker.
-        if (!viaBank) {
-          const { brukbareAldersmodeller } = await import('@/lib/ageModels')
-          viaBank = (await brukbareAldersmodeller(faces.map((f) => f.id))).some((m) => m.characterId === characterId)
-        }
-      }
-      // Rot-tenanten (inkl. dropletens server-til-server-render) beholder full tilgang
-      if (tenant.id !== 'root' && !ownedInChain && !viaBank) return null
-    } catch { /* sikringen skal aldri velte bildegenereringen for rot */ }
+      const lov = await kanBrukeAnsikt(
+        { owner_tenant_id: data.owner_tenant_id ?? null, created_by: data.created_by ?? null },
+        {
+          tenantId: tenant.id,
+          kjede: tenant.id === 'root' ? [] : await tenantChainUp(tenant.id),
+          brukerId: bruker.id,
+          erAdmin: () => isTenantAdmin(bruker.email, tenant.id),
+          viaBank: async () => {
+            const faces = await getAvailableFaceActors(tenant.id)
+            if (faces.some((f) => (f as { face_character_id?: string | null }).face_character_id === characterId)) return true
+            // En aldersmodell (082) er like tilgjengelig som standardansiktet til
+            // samme rettighetshaver — men bare en brukbar en (klarert, godkjent,
+            // ikke stengt). Samme oppslag som ansiktsvalget bruker.
+            const { brukbareAldersmodeller } = await import('@/lib/ageModels')
+            return (await brukbareAldersmodeller(faces.map((f) => f.id))).some((m) => m.characterId === characterId)
+          },
+        },
+      )
+      if (!lov) return null
+    } catch (e) {
+      console.warn('[generateImage] tilgangssjekken for ansiktet feilet — stenger:', e)
+      return null
+    }
     return {
       id: data.id,
       name: data.name,
@@ -203,9 +218,9 @@ async function generateCharacterImageBuffer(
   topic: string,
   characterId: string,
   imageSize: string = '1024x1536',
-  userId: string = ''
+  bruker: { id: string; email: string | null }
 ): Promise<Buffer> {
-  const ch = await resolveCharacter(characterId, userId)
+  const ch = await resolveCharacter(characterId, bruker)
   if (!ch) throw new Error('Ukjent eller ikke-klar karakter: ' + characterId)
   if (!ch.loraUrl) throw new Error('LoRA-URL mangler for ' + ch.name + ' (sett env ' + ch.id.toUpperCase() + '_LORA_URL i Netlify)')
   if (!FAL_KEY) throw new Error('CONTENTFORGE_FAL_KEY mangler i Netlify env')
@@ -329,7 +344,7 @@ export async function POST(request: NextRequest) {
     console.log('[generateImage] ===== START:  + topic +  =====')
 
     let imageBuffer = character
-      ? await generateCharacterImageBuffer(topic, character, imageSize, userId)
+      ? await generateCharacterImageBuffer(topic, character, imageSize, { id: userId, email: brukerData?.user?.email ?? null })
       : referenceImageUrl
         ? await editImageBuffer(topic, String(referenceImageUrl), imageSize, imageStyle)
         : await generateImageBuffer(topic, imageSize, imageStyle)
