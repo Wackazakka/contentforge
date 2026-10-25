@@ -6,6 +6,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 import { useDashboardRole } from '@/lib/useDashboardRole'
 import { useTenant } from '@/lib/tenantContext'
 import { fmtCredits, TRENING_RAAKOST_NOK, treningListeprisNok } from '@/lib/costs'
+import { modellMerke } from '@/lib/modellMerke'
 
 interface UserCharacter {
   id: string
@@ -23,6 +24,11 @@ interface UserCharacter {
   trainer: string | null
   // Settet den ble laget fra (094). Uten den kan den ikke trenes paa nytt.
   training_set_url: string | null
+  // Svaret hennes (091) og en senere tilbaketrekking — det er dem merket viser
+  // naar modellen er ferdig trent (lib/modellMerke, 25.10).
+  approval_status?: string | null
+  approval_sent_at?: string | null
+  withdrawn_at?: string | null
 }
 
 export default function CharactersPage() {
@@ -280,7 +286,7 @@ export default function CharactersPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
                 {/* Retrening er admin-styrt: den bruker vaar fal-noekkel og kan
                     koste 96 kr. Vises bare naar settet faktisk er sporet. */}
                 {/* Ogsaa fra et FEILET kort (Lars 22.09: «ingen steder jeg kan
@@ -299,13 +305,18 @@ export default function CharactersPage() {
                     </button>
                   </>
                 )}
-                <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                  c.status === 'ready' ? 'bg-green-100 text-green-800'
-                  : c.status === 'training' ? 'bg-amber-100 text-amber-800'
-                  : 'bg-red-100 text-red-700'
-                }`}>
-                  {c.status === 'ready' ? '✓ Klar' : c.status === 'training' ? '⏳ Trener…' : '✗ Feilet'}
-                </span>
+                {(() => {
+                  const m = modellMerke(c)
+                  return (
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${
+                      m.tone === 'ok' ? 'bg-green-100 text-green-800'
+                      : m.tone === 'venter' ? 'bg-amber-100 text-amber-800'
+                      : 'bg-red-100 text-red-700'
+                    }`}>
+                      {m.tekst}
+                    </span>
+                  )
+                })()}
                 </div>
               </div>
             ))}
