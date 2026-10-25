@@ -1,24 +1,25 @@
 import { NextResponse } from 'next/server'
 import { getTenant } from '@/lib/tenantServer'
 import { admin, resolveLocalUser, sessionTokenFor, SsoError, type Partner } from '@/lib/partnerSso'
-import { verifyFirebaseIdToken } from '@/lib/firebaseIdToken'
 
-// Overlevering fra Sangskaper (2026-10-23): kunden har kjøpt sangen OG «film av
-// sangen» der (Vipps, hos Sangskaper). Sangskapers frontend POST-er kundens
-// Firebase-ID-token + clipId hit. Vi
-//   1) verifiserer tokenet mot Googles nøkler (prosjekt sangskaper-1) → e-post
-//   2) henter sangen fra Sangskapers offentlige /api/song-details og krever
-//      filmPurchased — betalingsbeviset kommer fra DERES server, ikke klienten
-//   3) oppretter/kobler lokal konto (partnerSso), organisasjon på denne tenanten
+// Overlevering fra Sangskaper (2026-10-23, herdet 25-10 etter Andreas' gjennomgang):
+// kunden har kjøpt sangen OG «film av sangen» der (Vipps, hos Sangskaper).
+// Sangskapers backend utsteder en ENGANGSKODE etter å ha sjekket at innlogget
+// bruker eier sangen og at filmen er betalt; frontend POST-er koden hit. Vi
+//   1) løser koden inn server-til-server hos Sangskaper (brukes én gang, 5 min)
+//      og får e-post + sangen (tittel, MP3-URL, anledning) — ingen Firebase-token
+//      forlater Sangskaper, og eierskapet er sjekket der
+//   2) oppretter/kobler lokal konto (partnerSso), organisasjon på denne tenanten
 //      og en anledning med riktig kategori
-//   4) ber dropleten hente MP3-en inn i anledningens tracks-mappe, så filmsiden
+//   3) ber dropleten hente MP3-en inn i anledningens tracks-mappe, så filmsiden
 //      velger den automatisk
-//   5) svarer med en innloggings-URL (/sso?token_hash=…&next=…/film)
-// Ingen delt hemmelighet: tokenet er Google-signert, og filmPurchased leses fra
-// Sangskapers API. Filmen er gratis her (BILLING_ENABLED av) — betalt hos dem.
+//   4) svarer med en innloggings-URL (/sso?token_hash=…&next=…/film)
+// Delt hemmelighet er valgfri: settes SANGSKAPER_PARTNER_SECRET her og
+// ROPERT_PARTNER_SECRET i deres Secret Manager, kreves den ved innløsning.
+// Filmen er gratis her (BILLING_ENABLED av) — betalt hos Sangskaper.
 
 const SANGSKAPER_API = (process.env.SANGSKAPER_API_URL || 'https://sangskaper-api-351526496061.europe-north1.run.app').replace(/\/$/, '')
-const SANGSKAPER_PROJECT = process.env.SANGSKAPER_FIREBASE_PROJECT || 'sangskaper-1'
+const PARTNER_SECRET = process.env.SANGSKAPER_PARTNER_SECRET || ''
 const DROPLET_URL = 'http://139.59.212.218:3002'
 const ALLOWED_ORIGINS = new Set([
   'https://sangskaper.no',
@@ -61,13 +62,11 @@ export async function OPTIONS(request: Request) {
   return new NextResponse(null, { status: 204, headers: cors(request.headers.get('origin')) })
 }
 
-type SongDetails = {
-  sunoClipId: string
-  audioUrl: string | null
-  titleFromSuno?: string
-  aiGeneratedTitleForJob?: string | null
-  filmPurchased?: boolean
-  occasion?: string | null
+type Redeemed = {
+  ok?: boolean
+  reason?: string
+  user?: { id: string; email: string | null; display_name: string | null; email_verified: boolean }
+  song?: { clipId: string; title: string | null; audioUrl: string | null; occasion: string | null; filmPurchased: boolean }
 }
 
 export const maxDuration = 60
@@ -79,39 +78,40 @@ export async function POST(request: Request) {
   const tenant = await getTenant()
   if (tenant.slug !== PARTNER.tenantSlug) return fail(404, 'Overlevering fra Sangskaper er ikke aktivert her')
 
-  let body: { idToken?: string; clipId?: string } = {}
+  let body: { code?: string } = {}
   try { body = await request.json() } catch { /* tom */ }
-  if (!body.idToken || !body.clipId || !/^[A-Za-z0-9_-]{6,80}$/.test(body.clipId)) return fail(400, 'Mangler idToken eller clipId')
+  if (!/^[a-f0-9]{64}$/.test(body.code || '')) return fail(400, 'Mangler eller ugyldig overleveringskode')
 
-  // 1) Hvem er kunden?
-  let who
+  // 1) Løs inn koden hos Sangskaper — de har alt sjekket eierskap og betaling
+  let redeemed: Redeemed = {}
   try {
-    who = await verifyFirebaseIdToken(body.idToken, SANGSKAPER_PROJECT)
-  } catch (e) {
-    return fail(401, `Innloggingen hos Sangskaper kunne ikke bekreftes (${e instanceof Error ? e.message : 'ukjent feil'})`)
-  }
-  if (!who.email) return fail(400, 'Sangskaper-kontoen mangler e-postadresse — legg inn e-post der først')
-
-  // 2) Er filmen betalt? Svaret kommer fra Sangskapers server.
-  let song: SongDetails
-  try {
-    const r = await fetch(`${SANGSKAPER_API}/api/song-details/${encodeURIComponent(body.clipId)}?t=${Date.now()}`, { cache: 'no-store' })
-    if (r.status === 403) return fail(402, 'Sangen er ikke kjøpt hos Sangskaper ennå')
-    if (!r.ok) return fail(502, 'Sangskaper svarer ikke akkurat nå')
-    song = (await r.json()) as SongDetails
+    const r = await fetch(`${SANGSKAPER_API}/api/partner/ropert/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(PARTNER_SECRET ? { 'X-Partner-Secret': PARTNER_SECRET } : {}) },
+      body: JSON.stringify({ code: body.code }),
+      cache: 'no-store',
+    })
+    redeemed = (await r.json().catch(() => ({}))) as Redeemed
   } catch {
     return fail(502, 'Sangskaper svarer ikke akkurat nå')
   }
+  if (!redeemed.ok || !redeemed.user?.id || !redeemed.song) {
+    return fail(400, redeemed.reason === 'invalid_or_used'
+      ? 'Overleveringen er utløpt — gå tilbake til Sangskaper og trykk «Lag filmen» på nytt'
+      : 'Overlevering fra Sangskaper feilet')
+  }
+  const { user: who, song } = redeemed
+  if (!who.email) return fail(400, 'Sangskaper-kontoen mangler e-postadresse — legg inn e-post der først')
   if (song.filmPurchased !== true) return fail(402, 'Filmen er ikke betalt hos Sangskaper ennå')
   if (!song.audioUrl) return fail(409, 'Sangen mangler lydfil hos Sangskaper')
 
   try {
-    // 3) Lokal konto + organisasjon på denne tenanten + anledning
+    // 2) Lokal konto + organisasjon på denne tenanten + anledning
     const { userId, email } = await resolveLocalUser(PARTNER, {
-      id: who.uid,
+      id: who.id,
       email: who.email,
-      display_name: who.name,
-      email_verified: who.emailVerified,
+      display_name: who.display_name,
+      email_verified: who.email_verified,
     })
     const sb = admin()
     let orgId: string | null = null
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
       orgId = own?.[0]?.id ?? null
     }
     if (!orgId) {
-      const base = who.name || email.split('@')[0] || 'Min'
+      const base = who.display_name || email.split('@')[0] || 'Min'
       const { data: org, error: oErr } = await sb
         .from('organizations')
         .insert({
@@ -136,10 +136,10 @@ export async function POST(request: Request) {
       orgId = org.id
     }
 
-    const title = (song.aiGeneratedTitleForJob || song.titleFromSuno || 'Sangen min').toString().slice(0, 120)
+    const title = (song.title || 'Sangen min').toString().slice(0, 120)
     const category = CATEGORY_MAP[(song.occasion || '').toLowerCase()] || 'annet'
     // Samme sang to ganger → gjenbruk anledningen (idempotent ved nytt klikk)
-    const marker = `sangskaper:${song.sunoClipId || body.clipId}`
+    const marker = `sangskaper:${song.clipId}`
     let productId: string | null = null
     {
       const { data: existing } = await sb.from('products').select('id').eq('organization_id', orgId).ilike('description', `%${marker}%`).limit(1)
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
       if (pErr || !prod) throw new SsoError(500, 'Kunne ikke opprette anledningen: ' + (pErr?.message || ''))
       productId = prod.id
 
-      // 4) Hent MP3-en inn i anledningens spor-mappe (dropleten laster ned fra URL-en)
+      // 3) Hent MP3-en inn i anledningens spor-mappe (dropleten laster ned fra URL-en)
       try {
         const ir = await fetch(`${DROPLET_URL}/music/import`, {
           method: 'POST',
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5) Engangs-innlogging rett til filmsiden
+    // 4) Engangs-innlogging rett til filmsiden
     const token_hash = await sessionTokenFor(email)
     const next = `/dashboard/products/${productId}/film`
     // Bak Netlify er request.url permalinken, ikke tenant-domenet — bruk host-headeren.
