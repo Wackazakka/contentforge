@@ -24,7 +24,7 @@ function db() {
 
 interface Rad {
   id: string; name: string | null; status: string; fal_request_id: string | null
-  trainer: string | null; owner_tenant_id: string | null
+  trainer: string | null; owner_tenant_id: string | null; lora_url: string | null
   approval_status: string | null; subject_email: string | null; approval_token: string | null
   approval_sent_at: string | null
 }
@@ -104,6 +104,32 @@ function feilTekst(httpStatus: number, body: any): string {
 }
 
 /**
+ * Sett i gang flyttingen av modellfila (netlify/functions/lora-flytt-background).
+ *
+ * ⚠️ KRAVET TAS FOERST, ATOMISK. Medvirkende spoer hvert 20. sekund, og hver
+ * gang kjoeres fullfoerTreninger: uten kravet ville hver sidevisning startet
+ * en ny kopi av 130–330 MB. En flytting som ikke er ferdig etter 20 minutter
+ * (funksjonen doede, fal svarte ikke), kan tas paa nytt.
+ */
+async function startLoraFlytt(karakterId: string): Promise<void> {
+  const secret = process.env.CRON_SECRET
+  if (!secret) return
+  const grense = new Date(Date.now() - 20 * 60_000).toISOString()
+  const { data: tatt } = await db().from('user_characters')
+    .update({ lora_flytt_startet: new Date().toISOString() })
+    .eq('id', karakterId).eq('status', 'training')
+    .or(`lora_flytt_startet.is.null,lora_flytt_startet.lt."${grense}"`)
+    .select('id')
+  if (!tatt?.length) return
+  const base = process.env.NEXT_PUBLIC_BASE_URL || 'https://twinledger.ai'
+  await fetch(`${base}/.netlify/functions/lora-flytt-background`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-cron-secret': secret },
+    body: JSON.stringify({ characterId: karakterId }),
+  }).catch(() => { /* kravet staar; nytt forsoek om 20 min */ })
+}
+
+/**
  * Spoer fal om status paa alle treninger som paagaar, og fullfoer de ferdige.
  *
  * ⚠️ ENDEPUNKTET ER RADENS, IKKE ET FAST. Den gamle koden spurte alltid
@@ -117,7 +143,7 @@ function feilTekst(httpStatus: number, body: any): string {
 export async function fullfoerTreninger(opts: { tenantId?: string } = {}): Promise<{ sjekket: number; ferdige: number; feilet: number; varslet: number }> {
   if (!FAL_KEY) return { sjekket: 0, ferdige: 0, feilet: 0, varslet: 0 }
   let q = db().from('user_characters')
-    .select('id, name, status, fal_request_id, trainer, owner_tenant_id, approval_status, subject_email, approval_token, approval_sent_at')
+    .select('id, name, status, fal_request_id, trainer, owner_tenant_id, lora_url, approval_status, subject_email, approval_token, approval_sent_at')
     .eq('status', 'training').not('fal_request_id', 'is', null)
   if (opts.tenantId) q = q.eq('owner_tenant_id', opts.tenantId)
   const { data } = await q
@@ -142,7 +168,16 @@ export async function fullfoerTreninger(opts: { tenantId?: string } = {}): Promi
           feilet++
           continue
         }
-        await db().from('user_characters').update({ lora_url: url, status: 'ready', last_error: null }).eq('id', row.id)
+        // 🔑 MODELLFILA TIL DEN PRIVATE BOETTA FOER MODELLEN ER KLAR (121).
+        // fal-adressen er offentlig og evig — lagret vi den her, var fila
+        // aapen for enhver med lenken, ogsaa etter at modellen var stengt hos
+        // oss. Bakgrunnsfunksjonen kopierer og beviser kopien, skriver
+        // sb://-stien paa raden og kaller oss igjen; DA blir den «ready» her.
+        if (!(await import('@/lib/loraKilde')).erLagretIBoette(row.lora_url)) {
+          await startLoraFlytt(row.id)
+          continue
+        }
+        await db().from('user_characters').update({ status: 'ready', last_error: null }).eq('id', row.id)
         ferdige++
         // 🔑 HER BLIR MODELLEN NOE AA GODKJENNE (091) — men ikke noe aa SPOERRE
         // om ennaa. Har hun levert bilder (102), lages proevebildene naa og

@@ -142,7 +142,10 @@ async function resolveCharacter(characterId: string, bruker: { id: string; email
     const { getTenant } = await import('@/lib/tenantServer')
     const tenant = await getTenant()
     if (!characterAllowed(builtin, { tenantSlug: tenant.slug, userId: bruker.id })) return null
-    return builtin
+    // ADAM_/LAWRENCE_LORA_URL kan peke paa den private boetta (sb://…, 121) —
+    // da signeres den her som for alle andre. En http-adresse gaar uendret.
+    if (!builtin.loraUrl) return builtin
+    return { ...builtin, loraUrl: await (await import('@/lib/loraKilde')).loraUrlForGenerering(builtin.loraUrl) }
   }
   const supabase = createClient(SUPABASE_URL || '', SUPABASE_SERVICE_ROLE_KEY || '')
   const { data } = await supabase.from('user_characters').select('*').eq('id', characterId).single()
