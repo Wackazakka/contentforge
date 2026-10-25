@@ -13,6 +13,13 @@
  */
 export const KILDE_ERKLAERING = 'Bildene og opptakene jeg laster opp viser meg, og jeg har rett til å bruke dem til dette — også bilder andre har tatt av meg.'
 
+/**
+ * Erklæringen når hun laster opp sin EGEN ansiktsmodell (23.10). Fryses på
+ * modellfila. Det kommersielle er nytt: noen treningstjenester har vilkår som
+ * begrenser kommersiell bruk av modellene de lager.
+ */
+export const MODELL_ERKLAERING = 'Modellen viser meg, den er trent på bilder jeg har rett til å bruke, og jeg har rett til å bruke den kommersielt — også om den er laget hos en annen tjeneste.'
+
 export const MIN_BILDER = 10
 export const ANBEFALT_BILDER = '15–25'
 export const MAKS_BILDER = 30

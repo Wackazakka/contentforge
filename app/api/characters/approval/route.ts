@@ -30,12 +30,13 @@ import { SCENER, signerProever, startProever, hentFerdigeProever, lesBatch } fro
 async function hentRad(token: string) {
   const { data } = await admin()
     .from('user_characters')
-    .select('id, name, approval_status, subject_email, sample_urls, withdrawn_at, status, sample_pending')
+    .select('id, name, approval_status, subject_email, sample_urls, withdrawn_at, status, sample_pending, trainer, owner_tenant_id')
     .eq('approval_token', token)
     .maybeSingle()
   return data as {
     id: string; name: string | null; approval_status: string
     subject_email: string | null; sample_urls: unknown; withdrawn_at: string | null; status: string; sample_pending: unknown
+    trainer: string | null; owner_tenant_id: string | null
   } | null
 }
 
@@ -147,6 +148,15 @@ export async function POST(request: Request) {
         // får tak i e-posten senere.
         approval_token: null,
       }).eq('id', rad.id)
+
+      // 🔑 EGEN MODELL BLIR ANSIKTET HENNES NÅR HUN SIER JA (23.10) — men bare
+      // når hun ikke har et fra før. Å bytte ut et ansikt hun alt har, gir en ny
+      // versjon og stenger gamle lisenser for det nye; det er en avgjørelse
+      // adminen tar, ikke en bieffekt av en godkjenning.
+      if (ja && (rad.trainer || '').startsWith('egen:') && rad.subject_email && rad.owner_tenant_id) {
+        await admin().from('voice_actors').update({ face_character_id: rad.id })
+          .ilike('actor_email', rad.subject_email).eq('owner_tenant_id', rad.owner_tenant_id).is('face_character_id', null)
+      }
       return NextResponse.json({ ok: true, status: ja ? 'approved' : 'rejected' })
     }
 

@@ -191,7 +191,8 @@ async function resolveCharacter(characterId: string, userId: string) {
       id: data.id,
       name: data.name,
       trigger: data.trigger_word,
-      loraUrl: data.lora_url,
+      // Egen modell i privat bøtte → signert lenke nå (lib/loraKilde).
+      loraUrl: await (await import('@/lib/loraKilde')).loraUrlForGenerering(String(data.lora_url)),
       characterBlock: data.trigger_word + ', natural appearance, natural relaxed posture',
     }
   }

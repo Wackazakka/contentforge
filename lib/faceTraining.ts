@@ -51,7 +51,7 @@ async function vertFor(tenantId: string | null): Promise<{ vert: string; merke: 
  * Feiler stille: modellen staar som `pending`, altsaa STENGT. Det verste en
  * mislykket e-post kan gjoere er aa utsette et ja — ikke aa slippe noe gjennom.
  */
-export async function varsleOmGodkjenning(karakterId: string, til: string, token: string, navn: string | null, tenantId: string | null): Promise<boolean> {
+export async function varsleOmGodkjenning(karakterId: string, til: string, token: string, navn: string | null, tenantId: string | null, egen = false): Promise<boolean> {
   try {
     if (!process.env.RESEND_API_KEY) return false
     const { vert, merke } = await vertFor(tenantId)
@@ -69,7 +69,11 @@ export async function varsleOmGodkjenning(karakterId: string, til: string, token
       subject: 'Er dette deg? Godkjenn ansiktsmodellen din',
       html: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#1C1A16">
         <h2 style="margin:0 0 12px">Er dette deg?</h2>
-        <p>Vi har laget en ansiktsmodell${navn ? ` («${navn}»)` : ''} fra bildene dine. Før den kan brukes til noe som helst, vil vi at du skal se hva den lager.</p>
+        <p>${egen
+          // Hun lastet opp modellen selv (23.10): hun vet hva den er, men ikke
+          // hva den lager hos oss — grunnmodell og innstillinger kan skille.
+          ? 'Modellen du lastet opp er sjekket mot bildene dine og godkjent av kontrollen vår. Før den kan brukes til noe som helst, vil vi at du skal se hva den lager hos oss.'
+          : `Vi har laget en ansiktsmodell${navn ? ` («${navn}»)` : ''} fra bildene dine. Før den kan brukes til noe som helst, vil vi at du skal se hva den lager.`}</p>
         <p>Du får se tre bilder generert med modellen, i ulike situasjoner. Deretter svarer du ja eller nei.</p>
         <p style="margin:24px 0"><a href="${lenke}" style="background:#C5451B;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">Se bildene og svar</a></p>
         <p style="color:#6B6358;font-size:14px">Til du svarer, er modellen stengt og kan ikke brukes. Du kan ombestemme deg senere uansett hva du svarer nå.</p>
@@ -189,13 +193,16 @@ export async function fullfoerTreninger(opts: { tenantId?: string } = {}): Promi
 async function fullfoerProever(tenantId?: string): Promise<{ varslet: number; stoppet: number }> {
   const { hentFerdigeProever, hentSentroide, vurderProever, likhetTekst, SCENER } = await import('@/lib/faceSamples')
   let q = db().from('user_characters')
-    .select('id, name, owner_tenant_id, subject_email, approval_token, sample_urls, sample_pending')
+    .select('id, name, owner_tenant_id, subject_email, approval_token, sample_urls, sample_pending, trainer')
     .eq('status', 'ready').eq('approval_status', 'pending').is('approval_sent_at', null)
     .not('sample_pending', 'is', null).not('subject_email', 'is', null).not('approval_token', 'is', null)
   if (tenantId) q = q.eq('owner_tenant_id', tenantId)
   const { data } = await q
   let varslet = 0, stoppet = 0
-  for (const r of (data || []) as (Pick<Rad, 'id' | 'name' | 'owner_tenant_id' | 'subject_email' | 'approval_token'> & { sample_urls: unknown; sample_pending: unknown })[]) {
+  for (const r of (data || []) as (Pick<Rad, 'id' | 'name' | 'owner_tenant_id' | 'subject_email' | 'approval_token' | 'trainer'> & { sample_urls: unknown; sample_pending: unknown })[]) {
+    // En modell hun lastet opp selv (23.10) — identitetssjekken er DA porten:
+    // uten den kunne hvem som helst levere en modell av en annen.
+    const egen = (r.trainer || '').startsWith('egen:')
     try {
       const { stier, pending, batch } = await hentFerdigeProever(r.id, r.sample_urls, r.sample_pending)
       if (pending) {
@@ -210,15 +217,38 @@ async function fullfoerProever(tenantId?: string): Promise<{ varslet: number; st
         await startProever(await hentAnsiktForProeve(r.id), r.id, stier.length)
         continue
       }
-      const sentroide = await hentSentroide(r.subject_email, r.owner_tenant_id)
-      const vurdering = stier.length && sentroide ? await vurderProever(stier, sentroide) : null
-      if (vurdering) await db().from('user_characters').update({ sample_scores: vurdering }).eq('id', r.id)
-      if (vurdering && !vurdering.passed) {
-        await db().from('user_characters').update({ status: 'failed', last_error: `Prøvebildene likner ikke nok på henne (${likhetTekst(vurdering)}). Ikke sendt.` }).eq('id', r.id)
+      // 🔑 INGEN BILDER = FEILET, IKKE ET TOMT SPØRSMÅL. Før gikk e-posten
+      // da uten et eneste prøvebilde. For en opplastet modell er det oftest
+      // feil fil, feil grunnmodell eller feil utløserord.
+      if (stier.length === 0 && !pending) {
+        await db().from('user_characters').update({
+          status: 'failed',
+          last_error: egen
+            ? 'Modellen ga ingen bilder hos oss. Sjekk at det er en Flux-LoRA, at du valgte riktig Flux-versjon, og at utløserordet stemmer.'
+            : 'Ingen prøvebilder kunne lages med modellen.',
+        }).eq('id', r.id)
         stoppet++
         continue
       }
-      if (await varsleOmGodkjenning(r.id, r.subject_email!, r.approval_token!, r.name, r.owner_tenant_id)) varslet++
+      const sentroide = await hentSentroide(r.subject_email, r.owner_tenant_id)
+      if (egen && !sentroide) {
+        await db().from('user_characters').update({ status: 'failed', last_error: 'Vi har ingen bilder av deg å sjekke modellen mot. Last opp bildene dine først.' }).eq('id', r.id)
+        stoppet++
+        continue
+      }
+      const vurdering = stier.length && sentroide ? await vurderProever(stier, sentroide) : null
+      if (vurdering) await db().from('user_characters').update({ sample_scores: vurdering }).eq('id', r.id)
+      if (vurdering && !vurdering.passed) {
+        await db().from('user_characters').update({
+          status: 'failed',
+          last_error: egen
+            ? `Modellen likner ikke nok på bildene dine (${likhetTekst(vurdering)}). Den kan ikke registreres.`
+            : `Prøvebildene likner ikke nok på henne (${likhetTekst(vurdering)}). Ikke sendt.`,
+        }).eq('id', r.id)
+        stoppet++
+        continue
+      }
+      if (await varsleOmGodkjenning(r.id, r.subject_email!, r.approval_token!, r.name, r.owner_tenant_id, egen)) varslet++
     } catch { /* neste tikk */ }
   }
   return { varslet, stoppet }

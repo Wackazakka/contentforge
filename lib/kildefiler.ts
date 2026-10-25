@@ -12,13 +12,13 @@ import { createClient } from '@supabase/supabase-js'
 // skrives på raden, og et nytt forsøk (etterslepet) kan fylle den inn.
 
 export type EierTabell = 'voice_actors' | 'voice_actor_applications'
-export type Kind = 'photo' | 'recording'
+export type Kind = 'photo' | 'recording' | 'model'
 
 function admin() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', process.env.SUPABASE_SERVICE_ROLE_KEY || '')
 }
 
-export const BOETTE: Record<Kind, string> = { photo: 'training-sets', recording: 'voice-recordings' }
+export const BOETTE: Record<Kind, string> = { photo: 'training-sets', recording: 'voice-recordings', model: 'training-sets' }
 
 /** Tidspunkt og kamera fra bildets egen metadata. ALDRI GPS. Null når fila ikke har noe. */
 async function lesExif(buf: Buffer): Promise<Record<string, string> | null> {
@@ -46,22 +46,31 @@ async function lesExif(buf: Buffer): Promise<Record<string, string> | null> {
  */
 export async function registrerKildefil(a: {
   eierTabell: EierTabell; eierId: string; kind: Kind; path: string; erklaering: string | null
+  /**
+   * Fingeravtrykk alt regnet av SERVEREN et annet sted (dropleten, for
+   * modellfiler på hundrevis av MB). Da hentes ikke fila her.
+   */
+  forhaand?: { sha256: string; bytes: number; contentType?: string | null }
 }): Promise<void> {
   const rad: Record<string, unknown> = {
     owner_table: a.eierTabell, owner_id: a.eierId, kind: a.kind, path: a.path,
     declaration: a.erklaering, declared_at: a.erklaering ? new Date().toISOString() : null,
     sha256: null, bytes: null, content_type: null, exif: null, error: null,
   }
-  try {
-    const { data, error } = await admin().storage.from(BOETTE[a.kind]).download(a.path)
-    if (error || !data) throw new Error(error?.message || 'fant ikke fila')
-    const buf = Buffer.from(await data.arrayBuffer())
-    rad.sha256 = createHash('sha256').update(buf).digest('hex')
-    rad.bytes = buf.length
-    rad.content_type = data.type || null
-    if (a.kind === 'photo') rad.exif = await lesExif(buf)
-  } catch (e) {
-    rad.error = e instanceof Error ? e.message.slice(0, 300) : 'ukjent feil'
+  if (a.forhaand) {
+    rad.sha256 = a.forhaand.sha256; rad.bytes = a.forhaand.bytes; rad.content_type = a.forhaand.contentType ?? null
+  } else {
+    try {
+      const { data, error } = await admin().storage.from(BOETTE[a.kind]).download(a.path)
+      if (error || !data) throw new Error(error?.message || 'fant ikke fila')
+      const buf = Buffer.from(await data.arrayBuffer())
+      rad.sha256 = createHash('sha256').update(buf).digest('hex')
+      rad.bytes = buf.length
+      rad.content_type = data.type || null
+      if (a.kind === 'photo') rad.exif = await lesExif(buf)
+    } catch (e) {
+      rad.error = e instanceof Error ? e.message.slice(0, 300) : 'ukjent feil'
+    }
   }
   // Etterslepet skal aldri overskrive en erklæring hun faktisk avga.
   if (!a.erklaering) {

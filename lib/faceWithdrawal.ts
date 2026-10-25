@@ -108,7 +108,8 @@ export async function hentAnsiktForGenerering(characterId: string): Promise<Ansi
 
   return {
     triggerWord: String(data.trigger_word || ''),
-    loraUrl: String(data.lora_url),
+    // Egen modell i privat bøtte → signert lenke nå (lib/loraKilde).
+    loraUrl: await (await import('@/lib/loraKilde')).loraUrlForGenerering(String(data.lora_url)),
     name: (data.name as string | null) ?? null,
     trainer: (data.trainer as string | null) ?? null,
   }
@@ -144,7 +145,8 @@ export async function hentAnsiktForProeve(characterId: string): Promise<Ansiktsm
 
   return {
     triggerWord: String(data.trigger_word || ''),
-    loraUrl: String(data.lora_url),
+    // Egen modell i privat bøtte → signert lenke nå (lib/loraKilde).
+    loraUrl: await (await import('@/lib/loraKilde')).loraUrlForGenerering(String(data.lora_url)),
     name: (data.name as string | null) ?? null,
     trainer: (data.trainer as string | null) ?? null,
   }

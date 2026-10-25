@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useAuth } from '@/lib/authContext'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import LeveringPanel from '@/components/LeveringPanel'
+import EgenModellPanel from '@/components/EgenModellPanel'
 
 // Rettighetshaverens hovedbok. Alt her er hentet fra /api/voice-bank/me, som
 // avgjør identitet fra den innloggede e-posten — ikke fra noe på siden.
@@ -250,6 +251,10 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 </div>
               )
             })()}
+
+            {/* Egen modell (23.10): har hun alt en Flux-LoRA, slipper hun
+                treningen. Bare for den som tilbyr ansiktet sitt. */}
+            {a.wantsFace && session?.access_token && <EgenModellPanel actorId={a.id} bearer={session.access_token} />}
 
             {/* Oppgjøret — det viktigste først */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
