@@ -81,6 +81,16 @@ export async function POST(request: Request) {
     const vert = tenant.custom_domain ? `https://${tenant.custom_domain}` : `https://${tenant.slug}.norditech.io`
     const merke = tenant.app_name || 'TwinLedger'
 
+    // Byrålenken (116): kom hen gjennom et byrås lenke, går byrået god for
+    // identiteten. Nøkkelen sjekkes HER, og byrået lagres i app_metadata —
+    // ikke i user_metadata, som brukeren kan endre selv (lib/byraa).
+    let byraa: Awaited<ReturnType<typeof import('@/lib/byraa').byraaForNoekkel>> = null
+    if (b.agentToken) {
+      const { byraaForNoekkel } = await import('@/lib/byraa')
+      byraa = await byraaForNoekkel(b.agentToken, tenant.id)
+      if (!byraa) return NextResponse.json({ error: 'Lenken fra byrået virker ikke lenger. Be byrået om en ny, eller meld deg på uten.', code: 'AGENT_LINK_INVALID' }, { status: 400 })
+    }
+
     // Alt raden trenger, baaret i metadata til foerste innlogging. Samtykke-
     // teksten fryses HER, med tidsstempelet fra da hun faktisk krysset av —
     // ikke fra da raden ble laget.
@@ -116,6 +126,15 @@ export async function POST(request: Request) {
           : `Kunne ikke opprette kontoen (${error?.message || 'ukjent feil'})`,
         code: finnes ? 'ALREADY_REGISTERED' : 'SIGNUP_FAILED',
       }, { status: finnes ? 409 : 500 })
+    }
+
+    if (byraa && data.user?.id) {
+      const { error: metaFeil } = await admin().auth.admin.updateUserById(data.user.id, {
+        app_metadata: { ...(data.user.app_metadata || {}), enroll_agent: { id: byraa.id, tenant_id: tenant.id } },
+      })
+      // Feiler dette, er hen påmeldt som selverklært — ikke stoppet. Adminen
+      // kan fortsatt gå god for hen senere.
+      if (metaFeil) console.error('[enroll] Kunne ikke lagre byrået:', metaFeil.message)
     }
 
     // E-posten er det som baerer lenken. Feiler den, finnes kontoen likevel —

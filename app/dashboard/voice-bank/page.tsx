@@ -22,6 +22,7 @@ interface Actor {
   // Paameldingen (101)
   enrolled_at?: string | null
   identity_basis?: 'self_declared' | 'vouched' | 'bankid' | null
+  identity_confirmed_by?: string | null
   delivered_at?: string | null
   is_public?: boolean | null
   // Identitetssjekken (102): {ok, sameCount, withFace, outliers[], duplicates[{actorId,name,similarity}]}
@@ -526,6 +527,11 @@ export default function VoiceBankAdminPage() {
                 {t('payout_link')}
               </Link>
               <span className="ml-3 text-xs text-gray-500">{t('payout_hint')}</span>
+              {/* Byråene og påmeldingslenkene deres (116). */}
+              <Link href="/dashboard/voice-bank/byraaer"
+                className="ml-0 sm:ml-6 mt-2 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 hover:border-[var(--ember-deep)] text-gray-800">
+                {t('agencies_link')}
+              </Link>
             </div>
 
             {/* Skuespillere */}
@@ -710,8 +716,13 @@ export default function VoiceBankAdminPage() {
                                   </span>
                                 )}
                                 {a.identity_basis === 'self_declared' && (
-                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-500" title="Bare en avkryssing gaar god for at personen finnes. Kan delta, men ikke publiseres foer byraa eller BankID (steg 2/3).">
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-gray-200 text-gray-500" title="Bare en avkryssing gaar god for at personen finnes. Kan delta, men ikke publiseres foer byraa eller BankID (116).">
                                     Selverklært
+                                  </span>
+                                )}
+                                {(a.identity_basis === 'vouched' || a.identity_basis === 'bankid') && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-green-300 bg-green-50 text-green-800">
+                                    {a.identity_basis === 'bankid' ? 'BankID' : (a.identity_confirmed_by || '').startsWith('admin:') ? 'Bekreftet av admin' : 'Bekreftet av byrå'}
                                   </span>
                                 )}
                               </div>

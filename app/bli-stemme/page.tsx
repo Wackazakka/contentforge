@@ -47,10 +47,21 @@ const DISPLAY = 'var(--font-archivo), system-ui, sans-serif'
 const SANS = 'var(--font-hanken), system-ui, sans-serif'
 const GUTTER = 'clamp(20px, 4vw, 56px)'
 
-export default async function BliStemmePage() {
+export default async function BliStemmePage({ searchParams }: { searchParams: Promise<{ byraa?: string | string[] }> }) {
   const tenant = await getTenant()
   const t = await getTranslations('apply')
   const open = tenant.id !== 'root' && tenant.accept_actor_applications === true
+
+  // Byrålenken (116): /bli-stemme?byraa=<nøkkel>. Slås opp her, på serveren;
+  // skjemaet får navnet og nøkkelen, og påmeldingsruta sjekker den på nytt.
+  const raa = (await searchParams).byraa
+  const noekkel = Array.isArray(raa) ? raa[0] : raa
+  let byraa: { token: string; name: string } | { ugyldig: true } | null = null
+  if (open && noekkel) {
+    const { byraaForNoekkel } = await import('@/lib/byraa')
+    const funnet = await byraaForNoekkel(noekkel, tenant.id)
+    byraa = funnet ? { token: noekkel, name: funnet.name } : { ugyldig: true }
+  }
 
   const erTwinLedger = tenant.slug === 'twinledger'
   const logo = erTwinLedger ? <TwinLedgerLogo size={22} /> : <CenterForgeLogo size={26} wordmarkSize={17} />
@@ -117,7 +128,7 @@ export default async function BliStemmePage() {
         </div>
 
         <div className="bs-form" style={{ borderLeft: '1px solid var(--ds-border)', background: 'var(--paper-sunken)', padding: `clamp(36px, 5vw, 64px) ${GUTTER}` }}>
-          <ApplyForm />
+          <ApplyForm byraa={byraa} />
         </div>
       </div>
     </div>

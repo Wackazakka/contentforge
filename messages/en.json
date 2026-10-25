@@ -1695,7 +1695,10 @@
     "phone_opt": "(optional)",
     "no_obligation": "Applying commits you to nothing. We usually reply within one working day.",
     "nav_cast": "Cast",
-    "nav_login": "Log in"
+    "nav_login": "Log in",
+    "agency_via": "You are signing up through {agency}.",
+    "agency_via_body": "{agency} vouches that you are who you say you are, so you don’t need to verify your identity yourself. The agency is notified of your sign-up.",
+    "agency_invalid": "The link from the agency no longer works. You can still sign up, or ask the agency for a new link."
   },
   "myLedger": {
     "meta_title": "Your ledger — {tenant}",
@@ -1823,7 +1826,12 @@
     "own_st_waiting_you": "waiting for your answer — see the email “Is this you?”",
     "own_st_approved": "approved by you",
     "own_st_rejected": "you said no — cannot be used",
-    "own_st_failed": "stopped: {reason}"
+    "own_st_failed": "stopped: {reason}",
+    "identity_self": "Your identity isn’t confirmed yet. Your profile can’t be published until it’s confirmed with BankID or by an agency. If you came through an agency, ask them for their sign-up link.",
+    "identity_agency": "Your identity is confirmed by {agency}.",
+    "identity_agency_fallback": "your agency",
+    "identity_bankid": "Your identity is confirmed with BankID.",
+    "identity_admin": "Your identity is confirmed by us."
   },
   "catalog": {
     "h1": "Voices",
@@ -1974,7 +1982,8 @@
     "kind_preview": "Preview",
     "assets_both": "Voice, face",
     "assets_voice": "Voice",
-    "assets_face": "Face"
+    "assets_face": "Face",
+    "agencies_link": "Agencies and sign-up links"
   },
   "actorAdmin": {
     "back": "← The bank",
@@ -2152,7 +2161,18 @@
     "ages_cancel": "Cancel",
     "ages_need_model": "Choose a face model.",
     "ages_need_label": "Give the model a label.",
-    "ages_need_source": "Write where the photos come from."
+    "ages_need_source": "Write where the photos come from.",
+    "pub_failed": "Could not change publishing.",
+    "identity_self": "Identity: self-declared",
+    "identity_self_note": "Only a tick box vouches that this person exists. The profile can’t be published until the identity is confirmed with BankID or by an agency — or until you vouch for the person yourself.",
+    "identity_bankid": "Identity: confirmed with BankID",
+    "identity_admin": "Identity: confirmed by {who}",
+    "identity_agency": "Identity: confirmed by {agency}",
+    "identity_legacy": "Identity: added by an admin",
+    "identity_legacy_note": "This profile was added before sign-up existed. It isn’t self-declared, and publishing isn’t blocked.",
+    "identity_since": "Confirmed {date}.",
+    "identity_vouch": "Vouch for this person",
+    "identity_vouch_confirm": "You confirm that you know {name} and vouch that this person is who they say they are. Your name and the time are stored on the profile. Continue?"
   },
   "licences": {
     "back": "← Back to the performer",
@@ -2498,5 +2518,36 @@
     "cta_profile": "See the profile →",
     "cta_licence": "Request a licence →",
     "api_note": "Machine-readable:"
+  },
+  "agencies": {
+    "back": "← Back to the bank",
+    "h1": "Agencies",
+    "intro": "Each agency gets a sign-up link. Anyone who signs up through it counts as confirmed by the agency and can be published without BankID. The agency gets an email for every sign-up, with a link to say “not our client”.",
+    "loading": "Loading …",
+    "none": "No agencies yet. Add the first one below.",
+    "inactive": "(switched off)",
+    "org_nr": "org. no.",
+    "commission": "commission {pct}%",
+    "actors_one": "1 actor",
+    "actors_many": "{n} actors",
+    "rotate": "New link",
+    "rotate_confirm": "Create a new link for {name}? The old one stops working immediately.",
+    "deactivate": "Switch off",
+    "deactivate_confirm": "Switch off {name}? The link stops working. People who already signed up keep their confirmation.",
+    "activate": "Switch on",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "new_h2": "New agency",
+    "f_name": "Name",
+    "f_email": "Email",
+    "f_email_hint": "Gets notified every time someone uses the link.",
+    "f_org_nr": "Org. no. (optional)",
+    "f_commission": "Default commission, % (optional)",
+    "f_commission_hint": "Can be overridden per actor.",
+    "create": "Add agency",
+    "err_login": "Not signed in",
+    "err_generic": "Something went wrong",
+    "err_name": "The agency needs a name",
+    "err_email": "The agency needs an email address"
   }
 }

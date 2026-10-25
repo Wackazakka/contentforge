@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { actorSettlement } from '@/lib/actorLedger'
 import { PREVIEW_ROYALTY_PER_1000 } from '@/lib/voiceBank'
+import { lesBekreftelse } from '@/lib/identitet'
 
 function admin() {
   return createClient(
@@ -35,6 +36,9 @@ export async function GET(request: Request) {
     let email: string | null = null
     let userId: string | null = null
     let enroll: Record<string, unknown> | null = null
+    // Byrået hen kom gjennom (116). Fra app_metadata — som bare serveren kan
+    // skrive — aldri fra user_metadata, som brukeren kan endre selv.
+    let enrollAgent: { id?: string; tenant_id?: string } | null = null
     const auth = request.headers.get('authorization')
     if (auth?.startsWith('Bearer ')) {
       const { data } = await admin().auth.getUser(auth.slice(7))
@@ -42,15 +46,17 @@ export async function GET(request: Request) {
       userId = data?.user?.id ?? null
       // Paameldingen (101) baerer radens innhold i metadata til foerste innlogging.
       enroll = (data?.user?.user_metadata as { enroll?: Record<string, unknown> } | undefined)?.enroll ?? null
+      enrollAgent = (data?.user?.app_metadata as { enroll_agent?: { id?: string; tenant_id?: string } } | undefined)?.enroll_agent ?? null
     }
     if (!email) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
 
     const tenant = await getTenant()
     const supabase = admin()
 
+    const FELTER = 'id, tlid, twin_version, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, is_public, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, identity_confirmed_by, talent_agent_id, delivered_at'
     let q = supabase
       .from('voice_actors')
-      .select('id, tlid, twin_version, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
+      .select(FELTER)
       .ilike('actor_email', email)
     if (tenant.id !== 'root') q = q.eq('owner_tenant_id', tenant.id)
     const { data: rows } = await q.order('created_at', { ascending: true })
@@ -58,12 +64,17 @@ export async function GET(request: Request) {
 
     // 🔑 RADEN LAGES HER, VED FOERSTE INNLOGGING — ikke ved paamelding (101).
     // Da finnes den bare for en e-post noen har bevist at de eier. Metadataene
-    // ble skrevet av /api/voice-bank/enroll; denne koden skriver aldri
-    // identity_basis til noe annet enn self_declared — vouched og bankid
-    // kommer fra egne loeyper (steg 2 og 3), aldri fra det hun selv sa.
+    // ble skrevet av /api/voice-bank/enroll; identity_basis blir self_declared
+    // — eller vouched naar byraaet ligger i app_metadata (116), som bare
+    // serveren kan skrive. Aldri fra det hun selv sa.
     // Idempotent: har hun alt en rad i denne banken, roeres ingenting.
     if (actors.length === 0 && enroll && tenant.id !== 'root' && enroll.tenant_id === tenant.id) {
       const e = enroll as Record<string, any>
+      // Kom hen gjennom et byrås lenke? Sjekkes på nytt: et byrå som er slått
+      // av siden påmeldingen, går ikke lenger god for noen.
+      const { byraaMedId, byraaFelter, varsleByraa } = await import('@/lib/byraa')
+      const byraa = enrollAgent?.tenant_id === tenant.id ? await byraaMedId(enrollAgent.id, tenant.id) : null
+      const viaByraa = byraa ? byraaFelter(byraa.id) : null
       const { data: ny, error: nyFeil } = await supabase
         .from('voice_actors')
         .insert({
@@ -88,11 +99,22 @@ export async function GET(request: Request) {
           consent_at: e.consent_at ?? null,
           enrolled_at: e.enrolled_at ?? new Date().toISOString(),
           identity_basis: 'self_declared',
+          // Byrålenken (116) overstyrer: vouched, med byrået og tidspunktet.
+          ...(viaByraa || {}),
         })
-        .select('id, tlid, twin_version, owner_tenant_id, name, elevenlabs_voice_id, face_character_id, is_active, is_exclusive, actor_rate_nok, rates, created_at, offers_voice, wants_face, has_own_recording, enrolled_at, identity_basis, delivered_at')
+        .select(FELTER)
         .single()
       if (nyFeil) console.error('[me] Kunne ikke opprette paameldt rad:', nyFeil.message)
-      else if (ny) actors = [ny as any]
+      else if (ny) {
+        actors = [ny as any]
+        if (byraa && viaByraa) {
+          const { getTenantCanonicalOrigin } = await import('@/lib/tenantServer')
+          await varsleByraa({
+            byraa, navn: String((ny as { name?: string }).name ?? ''), epost: email, innsigelse: viaByraa.agent_objection_token,
+            origin: await getTenantCanonicalOrigin(tenant), merke: tenant.app_name || 'TwinLedger',
+          })
+        }
+      }
     }
 
     if (actors.length === 0) {
@@ -127,6 +149,14 @@ export async function GET(request: Request) {
       if (missing.length === 0) return
       const { data: ts } = await supabase.from('tenants').select('id, app_name, name').in('id', missing)
       for (const t of ts || []) tenantNames.set(t.id, t.app_name || t.name || 'Ukjent')
+    }
+
+    // Byråene som har gått god for henne (116) — navnet vises på /min-stemme.
+    const byraaNavn = new Map<string, string>()
+    const byraaIder = [...new Set(actors.map((a) => (a as { talent_agent_id?: string | null }).talent_agent_id).filter((x): x is string => !!x))]
+    if (byraaIder.length) {
+      const { data: tas } = await supabase.from('talent_agents').select('id, name').in('id', byraaIder)
+      for (const x of tas || []) byraaNavn.set(x.id as string, x.name as string)
     }
 
     const out = []
@@ -212,6 +242,15 @@ export async function GET(request: Request) {
         hasOwnRecording: a.has_own_recording ?? null,
         enrolled: !!a.enrolled_at,
         identityBasis: a.identity_basis ?? null,
+        // Hvem som bekreftet identiteten (116): byrået ved navn, «admin» eller «bankid».
+        identityConfirmedBy: (() => {
+          const b = lesBekreftelse((a as { identity_confirmed_by?: string | null }).identity_confirmed_by)
+          if (b.av === 'byraa') return { kind: 'agency', name: byraaNavn.get(b.agentId) ?? null }
+          if (b.av === 'admin') return { kind: 'admin', name: null }
+          if (b.av === 'bankid') return { kind: 'bankid', name: null }
+          return null
+        })(),
+        isPublic: (a as { is_public?: boolean | null }).is_public === true,
         delivered: !!a.delivered_at,
         defaultRateNok: Number(a.actor_rate_nok),
         rates,

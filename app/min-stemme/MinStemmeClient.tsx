@@ -22,6 +22,8 @@ interface Actor {
   // Paameldingen (101)
   offersVoice: boolean; wantsFace: boolean; hasOwnRecording: boolean | null
   enrolled: boolean; identityBasis: string | null; delivered: boolean
+  identityConfirmedBy?: { kind: 'agency' | 'admin' | 'bankid'; name: string | null } | null
+  isPublic?: boolean
   // Ansiktsmodellen (091): status + proevebildene hun svarte paa, signert 10 min
   faceModel: { status: string; approval: string | null; withdrawn: boolean; samples: string[] } | null
 }
@@ -162,6 +164,19 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                 <h2 className="font-semibold mb-1">Kom i gang</h2>
                 <p className="text-sm text-gray-600 mb-4">
                   Du er påmeldt. Det som gjenstår står under — ingenting publiseres før du har levert og vi har sett gjennom det sammen.
+                </p>
+                {/* Identiteten (116): avgjør om profilen KAN publiseres. Hun
+                    skal vite det før hun lurer på hvorfor den ikke er det. */}
+                <p className={`text-sm mb-4 ${a.identityBasis === 'self_declared' ? 'text-amber-800' : 'text-gray-600'}`}>
+                  {a.identityBasis === 'self_declared'
+                    ? t('identity_self')
+                    : a.identityConfirmedBy?.kind === 'agency'
+                      ? t('identity_agency', { agency: a.identityConfirmedBy.name || t('identity_agency_fallback') })
+                      : a.identityConfirmedBy?.kind === 'bankid'
+                        ? t('identity_bankid')
+                        : a.identityConfirmedBy?.kind === 'admin'
+                          ? t('identity_admin')
+                          : null}
                 </p>
                 {/* Hva hun tilbyr — kan endres fritt foer aktivering (PATCH
                     /api/voice-bank/enroll/me). Lars meldte seg paa med bare

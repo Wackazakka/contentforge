@@ -49,8 +49,12 @@ function Etikett({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function ApplyForm() {
+// Byrålenken (116): satt når hen kom via /bli-stemme?byraa=<nøkkel>.
+type ByraaProp = { token: string; name: string } | { ugyldig: true } | null
+
+export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
   const t = useTranslations('apply')
+  const viaByraa = byraa && 'token' in byraa ? byraa : null
   // Innlogget? Da finnes kontoen alt, og paameldingen gaar rett i raden
   // (/api/voice-bank/enroll/me). E-post og passord skjules; navnet
   // forhaandsfylles fra kontoen. Hullet Lars traff 22.09: en kunde som alt
@@ -135,6 +139,7 @@ export default function ApplyForm() {
           attributes: attr, appearanceConsent,
           ...(appearanceConsent ? { appearanceConsentText } : {}),
           ...(offersVoice ? { hasOwnRecording: harOpptak === 'ja' } : {}),
+          ...(viaByraa ? { agentToken: viaByraa.token } : {}),
         }),
       })
       const tekst = await res.text()
@@ -174,6 +179,20 @@ export default function ApplyForm() {
   return (
     <form onSubmit={submit} style={{ border: '1px solid var(--ds-border-strong)', background: 'var(--paper-raised)', padding: 'clamp(24px, 3vw, 34px)' }}>
       <h2 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 24, letterSpacing: '-0.025em', margin: '0 0 22px' }}>{t('form_h')}</h2>
+
+      {/* Byrålenken (116). Hen skal vite at byrået går god for hen — og at
+          byrået får beskjed om påmeldingen. Ingen overraskelser. */}
+      {viaByraa && (
+        <div style={{ border: '1px solid var(--ds-border-strong)', background: 'var(--paper)', padding: '12px 14px', marginBottom: 20, fontSize: 14.5, lineHeight: 1.5 }}>
+          <strong>{t('agency_via', { agency: viaByraa.name })}</strong>
+          <span style={{ display: 'block', color: 'var(--ink-soft)', marginTop: 4 }}>{t('agency_via_body', { agency: viaByraa.name })}</span>
+        </div>
+      )}
+      {byraa && 'ugyldig' in byraa && (
+        <p style={{ border: '1px solid var(--ds-border-strong)', padding: '12px 14px', marginBottom: 20, fontSize: 14.5, lineHeight: 1.5, color: 'var(--ink-soft)' }}>
+          {t('agency_invalid')}
+        </p>
+      )}
 
       <label style={{ display: 'block', marginBottom: 16 }}>
         <Etikett>{t('f_name')}</Etikett>

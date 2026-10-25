@@ -13,7 +13,7 @@ function admin() {
 
 // Felles vakt for alle metodene: host-tenant + admin-sjekk oppover kjeden.
 // Returnerer tenanten, eller et ferdig feilsvar.
-async function guard(request: Request): Promise<{ tenant?: Awaited<ReturnType<typeof getTenant>>; fail?: NextResponse }> {
+async function guard(request: Request): Promise<{ tenant?: Awaited<ReturnType<typeof getTenant>>; email?: string; fail?: NextResponse }> {
   const tenant = await getTenant()
   if (tenant.id === 'root') {
     return { fail: NextResponse.json({ error: 'Tenant-oppsett mangler' }, { status: 404 }) }
@@ -29,7 +29,7 @@ async function guard(request: Request): Promise<{ tenant?: Awaited<ReturnType<ty
   if (!(await isTenantAdmin(email, tenant.id))) {
     return { fail: NextResponse.json({ error: 'Ingen admin-tilgang' }, { status: 403 }) }
   }
-  return { tenant }
+  return { tenant, email }
 }
 
 // To navngitte avgifter på brutto aktiva-omsetning (kundepris, stemme OG ansikt):
@@ -138,9 +138,19 @@ export async function GET(request: Request) {
       const { data: versions } = await supabase.from('twin_versions')
         .select('version, change, created_at, face_character_id, elevenlabs_voice_id')
         .eq('actor_id', (actor as { id: string }).id).order('version', { ascending: false })
+      // Identiteten (116): hvem som bekreftet den. Byrået ved navn. Lenken
+      // «Ikke vår klient» er byråets, ikke adminens — den tas ut av svaret.
+      const { agent_objection_token: _innsigelse, ...actorUt } = actor as Record<string, unknown>
+      void _innsigelse
+      let identityAgency: string | null = null
+      if (actorUt.talent_agent_id) {
+        const { data: ta } = await supabase.from('talent_agents').select('name').eq('id', actorUt.talent_agent_id as string).maybeSingle()
+        identityAgency = (ta as { name?: string } | null)?.name ?? null
+      }
       return NextResponse.json({
         tenant: { id: tenant.id, name: tenant.app_name },
-        actor,
+        actor: actorUt,
+        identityAgency,
         faceWithdrawnAt,
         faceConsent,
         versions: versions || [],
@@ -193,7 +203,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       tenant: { id: tenant.id, name: tenant.app_name },
-      actors: actors || [],
+      // Byråets lenke «Ikke vår klient» (116) hører ikke hjemme i adminens nettleser.
+      actors: (actors || []).map(({ agent_objection_token: _i, ...a }) => (void _i, a)),
       events,
       monthly,
       fees,
@@ -477,6 +488,34 @@ export async function PATCH(request: Request) {
       }
       patch.rates = clean
     }
+    // 🔑 SPERREN PÅ PUBLISERING (116). En selverklært profil — bare en
+    // avkryssing går god for at personen finnes — publiseres ikke før
+    // identiteten er bekreftet med BankID eller av et byrå. Adminen kan
+    // overstyre med åpne øyne: ved å gå god for personen selv. Da står det på
+    // raden hvem som tok ansvaret, og når. Basen har den samme sperren
+    // (triggeren publisering_krever_identitet); her får adminen grunnen.
+    if (body.vouchIdentity === true || patch.is_public === true) {
+      const { data: id } = await admin().from('voice_actors')
+        .select('identity_basis').eq('id', actorId).eq('owner_tenant_id', tenant.id).maybeSingle()
+      const grunnlag = (id as { identity_basis?: string | null } | null)?.identity_basis ?? null
+      if (body.vouchIdentity === true) {
+        if (grunnlag !== 'self_declared') {
+          return NextResponse.json({ error: 'Identiteten er alt bekreftet' }, { status: 409 })
+        }
+        patch.identity_basis = 'vouched'
+        patch.identity_confirmed_by = `admin:${g.email}`
+        patch.identity_confirmed_at = new Date().toISOString()
+      } else {
+        const { kanPubliseres } = await import('@/lib/identitet')
+        if (!kanPubliseres(grunnlag)) {
+          return NextResponse.json({
+            error: 'Identiteten er ikke bekreftet. Profilen kan publiseres når den er bekreftet med BankID eller av et byrå — eller når du selv går god for personen.',
+            code: 'IDENTITY_UNCONFIRMED',
+          }, { status: 409 })
+        }
+      }
+    }
+
     if (Object.keys(patch).length === 0) return NextResponse.json({ error: 'Ingenting å oppdatere' }, { status: 400 })
 
     const { data, error } = await admin()
@@ -485,6 +524,10 @@ export async function PATCH(request: Request) {
       .eq('id', actorId)
       .eq('owner_tenant_id', tenant.id)
       .select('id')
+    // Basen stoppet publiseringen (et kappløp med en annen endring) — samme svar.
+    if (error && /IDENTITY_UNCONFIRMED|bekreftet med BankID/.test(`${error.hint || ''} ${error.message}`)) {
+      return NextResponse.json({ error: error.message, code: 'IDENTITY_UNCONFIRMED' }, { status: 409 })
+    }
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     if (!data || data.length === 0) return NextResponse.json({ error: 'Skuespilleren finnes ikke i denne banken' }, { status: 404 })
     return NextResponse.json({ ok: true })

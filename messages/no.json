@@ -1695,7 +1695,10 @@
     "phone_opt": "(valgfritt)",
     "no_obligation": "Søknaden forplikter deg ikke til noe. Vi svarer vanligvis innen en virkedag.",
     "nav_cast": "Medvirkende",
-    "nav_login": "Logg inn"
+    "nav_login": "Logg inn",
+    "agency_via": "Du melder deg på gjennom {agency}.",
+    "agency_via_body": "{agency} går god for at du er den du sier, så du trenger ikke bekrefte identiteten selv. Byrået får beskjed om påmeldingen.",
+    "agency_invalid": "Lenken fra byrået virker ikke lenger. Du kan melde deg på likevel, eller be byrået om en ny lenke."
   },
   "myLedger": {
     "meta_title": "Din hovedbok — {tenant}",
@@ -1823,7 +1826,12 @@
     "own_st_waiting_you": "venter på svaret ditt — se e-posten «Er dette deg?»",
     "own_st_approved": "godkjent av deg",
     "own_st_rejected": "du sa nei — kan ikke brukes",
-    "own_st_failed": "stoppet: {reason}"
+    "own_st_failed": "stoppet: {reason}",
+    "identity_self": "Identiteten din er ikke bekreftet ennå. Profilen kan ikke publiseres før den er bekreftet med BankID eller av et byrå. Kom du gjennom et byrå, kan du be dem om påmeldingslenken deres.",
+    "identity_agency": "Identiteten din er bekreftet av {agency}.",
+    "identity_agency_fallback": "byrået ditt",
+    "identity_bankid": "Identiteten din er bekreftet med BankID.",
+    "identity_admin": "Identiteten din er bekreftet av oss."
   },
   "catalog": {
     "h1": "Stemmer",
@@ -1974,7 +1982,8 @@
     "kind_preview": "Prøvelytt",
     "assets_both": "Stemme, ansikt",
     "assets_voice": "Stemme",
-    "assets_face": "Ansikt"
+    "assets_face": "Ansikt",
+    "agencies_link": "Byråer og påmeldingslenker"
   },
   "actorAdmin": {
     "back": "← Stemmebanken",
@@ -2152,7 +2161,18 @@
     "ages_cancel": "Avbryt",
     "ages_need_model": "Velg en ansiktsmodell.",
     "ages_need_label": "Gi modellen en etikett.",
-    "ages_need_source": "Skriv hvor bildene kommer fra."
+    "ages_need_source": "Skriv hvor bildene kommer fra.",
+    "pub_failed": "Kunne ikke endre publiseringen.",
+    "identity_self": "Identitet: selverklært",
+    "identity_self_note": "Bare en avkryssing går god for at personen finnes. Profilen kan ikke publiseres før identiteten er bekreftet med BankID eller av et byrå — eller til du selv går god for personen.",
+    "identity_bankid": "Identitet: bekreftet med BankID",
+    "identity_admin": "Identitet: bekreftet av {who}",
+    "identity_agency": "Identitet: bekreftet av {agency}",
+    "identity_legacy": "Identitet: lagt inn av admin",
+    "identity_legacy_note": "Profilen ble lagt inn før påmeldingen fantes. Den er ikke selverklært, og publiseringen stoppes ikke.",
+    "identity_since": "Bekreftet {date}.",
+    "identity_vouch": "Gå god for personen",
+    "identity_vouch_confirm": "Du bekrefter at du kjenner {name} og går god for at personen er den hen sier. Navnet ditt og tidspunktet lagres på profilen. Fortsette?"
   },
   "licences": {
     "back": "← Tilbake til skuespilleren",
@@ -2498,5 +2518,36 @@
     "cta_profile": "Se profilen →",
     "cta_licence": "Be om lisens →",
     "api_note": "Maskinlesbart:"
+  },
+  "agencies": {
+    "back": "← Tilbake til banken",
+    "h1": "Byråer",
+    "intro": "Hvert byrå får en påmeldingslenke. Den som melder seg på gjennom den, regnes som bekreftet av byrået og kan publiseres uten BankID. Byrået får en e-post for hver påmelding, med en lenke for å si «ikke vår klient».",
+    "loading": "Henter …",
+    "none": "Ingen byråer ennå. Legg inn det første under.",
+    "inactive": "(slått av)",
+    "org_nr": "org.nr.",
+    "commission": "provisjon {pct} %",
+    "actors_one": "1 skuespiller",
+    "actors_many": "{n} skuespillere",
+    "rotate": "Ny lenke",
+    "rotate_confirm": "Lage ny lenke for {name}? Den gamle slutter å virke med en gang.",
+    "deactivate": "Slå av",
+    "deactivate_confirm": "Slå av {name}? Lenken slutter å virke. De som alt har meldt seg på, beholder bekreftelsen.",
+    "activate": "Slå på",
+    "copy": "Kopier lenken",
+    "copied": "Kopiert",
+    "new_h2": "Nytt byrå",
+    "f_name": "Navn",
+    "f_email": "E-post",
+    "f_email_hint": "Får beskjed hver gang noen bruker lenken.",
+    "f_org_nr": "Org.nr. (valgfritt)",
+    "f_commission": "Standard provisjon, % (valgfritt)",
+    "f_commission_hint": "Kan overstyres per skuespiller.",
+    "create": "Legg til byrå",
+    "err_login": "Ikke innlogget",
+    "err_generic": "Noe gikk galt",
+    "err_name": "Byrået må ha et navn",
+    "err_email": "Byrået trenger en e-postadresse"
   }
 }

@@ -12,7 +12,8 @@ import { KJOENN, rensAttributter } from '@/lib/castingAttributes'
 // saa raden kan lages direkte, fra skjemaet i stedet for fra metadata.
 //
 // 🔑 SAMME RAD, SAMME REGLER som /me lager: is_active=false, is_public=false,
-// identity_basis='self_declared'. Denne koden skriver aldri noe annet.
+// identity_basis='self_declared' — eller 'vouched' når hen kom gjennom en
+// gyldig byrålenke (116), sjekket her på serveren.
 // Idempotent: finnes det alt en rad for adressen i denne banken, svarer vi
 // 409 med peker til /min-stemme — ikke en rad til.
 
@@ -81,6 +82,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Du er allerede påmeldt her — siden din ligger på /min-stemme', code: 'ALREADY_ENROLLED' }, { status: 409 })
     }
 
+    // Byrålenken (116): nøkkelen sjekkes her, på serveren, før raden lages.
+    const { byraaForNoekkel, byraaFelter, varsleByraa } = await import('@/lib/byraa')
+    const byraa = b.agentToken ? await byraaForNoekkel(b.agentToken, tenant.id) : null
+    if (b.agentToken && !byraa) {
+      return NextResponse.json({ error: 'Lenken fra byrået virker ikke lenger. Be byrået om en ny, eller meld deg på uten.', code: 'AGENT_LINK_INVALID' }, { status: 400 })
+    }
+    const viaByraa = byraa ? byraaFelter(byraa.id) : null
+
     const naa = new Date().toISOString()
     const { data: ny, error } = await admin().from('voice_actors').insert({
       owner_tenant_id: tenant.id,
@@ -97,8 +106,17 @@ export async function POST(request: Request) {
       appearance_consent_at: harAppearanceSamtykke ? naa : null,
       consent_text: consentText, consent_at: naa, enrolled_at: naa,
       identity_basis: 'self_declared',
+      ...(viaByraa || {}),
     }).select('id').single()
     if (error) return NextResponse.json({ error: `Kunne ikke melde deg på (${error.message})` }, { status: 500 })
+
+    if (byraa && viaByraa) {
+      const { getTenantCanonicalOrigin } = await import('@/lib/tenantServer')
+      await varsleByraa({
+        byraa, navn: name, epost: email, innsigelse: viaByraa.agent_objection_token,
+        origin: await getTenantCanonicalOrigin(tenant), merke: tenant.app_name || 'TwinLedger',
+      })
+    }
 
     return NextResponse.json({ ok: true, actorId: ny.id })
   } catch (err: any) {

@@ -28,6 +28,10 @@ interface ActorDetail {
   is_exclusive: boolean
   is_public: boolean
   is_demo: boolean
+  // Identitetsgrunnlaget (101) og hvem som bekreftet det (116).
+  identity_basis?: 'self_declared' | 'vouched' | 'bankid' | null
+  identity_confirmed_by?: string | null
+  identity_confirmed_at?: string | null
   bio: string | null
   photo_urls: string[]
   sample_urls: string[]
@@ -67,6 +71,9 @@ export default function VoiceActorPage() {
   // Av-bryteren paa ansiktet (088). Ligger paa user_characters, ikke paa
   // skuespillerraden, og hentes derfor som eget felt. Se lib/faceWithdrawal.
   const [faceWithdrawnAt, setFaceWithdrawnAt] = useState<string | null>(null)
+  // Identiteten (116): byrået som gikk god for henne, og grunnen når «Publiser» ble stoppet.
+  const [identityAgency, setIdentityAgency] = useState<string | null>(null)
+  const [pubFeil, setPubFeil] = useState<string | null>(null)
   // Erklaeringen fra LoRA-treningen (089): hvem gikk god for ansiktet.
   const [faceConsent, setFaceConsent] = useState<{ subject: string | null; at: string | null; trainingSet?: string | null } | null>(null)
   // Opptaksloeypa for proffklone (095). Ligger i egne tabeller, hentes ved siden av.
@@ -201,6 +208,7 @@ export default function VoiceActorPage() {
       setError(null)
       setOrigin(window.location.origin)
       setActor(data.actor)
+      setIdentityAgency(data.identityAgency ?? null)
       setFaceWithdrawnAt(data.faceWithdrawnAt ?? null)
       setFaceConsent(data.faceConsent ?? null)
       setVersjoner(Array.isArray(data.versions) ? data.versions : [])
@@ -322,10 +330,25 @@ export default function VoiceActorPage() {
 
   const togglePublic = async () => {
     if (!actor) return
+    setPubFeil(null)
     try {
       const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, isPublic: !actor.is_public, bio: editBio }) })
       if (res.ok) await refresh()
-    } catch { /* behold visning */ }
+      // Sperren (116) sier fra med en grunn — den skal stå, ikke svelges.
+      else setPubFeil((await res.json().catch(() => ({}))).error || t('pub_failed'))
+    } catch { setPubFeil(t('pub_failed')) }
+  }
+
+  // Overstyringen (101/116): adminen går god for personen selv. Det står på
+  // raden hvem som gjorde det, og når — derfor en bekreftelse først.
+  const gaaGodFor = async () => {
+    if (!actor || !window.confirm(t('identity_vouch_confirm', { name: actor.name }))) return
+    setPubFeil(null)
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, vouchIdentity: true }) })
+      if (res.ok) await refresh()
+      else setPubFeil((await res.json().catch(() => ({}))).error || t('pub_failed'))
+    } catch { setPubFeil(t('pub_failed')) }
   }
 
   const toggleDemo = async () => {
@@ -836,6 +859,35 @@ export default function VoiceActorPage() {
                   className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
                   {actor.is_public ? t('pub_unpublish') : t('pub_publish')}
                 </button>
+              </div>
+              {pubFeil && <p className="text-sm text-red-700 -mt-2 mb-4">{pubFeil}</p>}
+
+              {/* Identiteten (101/116). Avgjør om profilen KAN publiseres:
+                  en selverklært stoppes til BankID eller et byrå går god for
+                  den — eller til du gjør det selv, med navnet ditt på raden. */}
+              <div className="flex items-center justify-between gap-4 mb-4 pt-4 border-t border-gray-200">
+                <div>
+                  <div className="font-medium text-gray-900 text-sm">
+                    {actor.identity_basis === 'self_declared' ? t('identity_self')
+                      : actor.identity_basis === 'bankid' ? t('identity_bankid')
+                      : actor.identity_basis === 'vouched'
+                        ? (actor.identity_confirmed_by || '').startsWith('admin:')
+                          ? t('identity_admin', { who: (actor.identity_confirmed_by || '').slice(6) })
+                          : t('identity_agency', { agency: identityAgency || '—' })
+                        : t('identity_legacy')}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {actor.identity_basis === 'self_declared' ? t('identity_self_note')
+                      : actor.identity_confirmed_at ? t('identity_since', { date: new Date(actor.identity_confirmed_at).toLocaleDateString(BCP47[locale] || 'en-GB') })
+                      : t('identity_legacy_note')}
+                  </p>
+                </div>
+                {actor.identity_basis === 'self_declared' && (
+                  <button onClick={gaaGodFor}
+                    className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                    {t('identity_vouch')}
+                  </button>
+                )}
               </div>
 
               {/* Eksempelprofil. Bryteren står her fordi den hører til det
