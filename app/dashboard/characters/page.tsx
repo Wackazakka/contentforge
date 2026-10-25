@@ -11,7 +11,6 @@ import { modellMerke } from '@/lib/modellMerke'
 interface UserCharacter {
   id: string
   name: string
-  trigger_word: string
   status: 'training' | 'ready' | 'failed'
   created_at: string
   // Hvorfor treningen feilet (104) — fals egen melding, saa ingen maa gjette.
@@ -22,8 +21,9 @@ interface UserCharacter {
   sample_scores?: { scores: (number | null)[]; mean: number | null; threshold: number; passed: boolean } | null
   // Maaleinstrumentet (093): hvilken trener som laget modellen.
   trainer: string | null
-  // Settet den ble laget fra (094). Uten den kan den ikke trenes paa nytt.
-  training_set_url: string | null
+  // Om settet den ble laget fra (094) finnes. Uten det kan den ikke trenes paa
+  // nytt. Bare ja/nei: adressen bor paa serveren (/api/characters, 25.10).
+  has_training_set?: boolean
   // Svaret hennes (091) og en senere tilbaketrekking — det er dem merket viser
   // naar modellen er ferdig trent (lib/modellMerke, 25.10).
   approval_status?: string | null
@@ -293,7 +293,7 @@ export default function CharactersPage() {
                     trykke tren paa nytt» — han sto paa det feilede). Settet er
                     sporet paa raden, saa retrening derfra er det samme forsoeket
                     om igjen, med rettet kode. */}
-                {role.admin && (c.status === 'ready' || c.status === 'failed') && c.training_set_url && (
+                {role.admin && (c.status === 'ready' || c.status === 'failed') && c.has_training_set && (
                   <>
                     <button onClick={() => retrain(c, 'portrait')} disabled={!!busy}
                       className="text-xs px-2.5 py-1 rounded-lg border border-gray-300 text-gray-600 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] disabled:opacity-40">
