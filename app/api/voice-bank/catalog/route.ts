@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { getAvailableVoiceActors, getDemoVoiceActors, ratesForKind, actorHasVoice, actorHasFace } from '@/lib/voiceBank'
+import { signerMedier, somListe } from '@/lib/actorMedia'
 
 // Kundens katalog (Lars 17/9): alle stemmer og ansikter den innloggede kunden
 // FAKTISK kan bruke på dette domenet, med pris per bruk.
@@ -42,6 +43,12 @@ export async function GET(request: Request) {
     ])
     const actors = [...ekte, ...demo]
     const erDemo = new Set(demo.map((a) => a.id))
+    // Kortbildet og den første lydprøven ligger privat (lib/actorMedia).
+    const forsteFiler = (a: (typeof actors)[number]) => {
+      const x = a as typeof a & { photo_urls?: unknown; sample_urls?: unknown }
+      return [somListe(x.photo_urls)[0], somListe(x.sample_urls)[0]].filter((v): v is string => !!v)
+    }
+    const lenke = await signerMedier(actors.map((a) => ({ actorId: a.id, verdier: forsteFiler(a) })))
 
     return NextResponse.json({
       tenant: { name: tenant.app_name },
@@ -49,7 +56,8 @@ export async function GET(request: Request) {
         const x = a as typeof a & { bio?: string | null; photo_urls?: unknown; sample_urls?: unknown; is_public?: boolean }
         const hasVoice = actorHasVoice(a)
         const hasFace = actorHasFace(a)
-        const egne = Array.isArray(x.sample_urls) ? (x.sample_urls as unknown[]).map(String) : []
+        const egne = somListe(x.sample_urls)
+        const foto = somListe(x.photo_urls)[0]
         const prices: Record<string, number> = {}
         if (hasVoice) for (const k of KINDS) prices[k] = pris(ratesForKind(a, k).price)
         if (hasFace) prices.face = pris(ratesForKind(a, 'face').price)
@@ -58,8 +66,8 @@ export async function GET(request: Request) {
           tlid: a.tlid ?? null,
           name: a.name,
           bio: x.bio ?? null,
-          photo: Array.isArray(x.photo_urls) ? (String((x.photo_urls as unknown[])[0] ?? '') || null) : null,
-          sample: egne[0] ?? a.preview_url ?? null,
+          photo: foto ? lenke(a.id, foto) : null,
+          sample: (egne[0] ? lenke(a.id, egne[0]) : null) ?? a.preview_url ?? null,
           hasVoice,
           hasFace,
           isDemo: erDemo.has(a.id),

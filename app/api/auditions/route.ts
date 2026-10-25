@@ -6,6 +6,7 @@ import {
   opprettAudition, pollAudition, lagLesning, velgLesning, startFilm,
   AUDITION_FILM_NOK, AUDITION_READ_NOK,
 } from '@/lib/auditions'
+import { signerMedier, somListe } from '@/lib/actorMedia'
 
 // Audition-ruten. Tre former:
 //   POST            → opprett en audition med N takes (kjører ikke noe selv)
@@ -94,10 +95,13 @@ export async function GET(request: Request) {
     // Taket er der så svaret ikke vokser uten grense — nås det, sier
     // plukkeren fra i stedet for å vise et stille avkuttet utvalg.
     const TAK = 500
+    const utvalg = klare.slice(0, TAK)
+    // Kortbildet ligger privat (lib/actorMedia) — én signeringsrunde for hele utvalget.
+    const lenke = await signerMedier(utvalg.map((a) => ({ actorId: a.id, verdier: somListe(a.photo_urls).slice(0, 1) })))
     return NextResponse.json({
-      actors: klare.slice(0, TAK).map((a) => ({
+      actors: utvalg.map((a) => ({
         id: a.id, name: a.name, isDemo: a.is_demo === true,
-        photo: Array.isArray(a.photo_urls) && a.photo_urls.length ? String(a.photo_urls[0]) : null,
+        photo: somListe(a.photo_urls)[0] ? lenke(a.id, somListe(a.photo_urls)[0]) : null,
         gender: a.gender ?? null,
         playingAgeFrom: a.playing_age_from ?? null,
         playingAgeTo: a.playing_age_to ?? null,

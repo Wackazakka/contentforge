@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Tenant } from '@/lib/tenantServer'
 import { offentligeAttributter } from '@/lib/castingAttributes'
+import { signerMedier } from '@/lib/actorMedia'
 
 // Det OFFENTLIGE utsnittet av stemme- og ansiktsbanken: det en som ikke er
 // kunde får se. Én kilde for både galleriet (/stemmer) og visittkortet
@@ -29,6 +30,10 @@ import { offentligeAttributter } from '@/lib/castingAttributes'
 //
 // Hva som ALDRI sendes ut herfra: satser, kundepriser, e-post, ElevenLabs-id,
 // LoRA-id. Bare det skuespilleren selv har valgt å vise fram.
+//
+// BILDER, LYD OG FILM går ut som signerte lenker med kort levetid, aldri som
+// en fast adresse (lib/actorMedia). Avpubliseres kortet, slutter lenkene å
+// komme herfra.
 //
 // Server-only: importerer service-nøkkelen.
 
@@ -119,6 +124,13 @@ function tilPublic(
   }
 }
 
+/** Stiene på kortene → signerte lenker, i én runde. Det som ikke lar seg signere, vises ikke. */
+async function medLenker(actors: PublicActor[]): Promise<PublicActor[]> {
+  const lenke = await signerMedier(actors.map((a) => ({ actorId: a.id, verdier: [...a.photos, ...a.samples, ...a.videos] })))
+  const bytt = (id: string, liste: string[]) => liste.map((v) => lenke(id, v)).filter((v): v is string => !!v)
+  return actors.map((a) => ({ ...a, photos: bytt(a.id, a.photos), samples: bytt(a.id, a.samples), videos: bytt(a.id, a.videos) }))
+}
+
 /**
  * Aldersspenn fra klarerte ansiktsmodeller (082), per skuespiller.
  *
@@ -182,7 +194,7 @@ export async function getPublicActors(tenant: Tenant): Promise<PublicActor[]> {
       modellAlderFor(rader.map((a) => a.id)),
       trukketTilbake(rader.map((a) => a.face_character_id)),
     ])
-    return rader
+    return await medLenker(rader
       // Har hen trukket ansiktet tilbake, skal katalogen ikke love et ansikt.
       // Stemmen kan stå — det er to ulike rettigheter, og hen kan ha sagt nei
       // til den ene og ja til den andre.
@@ -192,7 +204,7 @@ export async function getPublicActors(tenant: Tenant): Promise<PublicActor[]> {
       ))
       // Eksempler sist: så snart én ekte rettighetshaver er publisert, skal
       // hen stå først i hylla — uten at noen må huske å rydde.
-      .sort((a, b) => Number(a.isDemo) - Number(b.isDemo))
+      .sort((a, b) => Number(a.isDemo) - Number(b.isDemo)))
   } catch {
     return []
   }
@@ -236,7 +248,7 @@ async function hentEn(tenant: Tenant, kol: 'id' | 'tlid', verdi: string): Promis
     ])
     // Samme regel som i galleriet: trukket ansikt skal ikke loves på kortet.
     const rad = a.face_character_id && stengte.has(a.face_character_id) ? { ...a, face_character_id: null } : a
-    return tilPublic(rad, navn, tenant.app_name, modeller)
+    return (await medLenker([tilPublic(rad, navn, tenant.app_name, modeller)]))[0]
   } catch {
     return null
   }
