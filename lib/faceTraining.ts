@@ -237,6 +237,12 @@ async function fullfoerProever(tenantId?: string): Promise<{ varslet: number; st
         continue
       }
       const vurdering = stier.length && sentroide ? await vurderProever(stier, sentroide) : null
+      // 🔑 EN OPPLASTET MODELL GÅR ALDRI UT UTEN PORTEN (25.10). For trente
+      // modeller feiler porten åpent — bedre et spørsmål uten port enn et
+      // ansikt som aldri blir spurt. Men for en modell hun lastet opp selv ER
+      // porten identitetssjekken, og e-posten går til opplasteren selv: er
+      // dropleten nede, venter vi til neste tikk i stedet for å spørre.
+      if (egen && !vurdering) continue
       if (vurdering) await db().from('user_characters').update({ sample_scores: vurdering }).eq('id', r.id)
       if (vurdering && !vurdering.passed) {
         await db().from('user_characters').update({

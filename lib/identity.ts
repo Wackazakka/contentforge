@@ -20,15 +20,37 @@
 export const SAMME_PERSON_TERSKEL = 0.35
 export const DUBLETT_TERSKEL = 0.55
 /**
- * Kvalitetsport for proevebilder (105): snittet av de tre proevebildenes
- * likhet med sentroiden av hennes egne leverte bilder maa vaere over dette
- * foer hun blir spurt «er dette deg?». Kalibrert 22.09 paa Lars: Flux 1
- * (godkjent av ham) og Flux 2 (avvist) i de tre godkjenningsscenene — se
- * tallene i lib/faceSamples.ts. Ett menneske, saa dette er en startverdi:
- * skaarene lagres paa raden (sample_scores) for aa justere.
+ * Kvalitetsport for proevebilder (105): de tre proevebildenes likhet med
+ * sentroiden av hennes egne leverte bilder avgjoer om hun blir spurt «er dette
+ * deg?». Tallene bak står i lib/faceSamples.ts. Ett menneske, saa dette er
+ * startverdier: skaarene lagres paa raden (sample_scores) for aa justere.
+ *
+ * 🔑 HEVET 25.10 fra «snitt ≥ 0,75» til tre krav, alle maa holde:
+ *   - snittet ≥ 0,80 (PROEVE_LIKHET_MIN)
+ *   - hvert bilde ≥ 0,75 (PROEVE_BILDE_MIN) — ett bommet bilde stopper
+ *   - hvert bilde har et ansikt — foer ble et bilde uten ansikt hoppet
+ *     over, og to heldige bilder kunne baere modellen alene
+ * Grunnen: Flux 2-modellen Lars avviste fikk 0,72 · 0,77 · 0,77 = snitt
+ * 0,753 og slapp gjennom «snitt ≥ 0,75». Modellene han godkjente ligger paa
+ * 0,83–0,87 per bilde; de han avviste paa 0,70–0,77. 0,80 ligger midt i gapet.
  */
-export const PROEVE_LIKHET_MIN = 0.75
+export const PROEVE_LIKHET_MIN = 0.8
+export const PROEVE_BILDE_MIN = 0.75
 export const MODELL = 'buffalo_l'
+
+export type ProeveGrunn = 'ok' | 'ingen_bilder' | 'mangler_ansikt' | 'svakt_bilde' | 'lavt_snitt'
+export interface ProeveDom { mean: number | null; passed: boolean; grunn: ProeveGrunn }
+
+/** Ren regel for kvalitetsporten. `null` i lista = bildet hadde ikke noe ansikt. */
+export function avgjoerProever(scores: (number | null)[]): ProeveDom {
+  if (scores.length === 0) return { mean: null, passed: false, grunn: 'ingen_bilder' }
+  const tall = scores.filter((s): s is number => s != null)
+  const mean = tall.length ? Math.round((tall.reduce((a, b) => a + b, 0) / tall.length) * 1000) / 1000 : null
+  if (tall.length < scores.length) return { mean, passed: false, grunn: 'mangler_ansikt' }
+  if (tall.some((s) => s < PROEVE_BILDE_MIN)) return { mean, passed: false, grunn: 'svakt_bilde' }
+  if (mean == null || mean < PROEVE_LIKHET_MIN) return { mean, passed: false, grunn: 'lavt_snitt' }
+  return { mean, passed: true, grunn: 'ok' }
+}
 
 export interface BildeVektor {
   path: string

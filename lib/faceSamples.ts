@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { submitFaceImageJob, hentFaceImageResultat, type FaceImageJob } from '@/lib/gateway'
 import { hentAnsikter, embedKonfigurert } from '@/lib/embedClient'
-import { cosinus, fraVektorTekst, PROEVE_LIKHET_MIN } from '@/lib/identity'
+import { cosinus, fraVektorTekst, PROEVE_LIKHET_MIN, PROEVE_BILDE_MIN, avgjoerProever, type ProeveGrunn } from '@/lib/identity'
 
 // Proevebildene til godkjenningen (091) — og kvalitetsporten foran dem (105).
 //
@@ -21,8 +21,13 @@ import { cosinus, fraVektorTekst, PROEVE_LIKHET_MIN } from '@/lib/identity'
 //   Flux 1 portrett, godkjent av ham:        0,83 · 0,84 · 0,83  snitt 0,83
 //   Flux 2 x1,5, «ikke bra nok» ifoelge ham:  0,72 · 0,70 · 0,71  snitt 0,71
 //   (Flux 2 x1,0, de bildene han sa nei til: ~0,36 i portrett)
-// Terskelen 0,75 (PROEVE_LIKHET_MIN) ligger mellom de to klassene. Ett
-// menneske — skaarene lagres paa raden saa den kan flyttes med flere.
+// 25.10, de samme modellene lastet opp som «egen modell» (nye bilder):
+//   Flux 1, godkjent:                          0,85 · 0,87 · 0,84  snitt 0,85
+//   Flux 2 x1,5, avvist av ham:                0,72 · 0,77 · 0,77  snitt 0,75
+// Den siste slapp gjennom «snitt ≥ 0,75» med 0,753. Kravet er derfor hevet:
+// snitt ≥ 0,80 OG hvert bilde ≥ 0,75 OG ansikt i hvert bilde (lib/identity,
+// avgjoerProever). Ett menneske — skaarene lagres paa raden saa det kan
+// flyttes med flere.
 
 /** Scenene proevebildene lages i. Ulike med vilje — én heldig vinkel beviser ingenting. */
 export const SCENER = [
@@ -118,34 +123,45 @@ export async function hentSentroide(subjectEmail: string | null, tenantId: strin
   return data ? fraVektorTekst((data as { face_embedding: unknown }).face_embedding) : null
 }
 
-export interface ProeveVurdering { scores: (number | null)[]; mean: number | null; threshold: number; passed: boolean; decided_at: string }
+/** `floor`/`grunn` finnes fra 25.10; eldre rader har bare snitt-kravet. */
+export interface ProeveVurdering {
+  scores: (number | null)[]; mean: number | null; threshold: number; floor?: number
+  passed: boolean; grunn?: ProeveGrunn; decided_at: string
+}
 
 /**
  * Skaar hvert proevebilde mot sentroiden: stoerste ansikt i bildet, cosinus.
- * `null` for et bilde uten ansikt. Snittet av de som har ansikt avgjoer.
- * Feiler aapent: kan ikke dropleten svare, er vurderingen null, ikke «nei».
+ * `null` for et bilde uten ansikt. Regelen bor i lib/identity (avgjoerProever).
+ * Feiler aapent: kan ikke lagringen eller dropleten svare, er vurderingen
+ * null, ikke «nei» — og da proever cron-jobben igjen (se fullfoerProever).
  */
 export async function vurderProever(stier: string[], sentroide: number[]): Promise<ProeveVurdering | null> {
   if (!embedKonfigurert()) return null
   const scores: (number | null)[] = []
   for (const sti of stier) {
     try {
+      // En lagringshikke er ikke «bildet har ikke noe ansikt» — det ville
+      // stoppet en god modell. Vent heller til neste tikk.
       const { data } = await admin().storage.from(PROEVE_BOETTE).createSignedUrl(sti, 600)
-      if (!data?.signedUrl) { scores.push(null); continue }
+      if (!data?.signedUrl) return null
       const svar = await hentAnsikter(data.signedUrl)
       const ansikter = (svar.faces || []).slice().sort((a, b) => flate(b.bbox) - flate(a.bbox))
       scores.push(ansikter.length ? Math.round(cosinus(ansikter[0].embedding, sentroide) * 1000) / 1000 : null)
     } catch { return null }
   }
-  const med = scores.filter((s): s is number => s != null)
-  const mean = med.length ? Math.round((med.reduce((a, b) => a + b, 0) / med.length) * 1000) / 1000 : null
-  return { scores, mean, threshold: PROEVE_LIKHET_MIN, passed: mean != null && mean >= PROEVE_LIKHET_MIN, decided_at: new Date().toISOString() }
+  const dom = avgjoerProever(scores)
+  return {
+    scores, mean: dom.mean, threshold: PROEVE_LIKHET_MIN, floor: PROEVE_BILDE_MIN,
+    passed: dom.passed, grunn: dom.grunn, decided_at: new Date().toISOString(),
+  }
 }
 
 function flate(b: number[]): number { return Math.max(0, (b[2] - b[0])) * Math.max(0, (b[3] - b[1])) }
 
-/** Tekst til raden naar porten sier nei: «0,36 · 0,41 · 0,33 — snitt 0,37, krav 0,60». */
+/** Tekst til raden naar porten sier nei: «0,72 · 0,77 · 0,77 — snitt 0,75, krav 0,80 (hvert bilde minst 0,75)». */
 export function likhetTekst(v: ProeveVurdering): string {
   const f = (n: number | null) => n == null ? '–' : n.toFixed(2).replace('.', ',')
-  return `${v.scores.map(f).join(' · ')} — snitt ${f(v.mean)}, krav ${f(v.threshold)}`
+  const gulv = v.floor != null ? ` (hvert bilde minst ${f(v.floor)})` : ''
+  const uten = v.scores.some((s) => s == null) ? '; – = ingen ansikt i bildet' : ''
+  return `${v.scores.map(f).join(' · ')} — snitt ${f(v.mean)}, krav ${f(v.threshold)}${gulv}${uten}`
 }
