@@ -121,7 +121,7 @@ export default function LisenserPage() {
   const [releaseTitle, setReleaseTitle] = useState('')
   const [feeCustomer, setFeeCustomer] = useState('')
   const [feeActor, setFeeActor] = useState('')
-  const [liste, setListe] = useState<{ listeNok: number; honorarNok: number } | null>(null)
+  const [liste, setListe] = useState<{ listeNok: number; honorarNok: number; clearingPct?: number } | null>(null)
   const [rort, setRort] = useState(false) // har admin overstyrt beløpene?
   const [busy, setBusy] = useState(false)
 
@@ -225,13 +225,11 @@ export default function LisenserPage() {
   const opprett = async () => {
     setBusy(true)
     try {
-      const splits = [
-        { party_type: 'platform', party_label: 'Infrastrukturavgift', basis: 'customer_fee', pct: 3 },
-        ...(Number(agentPct) > 0
-          ? [{ party_type: 'agent', party_label: 'Agent / manager', basis: 'actor_fee', pct: Number(agentPct) }]
-          : []),
-        { party_type: 'agency', basis: 'customer_fee', pct: null },
-      ]
+      // Klareringsavgiften og restposten legger serveren til fra takstkortet;
+      // herfra sendes bare det som tas av honoraret.
+      const splits = Number(agentPct) > 0
+        ? [{ party_type: 'agent', party_label: 'Agent / manager', basis: 'actor_fee', pct: Number(agentPct) }]
+        : []
       const res = await fetch('/api/voice-bank/licences', {
         method: 'POST',
         headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
@@ -455,7 +453,7 @@ export default function LisenserPage() {
           </p>
         )}
 
-        <Forhaandsvisning feeCustomer={Number(feeCustomer) || 0} feeActor={Number(feeActor) || 0} agentPct={Number(agentPct) || 0} />
+        <Forhaandsvisning feeCustomer={Number(feeCustomer) || 0} feeActor={Number(feeActor) || 0} agentPct={Number(agentPct) || 0} clearingPct={liste?.clearingPct ?? 10} />
 
         <button onClick={opprett}
           disabled={busy || (kind === 'work' && !workTitle.trim()) || (compModel !== 'fee' && !KONTROLLERT.includes(releaseChannel))}
@@ -499,10 +497,10 @@ function Felt({ label, hint, children }: { label: string; hint?: string; childre
  * nedforhandlet honorar uten tilsvarende kutt i kundeprisen er en overføring
  * til byrået — ikke en besparelse for kunden.
  */
-function Forhaandsvisning({ feeCustomer, feeActor, agentPct }: { feeCustomer: number; feeActor: number; agentPct: number }) {
+function Forhaandsvisning({ feeCustomer, feeActor, agentPct, clearingPct }: { feeCustomer: number; feeActor: number; agentPct: number; clearingPct: number }) {
   const t = useTranslations('licences')
   const nok = lagNok(useLocale())
-  const infra = Math.round(feeCustomer * 0.03 * 100) / 100
+  const infra = Math.round(feeCustomer * (clearingPct / 100) * 100) / 100
   const byraa = Math.round((feeCustomer - feeActor - infra) * 100) / 100
   const agent = Math.round(feeActor * (agentPct / 100) * 100) / 100
   const netto = Math.round((feeActor - agent) * 100) / 100
@@ -511,9 +509,11 @@ function Forhaandsvisning({ feeCustomer, feeActor, agentPct }: { feeCustomer: nu
       <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1">
         <Rad tekst={t('pv_customer')} v={feeCustomer} sterk />
         <Rad tekst={t('pv_actor_gross')} v={feeActor} />
-        <Rad tekst={t('pv_infra')} v={infra} />
+        <Rad tekst={t('pv_infra', { pct: clearingPct })} v={infra} />
         {agent > 0 && <Rad tekst={t('pv_agent', { pct: agentPct })} v={agent} />}
-        <Rad tekst={t('pv_holder')} v={byraa} advarsel={byraa < 0} />
+        {/* Restposten til det selgende leddet er null med standardkortet —
+            vis den bare når et honorar er forhandlet ned, eller ikke dekkes. */}
+        {Math.abs(byraa) >= 0.01 && <Rad tekst={t('pv_holder')} v={byraa} advarsel={byraa < 0} />}
         <Rad tekst={t('pv_actor_net')} v={netto} sterk />
       </div>
       {byraa < 0 && (

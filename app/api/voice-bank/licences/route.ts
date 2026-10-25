@@ -4,7 +4,7 @@ import { getTenant } from '@/lib/tenantServer'
 import { isTenantAdmin } from '@/lib/voiceBank'
 import {
   opprettLisens, lisenserForSkuespiller, fordelingFor, trinnFor,
-  foreslaaPris, skrivFordeling, standardSplits, hentTakstkort,
+  foreslaaPris, skrivFordeling, standardSplits, hentTakstkort, medFasteParter,
   avregningerFor, foerRoyalty, sjekkOppgjoersvalg,
   type LisensInput, type SplitSpec, type LicenceStatus,
 } from '@/lib/licences'
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
         roleScope: url.searchParams.get('roleScope') as LisensInput['roleScope'],
       } as LisensInput
       const { listeNok, honorarNok, card } = await foreslaaPris(i)
-      return NextResponse.json({ listeNok, honorarNok, rateCardVersion: card.version })
+      return NextResponse.json({ listeNok, honorarNok, clearingPct: card.clearingPct, rateCardVersion: card.version })
     }
 
     const licences = await lisenserForSkuespiller(actorId)
@@ -163,10 +163,22 @@ export async function PATCH(request: Request) {
 
     // Partene: enten nye fra klienten, eller de som allerede ligger der.
     let parter: SplitSpec[]
+    const eksisterende = await fordelingFor(licenceId)
     if (Array.isArray(body.splits)) {
-      parter = body.splits as SplitSpec[]
+      // Avgiften og restposten beholdes slik de ble frosset på lisensen;
+      // klienten kan bare endre agent og andre som tar av honoraret.
+      const faste = (eksisterende as Array<Record<string, unknown>>)
+        .filter((r) => r.party_type === 'platform' || r.party_type === 'agency')
+        .map((r) => ({
+          party_type: r.party_type as SplitSpec['party_type'],
+          party_tenant_id: (r.party_tenant_id as string) ?? null,
+          party_label: (r.party_label as string) ?? null,
+          basis: r.basis as SplitSpec['basis'],
+          pct: r.party_type === 'agency' ? null : (r.pct as number) ?? null,
+        }))
+      parter = medFasteParter(body.splits as SplitSpec[],
+        faste.length > 0 ? faste : standardSplits(tenant.id, await hentTakstkort(tenant.id)))
     } else {
-      const eksisterende = await fordelingFor(licenceId)
       parter = (eksisterende as Array<Record<string, unknown>>)
         .filter((r) => r.party_type !== 'rights_holder')
         .map((r) => ({

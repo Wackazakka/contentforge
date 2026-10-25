@@ -13,7 +13,7 @@
 // er dårligere fundert enn kampanje-satsene — ankeret bør være Norsk
 // Skuespillerforbunds satser for sammenlignbart arbeid.
 
-export const RATE_CARD_VERSION = '2026-09-20'
+export const RATE_CARD_VERSION = '2026-10-25'
 
 export type Asset = 'voice' | 'face' | 'both'
 export type MediaClass = 'internal' | 'online' | 'broadcast'
@@ -40,10 +40,19 @@ export interface RateCard {
     /** Etterbetaling som trinn, i prosent av kundeprisen. */
     steps: Record<string, number>
   }
-  /** Rettighetshaverens andel av kundeprisen, i prosent. */
+  /**
+   * TwinLedgers klareringsavgift, i prosent av kundeprisen (25.10.2026).
+   * TwinLedger klarerer, men selger ikke: avgiften er den samme uansett hvem
+   * som selger, og den står som egen post i hver lisens.
+   */
+  clearingPct: number
+  /**
+   * Forslag til rettighetshaverens honorar, i prosent av kundeprisen.
+   * Standard = alt som ikke er klareringsavgift. Agentens provisjon trekkes
+   * av honoraret, ikke av kundeprisen. Settes den lavere i et ledds eget
+   * kort, går differansen til det selgende leddet — og står da som egen post.
+   */
   rightsHolderPct: number
-  /** Infrastrukturavgift ved KILDEN (PLATFORM_RIGHTS_FEE_PCT). */
-  platformPct: number
   /** Fornyelse skal være billigere enn å starte på nytt. */
   renewalPct: number
 }
@@ -70,8 +79,8 @@ export const STANDARD_RATE_CARD: RateCard = {
     faceFactor: 1.75,
     steps: { theatrical_release: 25, international_sale: 50, streamer_pickup: 50 },
   },
-  rightsHolderPct: 55,
-  platformPct: 3,
+  clearingPct: 10,
+  rightsHolderPct: 90,
   renewalPct: 80,
 }
 
@@ -101,8 +110,12 @@ export function mergeRateCard(lagret: unknown): RateCard {
       faceFactor: typeof ow.faceFactor === 'number' ? ow.faceFactor : c.work.faceFactor,
       steps: { ...c.work.steps, ...(ow.steps ?? {}) },
     },
-    rightsHolderPct: typeof o.rightsHolderPct === 'number' ? o.rightsHolderPct : c.rightsHolderPct,
-    platformPct: typeof o.platformPct === 'number' ? o.platformPct : c.platformPct,
+    clearingPct: typeof o.clearingPct === 'number' ? o.clearingPct : c.clearingPct,
+    // Honoraret følger klareringsavgiften når et kort bare endrer avgiften.
+    // (Et gammelt platformPct i et lagret kort betydde noe annet og leses ikke.)
+    rightsHolderPct: typeof o.rightsHolderPct === 'number'
+      ? o.rightsHolderPct
+      : 100 - (typeof o.clearingPct === 'number' ? o.clearingPct : c.clearingPct),
     renewalPct: typeof o.renewalPct === 'number' ? o.renewalPct : c.renewalPct,
   }
 }

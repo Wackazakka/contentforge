@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { tenantChainUp, PLATFORM_RIGHTS_FEE_PCT } from '@/lib/voiceBank'
+import { tenantChainUp } from '@/lib/voiceBank'
 import {
   beregnFordeling, type SplitSpec,
 } from '@/lib/licenceMath'
@@ -200,7 +200,7 @@ export async function opprettLisens(i: LisensInput) {
   if (error) throw new Error(error.message)
   const licenceId = (data as { id: string }).id
 
-  await skrivFordeling(licenceId, feeCustomer, feeActor, i.splits ?? standardSplits(i.tenantId, card))
+  await skrivFordeling(licenceId, feeCustomer, feeActor, medFasteParter(i.splits, standardSplits(i.tenantId, card)))
 
   // Trinn: kun for verk, og kun som forslag med status 'pending'.
   if (i.kind === 'work') {
@@ -218,12 +218,28 @@ export async function opprettLisens(i: LisensInput) {
   return { id: licenceId, feeCustomer, feeActor, listeNok, honorarNok }
 }
 
-/** Standardparter: infrastrukturavgiften og byrået. Agent legges til manuelt. */
+/**
+ * Standardparter (25.10.2026): TwinLedgers klareringsavgift av kundeprisen, og
+ * det selgende leddet som restpost. Med standardkortet er resten null —
+ * TwinLedger klarerer, men selger ikke. Agenten legges til per lisens, av
+ * honoraret.
+ */
 export function standardSplits(tenantId: string, card: RateCard): SplitSpec[] {
   return [
-    { party_type: 'platform', party_label: 'Infrastrukturavgift', basis: 'customer_fee', pct: card.platformPct ?? PLATFORM_RIGHTS_FEE_PCT },
-    { party_type: 'agency', party_tenant_id: tenantId, basis: 'customer_fee', pct: null },
+    { party_type: 'platform', party_label: 'Klareringsavgift (TwinLedger)', basis: 'customer_fee', pct: card.clearingPct },
+    { party_type: 'agency', party_tenant_id: tenantId, party_label: 'Selgende ledd (rest)', basis: 'customer_fee', pct: null },
   ]
+}
+
+/**
+ * 🔑 KLARERINGSAVGIFTEN KOMMER FRA KORTET, ALDRI FRA KLIENTEN. Klienten kan
+ * legge til agent og andre som tar av honoraret; avgiften og restposten er
+ * faste parter. Ellers kunne et skjema med et gammelt tall (3 %) eller et
+ * tastetrykk skrive om hva TwinLedger tar.
+ */
+export function medFasteParter(klient: SplitSpec[] | undefined, faste: SplitSpec[]): SplitSpec[] {
+  const ekstra = (klient ?? []).filter((s) => s.party_type === 'agent' || s.party_type === 'other')
+  return [...faste, ...ekstra]
 }
 
 /**
