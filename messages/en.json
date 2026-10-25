@@ -1831,7 +1831,8 @@
     "identity_agency": "Your identity is confirmed by {agency}.",
     "identity_agency_fallback": "your agency",
     "identity_bankid": "Your identity is confirmed with BankID.",
-    "identity_admin": "Your identity is confirmed by us."
+    "identity_admin": "Your identity is confirmed by us.",
+    "card_agency": "To {agency} ({pct}%)"
   },
   "catalog": {
     "h1": "Voices",
@@ -2172,7 +2173,8 @@
     "identity_legacy_note": "This profile was added before sign-up existed. It isn’t self-declared, and publishing isn’t blocked.",
     "identity_since": "Confirmed {date}.",
     "identity_vouch": "Vouch for this person",
-    "identity_vouch_confirm": "You confirm that you know {name} and vouch that this person is who they say they are. Your name and the time are stored on the profile. Continue?"
+    "identity_vouch_confirm": "You confirm that you know {name} and vouch that this person is who they say they are. Your name and the time are stored on the profile. Continue?",
+    "card_agency": "To {agency} ({pct}%)"
   },
   "licences": {
     "back": "← Back to the performer",
@@ -2332,7 +2334,18 @@
     "csv_to": "Period to",
     "csv_uses": "Uses in total",
     "csv_sum": "TOTAL",
-    "csv_file": "payout-list"
+    "csv_file": "payout-list",
+    "th_agency": "To agency",
+    "receipt_agency": "The agencies’ share, {sum}, now shows under “Agencies” until it’s paid on.",
+    "agency_confirm": "Record {sum} as paid to {name}? Make the transfer in your online bank first.",
+    "agency_receipt": "{sum} recorded as paid to {name}.",
+    "agency_h2": "Agencies",
+    "agency_intro": "The agency’s share is frozen when the actor is recorded as paid, and stays here until it’s paid on. One transfer per agency for the whole roster.",
+    "agency_th_name": "Agency",
+    "agency_th_earned": "Earned",
+    "agency_record": "Record as paid",
+    "csv_agency": "Agency",
+    "csv_agency_amount": "To agency"
   },
   "casting": {
     "f_gender": "Gender",

@@ -150,6 +150,21 @@ export default function LisenserPage() {
 
   useEffect(() => { refresh() }, [refresh])
 
+  // Byråets andel på lisensen (117): har hun et byrå, foreslås byråets sats.
+  // Lisensen bærer andelen selv (licence_splits) — avregningen legger ikke
+  // prosenten på igjen. Feltet kan endres eller tømmes før lisensen opprettes.
+  useEffect(() => {
+    let avbrutt = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/voice-bank/payouts?actorId=${actorId}`, { headers: { Authorization: `Bearer ${await token()}` } })
+        const d = await res.json()
+        if (!avbrutt && res.ok && d.agency?.pct > 0) setAgentPct((v) => v || String(d.agency.pct))
+      } catch { /* forslaget er valgfritt */ }
+    })()
+    return () => { avbrutt = true }
+  }, [actorId])
+
   // Forhaandsutfylling fra kundens forespoersel. Aksene er de samme paa begge
   // sider (takstkortets), saa dette er en ren overfoering -- ingen oversetting,
   // og dermed ingen sted aa gjoere den feil.

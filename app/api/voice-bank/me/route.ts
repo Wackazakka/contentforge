@@ -259,6 +259,10 @@ export async function GET(request: Request) {
         managedBy: tenantNames.get(a.owner_tenant_id as string) ?? tenant.app_name,
         uses: settlement.uses,
         earnedNok: settlement.earnedNok,
+        // Byråets andel (117): det som er frosset på utbetalingene pluss det som
+        // trekkes av det som er til gode. Opptjent − byrå − utbetalt = til gode.
+        agentNok: settlement.agentNok,
+        agency: settlement.agency ? { name: settlement.agency.name, pct: settlement.agency.pct } : null,
         // Delt opp, fordi de to leddene betyr helt ulike ting for den som eier
         // stemmen: måleren er småpenger per bruk, lisensen er honoraret.
         meterNok: settlement.meterNok,

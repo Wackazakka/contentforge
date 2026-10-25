@@ -179,6 +179,9 @@ export default function VoiceActorPage() {
   const [earnedNok, setEarnedNok] = useState(0)
   const [paidNok, setPaidNok] = useState(0)
   const [dueNok, setDueNok] = useState(0)
+  // Byråets andel (117): frosset på utbetalingene + det som trekkes av det som er til gode.
+  const [agentNok, setAgentNok] = useState(0)
+  const [agencyInfo, setAgencyInfo] = useState<{ name: string; pct: number } | null>(null)
   const [poFra, setPoFra] = useState('')
   const [poTil, setPoTil] = useState('')
   const [poBelop, setPoBelop] = useState('')
@@ -276,6 +279,8 @@ export default function VoiceActorPage() {
             setEarnedNok(Number(pd.earnedNok) || 0)
             setPaidNok(Number(pd.paidNok) || 0)
             setDueNok(Number(pd.dueNok) || 0)
+            setAgentNok(Number(pd.agentNok) || 0)
+            setAgencyInfo(pd.agency ? { name: String(pd.agency.name), pct: Number(pd.agency.pct) } : null)
           }
         }
       } catch { /* oppgjør er valgfritt inntil migrasjon 068 er kjørt */ }
@@ -613,6 +618,9 @@ export default function VoiceActorPage() {
                 { label: t('card_uses'), value: String(totals.uses) },
                 { label: t('card_from'), value: nok(totals.from) },
                 { label: t('card_earned'), value: nok(earnedNok || totals.to) },
+                ...(agencyInfo && agentNok > 0
+                  ? [{ label: t('card_agency', { agency: agencyInfo.name, pct: String(agencyInfo.pct).replace('.', ',') }), value: nok(agentNok) }]
+                  : []),
                 { label: t('card_paid'), value: nok(paidNok) },
                 { label: t('card_due'), value: nok(dueNok) },
                 ...(fees ? [{ label: t('card_infra', { pct: fees.infraPct }), value: nok(totalInfraNok) }] : []),

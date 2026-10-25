@@ -22,9 +22,26 @@ interface Rad {
   earnedNok: number
   paidNok: number
   dueNok: number
+  // Byråets andel av det som er til gode (117) — trekkes fra hennes del og
+  // betales byrået som egen overføring.
+  dueAgentNok?: number
+  agency?: { name: string; pct: number } | null
   periodeFra: string
   periodeTil: string
   sistUtbetalt: string | null
+}
+
+// Byråenes oppgjør (097/117): det som er frosset på skuespillernes
+// utbetalinger og ikke betalt videre. Én overføring per byrå.
+interface Byraa {
+  agentId: string
+  name: string
+  email: string | null
+  orgNr: string | null
+  earnedNok: number
+  paidNok: number
+  dueNok: number
+  sistTil: string | null
 }
 
 const BCP47: Record<string, string> = { no: 'nb-NO', en: 'en-GB' }
@@ -39,6 +56,7 @@ export default function UtbetalingslistePage() {
   const [error, setError] = useState<string | null>(null)
   const [tenantName, setTenantName] = useState('')
   const [rader, setRader] = useState<Rad[]>([])
+  const [byraaer, setByraaer] = useState<Byraa[]>([])
   // Terskelen: småbeløp blir stående til neste gang i stedet for å koste en
   // bankoverføring hver. Ikke lagret — rutinen bestemmer den fra gang til gang.
   const [terskel, setTerskel] = useState('200')
@@ -67,6 +85,7 @@ export default function UtbetalingslistePage() {
       setError(null)
       setTenantName(d.tenant?.name || '')
       setRader(d.rader || [])
+      setByraaer(d.byraaer || [])
       setValgt(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : t('err_fetch'))
@@ -96,10 +115,13 @@ export default function UtbetalingslistePage() {
     // komma og desimalpunktum. Samme fil i feil form legger alt i én kolonne.
     const sep = locale === 'no' ? ';' : ','
     const tall = (n: number) => (locale === 'no' ? n.toFixed(2).replace('.', ',') : n.toFixed(2))
+    // Byråets andel står på samme linje (117): den betales byrået som egen
+    // overføring etter at skuespilleren er ført som betalt.
+    const sumByraa = valgte.reduce((s, r) => s + (r.dueAgentNok ?? 0), 0)
     const linjer = [
-      [t('csv_name'), t('csv_email'), t('csv_amount'), t('csv_from'), t('csv_to'), t('csv_uses')].map(felt).join(sep),
-      ...valgte.map((r) => [r.name, r.email || '', tall(r.dueNok), r.periodeFra, r.periodeTil, String(r.uses)].map(felt).join(sep)),
-      [t('csv_sum'), '', tall(sumValgt), '', '', ''].map(felt).join(sep),
+      [t('csv_name'), t('csv_email'), t('csv_amount'), t('csv_from'), t('csv_to'), t('csv_uses'), t('csv_agency'), t('csv_agency_amount')].map(felt).join(sep),
+      ...valgte.map((r) => [r.name, r.email || '', tall(r.dueNok), r.periodeFra, r.periodeTil, String(r.uses), r.agency?.name || '', tall(r.dueAgentNok ?? 0)].map(felt).join(sep)),
+      [t('csv_sum'), '', tall(sumValgt), '', '', '', '', tall(sumByraa)].map(felt).join(sep),
     ]
     const blob = new Blob(['﻿' + linjer.join('\r\n')], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a')
@@ -126,7 +148,10 @@ export default function UtbetalingslistePage() {
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || t('err_record'))
-      setKvittering(t(d.antall === 1 ? 'receipt_one' : 'receipt_many', { n: d.antall, sum: nok(d.sumNok) }))
+      setKvittering(
+        t(d.antall === 1 ? 'receipt_one' : 'receipt_many', { n: d.antall, sum: nok(d.sumNok) })
+        + (d.byraaNok > 0 ? ' ' + t('receipt_agency', { sum: nok(d.byraaNok) }) : '')
+      )
       setNote('')
       await hent()
     } catch (e) {
@@ -135,6 +160,32 @@ export default function UtbetalingslistePage() {
       setBusy(false)
     }
   }
+
+  // Byrået betales som ÉN overføring for hele stallen (097). Perioden går fra
+  // dagen etter forrige oppgjør til i dag; beløpet valideres på serveren.
+  const foerByraa = async (b: Byraa) => {
+    if (!confirm(t('agency_confirm', { name: b.name, sum: nok(b.dueNok) }))) return
+    setBusy(true); setError(null); setKvittering(null)
+    try {
+      const idag = new Date().toISOString().slice(0, 10)
+      let fra = idag
+      if (b.sistTil) { const d = new Date(b.sistTil + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); fra = d.toISOString().slice(0, 10) }
+      if (fra > idag) fra = idag
+      const res = await authedFetch('/api/voice-bank/payouts', {
+        method: 'POST',
+        body: JSON.stringify({ agentPayout: { agentId: b.agentId, amountNok: b.dueNok, periodeFra: fra, periodeTil: idag } }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || t('err_record'))
+      setKvittering(t('agency_receipt', { name: b.name, sum: nok(d.sumNok) }))
+      await hent()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('err_record'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const byraaTilGode = byraaer.filter((b) => b.dueNok > 0)
 
   return (
     <div className="min-h-screen bg-[var(--paper)]">
@@ -190,6 +241,7 @@ export default function UtbetalingslistePage() {
                     <th className="px-4 py-2">{t('th_period')}</th>
                     <th className="px-4 py-2 text-right">{t('th_earned')}</th>
                     <th className="px-4 py-2 text-right">{t('th_paid')}</th>
+                    <th className="px-4 py-2 text-right">{t('th_agency')}</th>
                     <th className="px-4 py-2 text-right">{t('th_due')}</th>
                   </tr>
                 </thead>
@@ -211,6 +263,11 @@ export default function UtbetalingslistePage() {
                         <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{dato(r.periodeFra)} – {dato(r.periodeTil)}</td>
                         <td className="px-4 py-2 text-right text-gray-600">{nok(r.earnedNok)}</td>
                         <td className="px-4 py-2 text-right text-gray-600">{nok(r.paidNok)}</td>
+                        <td className="px-4 py-2 text-right text-gray-600 whitespace-nowrap">
+                          {r.agency && (r.dueAgentNok ?? 0) > 0
+                            ? <span title={`${r.agency.name} · ${String(r.agency.pct).replace('.', ',')} %`}>{nok(r.dueAgentNok ?? 0)}<span className="block text-[11px] text-gray-400">{r.agency.name}</span></span>
+                            : '—'}
+                        </td>
                         <td className="px-4 py-2 text-right font-semibold text-gray-900">{nok(r.dueNok)}</td>
                       </tr>
                     )
@@ -240,6 +297,48 @@ export default function UtbetalingslistePage() {
               </div>
             </div>
           </>
+        )}
+
+        {/* Byråene (097/117). Andelen deres fryses når skuespilleren føres som
+            betalt, og står her til den er betalt videre — én overføring per
+            byrå for hele stallen. */}
+        {!loading && byraaTilGode.length > 0 && (
+          <div className="mt-10">
+            <h2 className="font-semibold text-gray-900 mb-1">{t('agency_h2')}</h2>
+            <p className="text-sm text-gray-600 mb-3 max-w-2xl">{t('agency_intro')}</p>
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
+                    <th className="px-4 py-2">{t('agency_th_name')}</th>
+                    <th className="px-4 py-2 text-right">{t('agency_th_earned')}</th>
+                    <th className="px-4 py-2 text-right">{t('th_paid')}</th>
+                    <th className="px-4 py-2 text-right">{t('th_due')}</th>
+                    <th className="px-4 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byraaTilGode.map((b) => (
+                    <tr key={b.agentId} className="border-b border-gray-100 last:border-0">
+                      <td className="px-4 py-2">
+                        <div className="font-medium text-gray-900">{b.name}</div>
+                        <div className="text-xs text-gray-500">{b.email || '—'}{b.orgNr ? ` · ${b.orgNr}` : ''}</div>
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-600">{nok(b.earnedNok)}</td>
+                      <td className="px-4 py-2 text-right text-gray-600">{nok(b.paidNok)}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-gray-900">{nok(b.dueNok)}</td>
+                      <td className="px-4 py-2 text-right">
+                        <button onClick={() => foerByraa(b)} disabled={busy}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 hover:border-[var(--ember-deep)] disabled:opacity-50 whitespace-nowrap">
+                          {t('agency_record')}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </div>
     </div>

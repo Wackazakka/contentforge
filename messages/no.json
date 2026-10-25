@@ -1831,7 +1831,8 @@
     "identity_agency": "Identiteten din er bekreftet av {agency}.",
     "identity_agency_fallback": "byrået ditt",
     "identity_bankid": "Identiteten din er bekreftet med BankID.",
-    "identity_admin": "Identiteten din er bekreftet av oss."
+    "identity_admin": "Identiteten din er bekreftet av oss.",
+    "card_agency": "Til {agency} ({pct} %)"
   },
   "catalog": {
     "h1": "Stemmer",
@@ -2172,7 +2173,8 @@
     "identity_legacy_note": "Profilen ble lagt inn før påmeldingen fantes. Den er ikke selverklært, og publiseringen stoppes ikke.",
     "identity_since": "Bekreftet {date}.",
     "identity_vouch": "Gå god for personen",
-    "identity_vouch_confirm": "Du bekrefter at du kjenner {name} og går god for at personen er den hen sier. Navnet ditt og tidspunktet lagres på profilen. Fortsette?"
+    "identity_vouch_confirm": "Du bekrefter at du kjenner {name} og går god for at personen er den hen sier. Navnet ditt og tidspunktet lagres på profilen. Fortsette?",
+    "card_agency": "Til {agency} ({pct} %)"
   },
   "licences": {
     "back": "← Tilbake til skuespilleren",
@@ -2332,7 +2334,18 @@
     "csv_to": "Periode til",
     "csv_uses": "Antall bruk totalt",
     "csv_sum": "SUM",
-    "csv_file": "utbetalingsliste"
+    "csv_file": "utbetalingsliste",
+    "th_agency": "Til byrå",
+    "receipt_agency": "Byråenes andel, {sum}, står nå under «Byråer» til den er betalt videre.",
+    "agency_confirm": "Føre {sum} som betalt til {name}? Gjør overføringen i nettbanken først.",
+    "agency_receipt": "{sum} ført som betalt til {name}.",
+    "agency_h2": "Byråer",
+    "agency_intro": "Byråets andel fryses når skuespilleren føres som betalt, og står her til den er betalt videre. Én overføring per byrå for hele stallen.",
+    "agency_th_name": "Byrå",
+    "agency_th_earned": "Opptjent",
+    "agency_record": "Før som betalt",
+    "csv_agency": "Byrå",
+    "csv_agency_amount": "Til byrået"
   },
   "casting": {
     "f_gender": "Kjønn",

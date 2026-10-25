@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
 import { isTenantAdmin } from '@/lib/voiceBank'
-import { actorSettlement, kr } from '@/lib/actorLedger'
+import { actorSettlement, agencySettlements, kr } from '@/lib/actorLedger'
+import { fordelUtbetaling } from '@/lib/byraaOppgjoer'
 
 function admin() {
   return createClient(
@@ -79,7 +80,12 @@ async function utbetalingsliste(tenantId: string) {
       uses: s.uses,
       earnedNok: s.earnedNok,
       paidNok: s.paidNok,
+      // Til gode er hennes del (117). Byråets andel av det samme beløpet står
+      // ved siden av — to overføringer, ikke én.
       dueNok: s.dueNok,
+      dueGrossNok: s.dueGrossNok,
+      dueAgentNok: s.dueAgentNok,
+      agency: s.agency ? { name: s.agency.name, pct: s.agency.pct } : null,
       periodeFra: fra,
       periodeTil: idag,
       sistUtbetalt: s.payouts[0]?.betalt_dato ?? null,
@@ -93,11 +99,15 @@ export async function GET(request: Request) {
   if (g.fail) return g.fail
   const params = new URL(request.url).searchParams
   if (params.get('liste')) {
-    const rader = await utbetalingsliste(g.tenant!.id)
+    const [rader, byraaer] = await Promise.all([utbetalingsliste(g.tenant!.id), agencySettlements(g.tenant!.id)])
     return NextResponse.json({
       tenant: { name: g.tenant!.app_name },
       rader,
       totalDueNok: kr(rader.reduce((sum, r) => sum + r.dueNok, 0)),
+      // Byråene (097/117): det som er frosset på skuespillernes utbetalinger
+      // og ikke betalt videre. Det som venter på neste avregning står på
+      // skuespillerradene (dueAgentNok), ikke her.
+      byraaer,
     })
   }
   const actorId = params.get('actorId')
@@ -113,6 +123,35 @@ export async function POST(request: Request) {
   if (g.fail) return g.fail
   const body = await request.json().catch(() => ({}))
   const datoOk = (s: unknown) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
+
+  // Byråets oppgjør (097/117): én overføring per byrå per periode. Beløpet
+  // valideres mot det som er frosset på skuespillernes utbetalinger; den unike
+  // indeksen på (byrå, bank, periode) stopper et dobbeltklikk.
+  if (body?.agentPayout) {
+    const p = body.agentPayout as Record<string, unknown>
+    const agentId = String(p.agentId || '')
+    const amount = Number(p.amountNok)
+    if (!datoOk(p.periodeFra) || !datoOk(p.periodeTil) || String(p.periodeTil) < String(p.periodeFra)) {
+      return NextResponse.json({ error: 'Ugyldig periode' }, { status: 400 })
+    }
+    if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: 'Ugyldig beløp' }, { status: 400 })
+    const byraa = (await agencySettlements(g.tenant!.id)).find((b) => b.agentId === agentId)
+    if (!byraa) return NextResponse.json({ error: 'Byrået finnes ikke i denne banken' }, { status: 404 })
+    if (amount > byraa.dueNok + 0.005) {
+      return NextResponse.json({ error: `${byraa.name} har ${byraa.dueNok} kr til gode, ikke ${kr(amount)}. Last listen på nytt.`, code: 'STALE_LIST' }, { status: 409 })
+    }
+    const { error } = await admin().from('talent_agent_payouts').insert({
+      talent_agent_id: agentId, tenant_id: g.tenant!.id,
+      periode_fra: p.periodeFra, periode_til: p.periodeTil,
+      amount_nok: kr(amount), betalt_dato: isoDag(new Date()),
+      note: body.note ? String(body.note).slice(0, 300) : null, created_by: g.email,
+    })
+    if (error) {
+      const dobbel = /duplicate|unik|unique/i.test(error.message)
+      return NextResponse.json({ error: dobbel ? 'Byrået har alt et oppgjør for denne perioden' : error.message }, { status: dobbel ? 409 : 500 })
+    }
+    return NextResponse.json({ ok: true, sumNok: kr(amount) })
+  }
 
   // Masseføring fra utbetalingslisten: mange rettighetshavere i ETT kall, ÉN
   // insert (alt eller ingenting). Hvert beløp valideres mot hovedboken på
@@ -137,7 +176,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Ugyldig periode for ${navn.get(id)}` }, { status: 400 })
       }
       const s = await actorSettlement(id)
-      if (amount > s.dueNok + 0.005) {
+      // Brutto, byråets andel og grunnlaget fryses her (117) — regnet på
+      // serveren, aldri tatt fra klienten.
+      const felter = fordelUtbetaling(s.tilGode, amount)
+      if (!felter) {
         return NextResponse.json({
           error: `${navn.get(id)} har ${s.dueNok} kr til gode, ikke ${kr(amount)}. Listen er utdatert — last den på nytt.`,
           code: 'STALE_LIST',
@@ -148,14 +190,19 @@ export async function POST(request: Request) {
         tenant_id: g.tenant!.id,
         periode_fra: i.periodeFra,
         periode_til: i.periodeTil,
-        amount_nok: kr(amount),
+        ...felter,
+        talent_agent_id: felter.agent_cut_nok > 0 ? s.agency?.id ?? null : null,
         note: body.note ? String(body.note).slice(0, 300) : null,
         created_by: g.email,
       })
     }
     const { error } = await admin().from('actor_payouts').insert(rows)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, antall: rows.length, sumNok: kr(rows.reduce((s, r) => s + r.amount_nok, 0)) })
+    return NextResponse.json({
+      ok: true, antall: rows.length,
+      sumNok: kr(rows.reduce((s, r) => s + r.amount_nok, 0)),
+      byraaNok: kr(rows.reduce((s, r) => s + r.agent_cut_nok, 0)),
+    })
   }
 
   const { actorId, periodeFra, periodeTil, amountNok, note } = body || {}
@@ -166,17 +213,24 @@ export async function POST(request: Request) {
   }
   if (periodeTil < periodeFra) return NextResponse.json({ error: 'Perioden slutter før den begynner' }, { status: 400 })
   const amount = Number(amountNok)
-  if (!Number.isFinite(amount) || amount < 0) return NextResponse.json({ error: 'Ugyldig beløp' }, { status: 400 })
+  if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: 'Ugyldig beløp' }, { status: 400 })
   if (!(await ownActor(g.tenant!.id, actorId))) {
     return NextResponse.json({ error: 'Skuespilleren finnes ikke i denne banken' }, { status: 404 })
   }
+
+  // Samme fordeling som listen (117): beløpet er hennes del, byråets andel og
+  // brutto regnes og fryses her. Mer enn til gode kan ikke føres.
+  const s = await actorSettlement(actorId)
+  const felter = fordelUtbetaling(s.tilGode, amount)
+  if (!felter) return NextResponse.json({ error: `Hun har ${s.dueNok} kr til gode, ikke ${kr(amount)}.` }, { status: 409 })
 
   const { error } = await admin().from('actor_payouts').insert({
     actor_id: actorId,
     tenant_id: g.tenant!.id,
     periode_fra: periodeFra,
     periode_til: periodeTil,
-    amount_nok: kr(amount),
+    ...felter,
+    talent_agent_id: felter.agent_cut_nok > 0 ? s.agency?.id ?? null : null,
     note: note ? String(note).slice(0, 300) : null,
     created_by: g.email,
   })

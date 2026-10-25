@@ -18,6 +18,7 @@ interface Actor {
   id: string; tlid: string | null; twinVersion: number; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
   defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
   uses: number; earnedNok: number; meterNok: number; licenceNok: number; royaltyNok: number; paidNok: number; dueNok: number
+  agentNok?: number; agency?: { name: string; pct: number } | null
   payouts: Payout[]; events: Usage[]; licences: Licence[]
   // Paameldingen (101)
   offersVoice: boolean; wantsFace: boolean; hasOwnRecording: boolean | null
@@ -272,13 +273,19 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
             {a.wantsFace && session?.access_token && <EgenModellPanel actorId={a.id} bearer={session.access_token} />}
 
             {/* Oppgjøret — det viktigste først */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            {/* Byråets andel (117) står som eget kort når hun har et byrå:
+                opptjent − byrå − utbetalt = til gode. Uten kortet ville tallene
+                ikke gått opp, og det er den feilen som koster tillit raskest. */}
+            <div className={`grid grid-cols-2 ${a.agency && (a.agentNok ?? 0) > 0 ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-3 mb-8`}>
               {[
                 { label: t('card_uses'), value: String(a.uses) },
                 { label: t('card_earned'), value: nok(a.earnedNok) },
+                ...(a.agency && (a.agentNok ?? 0) > 0
+                  ? [{ label: t('card_agency', { agency: a.agency.name, pct: String(a.agency.pct).replace('.', ',') }), value: nok(a.agentNok ?? 0) }]
+                  : []),
                 { label: t('card_paid'), value: nok(a.paidNok) },
                 { label: t('card_due'), value: nok(a.dueNok), strong: true },
-              ].map((c) => (
+              ].map((c: { label: string; value: string; strong?: boolean }) => (
                 <div key={c.label} className={`rounded-lg border p-4 ${c.strong ? 'bg-[var(--ember-tint-bg,#FFF4EC)] border-[var(--ember-tint-border,#F1D9C8)]' : 'bg-[var(--paper-raised,#fff)] border-gray-200'}`}>
                   <div className="text-xs text-gray-500 mb-1">{c.label}</div>
                   <div className="text-xl font-bold">{c.value}</div>
