@@ -18,16 +18,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields: productId, script' }, { status: 400 })
     }
 
-    // Stemmebank: royalty-hendelse hvis stemmen er en registrert skuespiller
-    try {
-      const { getProductTenant } = await import('@/lib/tenantBilling')
-      const { logVoiceUsage } = await import('@/lib/voiceBank')
-      const pt = await getProductTenant(productId)
-      if (pt.tenantId && voiceId) {
-        await logVoiceUsage({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, organizationId: pt.organizationId, productId, meta: { kind: 'radio' } })
-      }
-    } catch { /* royalty-logging velter aldri produksjon */ }
-
     const authHeader = request.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 })
@@ -41,6 +31,19 @@ export async function POST(request: NextRequest) {
     if (productId && !(await eierProdukt(userId, String(productId)))) {
       return NextResponse.json({ error: 'Produktet tilhører ikke deg' }, { status: 403 })
     }
+
+    // Royalty-raden skrives FØRST NÅ — etter at vi vet hvem som spør (25.10):
+    // før lå den foran innloggingssjekken, så et uautentisert kall skrev i hovedboken.
+    // Stemmebank: royalty-hendelse hvis stemmen er en registrert skuespiller
+    try {
+      const { getProductTenant } = await import('@/lib/tenantBilling')
+      const { logVoiceUsage } = await import('@/lib/voiceBank')
+      const pt = await getProductTenant(productId)
+      if (pt.tenantId && voiceId) {
+        await logVoiceUsage({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, organizationId: pt.organizationId, productId, meta: { kind: 'radio' } })
+      }
+    } catch { /* royalty-logging velter aldri produksjon */ }
+
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
       auth: { persistSession: false },
