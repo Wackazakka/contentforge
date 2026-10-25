@@ -899,9 +899,10 @@ export default function DraftV2Page() {
     const seg = draft.segments[index]
     setVoiceLoading((p) => ({ ...p, [index]: true }))
     try {
+      const { data: sess } = await getSupabase().auth.getSession()
       const res = await fetch('/api/content/preview-voiceover', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sess?.session?.access_token || ''}` },
         body: JSON.stringify({ text: seg.voiceover, voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX', draftId, segmentIndex: index, languageCode: languageForGroup((VOICES.find((v) => v.id === draft.voice_id) as any)?.gruppe) }),
       })
       const data = await res.json()

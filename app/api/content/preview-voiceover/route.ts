@@ -18,6 +18,15 @@ const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740fe
 export async function POST(request: Request) {
   try {
     const { text, voiceId, draftId, segmentIndex, languageCode } = await request.json()
+    // 🔑 Innlogget, stemmen i banken, utkastet brukerens eget (25.10). Før var
+    // ruta åpen: hvem som helst kunne lage tale i en klonet stemme med vår
+    // nøkkel — se lib/stemmeTilgang.
+    const { sjekkStemmeTilgang } = await import('@/lib/stemmeTilgang')
+    const tilgang = await sjekkStemmeTilgang(request, voiceId, draftId)
+    if (!tilgang.ok) return NextResponse.json({ error: tilgang.error }, { status: tilgang.status })
+    if (typeof text !== 'string' || !text.trim() || text.length > 5000) {
+      return NextResponse.json({ error: 'Teksten mangler eller er for lang' }, { status: 400 })
+    }
     // Engelsk stemme MÅ få 'en', ellers leses teksten med norske uttaleregler
     const lang = languageCode === 'en' ? 'en' : 'no'
 

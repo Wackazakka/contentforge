@@ -993,9 +993,10 @@ export default function DraftPage() {
     const segment = draft.segments[index]
     setVoiceLoading((prev) => ({ ...prev, [index]: true }))
     try {
+      const { data: sess } = await getSupabase().auth.getSession()
       const res = await fetch('/api/content/preview-voiceover', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sess?.session?.access_token || ''}` },
         body: JSON.stringify({
           text: segment.voiceover,
           voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX',

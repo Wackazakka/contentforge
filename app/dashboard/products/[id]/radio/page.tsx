@@ -113,9 +113,10 @@ export default function RadioAdPage() {
     if (!seg || seg.generating) return
     setSegments(prev => prev.map((s, i) => i === index ? { ...s, generating: true } : s))
     try {
+      const { data: sess } = await getSupabase().auth.getSession()
       const res = await fetch('/api/avatar/preview-voice', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sess?.session?.access_token || ''}` },
         body: JSON.stringify({ script: seg.text, voiceId, emotion: seg.emotion }),
       })
       if (!res.ok) throw new Error('Feilet')

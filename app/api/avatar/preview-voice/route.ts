@@ -25,6 +25,14 @@ export async function POST(request: NextRequest) {
     if (!script || !voiceId) {
       return NextResponse.json({ error: 'Missing script or voiceId' }, { status: 400 })
     }
+    // 🔑 Innlogget og stemmen i banken (25.10). Før var ruta åpen for alle —
+    // se lib/stemmeTilgang.
+    const { sjekkStemmeTilgang } = await import('@/lib/stemmeTilgang')
+    const tilgang = await sjekkStemmeTilgang(request, voiceId)
+    if (!tilgang.ok) return NextResponse.json({ error: tilgang.error }, { status: tilgang.status })
+    if (typeof script !== 'string' || script.length > 5000) {
+      return NextResponse.json({ error: 'Manuset er for langt' }, { status: 400 })
+    }
 
     if (!ELEVENLABS_API_KEY) {
       return NextResponse.json({ error: 'ElevenLabs API key not configured' }, { status: 500 })

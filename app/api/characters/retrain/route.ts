@@ -63,6 +63,9 @@ export async function POST(request: Request) {
       training_set_url: string | null; consent_subject: string | null; subject_email: string | null
     } | null
     if (!k) return NextResponse.json({ error: 'Fant ikke modellen' }, { status: 404 })
+    // 🔑 Bare egen banks modeller (25.10): en admin på en annen tenant kunne
+    // ellers trene om — og betale fal for — en annen banks skuespiller.
+    if (k.owner_tenant_id !== tenant.id) return NextResponse.json({ error: 'Modellen tilhører en annen bank' }, { status: 403 })
     if (!k.training_set_url) {
       return NextResponse.json({
         error: 'Denne modellen har ingen sporede treningsbilder, så den kan ikke trenes på nytt.',

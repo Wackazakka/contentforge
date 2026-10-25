@@ -30,12 +30,17 @@ async function vakt(request: Request) {
   if (!epost || !(await isTenantAdmin(epost, tenant.id))) {
     return { fail: NextResponse.json({ error: 'Ingen admin-tilgang' }, { status: 403 }) }
   }
-  return { ok: true as const }
+  return { ok: true as const, tenant }
 }
 
-async function hentSti(characterId: string): Promise<string | null> {
+// 🔑 BARE EGEN BANKS MODELLER (sikkerhetsgjennomgangen 25.10). Før ble
+// modellen slått opp på id alene: en admin på en hvilken som helst annen
+// tenant — white-label-partnere medregnet — kunne hente lenke til, eller
+// slette, treningsbildene til en TwinLedger-skuespiller. Id-ene er ikke
+// hemmelige (de står i /api/face-actors).
+async function hentSti(characterId: string, tenantId: string): Promise<string | null> {
   const { data } = await admin()
-    .from('user_characters').select('training_set_url').eq('id', characterId).maybeSingle()
+    .from('user_characters').select('training_set_url').eq('id', characterId).eq('owner_tenant_id', tenantId).maybeSingle()
   return (data as { training_set_url?: string | null } | null)?.training_set_url ?? null
 }
 
@@ -44,7 +49,7 @@ export async function GET(request: Request) {
   const v = await vakt(request)
   if (v.fail) return v.fail
   const id = new URL(request.url).searchParams.get('characterId') || ''
-  const sti = id ? await hentSti(id) : null
+  const sti = id ? await hentSti(id, v.tenant!.id) : null
   if (!sti) return NextResponse.json({ error: 'Ingen treningsbilder sporet på denne modellen' }, { status: 404 })
 
   // ⚠️ Rader fra før 094 peker på en offentlig R2-URL. De er allerede åpne —
@@ -66,7 +71,7 @@ export async function DELETE(request: Request) {
   const v = await vakt(request)
   if (v.fail) return v.fail
   const { characterId } = await request.json().catch(() => ({ characterId: '' }))
-  const sti = characterId ? await hentSti(String(characterId)) : null
+  const sti = characterId ? await hentSti(String(characterId), v.tenant!.id) : null
   if (!sti) return NextResponse.json({ error: 'Ingen treningsbilder sporet' }, { status: 404 })
   if (sti.startsWith('http')) {
     // Legacy i den offentlige R2-bøtta. Sletting der er en annen operasjon,
