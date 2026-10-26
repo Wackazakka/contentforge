@@ -182,38 +182,15 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, ini
         )}
 
         <form onSubmit={handleSubmit}>
-          <label style={labelStyle}>{tc('productNameLabel')}</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={isLoading}
-            className="cf-input"
-            style={{ marginBottom: 20 }}
-            placeholder={tc('productNamePlaceholder')}
-          />
-
-          <label style={labelStyle}>{tc('descriptionLabel')}</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            disabled={isLoading}
-            className="cf-input"
-            style={{ marginBottom: vcfg ? 8 : 20, resize: 'vertical' }}
-            rows={3}
-            placeholder={tc('descriptionPlaceholder')}
-          />
-          {vcfg && (
-            <p style={{ fontFamily: HANKEN, fontSize: 13, color: '#8C8272', margin: '0 0 20px' }}>{tc('descriptionHint')}</p>
-          )}
-
+          {/* Typen først (Lars 26/10): etikettene under avhenger av den —
+              «Hvem skal drikkes ut?» gir bare mening når utdrikningslag er valgt. */}
           <label style={labelStyle}>{t('categoryLabel')}</label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             disabled={isLoading}
             className="cf-input"
-            style={{ marginBottom: vcfg?.serviceAreaField ? 20 : 28, cursor: 'pointer' }}
+            style={{ marginBottom: 20, cursor: 'pointer' }}
           >
             {vcfg ? (
               vcfg.categoryOptions.map((o) => (
@@ -241,6 +218,31 @@ export function ProductModal({ isOpen, onClose, onSubmit, isLoading = false, ini
                 style={{ marginBottom: 20 }}
               />
             </>
+          )}
+
+          <label style={labelStyle}>{tc('productNameLabel')}</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isLoading}
+            className="cf-input"
+            style={{ marginBottom: 20 }}
+            placeholder={tc('productNamePlaceholder')}
+          />
+
+          <label style={labelStyle}>{tc('descriptionLabel')}</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={isLoading}
+            className="cf-input"
+            style={{ marginBottom: vcfg ? 8 : 20, resize: 'vertical' }}
+            rows={3}
+            placeholder={tc('descriptionPlaceholder')}
+          />
+          {vcfg && (
+            <p style={{ fontFamily: HANKEN, fontSize: 13, color: '#8C8272', margin: '0 0 20px' }}>{tc('descriptionHint')}</p>
           )}
 
           {vcfg?.serviceAreaField && (
