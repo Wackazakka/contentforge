@@ -35,17 +35,23 @@ export async function POST(request: Request) {
     (user.email?.split('@')[0] || 'org').toLowerCase().replace(/[^a-z0-9]/g, '-') +
     '-' + user.id.substring(0, 8) +
     (tenant.slug !== 'centerforge' ? '-' + tenant.slug : '')
-  const { data: org, error } = await sb
-    .from('organizations')
-    .insert({
-      name: fullName,
-      owner_id: user.id,
-      slug,
-      description: 'Default organization for ' + fullName,
-      ...(tenantFilter ? { tenant_id: tenantFilter } : {}),
-    })
-    .select('id, name')
-    .single()
+  const insert = (s: string) =>
+    sb
+      .from('organizations')
+      .insert({
+        name: fullName,
+        owner_id: user.id,
+        slug: s,
+        description: 'Default organization for ' + fullName,
+        ...(tenantFilter ? { tenant_id: tenantFilter } : {}),
+      })
+      .select('id, name')
+      .single()
+  let { data: org, error } = await insert(slug)
+  // Sluggen kan finnes fra før (gammel testorg, annen tenant) → prøv med suffiks
+  if (error && /duplicate|unique/i.test(error.message)) {
+    ;({ data: org, error } = await insert(`${slug}-${Date.now().toString(36)}`))
+  }
   if (error || !org) {
     console.error('[org/ensure] insert feilet:', error?.message)
     return NextResponse.json({ error: 'Kunne ikke opprette arbeidsområdet: ' + (error?.message || 'ukjent') }, { status: 500 })

@@ -83,6 +83,21 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!session?.user?.id) return
 
+    // Serverside selvreparasjon (26/10): /api/org/ensure finner eller oppretter
+    // arbeidsområdet på denne tenanten med service-nøkkelen — uavhengig av hva
+    // RLS slipper gjennom for brukerens egen nøkkel. Brukes både når insert-en
+    // under feiler og når selve oppslaget kaster.
+    const ensureOrgServerside = async (): Promise<{ id: string; name: string } | null> => {
+      try {
+        const r = await fetch('/api/org/ensure', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` } })
+        const d = await r.json().catch(() => ({}))
+        if (r.ok && d.organization?.id) return d.organization
+        console.error('[Dashboard] Serverside selvreparasjon feilet:', d.error || r.status)
+      } catch (e) {
+        console.error('[Dashboard] Serverside selvreparasjon feilet:', e)
+      }
+      return null
+    }
     const fetchOrganization = async () => {
       try {
         const supabase = getSupabase()
@@ -148,17 +163,8 @@ export default function DashboardPage() {
             .single()
           if (createErr) {
             console.error('[Dashboard] Selvreparasjon av org feilet:', createErr.message)
-            // RLS stoppet insert-en med brukerens nøkkel (sett på standardropert
-            // 26/10) → la serveren opprette den med service-nøkkelen i stedet.
-            try {
-              const token = session.access_token
-              const r = await fetch('/api/org/ensure', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
-              const d = await r.json().catch(() => ({}))
-              if (r.ok && d.organization?.id) orgList = [d.organization]
-              else console.error('[Dashboard] Serverside selvreparasjon feilet:', d.error || r.status)
-            } catch (e) {
-              console.error('[Dashboard] Serverside selvreparasjon feilet:', e)
-            }
+            const fromServer = await ensureOrgServerside()
+            if (fromServer) orgList = [fromServer]
           } else if (newOrg) orgList = [newOrg]
         }
 
@@ -180,6 +186,12 @@ export default function DashboardPage() {
         }
       } catch (err) {
         console.error('[Dashboard] Fetch organization error:', err)
+        // Oppslaget kastet (f.eks. RLS på select) → serveren får finne/opprette
+        const fromServer = await ensureOrgServerside()
+        if (fromServer) {
+          setOrganizationId(fromServer.id)
+          setOrganizationName(fromServer.name)
+        }
       } finally {
         setLoadingOrg(false)
       }
