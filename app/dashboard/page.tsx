@@ -146,8 +146,20 @@ export default function DashboardPage() {
             })
             .select('id, name')
             .single()
-          if (createErr) console.error('[Dashboard] Selvreparasjon av org feilet:', createErr.message)
-          else if (newOrg) orgList = [newOrg]
+          if (createErr) {
+            console.error('[Dashboard] Selvreparasjon av org feilet:', createErr.message)
+            // RLS stoppet insert-en med brukerens nøkkel (sett på standardropert
+            // 26/10) → la serveren opprette den med service-nøkkelen i stedet.
+            try {
+              const token = session.access_token
+              const r = await fetch('/api/org/ensure', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+              const d = await r.json().catch(() => ({}))
+              if (r.ok && d.organization?.id) orgList = [d.organization]
+              else console.error('[Dashboard] Serverside selvreparasjon feilet:', d.error || r.status)
+            } catch (e) {
+              console.error('[Dashboard] Serverside selvreparasjon feilet:', e)
+            }
+          } else if (newOrg) orgList = [newOrg]
         }
 
         if (orgList.length > 0) {
