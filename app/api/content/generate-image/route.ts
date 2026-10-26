@@ -59,7 +59,10 @@ async function generateImageBuffer(topic: string, imageSize: string = '1024x1024
       Authorization: 'Bearer ' + (OPENAI_API_KEY || ''),
     },
     body: JSON.stringify({
-      model: 'gpt-image-1',
+      // gpt-image-1 ble fjernet fra API-et 23.10.2026 («does not exist»). 1.5 er
+      // drop-in (samme parametre, png, input_fidelity) og lever til 1.12.2026;
+      // gpt-image-2 krever egen stiltest (dropper input_fidelity, webp som standard).
+      model: 'gpt-image-1.5',
       prompt: (() => {
         const styleGuide = (imageStyle && VIDEO_STYLE_PROMPTS[imageStyle])
           ? VIDEO_STYLE_PROMPTS[imageStyle]
@@ -108,7 +111,7 @@ async function editImageBuffer(topic: string, referenceImageUrl: string, imageSi
   const styleGuide = (imageStyle && VIDEO_STYLE_PROMPTS[imageStyle]) ? VIDEO_STYLE_PROMPTS[imageStyle] : VIDEO_STYLE_PROMPTS.papercut
   const prompt = styleGuide + ' Redraw the person in the reference photo as a stylised figure in exactly this style: keep their recognisable features (hair colour and style, glasses, face shape, skin tone, clothing colours) but rendered as flat layered paper with simplified features — an illustration, never a photograph. Scene: ' + topic + ' No text, letters, words, or typography in the image.'
   const fd = new FormData()
-  fd.append('model', 'gpt-image-1')
+  fd.append('model', 'gpt-image-1.5')
   fd.append('image', new Blob([ab], { type: ct }), ct.includes('png') ? 'reference.png' : ct.includes('webp') ? 'reference.webp' : 'reference.jpg')
   fd.append('prompt', prompt)
   fd.append('size', imageSize)

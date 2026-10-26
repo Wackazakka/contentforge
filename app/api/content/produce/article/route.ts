@@ -159,7 +159,7 @@ async function generateAndSaveImage(articleId: string, topic: string, productId:
       Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'gpt-image-1',
+      model: 'gpt-image-1.5', // gpt-image-1 fjernet 23.10.2026; se generate-image/route.ts
       prompt:
         `Create a clean editorial illustration for an article about: ${topic}. ` +
         'Style: modern digital illustration with bold colors and clean lines. ' +

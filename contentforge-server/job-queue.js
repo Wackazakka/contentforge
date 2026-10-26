@@ -320,7 +320,7 @@ async function generateImage(prompt, outputPath, apiKey, format = '9:16', r2Uplo
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-image-1',
+      model: 'gpt-image-1.5', // gpt-image-1 fjernet fra API-et 23.10.2026 (deploy: /root/deploy-contentforge.sh)
       prompt,
       n: 1,
       size,
