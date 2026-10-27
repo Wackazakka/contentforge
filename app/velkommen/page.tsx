@@ -25,7 +25,20 @@ export default function VelkommenPage() {
   const [status, setStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    setToken(new URLSearchParams(window.location.search).get('t') || '')
+    const t = new URLSearchParams(window.location.search).get('t') || ''
+    setToken(t)
+    // Registrer besøket (bruker ikke opp lenken), og vis med en gang om
+    // lenken alt er brukt eller utløpt (Lars 27.10)
+    if (t) {
+      fetch('/api/velkommen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: t, besok: true }),
+      })
+        .then((r) => r.json())
+        .then((d) => { if (d?.status === 'brukt' || d?.status === 'utlopt' || d?.status === 'ugyldig') setStatus(d.status) })
+        .catch(() => { /* besøket er bare til statistikk */ })
+    }
   }, [])
 
   const fortsett = async (e: React.FormEvent) => {

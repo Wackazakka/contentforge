@@ -11,11 +11,29 @@ export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   let token = ''
-  try { token = String((await request.json())?.token || '') } catch { /* tom */ }
+  let besok = false
+  try {
+    const body = await request.json()
+    token = String(body?.token || '')
+    besok = body?.besok === true
+  } catch { /* tom */ }
   if (!token) return NextResponse.json({ status: 'ugyldig' }, { status: 400 })
 
   const sb = admin()
   const hash = hashToken(token)
+
+  // Besøk på velkomstsiden (111, Lars 27.10): registreres når siden åpnes,
+  // uten å bruke opp lenken. Svarer med status, så siden kan si fra med en
+  // gang om lenken er brukt eller utløpt.
+  if (besok) {
+    const { data: rad } = await sb.from('welcome_invites').select('id, seen_at, seen_count, used_at, expires_at').eq('token_hash', hash).maybeSingle()
+    if (!rad) return NextResponse.json({ status: 'ugyldig' })
+    await sb.from('welcome_invites')
+      .update({ seen_at: rad.seen_at || new Date().toISOString(), seen_count: (rad.seen_count || 0) + 1 })
+      .eq('id', rad.id)
+    const status = rad.used_at ? 'brukt' : rad.expires_at && new Date(rad.expires_at).getTime() < Date.now() ? 'utlopt' : 'gyldig'
+    return NextResponse.json({ status })
+  }
 
   // Krev lenken atomisk: bare én forespørsel kan sette used_at
   const { data: krevd } = await sb

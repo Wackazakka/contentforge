@@ -12,9 +12,10 @@
 export const UNDERSOKELSE = {
   id: 'promomaker-test-2026-10',
   tenantSlug: 'indigoboom',
-  // Tirsdag 27.10 kl. 23:59 norsk tid. Vintertid fra søndag 25.10 → UTC+1.
-  bonusFrist: '2026-10-27T22:59:59Z',
-  bonusFristTekst: 'tirsdag 27. oktober',
+  // Fredag 30.10 kl. 23:59 norsk tid (vintertid, UTC+1). Flyttet fra tirsdag
+  // 27.10 (Lars 27.10): ingen av testerne hadde startet før fristen.
+  bonusFrist: '2026-10-30T22:59:59Z',
+  bonusFristTekst: 'fredag 30. oktober',
   grenseKreditter: 200,
   bonusKreditter: 3000,
 } as const
