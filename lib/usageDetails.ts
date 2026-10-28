@@ -1,7 +1,7 @@
 import { createHash } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 
-// Hva som faktisk ble laget med tvillingen (127, Lars 28.10.2026).
+// Hva som faktisk ble laget med tvillingen (128, Lars 28.10.2026).
 //
 // Hovedboken (voice_usage_events) sier AT stemmen eller ansiktet ble brukt,
 // av hvem, under hvilken lisens og for hvor mye. Den sier ikke HVA: teksten
@@ -99,7 +99,7 @@ export async function skrivDetaljer(eventId: string | null | undefined, d: { tek
     }
     if (Object.keys(rad).length === 1) return
     const { error } = await db().from('voice_usage_details').upsert(rad, { onConflict: 'event_id' })
-    // 42P01: migrasjon 127 er ikke kjørt ennå — da finnes det ingenting å skrive til.
+    // 42P01: migrasjon 128 er ikke kjørt ennå — da finnes det ingenting å skrive til.
     if (error && error.code !== '42P01') console.warn('[usageDetails] kunne ikke lagre detaljer:', error.message)
   } catch (err) {
     console.warn('[usageDetails] detaljer hoppet over:', err)

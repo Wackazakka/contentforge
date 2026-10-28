@@ -191,7 +191,7 @@ export async function POST(request: Request) {
         const { logVoiceUsage, logFaceUsage } = await import('@/lib/voiceBank')
         const pt2 = await gpt2(draftProductId)
         const { data: d3 } = await supabase.from('production_drafts').select('voice_id, character_id, segments').eq('id', draftId).single()
-        // Hva filmen sier og hvor den havner (127) — rettighetshaveren får se det
+        // Hva filmen sier og hvor den havner (128) — rettighetshaveren får se det
         // i hovedboken sin, så langt lisensen tillater.
         const { manusFraSegmenter, dropletResultat } = await import('@/lib/usageDetails')
         const manus = manusFraSegmenter(d3?.segments)

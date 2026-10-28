@@ -4,7 +4,7 @@ import {
   type Innsyn, type TekstSort, type ResultatSort,
 } from '@/lib/usageDetails'
 
-// Rettighetshaverens innsyn i HVA tvillingen ble brukt til (127) — serverdelen.
+// Rettighetshaverens innsyn i HVA tvillingen ble brukt til (128) — serverdelen.
 // Se lib/usageDetails.ts for nivåene og hvorfor teksten ligger utenfor hovedboken.
 //
 // 🔑 FILTRERINGEN SKJER HER, ALDRI I NETTLESEREN. Det et byrå har valgt å holde
@@ -46,7 +46,7 @@ export async function byraaStandard(talentAgentId: string | null | undefined): P
   return (data as { default_actor_insight?: string } | null)?.default_actor_insight ?? null
 }
 
-/** Nivået per lisens. Uten kolonnen (127 ikke kjørt): tomt, og da gjelder standarden. */
+/** Nivået per lisens. Uten kolonnen (128 ikke kjørt): tomt, og da gjelder standarden. */
 export async function lisensNivaaer(licenceIds: string[]): Promise<Map<string, Innsyn>> {
   const ut = new Map<string, Innsyn>()
   if (licenceIds.length === 0) return ut
@@ -69,7 +69,7 @@ async function detaljer(eventIds: string[]): Promise<Map<string, Detalj>> {
 const erFilm = (e: BrukRad) => (e.meta as { kind?: string } | null)?.kind === 'video'
 
 /**
- * Hvor resultatet ligger, og om det er ferdig. Bruk fra før 127 har ingen
+ * Hvor resultatet ligger, og om det er ferdig. Bruk fra før 128 har ingen
  * detaljrad; for film kan både teksten (utkastet) og fila (jobben) finnes
  * likevel, så de hentes derfra.
  */
@@ -116,7 +116,7 @@ export async function innsynForBruk(o: { talentAgentId: string | null | undefine
       for (const p of (data || []) as Array<{ id: string; name: string }>) navn.set(p.id, p.name)
     }
 
-    // Filmmanus fra utkastet for bruk som mangler tekst (før 127).
+    // Filmmanus fra utkastet for bruk som mangler tekst (før 128).
     const utkastIder = [...new Set(events.filter((e) => erFilm(e) && e.draft_id && !det.get(e.id)?.text_body && ser(niva(e), 'script')).map((e) => e.draft_id as string))]
     const manus = new Map<string, string>()
     if (utkastIder.length) {

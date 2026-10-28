@@ -146,7 +146,7 @@ export async function logApprovedDelivery(row: {
   customer_price_nok: number
   api_key_id?: string | null
   model_ref?: string | null
-  // Innholdet som ble holdt tilbake (127): teksten/beskrivelsen og fila.
+  // Innholdet som ble holdt tilbake (128): teksten/beskrivelsen og fila.
   content_url?: string | null
   detail?: string | null
 }): Promise<void> {

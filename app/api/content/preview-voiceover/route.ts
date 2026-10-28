@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     // Skuespiller-preview? Da får skuespilleren en liten tegnbasert royalty
     // (à la ElevenLabs-satsene), og kundens taxameter belastes tilsvarende.
     let actorExtraNok = 0
-    // Hovedbokraden for prøvelyttet (127): lyden festes til den etter opplastingen.
+    // Hovedbokraden for prøvelyttet (128): lyden festes til den etter opplastingen.
     let royaltyRad: string | null = null
     if (draftId && voiceId) {
       try {

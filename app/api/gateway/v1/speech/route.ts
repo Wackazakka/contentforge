@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       // skiller dem ikke når en kunde har flere.
       meta: { kind: 'speech', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, chars: text.length, licence_match: hjemmel.match, ...tekstMeta(tekst) },
     }).select('id').single()
-    // Teksten og lyden ved siden av hovedboken (127)
+    // Teksten og lyden ved siden av hovedboken (128)
     await skrivDetaljer((royaltyRad as { id: string } | null)?.id, { tekst, resultat: { url, kind: 'audio' } })
 
     // Meter kundens forbruk (trekker forskuddssaldoen) — separat fra royalty-loggen,

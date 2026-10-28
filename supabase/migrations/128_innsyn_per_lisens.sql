@@ -1,4 +1,4 @@
--- 127: Hva rettighetshaveren får se av bruken, styrt per lisens (Lars 28.10.2026)
+-- 128: Hva rettighetshaveren får se av bruken, styrt per lisens (Lars 28.10.2026)
 --
 -- FØR: /min-stemme viste hver bruk med dato, type, lisens, byrå og beløp — men
 -- ikke HVA tvillingen ble brukt til. Teksten som ble lest og resultatet ble
@@ -103,7 +103,7 @@ create index if not exists voice_usage_details_job_idx
   on public.voice_usage_details (job_id) where job_id is not null;
 
 comment on table public.voice_usage_details is
-  'Teksten og resultatet bak en hovedbokrad (127). Fingeravtrykket av teksten står i voice_usage_events.meta.text_sha256.';
+  'Teksten og resultatet bak en hovedbokrad (128). Fingeravtrykket av teksten står i voice_usage_events.meta.text_sha256.';
 
 -- Bare service-rollen. Nye tabeller arver ellers full anon/authenticated-GRANT.
 alter table public.voice_usage_details enable row level security;

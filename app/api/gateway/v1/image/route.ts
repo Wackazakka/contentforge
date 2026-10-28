@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       twin_version: valg.versjon,
       meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, licence_match: hjemmel.match, model: modell, ...(aldersmodell ? { age_model: aldersmodell.label } : {}), ...tekstMeta(tekst) },
     }).select('id').single()
-    // Beskrivelsen og bildet ved siden av hovedboken (127)
+    // Beskrivelsen og bildet ved siden av hovedboken (128)
     await skrivDetaljer((royaltyRad as { id: string } | null)?.id, { tekst, resultat: { url, kind: 'image' } })
 
     // Meter kundens forbruk (trekker forskuddssaldoen)

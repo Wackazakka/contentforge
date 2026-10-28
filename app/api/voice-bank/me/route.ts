@@ -196,7 +196,7 @@ export async function GET(request: Request) {
       const events = ev.data || []
       await nameOf([a.owner_tenant_id as string, ...events.map((e) => e.used_by_tenant_id as string)])
 
-      // HVA tvillingen ble brukt til (127): produksjon, tekst og resultat, så
+      // HVA tvillingen ble brukt til (128): produksjon, tekst og resultat, så
       // langt lisensen tillater. Filtrert her — det som holdes tilbake, sendes ikke.
       const agentId = (a as { talent_agent_id?: string | null }).talent_agent_id ?? null
       const { innsynForBruk, lisensNivaaer } = await import('@/lib/innsynServer')
@@ -299,7 +299,7 @@ export async function GET(request: Request) {
         previewRatePer1000,
         since: a.created_at,
         managedBy: tenantNames.get(a.owner_tenant_id as string) ?? tenant.app_name,
-        // Kom hun gjennom et byrå, er det byrået som styrer innsynet (127).
+        // Kom hun gjennom et byrå, er det byrået som styrer innsynet (128).
         agencyControlsInsight: !!agentId,
         uses: settlement.uses,
         earnedNok: settlement.earnedNok,
@@ -343,7 +343,7 @@ export async function GET(request: Request) {
             royaltyPct: l.royalty_pct != null ? Number(l.royalty_pct) : null,
             releaseChannel: l.release_channel,
             releaseTitle: l.release_title,
-            // Hva hun ser av bruken under lisensen (127). Drop-in: alltid alt.
+            // Hva hun ser av bruken under lisensen (128). Drop-in: alltid alt.
             insight: agentId ? (lisensInnsyn.get(l.id as string) ?? 'full') : 'full',
             statements: (stmts || [])
               .filter((s) => s.licence_id === l.id)
@@ -375,7 +375,7 @@ export async function GET(request: Request) {
           assetType: e.asset_type || 'voice',
           usedBy: tenantNames.get(e.used_by_tenant_id as string) ?? 'Ukjent',
           toYouNok: Number(e.actor_rate_nok),
-          // Innsynet (127): null-felter er enten holdt tilbake eller ikke kjent.
+          // Innsynet (128): null-felter er enten holdt tilbake eller ikke kjent.
           insight: innsyn.get(e.id)?.insight ?? 'production',
           productName: innsyn.get(e.id)?.productName ?? null,
           text: innsyn.get(e.id)?.text ?? null,

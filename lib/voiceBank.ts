@@ -195,7 +195,7 @@ export async function logPreviewRoyalty(e: {
   chars: number
   draftId?: string | null
   meta?: Record<string, unknown>
-  // Teksten som ble lest (127) — fingeravtrykket i hovedboken, teksten ved siden av.
+  // Teksten som ble lest (128) — fingeravtrykket i hovedboken, teksten ved siden av.
   tekst?: import('@/lib/usageDetails').Tekst | null
 }): Promise<{ actorNok: number; customerNok: number; eventId: string | null } | null> {
   try {
@@ -245,7 +245,7 @@ export async function logFaceUsage(e: {
   productId?: string | null
   draftId?: string | null
   jobId?: string | null
-  // Hva som ble laget (127): beskrivelsen bildet kom fra, og bildet/filmen.
+  // Hva som ble laget (128): beskrivelsen bildet kom fra, og bildet/filmen.
   tekst?: import('@/lib/usageDetails').Tekst | null
   resultat?: import('@/lib/usageDetails').Resultat | null
 }): Promise<string | null> {
@@ -312,7 +312,7 @@ export async function logVoiceUsage(e: {
   draftId?: string | null
   jobId?: string | null
   meta?: Record<string, unknown>
-  // Hva som ble laget (127): teksten som ble lest, og lyden/filmen.
+  // Hva som ble laget (128): teksten som ble lest, og lyden/filmen.
   tekst?: import('@/lib/usageDetails').Tekst | null
   resultat?: import('@/lib/usageDetails').Resultat | null
 }): Promise<string | null> {

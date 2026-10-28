@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-// Byråets innsynsside (127). Norsk alene, som innsigelsessida: byråene er norske.
+// Byråets innsynsside (128). Norsk alene, som innsigelsessida: byråene er norske.
 //
 // Grunnlinjen — når tvillingen ble brukt, hva slags bruk, under hvilken lisens
 // og hva klienten fikk — ser klienten alltid. Det byrået velger, er hvor mye

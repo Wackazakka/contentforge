@@ -305,7 +305,7 @@ export async function lagLesning(takeId: string, regi?: string | null) {
     twin_version: (actor as { twin_version?: number | null }).twin_version ?? null,
     meta: { kind: 'audition_read', audition_id: a!.id, chars: String(a!.line).length, licence_match: 'preview', ...tekstMeta(replikk) },
   }).select('id').single()
-  // Replikken og lesningen ved siden av hovedboken (127). Lyden ligger privat.
+  // Replikken og lesningen ved siden av hovedboken (128). Lyden ligger privat.
   await skrivDetaljer((royaltyRad as { id: string } | null)?.id, { tekst: replikk, resultat: { url: sti, kind: 'audio', store: 'training-sets' } })
 
   await supabase.from('audition_takes').update({ stage: 'ready', updated_at: new Date().toISOString() }).eq('id', takeId)

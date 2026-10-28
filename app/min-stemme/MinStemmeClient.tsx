@@ -20,7 +20,7 @@ interface Actor {
   defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
   uses: number; earnedNok: number; meterNok: number; licenceNok: number; royaltyNok: number; paidNok: number; dueNok: number
   agentNok?: number; agency?: { name: string; pct: number } | null
-  // Kom hun gjennom et byrå, styrer byrået hva hun ser av bruken (127)
+  // Kom hun gjennom et byrå, styrer byrået hva hun ser av bruken (128)
   agencyControlsInsight?: boolean
   payouts: Payout[]; events: Usage[]; licences: Licence[]
   // Paameldingen (101)
@@ -72,7 +72,7 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
   const [actors, setActors] = useState<Actor[]>([])
   // Teller som tvinger ny henting etter at hun har endret hva hun tilbyr.
   const [reload, setReload] = useState(0)
-  // Hvilke bruk-rader som er foldet ut (127)
+  // Hvilke bruk-rader som er foldet ut (128)
   const [aapne, setAapne] = useState<Set<string>>(new Set())
   const vend = (id: string) => setAapne((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const [tilbudBusy, setTilbudBusy] = useState(false)
@@ -421,7 +421,7 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                               {l.twinVersion != null && <span className="ml-2 text-xs font-normal text-gray-500">· {t('version_n', { n: l.twinVersion })}</span>}
                             </div>
                             <div className="text-gray-600 mt-0.5">{omfang.filter(Boolean).join(' · ')}</div>
-                            {/* Hva hun ser av bruken under lisensen (127) — bare når et byrå styrer det */}
+                            {/* Hva hun ser av bruken under lisensen (128) — bare når et byrå styrer det */}
                             {a.agencyControlsInsight && l.insight && (
                               <div className="text-xs text-gray-500 mt-1">{t('lic_insight', { level: t(`insight_${l.insight}`) })}</div>
                             )}
@@ -547,7 +547,7 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                         <td className="px-4 py-2 whitespace-nowrap text-gray-600">{dato(e.at)}</td>
                         <td className="px-4 py-2">
                           {ord('kind', e.kind) || e.kind}{e.kind === 'preview' && e.chars ? <span className="text-gray-400">{t('chars', { n: e.chars })}</span> : null}
-                          {/* Produksjonen (127) */}
+                          {/* Produksjonen (128) */}
                           {e.productName && <div className="text-xs text-gray-500">{e.productName}</div>}
                           {kan && (
                             <button type="button" aria-expanded={aapen} onClick={(ev) => { ev.stopPropagation(); vend(id) }}

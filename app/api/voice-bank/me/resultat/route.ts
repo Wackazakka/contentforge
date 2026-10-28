@@ -4,7 +4,7 @@ import { likeSafe } from '@/lib/epost'
 import { getTenant } from '@/lib/tenantServer'
 import { resultatLenke } from '@/lib/innsynServer'
 
-// GET ?event=<id> — en fersk lenke til det som ble laget i én bruk (127).
+// GET ?event=<id> — en fersk lenke til det som ble laget i én bruk (128).
 //
 // Lenken hentes først når hun trykker, ikke med hele hovedboken: den varer i
 // minutter, og nivået sjekkes på nytt hver gang — har byrået strammet inn

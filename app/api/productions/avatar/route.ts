@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     const jobId = jobData.id
 
-    // Resultatet havner på R2 når dropleten er ferdig (127). Jobben finnes først
+    // Resultatet havner på R2 når dropleten er ferdig (128). Jobben finnes først
     // nå, etter royalty-raden — og den raden kan ikke endres — så pekeren går i
     // detaljene ved siden av.
     if (royaltyRad) {

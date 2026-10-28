@@ -66,7 +66,7 @@ interface Licence {
   list_fee_customer_nok: number | null
   customer_label: string | null
   notes: string | null
-  // Hva rettighetshaveren ser av bruken (127). Mangler før migrasjonen er kjørt.
+  // Hva rettighetshaveren ser av bruken (128). Mangler før migrasjonen er kjørt.
   actor_insight?: 'production' | 'script' | 'full'
   splits: Split[]
   steps: Step[]
@@ -97,7 +97,7 @@ export default function LisenserPage() {
   const nok = lagNok(locale)
   const { actorId } = useParams<{ actorId: string }>()
   const [licences, setLicences] = useState<Licence[]>([])
-  // Byrået hun kom gjennom (127) — null for en drop-in, som alltid ser alt.
+  // Byrået hun kom gjennom (128) — null for en drop-in, som alltid ser alt.
   const [byraa, setByraa] = useState<{ name: string | null } | null>(null)
   // Tilbud laget FRA en kundeforespoersel (090). Aksene fylles inn fra
   // hennes svar, og raden kobles tilbake naar tilbudet er laget -- ellers
@@ -667,7 +667,7 @@ function LisensKort({ l, onEndre, onAvregning, byraa }: {
         </div>
       )}
 
-      {/* Hva rettighetshaveren ser av bruken (127). Byrået styrer; adminen kan
+      {/* Hva rettighetshaveren ser av bruken (128). Byrået styrer; adminen kan
           sette det på byråets vegne. En drop-in ser alltid alt. */}
       {l.actor_insight && (
         <div className="mt-3 pt-3 border-t border-gray-200 text-sm flex flex-wrap items-center gap-2">

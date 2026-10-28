@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Innsyn from './Innsyn'
 
-// Byråets innsynsside (127) — der byrået bestemmer hva klientene ser av bruken
+// Byråets innsynsside (128) — der byrået bestemmer hva klientene ser av bruken
 // av tvillingen sin, per lisens. Nøkkelen i adressen er tilgangen.
 
 export const metadata: Metadata = { title: 'Hva klientene ser', robots: { index: false, follow: false } }

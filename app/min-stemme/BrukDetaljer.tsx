@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 
-// Hva tvillingen ble brukt til, under én rad i hovedboken (127): teksten som
+// Hva tvillingen ble brukt til, under én rad i hovedboken (128): teksten som
 // ble lest og resultatet. Serveren har allerede fjernet det byrået holder
 // tilbake; her vises bare det som kom.
 //

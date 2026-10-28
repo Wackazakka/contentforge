@@ -20,7 +20,7 @@ interface Byraa {
   createdAt: string; link: string | null; actors: number
   // Hvem dekker stemmeabonnementet (126). null = migrasjonen er ikke kjørt.
   coversOnboarding: 'platform' | 'agency' | null
-  // Innsynet (127). null = migrasjonen er ikke kjørt.
+  // Innsynet (128). null = migrasjonen er ikke kjørt.
   defaultActorInsight: 'production' | 'script' | 'full' | null
   insightLink: string | null
 }
@@ -142,7 +142,7 @@ export default function ByraaerPage() {
                   </button>
                 </div>
               )}
-              {/* Hva klientene ser av bruken (127): byråets standard for nye
+              {/* Hva klientene ser av bruken (128): byråets standard for nye
                   lisenser, og lenken der byrået styrer det selv. */}
               {r.defaultActorInsight && (
                 <div className="mt-4 pt-3 border-t border-gray-200 space-y-2">

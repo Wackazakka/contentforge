@@ -4,7 +4,7 @@ import { getTenant } from '@/lib/tenantServer'
 import { erGyldigNoekkel } from '@/lib/identitet'
 import { erInnsyn } from '@/lib/usageDetails'
 
-// Byråets innsynsside (127): hva klientene ser av bruken, per lisens.
+// Byråets innsynsside (128): hva klientene ser av bruken, per lisens.
 //
 // 🔑 NØKKELEN ER AUTENTISERINGEN, som på innsigelsessida (116). Byrået har
 // ingen konto hos oss. Nøkkelen er EGEN (talent_agents.insight_token): den

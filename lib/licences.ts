@@ -196,10 +196,10 @@ export async function opprettLisens(i: LisensInput) {
     release_title: i.releaseTitle ?? null,
   }
 
-  // Hva rettighetshaveren får se av bruken (127): byråets standard, fryst på
+  // Hva rettighetshaveren får se av bruken (128): byråets standard, fryst på
   // lisensen — byrået kan endre den per lisens etterpå. Drop-ins har ingen
   // standard, og ser alltid alt. Settes bare når den avviker fra databasens
-  // standard ('full'), så innsettingen virker også før 127 er kjørt.
+  // standard ('full'), så innsettingen virker også før 128 er kjørt.
   const { data: skuesp } = await admin().from('voice_actors').select('talent_agent_id').eq('id', i.actorId).maybeSingle()
   const { byraaStandard } = await import('@/lib/innsynServer')
   const standard = await byraaStandard((skuesp as { talent_agent_id?: string | null } | null)?.talent_agent_id)

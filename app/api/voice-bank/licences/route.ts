@@ -82,7 +82,7 @@ export async function GET(request: Request) {
       }))
     )
     const card = await hentTakstkort(tenant.id)
-    // Har hun byrå? Bare da kan innsynet begrenses (127).
+    // Har hun byrå? Bare da kan innsynet begrenses (128).
     const { data: sk } = await admin().from('voice_actors').select('talent_agent_id, talent_agents(name)').eq('id', actorId).maybeSingle()
     const ta = (sk as { talent_agents?: { name: string } | { name: string }[] | null } | null)?.talent_agents
     const byraa = (sk as { talent_agent_id?: string | null } | null)?.talent_agent_id
@@ -140,7 +140,7 @@ export async function PATCH(request: Request) {
       .from('licences').select('*').eq('id', licenceId).eq('tenant_id', tenant.id).maybeSingle()
     if (!lic) return NextResponse.json({ error: 'Lisensen finnes ikke i denne banken' }, { status: 404 })
 
-    // Hva rettighetshaveren ser av bruken (127). Eget løp: det rører verken
+    // Hva rettighetshaveren ser av bruken (128). Eget løp: det rører verken
     // beløp eller fordeling, og skal ikke skrive fordelingen om.
     if (body.actorInsight !== undefined) {
       const { erInnsyn } = await import('@/lib/usageDetails')
