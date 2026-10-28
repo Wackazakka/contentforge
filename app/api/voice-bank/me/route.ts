@@ -257,11 +257,12 @@ export async function GET(request: Request) {
         hasOwnRecording: a.has_own_recording ?? null,
         enrolled: !!a.enrolled_at,
         identityBasis: a.identity_basis ?? null,
-        // Hvem som bekreftet identiteten (116): byrået ved navn, «admin» eller «bankid».
+        // Hvem som bekreftet identiteten (116, 125): byrået ved navn, «admin», «møte» eller «bankid».
         identityConfirmedBy: (() => {
           const b = lesBekreftelse((a as { identity_confirmed_by?: string | null }).identity_confirmed_by)
           if (b.av === 'byraa') return { kind: 'agency', name: byraaNavn.get(b.agentId) ?? null }
           if (b.av === 'admin') return { kind: 'admin', name: null }
+          if (b.av === 'moete') return { kind: 'meeting', name: null }
           if (b.av === 'bankid') return { kind: 'bankid', name: null }
           return null
         })(),

@@ -23,7 +23,7 @@ interface Actor {
   // Paameldingen (101)
   offersVoice: boolean; wantsFace: boolean; hasOwnRecording: boolean | null
   enrolled: boolean; identityBasis: string | null; delivered: boolean
-  identityConfirmedBy?: { kind: 'agency' | 'admin' | 'bankid'; name: string | null } | null
+  identityConfirmedBy?: { kind: 'agency' | 'admin' | 'bankid' | 'meeting'; name: string | null } | null
   isPublic?: boolean
   // Nivå og vurdering (123)
   tier?: 'new' | 'pro' | 'star'; intakeStatus?: 'pending' | 'accepted' | 'declined'; intakeNote?: string | null
@@ -186,6 +186,8 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                     ? t('identity_self')
                     : a.identityConfirmedBy?.kind === 'agency'
                       ? t('identity_agency', { agency: a.identityConfirmedBy.name || t('identity_agency_fallback') })
+                      : a.identityConfirmedBy?.kind === 'meeting'
+                        ? t('identity_meeting')
                       : a.identityConfirmedBy?.kind === 'bankid'
                         ? t('identity_bankid')
                         : a.identityConfirmedBy?.kind === 'admin'

@@ -30,7 +30,7 @@ interface ActorDetail {
   is_public: boolean
   is_demo: boolean
   // Identitetsgrunnlaget (101) og hvem som bekreftet det (116).
-  identity_basis?: 'self_declared' | 'vouched' | 'bankid' | null
+  identity_basis?: 'self_declared' | 'vouched' | 'bankid' | 'in_person' | null
   identity_confirmed_by?: string | null
   identity_confirmed_at?: string | null
   // Nivå og vurdering (123)
@@ -362,6 +362,18 @@ export default function VoiceActorPage() {
     setPubFeil(null)
     try {
       const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, vouchIdentity: true }) })
+      if (res.ok) await refresh()
+      else setPubFeil((await res.json().catch(() => ({}))).error || t('pub_failed'))
+    } catch { setPubFeil(t('pub_failed')) }
+  }
+
+  // Bekreftet i møte (125): du har møtt personen selv. Navnet ditt og
+  // tidspunktet lagres — derfor en bekreftelse først, som over.
+  const bekreftIMoete = async () => {
+    if (!actor || !window.confirm(t('identity_meeting_confirm', { name: actor.name }))) return
+    setPubFeil(null)
+    try {
+      const res = await authedFetch({ method: 'PATCH', body: JSON.stringify({ actorId, confirmInPerson: true }) })
       if (res.ok) await refresh()
       else setPubFeil((await res.json().catch(() => ({}))).error || t('pub_failed'))
     } catch { setPubFeil(t('pub_failed')) }
@@ -895,6 +907,7 @@ export default function VoiceActorPage() {
                 <div>
                   <div className="font-medium text-gray-900 text-sm">
                     {actor.identity_basis === 'self_declared' ? t('identity_self')
+                      : actor.identity_basis === 'in_person' ? t('identity_meeting', { who: (actor.identity_confirmed_by || '').replace(/^meeting:/, '') || '—' })
                       : actor.identity_basis === 'bankid' ? t('identity_bankid')
                       : actor.identity_basis === 'vouched'
                         ? (actor.identity_confirmed_by || '').startsWith('admin:')
@@ -908,12 +921,21 @@ export default function VoiceActorPage() {
                       : t('identity_legacy_note')}
                   </p>
                 </div>
-                {actor.identity_basis === 'self_declared' && (
-                  <button onClick={gaaGodFor}
-                    className="flex-none px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
-                    {t('identity_vouch')}
-                  </button>
-                )}
+                <div className="flex flex-none flex-wrap justify-end gap-2">
+                  {/* Møtet (125) løfter alt unntatt et møte som alt er ført. */}
+                  {actor.identity_basis !== 'in_person' && (
+                    <button onClick={bekreftIMoete}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                      {t('identity_meeting_button')}
+                    </button>
+                  )}
+                  {actor.identity_basis === 'self_declared' && (
+                    <button onClick={gaaGodFor}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] hover:text-[var(--ember-deep)] transition-colors">
+                      {t('identity_vouch')}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Eksempelprofil. Bryteren står her fordi den hører til det

@@ -21,7 +21,7 @@ interface Actor {
   face_character_id?: string | null
   // Paameldingen (101)
   enrolled_at?: string | null
-  identity_basis?: 'self_declared' | 'vouched' | 'bankid' | null
+  identity_basis?: 'self_declared' | 'vouched' | 'bankid' | 'in_person' | null
   identity_confirmed_by?: string | null
   delivered_at?: string | null
   is_public?: boolean | null
@@ -779,9 +779,11 @@ export default function VoiceBankAdminPage() {
                                     Selverklært
                                   </span>
                                 )}
-                                {(a.identity_basis === 'vouched' || a.identity_basis === 'bankid') && (
+                                {(a.identity_basis === 'vouched' || a.identity_basis === 'bankid' || a.identity_basis === 'in_person') && (
                                   <span className="text-[11px] px-2 py-0.5 rounded-full border border-green-300 bg-green-50 text-green-800">
-                                    {a.identity_basis === 'bankid' ? 'BankID' : (a.identity_confirmed_by || '').startsWith('admin:') ? 'Bekreftet av admin' : 'Bekreftet av byrå'}
+                                    {a.identity_basis === 'in_person' ? 'Bekreftet i møte'
+                                      : a.identity_basis === 'bankid' ? 'BankID'
+                                      : (a.identity_confirmed_by || '').startsWith('admin:') ? 'Bekreftet av admin' : 'Bekreftet av byrå'}
                                   </span>
                                 )}
                               </div>

@@ -536,16 +536,35 @@ export async function PATCH(request: Request) {
     if (body.intakeNote !== undefined) {
       patch.intake_note = body.intakeNote ? String(body.intakeNote).slice(0, 1000) : null
     }
+    // «Bekreftet i møte» (125): et menneske fra TwinLedger har møtt
+    // skuespilleren og sett at personen er den hen sier. Det sterkeste
+    // grunnlaget for ansiktet — det kan løfte en selverklært profil, og også en
+    // som er bekreftet av byrå eller BankID. Hvem som møtte hen, og når, står på raden.
+    if (body.confirmInPerson === true) {
+      const { data: ir } = await admin().from('voice_actors')
+        .select('identity_basis').eq('id', actorId).eq('owner_tenant_id', tenant.id).maybeSingle()
+      const naa = (ir as { identity_basis?: string | null } | null)?.identity_basis ?? null
+      const { kanBekreftesIMoete } = await import('@/lib/identitet')
+      if (!kanBekreftesIMoete(naa)) {
+        return NextResponse.json({ error: 'Identiteten er alt bekreftet i møte' }, { status: 409 })
+      }
+      patch.identity_basis = 'in_person'
+      patch.identity_confirmed_by = `meeting:${g.email}`
+      patch.identity_confirmed_at = new Date().toISOString()
+    }
+
     // 🔑 SPERREN PÅ PUBLISERING (116). En selverklært profil — bare en
     // avkryssing går god for at personen finnes — publiseres ikke før
-    // identiteten er bekreftet med BankID eller av et byrå. Adminen kan
+    // identiteten er bekreftet med BankID, av et byrå eller i et møte. Adminen kan
     // overstyre med åpne øyne: ved å gå god for personen selv. Da står det på
     // raden hvem som tok ansvaret, og når. Basen har den samme sperren
     // (triggeren publisering_krever_identitet); her får adminen grunnen.
     if (body.vouchIdentity === true || patch.is_public === true) {
       const { data: id } = await admin().from('voice_actors')
         .select('identity_basis').eq('id', actorId).eq('owner_tenant_id', tenant.id).maybeSingle()
-      const grunnlag = (id as { identity_basis?: string | null } | null)?.identity_basis ?? null
+      // Et møte bekreftet i samme kall teller (125).
+      const grunnlag = (patch.identity_basis as string | undefined)
+        ?? (id as { identity_basis?: string | null } | null)?.identity_basis ?? null
       // Påmeldingen må være godtatt (123) — med mindre den godtas i samme
       // kall. Eget oppslag, så identitetssjekken over står uansett.
       const { data: vr } = await admin().from('voice_actors')
@@ -568,7 +587,7 @@ export async function PATCH(request: Request) {
         const { kanPubliseres } = await import('@/lib/identitet')
         if (!kanPubliseres(grunnlag)) {
           return NextResponse.json({
-            error: 'Identiteten er ikke bekreftet. Profilen kan publiseres når den er bekreftet med BankID eller av et byrå — eller når du selv går god for personen.',
+            error: 'Identiteten er ikke bekreftet. Profilen kan publiseres når den er bekreftet med BankID, av et byrå eller i et møte — eller når du selv går god for personen.',
             code: 'IDENTITY_UNCONFIRMED',
           }, { status: 409 })
         }
@@ -586,6 +605,13 @@ export async function PATCH(request: Request) {
     // Basen stoppet publiseringen (et kappløp med en annen endring) — samme svar.
     if (error && /IDENTITY_UNCONFIRMED|bekreftet med BankID/.test(`${error.hint || ''} ${error.message}`)) {
       return NextResponse.json({ error: error.message, code: 'IDENTITY_UNCONFIRMED' }, { status: 409 })
+    }
+    // Skranken kjenner ikke in_person før migrasjon 125 er kjørt.
+    if (error && /actor_identity_basis/.test(error.message)) {
+      return NextResponse.json({
+        error: '«Bekreftet i møte» er ikke slått på i databasen ennå (migrasjon 125).',
+        code: 'IN_PERSON_NOT_ENABLED',
+      }, { status: 409 })
     }
     if (error && /INTAKE_NOT_ACCEPTED/.test(`${error.hint || ''} ${error.message}`)) {
       return NextResponse.json({ error: error.message, code: 'INTAKE_NOT_ACCEPTED' }, { status: 409 })
