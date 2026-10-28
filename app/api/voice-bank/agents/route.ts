@@ -4,6 +4,7 @@ import { getTenant, getTenantCanonicalOrigin } from '@/lib/tenantServer'
 import { isTenantAdmin } from '@/lib/voiceBank'
 import { nyNoekkel } from '@/lib/byraa'
 import { byraaLenke } from '@/lib/identitet'
+import { erDekning, lesDekning } from '@/lib/onboardingUtlegg'
 
 // Byråene (097) og påmeldingslenkene deres (116) — der adminen forvalter dem.
 //
@@ -31,13 +32,19 @@ async function vakt(request: Request) {
 type Rad = {
   id: string; name: string; contact_email: string | null; org_nr: string | null
   default_commission_pct: number | null; note: string | null; is_active: boolean
-  enroll_token: string | null; created_at: string
+  enroll_token: string | null; created_at: string; covers_onboarding?: string | null
 }
 
+const FELTER = 'id, name, contact_email, org_nr, default_commission_pct, note, is_active, enroll_token, created_at'
+
 async function liste(tenantId: string, origin: string) {
-  const { data } = await db().from('talent_agents')
-    .select('id, name, contact_email, org_nr, default_commission_pct, note, is_active, enroll_token, created_at')
+  // Hvem som dekker stemmeabonnementet (126), i samme oppslag — og uten den
+  // kolonnen hvis migrasjonen ikke er kjørt, så siden står uansett.
+  const med = await db().from('talent_agents')
+    .select(`${FELTER}, covers_onboarding`)
     .eq('tenant_id', tenantId).order('created_at', { ascending: true })
+  const data: unknown[] | null = !med.error ? med.data : (await db().from('talent_agents').select(FELTER)
+    .eq('tenant_id', tenantId).order('created_at', { ascending: true })).data
   const rader = (data || []) as Rad[]
   const ider = rader.map((r) => r.id)
   const antall = new Map<string, number>()
@@ -49,6 +56,8 @@ async function liste(tenantId: string, origin: string) {
     id: r.id, name: r.name, contactEmail: r.contact_email, orgNr: r.org_nr,
     defaultCommissionPct: r.default_commission_pct != null ? Number(r.default_commission_pct) : null,
     note: r.note, isActive: r.is_active, createdAt: r.created_at,
+    // null = kolonnen finnes ikke ennå (126); siden skjuler da valget.
+    coversOnboarding: r.covers_onboarding === undefined ? null : lesDekning(r.covers_onboarding),
     // Lenken vises bare for et aktivt byrå: en avslått lenke skal ikke kopieres.
     link: r.is_active && r.enroll_token ? byraaLenke(origin, r.enroll_token) : null,
     actors: antall.get(r.id) || 0,
@@ -78,6 +87,10 @@ function lesFelter(b: Record<string, unknown>): { felter: Record<string, unknown
     }
   }
   if (b.note !== undefined) felter.note = String(b.note || '').slice(0, 1000) || null
+  if (b.coversOnboarding !== undefined) {
+    if (!erDekning(b.coversOnboarding)) return { felter, feil: 'Ukjent valg for stemmeabonnementet' }
+    felter.covers_onboarding = b.coversOnboarding
+  }
   return { felter }
 }
 
@@ -113,6 +126,7 @@ export async function POST(request: Request) {
  *   { id, action: 'rotate' }      ny lenke, den gamle slutter å virke
  *   { id, isActive: boolean }     av eller på
  *   { id, name?, contactEmail?, orgNr?, defaultCommissionPct?, note? }
+ *   { id, coversOnboarding: 'platform' | 'agency' }   hvem dekker stemmeabonnementet (126)
  */
 export async function PATCH(request: Request) {
   try {

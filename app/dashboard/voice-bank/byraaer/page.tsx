@@ -18,6 +18,8 @@ interface Byraa {
   id: string; name: string; contactEmail: string | null; orgNr: string | null
   defaultCommissionPct: number | null; note: string | null; isActive: boolean
   createdAt: string; link: string | null; actors: number
+  // Hvem dekker stemmeabonnementet (126). null = migrasjonen er ikke kjørt.
+  coversOnboarding: 'platform' | 'agency' | null
 }
 
 export default function ByraaerPage() {
@@ -117,6 +119,18 @@ export default function ByraaerPage() {
                   </button>
                 </div>
               </div>
+              {r.coversOnboarding && (
+                <label className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                  {t('covers_label')}
+                  <select value={r.coversOnboarding} disabled={busy}
+                    onChange={(e) => endre({ id: r.id, coversOnboarding: e.target.value })}
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-[var(--paper)]">
+                    <option value="platform">{t('covers_platform')}</option>
+                    <option value="agency">{t('covers_agency')}</option>
+                  </select>
+                  <span className="text-gray-400">{t(r.coversOnboarding === 'agency' ? 'covers_agency_hint' : 'covers_platform_hint')}</span>
+                </label>
+              )}
               {r.link && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <code className="text-xs bg-[var(--paper)] border border-gray-200 rounded px-2 py-1 break-all select-all">{r.link}</code>

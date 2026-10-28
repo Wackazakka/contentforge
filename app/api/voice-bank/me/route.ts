@@ -5,6 +5,7 @@ import { getTenant } from '@/lib/tenantServer'
 import { actorSettlement } from '@/lib/actorLedger'
 import { PREVIEW_ROYALTY_PER_1000 } from '@/lib/voiceBank'
 import { lesBekreftelse } from '@/lib/identitet'
+import { utleggFor, avgiftFor } from '@/lib/onboardingServer'
 
 function admin() {
   return createClient(
@@ -176,7 +177,7 @@ export async function GET(request: Request) {
 
     const out = []
     for (const a of actors) {
-      const [settlement, ev] = await Promise.all([
+      const [settlement, ev, utlegg, avgift] = await Promise.all([
         actorSettlement(a.id),
         supabase
           .from('voice_usage_events')
@@ -184,6 +185,13 @@ export async function GET(request: Request) {
           .eq('actor_id', a.id)
           .order('created_at', { ascending: false })
           .limit(200),
+        // Stemmeabonnementet og påmeldingsavgiften (126). Feiler åpent.
+        utleggFor(a.id),
+        avgiftFor({
+          id: a.id as string, owner_tenant_id: a.owner_tenant_id as string,
+          talent_agent_id: (a as { talent_agent_id?: string | null }).talent_agent_id ?? null,
+          wants_face: (a as { wants_face?: boolean | null }).wants_face ?? null,
+        }),
       ])
       const events = ev.data || []
       await nameOf([a.owner_tenant_id as string, ...events.map((e) => e.used_by_tenant_id as string)])
@@ -272,6 +280,13 @@ export async function GET(request: Request) {
         intakeStatus: nivaaer.get(a.id)?.intake ?? 'accepted',
         intakeNote: nivaaer.get(a.id)?.note ?? null,
         delivered: !!a.delivered_at,
+        // Hun ser beløpet og om refusjonen er overført — ikke hvem som førte det.
+        voiceSubscription: utlegg ? {
+          amountNok: utlegg.amountNok, payer: utlegg.payer, agencyName: utlegg.agentName,
+          status: utlegg.status, refundedAt: utlegg.refundedAt,
+        } : null,
+        // Bare der den gjelder: uten byrå, med ansikt, og når banken har satt en avgift.
+        enrollmentFee: avgift.amountNok != null && !(a as { talent_agent_id?: string | null }).talent_agent_id && a.wants_face === true ? avgift : null,
         defaultRateNok: Number(a.actor_rate_nok),
         rates,
         previewRatePer1000,

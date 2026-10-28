@@ -44,6 +44,22 @@ interface Byraa {
   sistTil: string | null
 }
 
+// Utlegg ved onboarding (126): stemmeabonnementet hun betalte med sitt eget
+// kort, og som vi eller byrået dekker. Ikke opptjening — egen liste.
+interface Utlegg {
+  id: string
+  actorId: string
+  actorName: string
+  actorEmail: string | null
+  amountNok: number
+  amountUsd: number | null
+  payer: 'platform' | 'agency'
+  agentName: string | null
+  refundedAt: string | null
+  createdAt: string
+}
+interface Fakturering { agentId: string; name: string; sumNok: number; items: Utlegg[] }
+
 const BCP47: Record<string, string> = { no: 'nb-NO', en: 'en-GB' }
 
 export default function UtbetalingslistePage() {
@@ -66,6 +82,8 @@ export default function UtbetalingslistePage() {
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [kvittering, setKvittering] = useState<string | null>(null)
+  const [refusjoner, setRefusjoner] = useState<Utlegg[]>([])
+  const [fakturaer, setFakturaer] = useState<Fakturering[]>([])
 
   const authedFetch = async (url: string, init?: RequestInit) => {
     const { data: sess } = await getSupabase().auth.getSession()
@@ -87,6 +105,13 @@ export default function UtbetalingslistePage() {
       setRader(d.rader || [])
       setByraaer(d.byraaer || [])
       setValgt(null)
+      // Utleggene (126) i eget kall: feiler det (migrasjonen ikke kjørt), står
+      // utbetalingslisten likevel.
+      try {
+        const u = await (await authedFetch('/api/voice-bank/onboarding?liste=1')).json()
+        setRefusjoner(u.toRefund || [])
+        setFakturaer(u.toInvoice || [])
+      } catch { /* listen over står */ }
     } catch (e) {
       setError(e instanceof Error ? e.message : t('err_fetch'))
     } finally {
@@ -187,6 +212,49 @@ export default function UtbetalingslistePage() {
   }
   const byraaTilGode = byraaer.filter((b) => b.dueNok > 0)
 
+  // Refusjonen er overført i nettbanken — før den her.
+  const foerRefusjon = async (u: Utlegg) => {
+    if (!confirm(t('ob_refund_confirm', { sum: nok(u.amountNok), name: u.actorName }))) return
+    setBusy(true); setError(null); setKvittering(null)
+    try {
+      const res = await authedFetch('/api/voice-bank/onboarding', { method: 'PATCH', body: JSON.stringify({ id: u.id, action: 'refunded' }) })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || t('err_record'))
+      setKvittering(t('ob_refund_receipt', { sum: nok(u.amountNok), name: u.actorName }))
+      await hent()
+    } catch (e) { setError(e instanceof Error ? e.message : t('err_record')) } finally { setBusy(false) }
+  }
+
+  // Fakturagrunnlaget til byrået: én linje per skuespiller.
+  const lastNedFaktura = (f: Fakturering) => {
+    const felt = (s: string) => `"${String(s).replace(/"/g, '""')}"`
+    const sep = locale === 'no' ? ';' : ','
+    const tall = (n: number) => (locale === 'no' ? n.toFixed(2).replace('.', ',') : n.toFixed(2))
+    const linjer = [
+      [t('csv_name'), t('csv_email'), t('ob_csv_usd'), t('csv_amount'), t('ob_csv_refunded')].map(felt).join(sep),
+      ...f.items.map((u) => [u.actorName, u.actorEmail || '', u.amountUsd != null ? tall(u.amountUsd) : '', tall(u.amountNok), (u.refundedAt || '').slice(0, 10)].map(felt).join(sep)),
+      [t('csv_sum'), '', '', tall(f.sumNok), ''].map(felt).join(sep),
+    ]
+    const blob = new Blob(['\ufeff' + linjer.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `${t('ob_csv_file')}-${f.name.replace(/[^\p{L}\p{N}]+/gu, '-')}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  const foerFakturert = async (f: Fakturering) => {
+    if (!confirm(t('ob_invoice_confirm', { name: f.name, sum: nok(f.sumNok) }))) return
+    setBusy(true); setError(null); setKvittering(null)
+    try {
+      const res = await authedFetch('/api/voice-bank/onboarding', { method: 'PATCH', body: JSON.stringify({ agentId: f.agentId, action: 'invoiced' }) })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || t('err_record'))
+      setKvittering(t('ob_invoice_receipt', { name: f.name, sum: nok(d.sumNok) }))
+      await hent()
+    } catch (e) { setError(e instanceof Error ? e.message : t('err_record')) } finally { setBusy(false) }
+  }
+
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -199,6 +267,47 @@ export default function UtbetalingslistePage() {
         {loading && <p className="text-gray-500">{t('loading')}</p>}
         {error && <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
         {kvittering && <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-sm text-green-800">{kvittering}</div>}
+
+        {/* Utlegg ved onboarding (126). Står øverst: Lars vil at refusjonen
+            skjer med en gang, så det som venter her, er noe som haster. */}
+        {!loading && refusjoner.length > 0 && (
+          <div className="mb-10">
+            <h2 className="font-semibold text-gray-900 mb-1">{t('ob_h2')}</h2>
+            <p className="text-sm text-gray-600 mb-3 max-w-2xl">{t('ob_intro')}</p>
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-amber-200 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-500 border-b border-gray-200">
+                    <th className="px-4 py-2">{t('th_holder')}</th>
+                    <th className="px-4 py-2">{t('ob_th_payer')}</th>
+                    <th className="px-4 py-2">{t('ob_th_paid')}</th>
+                    <th className="px-4 py-2 text-right">{t('ob_th_amount')}</th>
+                    <th className="px-4 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {refusjoner.map((u) => (
+                    <tr key={u.id} className="border-b border-gray-100 last:border-0">
+                      <td className="px-4 py-2">
+                        <Link href={`/dashboard/voice-bank/${u.actorId}`} className="font-medium text-[var(--ember-deep)] hover:underline">{u.actorName}</Link>
+                        <div className="text-xs text-gray-500">{u.actorEmail || '—'}</div>
+                      </td>
+                      <td className="px-4 py-2 text-gray-600">{u.payer === 'agency' ? (u.agentName || '—') : t('ob_payer_platform')}</td>
+                      <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{dato(u.createdAt)}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-gray-900 whitespace-nowrap">{nok(u.amountNok)}</td>
+                      <td className="px-4 py-2 text-right">
+                        <button onClick={() => foerRefusjon(u)} disabled={busy}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] disabled:opacity-50 whitespace-nowrap">
+                          {t('ob_refunded')}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {!loading && !error && tilGode.length === 0 && (
           <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 text-sm text-gray-600">
@@ -337,6 +446,35 @@ export default function UtbetalingslistePage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Byråer som dekker abonnementet (126): vi refunderte skuespilleren
+            med en gang, og byrået faktureres samlet for det. */}
+        {!loading && fakturaer.length > 0 && (
+          <div className="mt-10">
+            <h2 className="font-semibold text-gray-900 mb-1">{t('ob_invoice_h2')}</h2>
+            <p className="text-sm text-gray-600 mb-3 max-w-2xl">{t('ob_invoice_intro')}</p>
+            <div className="space-y-3">
+              {fakturaer.map((f) => (
+                <div key={f.agentId} className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="font-medium text-gray-900">{f.name}</div>
+                    <div className="text-xs text-gray-500">{t(f.items.length === 1 ? 'ob_invoice_count_one' : 'ob_invoice_count', { n: f.items.length })} · {nok(f.sumNok)}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => lastNedFaktura(f)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 hover:border-[var(--ember-deep)]">
+                      {t('ob_invoice_download')}
+                    </button>
+                    <button onClick={() => foerFakturert(f)} disabled={busy}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 hover:border-[var(--ember-deep)] disabled:opacity-50">
+                      {t('ob_invoice_record')}
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

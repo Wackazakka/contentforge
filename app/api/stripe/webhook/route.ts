@@ -40,6 +40,20 @@ export async function POST(request: Request) {
         break
       }
 
+      // Påmeldingsavgiften for drop-ins (126). Idempotent på session-id; returen
+      // fra kassen kaller den samme funksjonen.
+      if (session.metadata?.kind === 'enrollment_fee') {
+        if (session.payment_status === 'paid') {
+          try {
+            const { fullfoerAvgift } = await import('@/lib/onboardingServer')
+            await fullfoerAvgift(session.id)
+          } catch (err: any) {
+            console.error('[stripe/webhook] Avgift-registrering feilet:', err.message)
+          }
+        }
+        break
+      }
+
       // Kredittpåfyll for white-label-sluttkunder — idempotent på session-id
       if (session.metadata?.kind === 'org_topup') {
         try {

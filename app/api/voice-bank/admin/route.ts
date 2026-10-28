@@ -209,7 +209,16 @@ export async function GET(request: Request) {
     // ENGANGS, ikke løpende — ElevenLabs bekreftet 03.09.2026 at delingen
     // overlever nedgradering til gratis. Konstanten bor server-side
     // (lib/voiceBank importerer service-nøkkelen og skal aldri i klientbundelen).
-    const subscriptionCount = (actors || []).filter((a) => a.subscription_covered).length
+    // Fra 126 står det faktiske beløpet på utlegget. Det vi dekker selv, er
+    // payer = platform; byråets utlegg faktureres videre og er ikke vår
+    // kostnad. Gamle avkrysninger uten utlegg telles som før, med fast sats.
+    const { data: utlegg } = await supabase.from('onboarding_expenses')
+      .select('actor_id, amount_nok, payer').eq('tenant_id', tenant.id)
+    const medUtlegg = new Set((utlegg || []).map((u) => u.actor_id as string))
+    const egne = (utlegg || []).filter((u) => u.payer === 'platform')
+    const gamle = (actors || []).filter((a) => a.subscription_covered && !medUtlegg.has(a.id as string)).length
+    const subscriptionCount = egne.length + gamle
+    const subscriptionNok = Math.round((egne.reduce((s, u) => s + Number(u.amount_nok), 0) + gamle * ACTOR_SUBSCRIPTION_NOK) * 100) / 100
 
     return NextResponse.json({
       tenant: { id: tenant.id, name: tenant.app_name },
@@ -219,7 +228,7 @@ export async function GET(request: Request) {
       monthly,
       fees,
       subscriptionCount,
-      subscriptionNok: subscriptionCount * ACTOR_SUBSCRIPTION_NOK,
+      subscriptionNok,
       ...(() => { const f = feeForEvents(monthEvents as any, tenant.id, fees); return { monthInfraNok: f.infraNok, monthLicenseNok: f.licenseNok, monthFeeNok: Math.round((f.infraNok + f.licenseNok) * 100) / 100 } })(),
     })
   } catch (err: any) {

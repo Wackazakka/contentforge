@@ -155,6 +155,13 @@ export async function POST(request: Request) {
           code: 'INTAKE_NOT_ACCEPTED',
         }, { status: 409 })
       }
+      // Påmeldingsavgiften (126): en drop-in som vil ha ansikt, betaler for
+      // treningen før den starter. Byråskuespillere slipper. Feiler åpent.
+      if (rad) {
+        const { avgiftHinder } = await import('@/lib/onboardingServer')
+        const hinder = await avgiftHinder((rad as { id: string }).id, tenant.id)
+        if (hinder) return NextResponse.json({ error: hinder, code: 'ENROLLMENT_FEE_UNPAID' }, { status: 402 })
+      }
     }
 
     // Unikt trigger-ord, f.eks. CHRXKQZW

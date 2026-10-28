@@ -29,6 +29,9 @@ interface Actor {
   tier?: 'new' | 'pro' | 'star'; intakeStatus?: 'pending' | 'accepted' | 'declined'; intakeNote?: string | null
   // Ansiktsmodellen (091): status + proevebildene hun svarte paa, signert 10 min
   faceModel: { status: string; approval: string | null; withdrawn: boolean; samples: string[] } | null
+  // Stemmeabonnementet og påmeldingsavgiften (126)
+  voiceSubscription?: { amountNok: number; payer: 'platform' | 'agency' | 'actor'; agencyName: string | null; status: string; refundedAt: string | null } | null
+  enrollmentFee?: { amountNok: number | null; required: boolean; status: 'paid' | 'waived' | null; at: string | null } | null
 }
 
 interface Fradrag { label: string; pct: number | null; amountNok: number }
@@ -81,6 +84,43 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
       .catch((e) => setError(e instanceof Error ? e.message : t('err_fetch')))
       .finally(() => setFetched(true))
   }, [session, reload])
+
+  // Returen fra kassen (126): bekreft betalingen hos Stripe på serveren —
+  // sikkerhetsnett hvis webhooken kommer sent — og rydd adressen etterpå.
+  const [avgiftMelding, setAvgiftMelding] = useState<string | null>(null)
+  const [avgiftBusy, setAvgiftBusy] = useState(false)
+  useEffect(() => {
+    const token = session?.access_token
+    if (!token || typeof window === 'undefined') return
+    const q = new URLSearchParams(window.location.search)
+    const utfall = q.get('avgift')
+    if (!utfall) return
+    window.history.replaceState(null, '', window.location.pathname)
+    // Ingen synkron setState i effekten — også avbruddet går via et løfte.
+    if (utfall !== 'betalt' || !q.get('session_id')) { Promise.resolve().then(() => setAvgiftMelding(t('fee_cancelled'))); return }
+    fetch('/api/voice-bank/enrollment-fee', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'confirm', sessionId: q.get('session_id') }),
+    })
+      .then((r) => r.json())
+      .then((d) => { setAvgiftMelding(d.status === 'paid' ? t('fee_thanks') : t('fee_pending')); setReload((n) => n + 1) })
+      .catch(() => setAvgiftMelding(t('fee_pending')))
+  }, [session]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const betalAvgift = async (actorId: string) => {
+    setAvgiftBusy(true)
+    try {
+      const r = await fetch('/api/voice-bank/enrollment-fee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+        body: JSON.stringify({ actorId }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.url) { alert(j.error || t('fee_failed')); return }
+      window.location.href = j.url
+    } finally { setAvgiftBusy(false) }
+  }
 
   const email = session?.user?.email
 
@@ -194,6 +234,21 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                           ? t('identity_admin')
                           : null}
                 </p>
+                {/* Påmeldingsavgiften (126): drop-in som vil ha ansikt, betaler
+                    treningen før den starter. Byråskuespillere ser den aldri. */}
+                {a.enrollmentFee?.required && (
+                  <div className="mb-4 p-4 border border-amber-200 bg-amber-50 text-sm">
+                    <p className="font-semibold mb-1">{t('fee_h', { sum: nok(a.enrollmentFee.amountNok ?? 0) })}</p>
+                    <p className="text-gray-700 mb-3">{t('fee_body')}</p>
+                    <button type="button" disabled={avgiftBusy} onClick={() => betalAvgift(a.id)}
+                      className="px-4 py-2 font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:opacity-90 disabled:opacity-50">
+                      {avgiftBusy ? t('fee_opening') : t('fee_pay')}
+                    </button>
+                  </div>
+                )}
+                {a.enrollmentFee?.status === 'paid' && (
+                  <p className="text-sm mb-4 text-gray-600">{t('fee_paid', { sum: nok(a.enrollmentFee.amountNok ?? 0), date: dato(a.enrollmentFee.at!) })}</p>
+                )}
                 {/* Hva hun tilbyr — kan endres fritt foer aktivering (PATCH
                     /api/voice-bank/enroll/me). Lars meldte seg paa med bare
                     stemme, ville legge til ansikt, og fant ingen vei. */}
@@ -251,6 +306,21 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                   } : undefined}
                 />
               </div>
+            )}
+
+            {avgiftMelding && <p className="text-sm mb-6 text-gray-700">{avgiftMelding}</p>}
+
+            {/* Stemmeabonnementet (126): hun betalte det med sitt eget kort.
+                Dekker noen andre det, skal hun se at pengene er på vei — eller
+                kommet. */}
+            {a.voiceSubscription && (
+              <p className="text-sm mb-8 text-gray-600">
+                {a.voiceSubscription.payer === 'actor'
+                  ? t('sub_own', { sum: nok(a.voiceSubscription.amountNok) })
+                  : a.voiceSubscription.refundedAt
+                    ? t('sub_refunded', { sum: nok(a.voiceSubscription.amountNok), who: a.voiceSubscription.payer === 'agency' ? (a.voiceSubscription.agencyName || t('identity_agency_fallback')) : a.managedBy, date: dato(a.voiceSubscription.refundedAt) })
+                    : t('sub_to_refund', { sum: nok(a.voiceSubscription.amountNok), who: a.voiceSubscription.payer === 'agency' ? (a.voiceSubscription.agencyName || t('identity_agency_fallback')) : a.managedBy })}
+              </p>
             )}
 
             {/* Ansiktsmodellen hennes — de tre bildene hun svarte paa, og hva
