@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { OFFENTLIGE_FASETTER } from '@/lib/castingAttributes'
 import { getTenant, getTenantCanonicalOrigin } from '@/lib/tenantServer'
+import { lisensErKlareringen, lisensLenke, assetFor } from '@/lib/lisensLenke'
 import { getPublicActor } from '@/lib/publicActors'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
@@ -189,6 +190,9 @@ export default async function ActorPresentationPage({ params }: { params: Promis
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
             {actor.hasVoice && <Merke>{t('chip_voice')}</Merke>}
             {actor.hasFace && <Merke>{t('chip_face')}</Merke>}
+            {actor.hasSinging && <Merke>{t('chip_singing')}</Merke>}
+            {/* Merking (127): en virtuell artist vises som det den er. */}
+            {actor.artistKind === 'virtual' && <Merke>{t('chip_virtual')}</Merke>}
           </div>
           <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(34px, 4.4vw, 52px)', letterSpacing: '-0.035em', lineHeight: 1.04, margin: '0 0 18px' }}>{actor.name}</h1>
           {actor.bio && (
@@ -267,7 +271,15 @@ export default async function ActorPresentationPage({ params }: { params: Promis
               </p>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <Link href={actor.isDemo ? '/bli-stemme' : '/register'} style={knapp('ember')}>
+              {/* Be om lisens (28.10): på TwinLedger er lisensen klareringen, og
+                  kunden skal kunne be om den her hen møter skuespilleren. Er hen
+                  ikke innlogget, tar lisenssida seg av det og sender hen tilbake. */}
+              {!actor.isDemo && lisensErKlareringen(tenant.slug) && (actor.hasVoice || actor.hasFace || actor.hasSinging) && (
+                <Link href={lisensLenke(actor.id, { asset: assetFor(actor) })} style={knapp('ember')}>
+                  {t('cta_licence')}
+                </Link>
+              )}
+              <Link href={actor.isDemo ? '/bli-stemme' : '/register'} style={knapp(!actor.isDemo && lisensErKlareringen(tenant.slug) ? 'ramme' : 'ember')}>
                 {actor.isDemo ? t('demo_cta_join') : t('cta_signup')}
               </Link>
               <Link href="/stemmer" style={knapp('ramme')}>

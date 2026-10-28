@@ -23,7 +23,17 @@ export async function POST(request: Request) {
   if (stopp) return stopp
   try {
     const resultat = await fullfoerTreninger()
-    return NextResponse.json({ ok: true, ...resultat })
+    // Sangtreningene (127) går på samme tikk — en planlagt funksjon som er
+    // bevist i live, framfor en ny som kan dø stille. Feil der skal ikke
+    // stoppe ansiktene.
+    let sang: Record<string, number> | { feil: string } = {}
+    try {
+      const { fullfoerSangtreninger } = await import('@/lib/sangTrening')
+      sang = await fullfoerSangtreninger()
+    } catch (e) {
+      sang = { feil: e instanceof Error ? e.message : String(e) }
+    }
+    return NextResponse.json({ ok: true, ...resultat, sang })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

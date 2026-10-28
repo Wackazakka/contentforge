@@ -67,7 +67,7 @@ export default async function Oppslag({ tenant, svar }: { tenant: Tenant; svar: 
 
         {svar.kind === 'funnet' && (() => {
           const a = svar.actor
-          const klarerbar = !a.isDemo && (a.hasVoice || a.hasFace)
+          const klarerbar = !a.isDemo && (a.hasVoice || a.hasFace || a.hasSinging)
           const dato = svar.siden ? new Date(svar.siden).toLocaleDateString('nb-NO') : null
           const rader: Array<[string, React.ReactNode]> = [
             [t('row_name'), a.name],
@@ -75,6 +75,10 @@ export default async function Oppslag({ tenant, svar }: { tenant: Tenant; svar: 
             [t('row_version'), dato ? t('row_version_since', { n: a.twinVersion, date: dato }) : String(a.twinVersion)],
             [t('row_voice'), a.hasVoice ? t('available') : t('unavailable')],
             [t('row_face'), a.hasFace ? t('available') : t('unavailable')],
+            // Sang og artisttype (127): sangen bare når den finnes; en virtuell
+            // artist skal alltid stå som det den er.
+            ...(a.hasSinging ? [[t('row_singing'), t('available')] as [string, React.ReactNode]] : []),
+            ...(a.artistKind === 'virtual' ? [[t('row_kind'), t('kind_virtual')] as [string, React.ReactNode]] : []),
           ]
           return (
             <section style={{ border: '1px solid var(--ds-border-strong)', background: 'var(--paper-raised)', padding: '22px 24px' }}>

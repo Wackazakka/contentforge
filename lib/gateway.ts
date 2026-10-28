@@ -83,6 +83,102 @@ export const BALANCE_REFUSAL: Record<'none' | 'empty', { error: string; code: st
   empty: { error: 'Kontoen er tom. Kjøp mer kreditt for å fortsette.', code: 'ORG_BALANCE_EMPTY' },
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Lisenskravet (Lars 28.10.2026)
+// ─────────────────────────────────────────────────────────────────────────
+//
+// 🔑 PÅ TWINLEDGER ER LISENSEN KLARERINGEN — også i API-et. Før dette laget
+// API-et innholdet og førte bruken «uten hjemmel», mens studioet stengte
+// «Produser». To dører inn til samme rettighetshaver med ulike regler. Nå
+// gjelder samme regel: ingen generering uten en aktiv lisens som dekker
+// kunden, aktivumet, dagen og versjonen.
+//
+// Kravet gjelder når nøkkelen er utstedt i TwinLedger, ELLER når skuespilleren
+// tilhører TwinLedgers bank — en TwinLedger-rettighetshavers bruksrett hviler
+// på lisensen uansett hvilken dør kunden kom inn. Andre kjeder klarerer
+// gjennom pris per bruk og royalty, som før (se components/LisensertStemme).
+//
+// Feiler oppslaget, stenges døra (match 'none'). For en rettighet er det
+// riktige feilvalget nei, ikke ja.
+
+export type LisensSvar =
+  | { ok: true; kreves: boolean; hjemmel: { licenceId: string | null; match: string } }
+  | { ok: false; status: number; body: Record<string, unknown> }
+
+const slugCache = new Map<string, string | null>()
+async function slugFor(tenantId: string | null | undefined): Promise<string | null> {
+  if (!tenantId) return null
+  if (slugCache.has(tenantId)) return slugCache.get(tenantId) ?? null
+  const { data } = await admin().from('tenants').select('slug').eq('id', tenantId).maybeSingle()
+  const slug = (data as { slug?: string } | null)?.slug ?? null
+  slugCache.set(tenantId, slug)
+  return slug
+}
+
+/**
+ * Adressen kunden ber om lisens på: TwinLedgers eget domene. Ikke
+ * NEXT_PUBLIC_BASE_URL — den er Netlify-adressen, og der finnes ikke
+ * TwinLedgers bank.
+ */
+let lisensOriginCache: string | null = null
+export async function lisensOrigin(): Promise<string> {
+  if (lisensOriginCache) return lisensOriginCache
+  const { data } = await admin().from('tenants').select('slug, custom_domain').eq('slug', 'twinledger').maybeSingle()
+  const t = data as { slug?: string; custom_domain?: string | null } | null
+  lisensOriginCache = t?.custom_domain ? `https://${t.custom_domain}` : t?.slug ? `https://${t.slug}.norditech.io` : 'https://twinledger.ai'
+  return lisensOriginCache
+}
+
+/** Krever denne bruken lisens? Nøkkelens tenant eller skuespillerens bank er TwinLedger. */
+export async function kreverLisens(auth: GatewayAuth, actor: VoiceActor): Promise<boolean> {
+  const { lisensErKlareringen } = await import('@/lib/lisensLenke')
+  if (lisensErKlareringen(await slugFor(auth.tenantId))) return true
+  return lisensErKlareringen(await slugFor(actor.owner_tenant_id))
+}
+
+/**
+ * Finn hjemmelen, og si nei der lisensen er klareringen og den mangler.
+ * `licenceId` (valgfri fra kunden) velger mellom flere lisenser som dekker
+ * samme bruk. Hjemmelen som returneres, er den som skal stå i hovedboken.
+ */
+export async function lisensKrav(auth: GatewayAuth, actor: VoiceActor, opts: {
+  assetType: 'voice' | 'face'; modell: string; licenceId?: unknown
+}): Promise<LisensSvar> {
+  const { finnLisensFor } = await import('@/lib/licenceMatch')
+  const licenceId = typeof opts.licenceId === 'string' && /^[0-9a-f-]{36}$/i.test(opts.licenceId) ? opts.licenceId : null
+  const hjemmel = await finnLisensFor({
+    actorId: actor.id, organizationId: auth.organizationId, assetType: opts.assetType, modell: opts.modell, licenceId,
+  })
+  const kreves = await kreverLisens(auth, actor)
+  if (!kreves || hjemmel.match === 'explicit' || hjemmel.match === 'inferred') return { ok: true, kreves, hjemmel }
+
+  const { lisensLenke } = await import('@/lib/lisensLenke')
+  const base = await lisensOrigin()
+  const felles = {
+    tlid: actor.tlid ?? null,
+    match: hjemmel.match,
+    requestLicenceUrl: `${base}${lisensLenke(actor.id, { asset: opts.assetType })}`,
+  }
+  if (hjemmel.match === 'ambiguous') {
+    return { ok: false, status: 409, body: {
+      ...felles, code: 'LICENCE_AMBIGUOUS',
+      error: 'Flere aktive lisenser dekker denne bruken. Send licenceId for å velge hvilken avtale bruken skal føres under.',
+    } }
+  }
+  if (hjemmel.match === 'version_mismatch') {
+    return { ok: false, status: 409, body: {
+      ...felles, code: 'LICENCE_OTHER_VERSION',
+      error: 'Lisensen dere har, gjelder en annen versjon av tvillingen. Be om lisens på den gjeldende versjonen.',
+    } }
+  }
+  return { ok: false, status: 403, body: {
+    ...felles, code: 'LICENCE_REQUIRED',
+    error: licenceId
+      ? 'Lisensen dere oppga, gjelder ikke denne bruken (feil skuespiller, kunde, periode eller status).'
+      : 'Denne bruken krever en aktiv lisens. Be om lisens, så kommer vi tilbake med et tilbud.',
+  } }
+}
+
 // Kundepris for en asset/brukstype, ganget med tenantens utpris-kjede.
 export async function customerPriceFor(auth: GatewayAuth, actor: VoiceActor, kind: string): Promise<number> {
   const { chainFactorByTenantId } = await import('@/lib/tenantBilling')

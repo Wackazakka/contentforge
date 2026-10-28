@@ -117,6 +117,9 @@ export default function GalleriClient({ actors }: { actors: PublicActor[] }) {
             {a.isDemo && <Merke nøytral>{t('chip_example')}</Merke>}
             {a.hasVoice && <Merke>{t('chip_voice')}</Merke>}
             {a.hasFace && <Merke>{t('chip_face')}</Merke>}
+            {a.hasSinging && <Merke>{t('chip_singing')}</Merke>}
+            {/* Merking (127): en virtuell artist vises som det den er. */}
+            {a.artistKind === 'virtual' && <Merke nøytral>{t('chip_virtual')}</Merke>}
           </div>
           {under && <p style={{ fontSize: 13.5, color: 'var(--text-muted)', margin: 0 }}>{under}</p>}
 

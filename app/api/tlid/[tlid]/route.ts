@@ -51,8 +51,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tli
     name: actor.name,
     managedBy: actor.managedBy,
     version: { current: actor.twinVersion, since: await versjonSiden(actor.id, actor.twinVersion) },
-    components: { voice: actor.hasVoice, face: actor.hasFace },
-    clearable: !actor.isDemo && (actor.hasVoice || actor.hasFace),
+    components: { voice: actor.hasVoice, face: actor.hasFace, singing: actor.hasSinging },
+    // Merking (127): en virtuell artist er ikke et menneske, og det skal stå.
+    artistKind: actor.artistKind,
+    clearable: !actor.isDemo && (actor.hasVoice || actor.hasFace || actor.hasSinging),
     profileUrl: `${origin}/stemme/${actor.id}`,
     requestLicenceUrl: `${origin}/dashboard/be-om-lisens/${actor.id}`,
   }, { headers: CORS })

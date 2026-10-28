@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { getSupabase } from '@/lib/supabaseClient'
 import { settOnsketStemme, lesOnsketStemme, fjernOnsketStemme, type OnsketStemme } from '@/lib/onsketStemme'
+import { useTenant } from '@/lib/tenantContext'
+import { lisensErKlareringen, lisensLenke, assetFor } from '@/lib/lisensLenke'
 
 // Kundens Stemmer-fane (Lars 17/9): bla, lytt og sammenlikn FØR man lager noe.
 // Tidligere fantes stemmene bare som en nedtrekksmeny midt i editoren.
@@ -34,6 +36,9 @@ const initialer = (navn: string) => navn.split(/\s+/).filter(Boolean).slice(0, 2
 export default function StemmerPage() {
   const t = useTranslations('catalog')
   const locale = useLocale()
+  // På TwinLedger er lisensen klareringen (lib/lisensLenke): hvert kort får
+  // «Be om lisens» ved siden av «Bruk denne stemmen».
+  const visLisens = lisensErKlareringen(useTenant().slug)
   const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString(BCP47[locale] || 'en-GB')} kr`
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -202,6 +207,12 @@ export default function StemmerPage() {
                       style={erValgt ? { borderColor: 'var(--ember-deep)', color: 'var(--ember-deep)' } : undefined}>
                       {erValgt ? t('chosen') : t('use_voice')}
                     </button>
+                  )}
+                  {visLisens && !a.isDemo && (a.hasVoice || a.hasFace) && (
+                    <Link href={lisensLenke(a.id, { asset: assetFor(a) })}
+                      className="px-3 py-2 rounded-lg text-sm font-semibold border hover:border-[var(--ember-deep)]" style={kant}>
+                      {t('request_licence')}
+                    </Link>
                   )}
                   {a.hasCard && <Link href={`/stemme/${a.id}`} target="_blank" className="text-sm font-medium text-[var(--ember-deep)] hover:underline ml-auto">{t('card_link')}</Link>}
                 </div>

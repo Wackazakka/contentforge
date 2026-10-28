@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useAuth } from '@/lib/authContext'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import LeveringPanel from '@/components/LeveringPanel'
+import SangGodkjenning from '@/components/SangGodkjenning'
 import EgenModellPanel from '@/components/EgenModellPanel'
 import { BrukDetaljer, harInnhold, type BrukInnhold } from './BrukDetaljer'
 
@@ -35,6 +36,9 @@ interface Actor {
   // Stemmeabonnementet og påmeldingsavgiften (126)
   voiceSubscription?: { amountNok: number; payer: 'platform' | 'agency' | 'actor'; agencyName: string | null; status: string; refundedAt: string | null } | null
   enrollmentFee?: { amountNok: number | null; required: boolean; status: 'paid' | 'waived' | null; at: string | null } | null
+  // Ekte eller virtuell artist, og sang (127)
+  artistKind?: 'human' | 'virtual'
+  offersSinging?: boolean
 }
 
 interface Fradrag { label: string; pct: number | null; amountNok: number }
@@ -189,6 +193,10 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
               <span className={`text-xs px-2 py-1 rounded-full mt-1.5 ${a.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                 {a.isActive ? t('active') : t('not_active')}
               </span>
+              {/* Merking (127): en virtuell artist vises som det den er, overalt. */}
+              {a.artistKind === 'virtual' && (
+                <span className="text-xs px-2 py-1 rounded-full mt-1.5 bg-violet-100 text-violet-800">{t('virtual_badge')}</span>
+              )}
             </div>
             {/* TLID (111): referansen lisensene og kontoutdraget henger på. */}
             {a.tlid && (
@@ -316,6 +324,11 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
             )}
 
             {avgiftMelding && <p className="text-sm mb-6 text-gray-700">{avgiftMelding}</p>}
+
+            {/* Sangmodellen (127): prøven og svaret hennes. */}
+            {(a.offersSinging || a.artistKind === 'virtual') && session?.access_token && (
+              <SangGodkjenning actorId={a.id} bearer={session.access_token} virtuell={a.artistKind === 'virtual'} />
+            )}
 
             {/* Stemmeabonnementet (126): hun betalte det med sitt eget kort.
                 Dekker noen andre det, skal hun se at pengene er på vei — eller

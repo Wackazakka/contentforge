@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import Link from 'next/link'
 import { useAuth } from '@/lib/authContext'
 import {
   FASETTER, KJOENN, KREVER_SAMTYKKE, VOKABULAR, type Fasett,
 } from '@/lib/castingAttributes'
+import { VIRTUELLE_ERKLAERINGER, type ArtistType } from '@/lib/sang'
 
 // Paameldingsskjemaet (Claude Design 5C, 21.09.2026; paamelding fra 22.09).
 //
@@ -62,7 +63,13 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
   const { session } = useAuth()
   const innlogget = !!session?.access_token
   const tc = useTranslations('casting')
-  const consentText = t('consent')
+  const locale = useLocale()
+  // Ekte eller virtuell artist (127). En virtuell artist har en eier som
+  // melder den på; samtykket gjelder da artisten, ikke eierens egen kropp.
+  const [artistType, setArtistType] = useState<ArtistType>('human')
+  const virtuell = artistType === 'virtual'
+  const consentText = virtuell ? t('consent_virtual') : t('consent')
+  const virtuellErklaering = VIRTUELLE_ERKLAERINGER[locale === 'en' ? 'en' : 'no']
   // Art. 9-teksten fryses for seg: den dekker noe annet enn stemmesamtykket,
   // og en søker kan si ja til det ene og nei til det andre.
   const appearanceConsentText = t('appearance_consent_text')
@@ -89,6 +96,12 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
   const [hoyde, setHoyde] = useState('')
   const [attr, setAttr] = useState<Record<string, string[]>>({})
   const [appearanceConsent, setAppearanceConsent] = useState(false)
+  // Sang (127): et menneske krysser av for at hen også synger; en virtuell
+  // artist velger sang og/eller utseende, og tilbyr ikke tale ennå.
+  const [synger, setSynger] = useState(false)
+  const [vSang, setVSang] = useState(true)
+  const [vAnsikt, setVAnsikt] = useState(true)
+  const [virtueltErklaert, setVirtueltErklaert] = useState(false)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [alleredeKonto, setAlleredeKonto] = useState(false)
@@ -96,8 +109,9 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
   const [error, setError] = useState<string | null>(null)
 
   // De tre segmentene er én beslutning for søkeren, men to kolonner i basen.
-  const offersVoice = tilbud !== 'ansikt'
-  const wantsFace = tilbud !== 'stemme'
+  const offersVoice = !virtuell && tilbud !== 'ansikt'
+  const wantsFace = virtuell ? vAnsikt : tilbud !== 'stemme'
+  const offersSinging = virtuell ? vSang : synger
 
   const veksle = (f: Fasett, v: string) => setAttr((p) => {
     const naa = p[f] ?? []
@@ -117,6 +131,8 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
     // Filen er fortsatt velkommen — en skuespiller med reel faar en bedre
     // profil fra dag én — men den er et tilbud, ikke en terskel.
     if (offersVoice && !harOpptak) { setError(t('err_recording_choice')); return }
+    if (virtuell && !wantsFace && !offersSinging) { setError(t('err_virtual_offer')); return }
+    if (virtuell && !virtueltErklaert) { setError(t('err_virtual_declaration')); return }
     if (!consent) { setError(t('err_consent')); return }
     const tallOk = (v: string) => v === '' || /^\d{1,3}$/.test(v)
     if (!tallOk(aldFra) || !tallOk(aldTil) ||
@@ -140,6 +156,8 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
           ...(appearanceConsent ? { appearanceConsentText } : {}),
           ...(offersVoice ? { hasOwnRecording: harOpptak === 'ja' } : {}),
           ...(viaByraa ? { agentToken: viaByraa.token } : {}),
+          artistKind: artistType, offersSinging,
+          ...(virtuell ? { virtualDeclared: virtueltErklaert, virtualDeclarationText: virtuellErklaering } : {}),
         }),
       })
       const tekst = await res.text()
@@ -194,9 +212,31 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
         </p>
       )}
 
+      {/* Hvem melder du på? (127) En virtuell artist er en fiktiv artist med
+          stemme og utseende laget med verktøy. Eieren melder den på. */}
+      <div style={{ marginBottom: 20 }}>
+        <Etikett>{t('who_label')}</Etikett>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', border: '1px solid var(--ds-border-strong)' }}>
+          {(['human', 'virtual'] as ArtistType[]).map((v, i) => {
+            const valgt = artistType === v
+            return (
+              <button key={v} type="button" disabled={busy} onClick={() => setArtistType(v)} aria-pressed={valgt}
+                style={{
+                  padding: '12px 14px', textAlign: 'left', fontSize: 14.5, lineHeight: 1.4, cursor: busy ? 'default' : 'pointer',
+                  background: valgt ? 'var(--ink)' : 'var(--paper)', color: valgt ? 'var(--paper)' : 'var(--ink)',
+                  border: 'none', borderLeft: i > 0 ? '1px solid var(--ds-border-strong)' : 'none',
+                }}>
+                <span style={{ display: 'block', fontWeight: 600 }}>{t(v === 'human' ? 'who_self' : 'who_virtual')}</span>
+                <span style={{ display: 'block', fontSize: 12.5, opacity: 0.8, marginTop: 3 }}>{t(v === 'human' ? 'who_self_sub' : 'who_virtual_sub')}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <label style={{ display: 'block', marginBottom: 16 }}>
-        <Etikett>{t('f_name')}</Etikett>
-        <input value={name} onChange={(e) => setName(e.target.value)} disabled={busy} placeholder={t('name_ph')} style={felt} />
+        <Etikett>{t(virtuell ? 'f_artist_name' : 'f_name')}</Etikett>
+        <input value={name} onChange={(e) => setName(e.target.value)} disabled={busy} placeholder={t(virtuell ? 'artist_name_ph' : 'name_ph')} style={felt} />
       </label>
       {!innlogget && (<>
       <label style={{ display: 'block', marginBottom: 16 }}>
@@ -213,8 +253,23 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
         <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={busy} placeholder={t('phone_ph')} style={felt} />
       </label>
 
+      {/* En virtuell artist: sang og/eller utseende, to avkryssinger. Tale
+          tilbys ikke ennå — proffklonen må være eierens egen stemme. */}
+      {virtuell && (
+        <div style={{ marginBottom: 20 }}>
+          <Etikett>{t('v_offer_label')}</Etikett>
+          {([['sang', vSang, setVSang, 'v_offer_singing'], ['ansikt', vAnsikt, setVAnsikt, 'v_offer_face']] as const).map(([k, paa, sett, tekst]) => (
+            <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 14.5, marginBottom: 8 }}>
+              <input type="checkbox" checked={paa} disabled={busy} onChange={(e) => sett(e.target.checked)} />
+              <span>{t(tekst)}</span>
+            </label>
+          ))}
+        </div>
+      )}
+
       {/* Tre segmenter, ikke to avkryssingsbokser: for søkeren er dette ÉN
           beslutning, selv om den blir to kolonner i basen. */}
+      {!virtuell && (<>
       <div style={{ marginBottom: 20 }}>
         <Etikett>{t('offer_label')}</Etikett>
         <div style={{ display: 'flex', border: '1px solid var(--ds-border-strong)' }}>
@@ -234,7 +289,15 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
             )
           })}
         </div>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 14, marginTop: 10, color: 'var(--ink-soft)' }}>
+          <input type="checkbox" checked={synger} disabled={busy} onChange={(e) => setSynger(e.target.checked)} style={{ marginTop: 3 }} />
+          <span>
+            {t('offer_singing')}
+            <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>{t('offer_singing_sub')}</span>
+          </span>
+        </label>
       </div>
+      </>)}
 
       {/* To veier, ikke en boks med forbehold (Lars 22.09). Ingen lyd tas imot
           her — skjemaet kan ikke baere filer av ekte stoerrelse gjennom
@@ -263,7 +326,7 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
 
       {/* Bilder og eget opptak leveres paa en egen side ETTER innsending
           (099). Skjemaet sier hva som venter, og e-posten baerer lenken. */}
-      {(wantsFace || (offersVoice && harOpptak === 'ja')) && (
+      {(wantsFace || offersSinging || (offersVoice && harOpptak === 'ja')) && (
         <p style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '-6px 0 22px' }}>
           {t('delivery_hint')}
         </p>
@@ -342,6 +405,14 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
           )}
         </div>
       </div>
+
+      {/* Eierens erklæring (127), fryst ordrett på raden. */}
+      {virtuell && (
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-muted)', background: 'var(--paper)', border: '1px solid var(--ds-border)', padding: 14, marginBottom: 12 }}>
+          <input type="checkbox" checked={virtueltErklaert} onChange={(e) => setVirtueltErklaert(e.target.checked)} disabled={busy} style={{ marginTop: 2 }} />
+          <span>{virtuellErklaering}</span>
+        </label>
+      )}
 
       <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 12.5, lineHeight: 1.55, color: 'var(--text-muted)', background: 'var(--paper)', border: '1px solid var(--ds-border)', padding: 14, marginBottom: 20 }}>
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} disabled={busy} style={{ marginTop: 2 }} />

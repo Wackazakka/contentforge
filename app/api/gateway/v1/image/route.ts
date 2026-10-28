@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { authenticateKey, resolveAsset, checkBalance, BALANCE_REFUSAL, customerPriceFor, generateFaceImage, admin } from '@/lib/gateway'
+import { authenticateKey, resolveAsset, checkBalance, BALANCE_REFUSAL, customerPriceFor, generateFaceImage, admin, lisensKrav } from '@/lib/gateway'
 import { ratesForKind } from '@/lib/voiceBank'
 
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
-// POST /api/gateway/v1/image  { assetId, prompt, imageSize?, age? }
+// POST /api/gateway/v1/image  { assetId, prompt, imageSize?, age?, licenceId? }
+// På TwinLedger kreves en aktiv lisens (lib/gateway, lisensKrav) — sjekket mot
+// modellen som faktisk brukes, også en aldersmodell.
 // age (valgfri, 0–120): generer med aldersmodellen som dekker alderen (082).
 // Finnes ingen, svares 404 NO_AGE_MODEL med alderstrinnene som finnes — aldri
 // en annen alder i stillhet.
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nøkkelen har ikke tilgang til bilde', code: 'SCOPE_DENIED' }, { status: 403 })
     }
 
-    const { assetId, prompt, imageSize, age } = await request.json()
+    const { assetId, prompt, imageSize, age, licenceId } = await request.json()
     const { lesAlder, velgForAlder, spennTekst } = await import('@/lib/aldersvalg')
     const alder = lesAlder(age)
     if (alder === null) return NextResponse.json({ error: 'age må være et helt tall mellom 0 og 120', code: 'BAD_AGE' }, { status: 400 })
@@ -35,11 +37,6 @@ export async function POST(request: Request) {
     if (!actor) return NextResponse.json({ error: 'Ukjent asset, eller ikke tilgjengelig for denne kontoen' }, { status: 404 })
     if (!actor.face_character_id) {
       return NextResponse.json({ error: 'Denne skuespilleren har ikke lisensiert ansikt', code: 'NO_FACE' }, { status: 400 })
-    }
-
-    const balance = await checkBalance(auth.organizationId)
-    if (!balance.ok) {
-      return NextResponse.json(BALANCE_REFUSAL[balance.reason], { status: 402 })
     }
 
     // 🔑 KUNDEN FÅR VERSJONEN DEN KLARERTE (112). Har kunden én gyldig lisens
@@ -67,6 +64,16 @@ export async function POST(request: Request) {
       modell = treff.characterId
       valg = { modell, versjon: await versjonForBruk(actor.id, 'face', modell), festet: false }
       aldersmodell = { label: treff.label, span: spennTekst(treff) }
+    }
+
+    // 🔑 LISENSEN FØR GENERERING OG BELASTNING, mot modellen som faktisk
+    // brukes. Hjemmelen herfra er den som føres i hovedboken.
+    const lisens = await lisensKrav(auth, actor, { assetType: 'face', modell, licenceId })
+    if (!lisens.ok) return NextResponse.json(lisens.body, { status: lisens.status })
+
+    const balance = await checkBalance(auth.organizationId)
+    if (!balance.ok) {
+      return NextResponse.json(BALANCE_REFUSAL[balance.reason], { status: 402 })
     }
 
     // Generer bildet med VÅR fal-nøkkel + den ekte LoRA-stien (aldri utlevert)
@@ -113,10 +120,7 @@ export async function POST(request: Request) {
     }
 
     // Royalty-hendelse (frosne face-satser, merket gateway-bruk)
-    const { finnLisensFor } = await import('@/lib/licenceMatch')
-    const hjemmel = await finnLisensFor({
-      actorId: actor.id, organizationId: auth.organizationId, assetType: 'face', modell,
-    })
+    const hjemmel = lisens.hjemmel
     const { tekstMeta, skrivDetaljer } = await import('@/lib/usageDetails')
     const tekst = { body: String(prompt || ''), kind: 'prompt' as const }
     const { data: royaltyRad } = await admin().from('voice_usage_events').insert({

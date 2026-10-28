@@ -41,9 +41,13 @@ export async function POST(request: Request) {
     if (!name || !email.includes('@')) return NextResponse.json({ error: 'Navn og gyldig e-post må fylles ut' }, { status: 400 })
     if (password.length < 8) return NextResponse.json({ error: 'Passordet må være minst 8 tegn' }, { status: 400 })
 
-    const offersVoice = b.offersVoice !== false
+    // Ekte eller virtuell artist, og sang (127).
+    const { lesSangPaamelding } = await import('@/lib/sang')
+    const sang = lesSangPaamelding(b, new Date().toISOString())
+    if ('feil' in sang) return NextResponse.json({ error: sang.feil }, { status: 400 })
+    const offersVoice = !sang.tvingIngenTale && b.offersVoice !== false
     const wantsFace = b.wantsFace === true
-    if (!offersVoice && !wantsFace) return NextResponse.json({ error: 'Velg minst ett: stemme eller ansikt' }, { status: 400 })
+    if (!offersVoice && !wantsFace && !sang.tilbyrSang) return NextResponse.json({ error: 'Velg minst ett: stemme, sang eller ansikt' }, { status: 400 })
     // null = ikke spurt (tilbyr bare ansikt)
     const hasOwnRecording: boolean | null = offersVoice
       ? (b.hasOwnRecording === true ? true : b.hasOwnRecording === false ? false : null)
@@ -104,6 +108,9 @@ export async function POST(request: Request) {
       appearance_consent_at: harAppearanceSamtykke ? new Date().toISOString() : null,
       consent_text: consentText, consent_at: new Date().toISOString(),
       enrolled_at: new Date().toISOString(),
+      // Artisttype, sang og erklæringen for en virtuell artist (127). Tomt for
+      // et menneske som ikke synger.
+      ...sang.felter,
     }
 
     const { data, error } = await admin().auth.admin.generateLink({

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { authenticateKey, customerPriceFor } from '@/lib/gateway'
+import { authenticateKey, customerPriceFor, kreverLisens, lisensOrigin } from '@/lib/gateway'
 import { getAvailableVoiceActors } from '@/lib/voiceBank'
 
 // GET /api/gateway/v1/assets
@@ -28,7 +28,22 @@ export async function GET(request: Request) {
         pricePerUse.image = await customerPriceFor(auth, a, 'face')
       }
       const ageModels = alder.filter((m) => m.actorId === a.id).map((m) => ({ label: m.label, ageFrom: m.ageFrom, ageTo: m.ageTo }))
-      return { id: a.id, tlid: a.tlid ?? null, name: a.name, capabilities, pricePerUse, ...(ageModels.length ? { ageModels } : {}) }
+      // Lisensen (28.10): kunden skal se FØR kallet hva som er klarert, og
+      // hvor man ber om resten. Samme dom som /speech og /image feller.
+      const kreves = await kreverLisens(auth, a)
+      const licence: Record<string, unknown> = { required: kreves }
+      if (kreves) {
+        const { finnLisensFor } = await import('@/lib/licenceMatch')
+        const { lisensLenke, assetFor } = await import('@/lib/lisensLenke')
+        for (const [cap, type] of [['speech', 'voice'], ['image', 'face']] as const) {
+          if (!capabilities.includes(cap)) continue
+          const h = await finnLisensFor({ actorId: a.id, organizationId: auth.organizationId, assetType: type })
+          licence[cap] = { licensed: h.match === 'inferred', match: h.match }
+        }
+        const base = await lisensOrigin()
+        licence.requestLicenceUrl = `${base}${lisensLenke(a.id, { asset: assetFor({ hasVoice: !!a.elevenlabs_voice_id, hasFace: !!a.face_character_id }) })}`
+      }
+      return { id: a.id, tlid: a.tlid ?? null, name: a.name, capabilities, pricePerUse, licence, ...(ageModels.length ? { ageModels } : {}) }
     })
   )
   return NextResponse.json({ assets })
