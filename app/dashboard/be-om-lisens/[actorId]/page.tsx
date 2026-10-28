@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getSupabase } from '@/lib/supabaseClient'
+import { STANDARD_VILKAAR_TEKST } from '@/lib/standardLisens'
 
 // Kundens dør til en lisens (migrasjon 090).
 //
@@ -104,6 +105,23 @@ interface Forespoersel {
   created_at: string
 }
 
+// Standardlisens (128): det rettighetshaveren har sagt ja til på forhånd.
+type Tilbud = {
+  available: boolean; reason: string | null; priceNok: number | null
+  terms: { assets: string[]; media: string[]; territories: string[]; maxTermMonths: number } | null
+}
+type Lisens = {
+  id: string; kind: string; asset: string; mediaClass: string | null; territory: string | null
+  termStart: string | null; termEnd: string | null; workTitle: string | null; priceNok: number; status: string; source: string
+}
+const NAVN: Record<string, string> = {
+  voice: 'stemmen', face: 'ansiktet', both: 'stemme og ansikt',
+  internal: 'intern bruk', online: 'nett', broadcast: 'kringkasting',
+  no: 'Norge', nordic: 'Norden', world: 'hele verden',
+}
+const nok = (n: number) => `${n.toLocaleString('nb-NO')} kr`
+const dato = (s: string | null) => (s ? new Date(s).toLocaleDateString('nb-NO') : 'uten sluttdato')
+
 export default function BeOmLisensPage() {
   const actorId = String(useParams().actorId || '')
   const [navn, setNavn] = useState<string | null>(null)
@@ -126,6 +144,10 @@ export default function BeOmLisensPage() {
   const [error, setError] = useState<string | null>(null)
   // null = vet ikke ennå; false = ingen sesjon, vis innlogging i stedet for skjemaet.
   const [innlogget, setInnlogget] = useState<boolean | null>(null)
+  const [tilbud, setTilbud] = useState<Tilbud | null>(null)
+  const [lisenser, setLisenser] = useState<Lisens[]>([])
+  const [godtatt, setGodtatt] = useState(false)
+  const [kjoept, setKjoept] = useState<{ priceNok: number; termStart: string; termEnd: string | null } | null>(null)
 
   // Forhåndsutfylling fra lenken (lib/lisensLenke). Ingen synkron setState i
   // effekten — verdiene settes via et løfte.
@@ -164,6 +186,49 @@ export default function BeOmLisensPage() {
   }, [actorId, headers])
 
   useEffect(() => { hent() }, [hent])
+
+  // Standardlisens: spør på nytt når valgene endres. Bare kampanjer kan være
+  // standard; et verk er alltid en forespørsel.
+  const hentTilbud = useCallback(async () => {
+    const h = await headers()
+    if (!h.Authorization) return
+    const q = new URLSearchParams({
+      actorId, kind: type, asset: svar.assetType, mediaClass: svar.mediaClass, territory: svar.territory,
+      termMonths: String(termMonths), exclusivity: svar.exclusivity,
+    })
+    try {
+      const d = await fetch(`/api/licences/standard?${q}`, { headers: h }).then((r) => r.json())
+      setTilbud(d && 'available' in d ? d : null)
+      setLisenser(Array.isArray(d?.myLicences) ? d.myLicences : [])
+    } catch { setTilbud(null) }
+  }, [actorId, type, svar, termMonths, headers])
+  // Via et løfte: ingen setState i selve effekten.
+  useEffect(() => { void Promise.resolve().then(hentTilbud) }, [hentTilbud])
+
+  const kjoep = async () => {
+    setError(null)
+    if (!godtatt) { setError('Kryss av for standardvilkårene.'); return }
+    setBusy(true)
+    try {
+      const res = await fetch('/api/licences/standard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await headers()) },
+        body: JSON.stringify({
+          actorId, kind: 'campaign', asset: svar.assetType, mediaClass: svar.mediaClass, territory: svar.territory,
+          termMonths, exclusivity: svar.exclusivity, productionTitle: tittel || null, termsText: STANDARD_VILKAAR_TEKST.no,
+        }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Lisensen kunne ikke kjøpes')
+      setKjoept({ priceNok: d.priceNok, termStart: d.termStart, termEnd: d.termEnd })
+      setLisenser(Array.isArray(d.myLicences) ? d.myLicences : [])
+      setGodtatt(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Lisensen kunne ikke kjøpes')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const send = async () => {
     setError(null)
@@ -213,6 +278,15 @@ export default function BeOmLisensPage() {
             <Link href={`/dashboard/voice-bank/${actorId}/lisenser`} className="font-semibold text-[var(--ember-deep)] hover:underline">
               Åpne lisenser →
             </Link>
+          </div>
+        )}
+
+        {kjoept && (
+          <div className="mb-8 p-4 rounded-lg" style={{ background: 'var(--ember-tint-bg)', border: '2px solid var(--ember-deep)' }}>
+            <p className="text-sm text-gray-900 m-0">
+              <strong>Lisensen er aktiv</strong> fra {dato(kjoept.termStart)} til {dato(kjoept.termEnd)}. {nok(kjoept.priceNok)} er trukket fra saldoen.
+              Rettighetshaveren har fått beskjed, og all bruk under lisensen føres i hovedboken.
+            </p>
           </div>
         )}
 
@@ -307,6 +381,34 @@ export default function BeOmLisensPage() {
               ))
             )}
 
+            {/* Standardlisens (128). Ligger valget innenfor det rettighetshaveren
+                har sagt ja til, kan kunden få lisensen med en gang. Ellers står
+                grunnen her, og forespørselen under er veien videre. */}
+            {type === 'campaign' && tilbud?.terms && (
+              tilbud.available && tilbud.priceNok != null ? (
+                <div className="mb-5 p-4 rounded-lg border-2" style={{ borderColor: 'var(--ember-deep)' }}>
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Standardlisens: {nok(tilbud.priceNok)}</p>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Rettighetshaveren har sagt ja til denne bruken på forhånd. Du får lisensen med en gang, og prisen trekkes fra saldoen.
+                  </p>
+                  <label className="flex items-start gap-2 text-xs text-gray-600 mb-3">
+                    <input type="checkbox" checked={godtatt} onChange={(e) => setGodtatt(e.target.checked)} className="mt-0.5" />
+                    <span>{STANDARD_VILKAAR_TEKST.no}</span>
+                  </label>
+                  <button onClick={kjoep} disabled={busy || !godtatt}
+                    className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:bg-[var(--ink)] disabled:opacity-50 transition-colors">
+                    {busy ? 'Ordner lisensen …' : `Få lisensen nå — ${nok(tilbud.priceNok)}`}
+                  </button>
+                  <p className="text-xs text-gray-400 mt-2">Vil du noe annet enn dette, send en forespørsel under.</p>
+                </div>
+              ) : (
+                <p className="mb-5 text-xs text-gray-500">
+                  Standardlisens finnes for {tilbud.terms.media.map((m) => NAVN[m]).join(' og ')} i {tilbud.terms.territories.map((t) => NAVN[t]).join(' og ')},
+                  opptil {tilbud.terms.maxTermMonths} måneder, uten eksklusivitet. {tilbud.reason ? `Valget ditt: ${tilbud.reason}` : ''}
+                </p>
+              )
+            )}
+
             <label className="block text-sm font-medium text-gray-700 mb-1">Hva skal det brukes til? (valgfritt)</label>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3}
               placeholder="F.eks. «Kampanje for ny tjeneste, tre filmer på 20 sekunder, lansering i november.»"
@@ -322,6 +424,28 @@ export default function BeOmLisensPage() {
               {busy ? 'Sender…' : 'Send forespørsel'}
             </button>
           </div>
+        )}
+
+        {lisenser.length > 0 && (
+          <>
+            <h2 className="font-semibold text-gray-900 mb-3">Lisensene dine</h2>
+            <div className="space-y-2 mb-8">
+              {lisenser.map((l) => (
+                <div key={l.id} className="flex items-center justify-between bg-[var(--paper-raised)] border border-gray-200 rounded-lg px-4 py-3 gap-3">
+                  <div className="text-sm text-gray-700">
+                    {l.kind === 'work' ? <>Verk{l.workTitle ? <> — <strong>«{l.workTitle}»</strong></> : null}</>
+                      : <>{NAVN[l.asset] ?? l.asset} · {NAVN[l.mediaClass ?? ''] ?? l.mediaClass} · {NAVN[l.territory ?? ''] ?? l.territory}</>}
+                    <span className="block text-xs text-gray-500">
+                      {l.kind === 'campaign' ? `${dato(l.termStart)} – ${dato(l.termEnd)} · ` : ''}{nok(l.priceNok)}{l.source === 'standard' ? ' · standardlisens' : ''}
+                    </span>
+                  </div>
+                  <span className="text-xs px-3 py-1 rounded-full font-medium bg-gray-100 text-gray-700 whitespace-nowrap">
+                    {l.status === 'active' ? 'Aktiv' : l.status === 'quote' ? 'Tilbud' : 'Utløpt'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {mine.length > 0 && (

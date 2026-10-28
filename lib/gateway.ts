@@ -171,11 +171,18 @@ export async function lisensKrav(auth: GatewayAuth, actor: VoiceActor, opts: {
       error: 'Lisensen dere har, gjelder en annen versjon av tvillingen. Be om lisens på den gjeldende versjonen.',
     } }
   }
+  // Standardlisens (128): har rettighetshaveren forhåndsgodkjent noe, kan
+  // kunden kjøpe den med en gang i stedet for å vente på et tilbud.
+  const { harStandard } = await import('@/lib/standardLisensServer')
+  const standard = await harStandard(actor.id).catch(() => null)
   return { ok: false, status: 403, body: {
     ...felles, code: 'LICENCE_REQUIRED',
     error: licenceId
       ? 'Lisensen dere oppga, gjelder ikke denne bruken (feil skuespiller, kunde, periode eller status).'
-      : 'Denne bruken krever en aktiv lisens. Be om lisens, så kommer vi tilbake med et tilbud.',
+      : standard
+        ? 'Denne bruken krever en aktiv lisens. Rettighetshaveren tilbyr standardlisens: kjøp den med POST /api/gateway/v1/licences, eller be om lisens for annen bruk.'
+        : 'Denne bruken krever en aktiv lisens. Be om lisens, så kommer vi tilbake med et tilbud.',
+    ...(standard ? { standardLicence: { ...standard, endpoint: 'POST /api/gateway/v1/licences' } } : {}),
   } }
 }
 

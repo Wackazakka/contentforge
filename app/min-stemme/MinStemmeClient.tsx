@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/authContext'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import LeveringPanel from '@/components/LeveringPanel'
 import SangGodkjenning from '@/components/SangGodkjenning'
+import StandardLisensMin from '@/components/StandardLisensMin'
 import EgenModellPanel from '@/components/EgenModellPanel'
 import { BrukDetaljer, harInnhold, type BrukInnhold } from './BrukDetaljer'
 
@@ -324,6 +325,11 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
             )}
 
             {avgiftMelding && <p className="text-sm mb-6 text-gray-700">{avgiftMelding}</p>}
+
+            {/* Standardlisensen (128): det hun har sagt ja til på forhånd, og bryteren. */}
+            {a.isActive && session?.access_token && (
+              <StandardLisensMin actorId={a.id} bearer={session.access_token} />
+            )}
 
             {/* Sangmodellen (127): prøven og svaret hennes. */}
             {(a.offersSinging || a.artistKind === 'virtual') && session?.access_token && (

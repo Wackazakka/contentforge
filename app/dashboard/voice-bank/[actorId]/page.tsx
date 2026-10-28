@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import CastingFelt from './CastingFelt'
 import AldersmodellerPanel from '@/components/AldersmodellerPanel'
 import SangstemmeBoks from '@/components/SangstemmeBoks'
+import StandardLisensBoks from '@/components/StandardLisensBoks'
 import NivaaPanel from '@/components/NivaaPanel'
 import OnboardingUtleggBoks from '@/components/OnboardingUtleggBoks'
 import { useParams } from 'next/navigation'
@@ -877,6 +878,10 @@ export default function VoiceActorPage() {
             {/* Sangstemmen (127): ekte eller virtuell artist, RVC-modell, prøve
                 og rettighetshaverens svar. Står under ansiktet — samme gang. */}
             <SangstemmeBoks actorId={actorId} actorName={actor.name} />
+
+            {/* Standardlisensen (128): det rettighetshaveren forhåndsgodkjenner,
+                så kunden får lisensen med en gang innenfor det. */}
+            <StandardLisensBoks actorId={actorId} />
 
             {/* Presentasjonsside */}
             <h2 className="font-semibold text-gray-900 mb-3">{t('pub_h2')}</h2>
