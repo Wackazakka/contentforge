@@ -1468,7 +1468,8 @@
     "not_found_title": "Ikke funnet",
     "tlid_line": "TLID {tlid} · versjon {n}",
     "chip_singing": "Sang",
-    "chip_virtual": "Virtuell artist"
+    "chip_virtual": "Virtuell artist",
+    "cta_licence": "Be om lisens"
   },
   "audition": {
     "back": "← Medvirkende",
@@ -1552,7 +1553,10 @@
     "takes_n": "{n} takes",
     "field_age": "Alder i scenen (valgfri)",
     "age_placeholder": "For eksempel 30",
-    "age_model_used": "Aldersmodell: {label}"
+    "age_model_used": "Aldersmodell: {label}",
+    "row_licence": "Lisens",
+    "request_licence": "Be om lisens →",
+    "licence_test_profile": "Testprofil"
   },
   "twinledger": {
     "why_note": "Det vi leverer i dag er samtykket, lisensen og hovedboken — bevis for hva som ble tillatt og hva som ble brukt. Merking av selve innholdet (C2PA) står på veikartet, ikke på siden.",
@@ -1917,7 +1921,8 @@
     "kind_video": "Video",
     "kind_avatar": "Avatar",
     "kind_radio": "Radio",
-    "kind_face": "Ansikt"
+    "kind_face": "Ansikt",
+    "request_licence": "Be om lisens"
   },
   "approval": {
     "invalid": "Denne lenken er ugyldig.",

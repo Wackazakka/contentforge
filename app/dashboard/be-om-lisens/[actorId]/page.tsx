@@ -18,6 +18,11 @@ import { getSupabase } from '@/lib/supabaseClient'
 //
 // Kunden kan IKKE lage lisensen selv, og sida later ikke som noe annet.
 // Takstkortet er en tilbudsgenerator: satsene forhandles fra verk til verk.
+//
+// Fra 28.10 lenkes sida fra profilen, Stemmer-fanen og audition
+// (lib/lisensLenke). Det vi alt vet, kommer med i adressen (?tittel, ?type,
+// ?asset) og fylles inn. Er besøkeren ikke innlogget, sier sida det og sender
+// hen tilbake hit etter innlogging — i stedet for å feile ved innsending.
 
 const AKSER = {
   assetType: {
@@ -119,6 +124,22 @@ export default function BeOmLisensPage() {
   // Navnet på produksjonen som sist ble sendt — skjemaet står åpent for neste.
   const [sendt, setSendt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // null = vet ikke ennå; false = ingen sesjon, vis innlogging i stedet for skjemaet.
+  const [innlogget, setInnlogget] = useState<boolean | null>(null)
+
+  // Forhåndsutfylling fra lenken (lib/lisensLenke). Ingen synkron setState i
+  // effekten — verdiene settes via et løfte.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    const t0 = (q.get('tittel') || '').slice(0, 200)
+    const ty = q.get('type')
+    const as = q.get('asset')
+    Promise.resolve().then(() => {
+      if (t0) setTittel(t0)
+      if (ty === 'campaign' || ty === 'work') setType(ty)
+      if (as === 'voice' || as === 'face' || as === 'both') setSvar((s) => ({ ...s, assetType: as }))
+    })
+  }, [])
 
   const headers = useCallback(async (): Promise<Record<string, string>> => {
     const { data } = await getSupabase().auth.getSession()
@@ -128,6 +149,7 @@ export default function BeOmLisensPage() {
 
   const hent = useCallback(async () => {
     const h = await headers()
+    setInnlogget(!!h.Authorization)
     try {
       const k = await fetch('/api/voice-bank/catalog', { headers: h }).then((r) => r.json())
       const a = (k.actors || []).find((x: { id: string }) => x.id === actorId)
@@ -203,7 +225,28 @@ export default function BeOmLisensPage() {
           </div>
         )}
 
-        {(
+        {innlogget === false && (() => {
+          const her = typeof window !== 'undefined' ? window.location.pathname + window.location.search : `/dashboard/be-om-lisens/${actorId}`
+          return (
+            <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
+              <p className="text-sm text-gray-700 mb-4">
+                Logg inn for å be om lisens. Har du ikke konto, lager du en på et minutt — du kommer tilbake hit etterpå.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link href={`/login?next=${encodeURIComponent(her)}`}
+                  className="px-5 py-2.5 rounded-lg font-semibold text-[var(--on-ember)] bg-[var(--ember-deep)] hover:bg-[var(--ink)]">
+                  Logg inn
+                </Link>
+                <Link href={`/register?next=${encodeURIComponent(her)}`}
+                  className="px-5 py-2.5 rounded-lg font-semibold border border-gray-300 text-gray-800 hover:border-gray-500">
+                  Opprett konto
+                </Link>
+              </div>
+            </div>
+          )
+        })()}
+
+        {innlogget !== false && (
           <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6 mb-8">
             <fieldset className="mb-5">
               <legend className="text-sm font-medium text-gray-700 mb-2">Hva slags bruk</legend>

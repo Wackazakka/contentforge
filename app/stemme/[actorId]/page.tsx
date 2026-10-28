@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { OFFENTLIGE_FASETTER } from '@/lib/castingAttributes'
 import { getTenant, getTenantCanonicalOrigin } from '@/lib/tenantServer'
+import { lisensErKlareringen, lisensLenke, assetFor } from '@/lib/lisensLenke'
 import { getPublicActor } from '@/lib/publicActors'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
@@ -270,7 +271,15 @@ export default async function ActorPresentationPage({ params }: { params: Promis
               </p>
             </div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <Link href={actor.isDemo ? '/bli-stemme' : '/register'} style={knapp('ember')}>
+              {/* Be om lisens (28.10): på TwinLedger er lisensen klareringen, og
+                  kunden skal kunne be om den her hen møter skuespilleren. Er hen
+                  ikke innlogget, tar lisenssida seg av det og sender hen tilbake. */}
+              {!actor.isDemo && lisensErKlareringen(tenant.slug) && (actor.hasVoice || actor.hasFace || actor.hasSinging) && (
+                <Link href={lisensLenke(actor.id, { asset: assetFor(actor) })} style={knapp('ember')}>
+                  {t('cta_licence')}
+                </Link>
+              )}
+              <Link href={actor.isDemo ? '/bli-stemme' : '/register'} style={knapp(!actor.isDemo && lisensErKlareringen(tenant.slug) ? 'ramme' : 'ember')}>
                 {actor.isDemo ? t('demo_cta_join') : t('cta_signup')}
               </Link>
               <Link href="/stemmer" style={knapp('ramme')}>

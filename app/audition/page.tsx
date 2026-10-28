@@ -8,6 +8,8 @@ import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
 import { LangToggle } from '@/components/LangToggle'
 import Plukker from './Plukker'
 import type { Kandidat } from '@/lib/castingAttributes'
+import { useTenant } from '@/lib/tenantContext'
+import { lisensErKlareringen, lisensLenke } from '@/lib/lisensLenke'
 
 // Audition: samme scene, samme replikk, ulike skuespillere.
 //
@@ -86,6 +88,9 @@ function Etikett({ children }: { children: React.ReactNode }) {
 export default function AuditionPage() {
   const t = useTranslations('audition')
   const tc = useTranslations('casting')
+  // Etter auditionen er neste spørsmål «hva koster det å bruke henne?» — det
+  // er lisensen (lib/lisensLenke). Bare der lisensen er klareringen.
+  const visLisens = lisensErKlareringen(useTenant().slug)
   // Auth-konteksten, ikke getSession() direkte: ved første rendring er
   // sesjonen ikke hydrert ennå, og et kall da ser ut som «ikke innlogget».
   const { session, loading: authLoading } = useAuth()
@@ -522,6 +527,28 @@ export default function AuditionPage() {
                     )
                   })}
                 </RadIRutenett>
+
+                {/* Lisensen (28.10): rundens tittel følger med, og en audition
+                    gjelder både stemme og ansikt. Testprofiler kan ikke lisensieres. */}
+                {visLisens && (
+                  <RadIRutenett label={t('row_licence')}>
+                    {takes.map((x) => {
+                      const k = kandidat(x.actor_id)
+                      return (
+                        <div key={`l-${x.id}`} className="au-cell" style={{ borderBottomColor: 'var(--ds-border-strong)' }}>
+                          {k && !k.isDemo ? (
+                            <Link href={lisensLenke(x.actor_id, { tittel: rundeTittel, asset: 'both' })}
+                              style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ember-deep)', textDecoration: 'none' }}>
+                              {t('request_licence')}
+                            </Link>
+                          ) : (
+                            <span style={{ fontSize: 12.5, color: 'var(--text-faint)' }}>{t('licence_test_profile')}</span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </RadIRutenett>
+                )}
               </div>
             )}
 

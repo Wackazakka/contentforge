@@ -1468,7 +1468,8 @@
     "not_found_title": "Not found",
     "tlid_line": "TLID {tlid} · version {n}",
     "chip_singing": "Singing",
-    "chip_virtual": "Virtual artist"
+    "chip_virtual": "Virtual artist",
+    "cta_licence": "Request a licence"
   },
   "audition": {
     "back": "← Cast",
@@ -1552,7 +1553,10 @@
     "takes_n": "{n} takes",
     "field_age": "Age in the scene (optional)",
     "age_placeholder": "For example 30",
-    "age_model_used": "Age model: {label}"
+    "age_model_used": "Age model: {label}",
+    "row_licence": "Licence",
+    "request_licence": "Request a licence →",
+    "licence_test_profile": "Test profile"
   },
   "twinledger": {
     "why_note": "What we deliver today is the consent, the licence and the ledger — proof of what was permitted and what was used. Marking the content itself (C2PA) is on the roadmap, not on this page.",
@@ -1917,7 +1921,8 @@
     "kind_video": "Video",
     "kind_avatar": "Avatar",
     "kind_radio": "Radio",
-    "kind_face": "Face"
+    "kind_face": "Face",
+    "request_licence": "Request a licence"
   },
   "approval": {
     "invalid": "This link is not valid.",
