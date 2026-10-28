@@ -189,6 +189,9 @@ export default async function ActorPresentationPage({ params }: { params: Promis
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
             {actor.hasVoice && <Merke>{t('chip_voice')}</Merke>}
             {actor.hasFace && <Merke>{t('chip_face')}</Merke>}
+            {actor.hasSinging && <Merke>{t('chip_singing')}</Merke>}
+            {/* Merking (127): en virtuell artist vises som det den er. */}
+            {actor.artistKind === 'virtual' && <Merke>{t('chip_virtual')}</Merke>}
           </div>
           <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(34px, 4.4vw, 52px)', letterSpacing: '-0.035em', lineHeight: 1.04, margin: '0 0 18px' }}>{actor.name}</h1>
           {actor.bio && (

@@ -6,6 +6,7 @@ import { actorSettlement } from '@/lib/actorLedger'
 import { PREVIEW_ROYALTY_PER_1000 } from '@/lib/voiceBank'
 import { lesBekreftelse } from '@/lib/identitet'
 import { utleggFor, avgiftFor } from '@/lib/onboardingServer'
+import { radFelter, lesArtistType } from '@/lib/sang'
 
 function admin() {
   return createClient(
@@ -107,6 +108,15 @@ export async function GET(request: Request) {
           // Nivå og vurdering (123): byrålenken gir «pro» og godtatt; ellers
           // et nytt ansikt som venter på vurdering før noe trenes.
           ...paameldingsFelter(byraa && viaByraa ? { agentId: byraa.id } : null),
+          // Artisttype og sang (127). Erklæringen fryses fra konstanten, ikke fra
+          // metadataene — dem kan brukeren endre selv. Tomt for et menneske som
+          // ikke synger, så påmeldingen virker som før uten 127.
+          ...radFelter({
+            artistType: lesArtistType(e.artist_kind),
+            tilbyrSang: e.offers_singing === true,
+            naa: typeof e.virtual_declared_at === 'string' ? e.virtual_declared_at : new Date().toISOString(),
+            erklaering: e.virtual_declaration,
+          }),
         })
         .select(FELTER)
         .single()
@@ -172,6 +182,16 @@ export async function GET(request: Request) {
         .select('id, tier, intake_status, intake_note').in('id', actors.map((a) => a.id))
       for (const x of (nv || []) as Array<{ id: string; tier: string; intake_status: string; intake_note: string | null }>) {
         nivaaer.set(x.id, { tier: x.tier, intake: x.intake_status, note: x.intake_note })
+      }
+    }
+
+    // Artisttype og sang (127), i eget oppslag: mangler kolonnene, står resten.
+    const sangInfo = new Map<string, { kind: string; singing: boolean }>()
+    {
+      const { data: sv } = await supabase.from('voice_actors')
+        .select('id, artist_kind, offers_singing').in('id', actors.map((a) => a.id))
+      for (const x of (sv || []) as Array<{ id: string; artist_kind: string | null; offers_singing: boolean | null }>) {
+        sangInfo.set(x.id, { kind: x.artist_kind === 'virtual' ? 'virtual' : 'human', singing: x.offers_singing === true })
       }
     }
 
@@ -280,6 +300,8 @@ export async function GET(request: Request) {
         intakeStatus: nivaaer.get(a.id)?.intake ?? 'accepted',
         intakeNote: nivaaer.get(a.id)?.note ?? null,
         delivered: !!a.delivered_at,
+        artistKind: sangInfo.get(a.id)?.kind ?? 'human',
+        offersSinging: sangInfo.get(a.id)?.singing ?? false,
         // Hun ser beløpet og om refusjonen er overført — ikke hvem som førte det.
         voiceSubscription: utlegg ? {
           amountNok: utlegg.amountNok, payer: utlegg.payer, agencyName: utlegg.agentName,

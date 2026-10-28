@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import CastingFelt from './CastingFelt'
 import AldersmodellerPanel from '@/components/AldersmodellerPanel'
+import SangstemmeBoks from '@/components/SangstemmeBoks'
 import NivaaPanel from '@/components/NivaaPanel'
 import OnboardingUtleggBoks from '@/components/OnboardingUtleggBoks'
 import { useParams } from 'next/navigation'
@@ -872,6 +873,10 @@ export default function VoiceActorPage() {
                 når hun har et ansikt: en aldersmodell utfyller standardansiktet.
                 refresh oppdaterer versjonen øverst — en endring kan gi ny versjon. */}
             {actor.face_character_id && <AldersmodellerPanel actorId={actorId} onEndret={refresh} />}
+
+            {/* Sangstemmen (127): ekte eller virtuell artist, RVC-modell, prøve
+                og rettighetshaverens svar. Står under ansiktet — samme gang. */}
+            <SangstemmeBoks actorId={actorId} actorName={actor.name} />
 
             {/* Presentasjonsside */}
             <h2 className="font-semibold text-gray-900 mb-3">{t('pub_h2')}</h2>
