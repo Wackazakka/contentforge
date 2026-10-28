@@ -127,9 +127,15 @@ export async function finnLisensFor(e: {
 
     if (e.licenceId) {
       const { data } = await supabase
-        .from('licences').select('id, actor_id, status, twin_version')
+        .from('licences').select('id, actor_id, status, twin_version, organization_id, term_start, term_end')
         .eq('id', e.licenceId).maybeSingle()
+      // 🔑 Et eksplisitt valg kommer fra klienten (fra 28.10 også fra API-et).
+      // Det skal ikke kunne låne en annen kundes avtale, eller en som er utløpt
+      // på dato selv om statusen ennå ikke er flyttet.
+      const dag = (e.at ?? new Date()).toISOString().slice(0, 10)
       const ok = data && data.actor_id === e.actorId && data.status === 'active'
+        && (!e.organizationId || data.organization_id === e.organizationId)
+        && dekkerPerioden(data.term_start, data.term_end, dag)
       if (!ok) return { licenceId: null, match: 'none' }
       // Et eksplisitt valg kan heller ikke feste bruk av en annen versjon.
       const { dekket } = skillPaaVersjon([data as { twin_version?: number | null }], versjoner, type, e.modell)

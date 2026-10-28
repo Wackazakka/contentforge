@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { authenticateKey, resolveAsset, checkBalance, BALANCE_REFUSAL, customerPriceFor, admin } from '@/lib/gateway'
+import { authenticateKey, resolveAsset, checkBalance, BALANCE_REFUSAL, customerPriceFor, admin, lisensKrav } from '@/lib/gateway'
 import { ratesForKind } from '@/lib/voiceBank'
 import {
   isVoiceWithdrawn,
@@ -11,7 +11,9 @@ import {
 
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-5dcdfe9305a740febc87568c9ccb40a6.r2.dev'
 
-// POST /api/gateway/v1/speech  { assetId, text, format? }
+// POST /api/gateway/v1/speech  { assetId, text, format?, licenceId? }
+// På TwinLedger kreves en aktiv lisens (lib/gateway, lisensKrav): uten den
+// 403 LICENCE_REQUIRED med requestLicenceUrl, før noe genereres eller belastes.
 // Genererer tale fra en skuespillerstemme. Kunden ser aldri ElevenLabs-ID-en;
 // vår nøkkel brukes server-side, og bruken logges i royalty-hovedboken.
 export async function POST(request: Request) {
@@ -22,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nøkkelen har ikke tilgang til tale', code: 'SCOPE_DENIED' }, { status: 403 })
     }
 
-    const { assetId, text, format } = await request.json()
+    const { assetId, text, format, licenceId } = await request.json()
     if (!assetId || !text || typeof text !== 'string') {
       return NextResponse.json({ error: 'Mangler assetId eller text' }, { status: 400 })
     }
@@ -37,15 +39,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Denne skuespilleren har ikke lisensiert stemme', code: 'NO_VOICE' }, { status: 400 })
     }
 
-    const balance = await checkBalance(auth.organizationId)
-    if (!balance.ok) {
-      return NextResponse.json(BALANCE_REFUSAL[balance.reason], { status: 402 })
-    }
-
     // 🔑 KUNDEN FÅR VERSJONEN DEN KLARERTE (112) — se /image.
     const { modellForKunde } = await import('@/lib/licenceMatch')
     const valg = await modellForKunde({ actorId: actor.id, organizationId: auth.organizationId, assetType: 'voice', gjeldende: actor.elevenlabs_voice_id })
     const stemme = valg.modell || actor.elevenlabs_voice_id
+
+    // 🔑 LISENSEN FØR GENERERING OG BELASTNING. Uten hjemmel lages ingenting,
+    // og ingenting trekkes fra saldoen. Hjemmelen herfra er den som føres.
+    const lisens = await lisensKrav(auth, actor, { assetType: 'voice', modell: stemme, licenceId })
+    if (!lisens.ok) return NextResponse.json(lisens.body, { status: lisens.status })
+
+    const balance = await checkBalance(auth.organizationId)
+    if (!balance.ok) {
+      return NextResponse.json(BALANCE_REFUSAL[balance.reason], { status: 402 })
+    }
 
     // Generer tale med VÅR ElevenLabs-nøkkel + den ekte voice-ID-en
     const elevenRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${stemme}`, {
@@ -112,10 +119,7 @@ export async function POST(request: Request) {
     }
 
     // Royalty-hendelse i samme hovedbok (frosne satser, merket som gateway-bruk)
-    const { finnLisensFor } = await import('@/lib/licenceMatch')
-    const hjemmel = await finnLisensFor({
-      actorId: actor.id, organizationId: auth.organizationId, assetType: 'voice', modell: stemme,
-    })
+    const hjemmel = lisens.hjemmel
     await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: auth.tenantId,
