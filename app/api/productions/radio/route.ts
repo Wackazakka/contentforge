@@ -35,12 +35,13 @@ export async function POST(request: NextRequest) {
     // Royalty-raden skrives FØRST NÅ — etter at vi vet hvem som spør (25.10):
     // før lå den foran innloggingssjekken, så et uautentisert kall skrev i hovedboken.
     // Stemmebank: royalty-hendelse hvis stemmen er en registrert skuespiller
+    let royaltyRad: string | null = null
     try {
       const { getProductTenant } = await import('@/lib/tenantBilling')
       const { logVoiceUsage } = await import('@/lib/voiceBank')
       const pt = await getProductTenant(productId)
       if (pt.tenantId && voiceId) {
-        await logVoiceUsage({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, organizationId: pt.organizationId, productId, meta: { kind: 'radio' } })
+        royaltyRad = await logVoiceUsage({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, organizationId: pt.organizationId, productId, meta: { kind: 'radio' }, tekst: { body: String(script || ''), kind: 'spoken' } })
       }
     } catch { /* royalty-logging velter aldri produksjon */ }
 
@@ -70,6 +71,14 @@ export async function POST(request: NextRequest) {
     }
 
     const jobId = jobData.id
+
+    // Resultatet havner på R2 når dropleten er ferdig (127). Jobben finnes først
+    // nå, etter royalty-raden — og den raden kan ikke endres — så pekeren går i
+    // detaljene ved siden av.
+    if (royaltyRad) {
+      const { skrivDetaljer, dropletResultat } = await import('@/lib/usageDetails')
+      await skrivDetaljer(royaltyRad, { resultat: dropletResultat('radio', String(jobId)) })
+    }
 
     try {
       const queueResponse = await fetch(`${DROPLET_URL}/jobs/radio-jobs`, {

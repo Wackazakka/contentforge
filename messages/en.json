@@ -1851,7 +1851,28 @@
     "fee_cancelled": "The payment was cancelled. You can try again whenever you like.",
     "sub_own": "You paid the voice subscription ({sum}) yourself.",
     "sub_to_refund": "The voice subscription ({sum}) is covered by {who}. You will get the money back.",
-    "sub_refunded": "The voice subscription ({sum}) is covered by {who} and was refunded {date}."
+    "sub_refunded": "The voice subscription ({sum}) is covered by {who} and was refunded {date}.",
+    "insight_production": "the production's name",
+    "insight_script": "the production and the text",
+    "insight_full": "everything, including the result",
+    "lic_insight": "What you see of the use: {level}. Chosen by your agency.",
+    "use_show_text": "Show the text",
+    "use_show_all": "Show text and result",
+    "use_hide": "Hide",
+    "use_text_spoken": "The text that was read",
+    "use_text_prompt": "The description the image was made from",
+    "use_text_line": "The line",
+    "use_text_none": "The text was not saved for this use.",
+    "use_output_h": "The result",
+    "use_output_get_audio": "Play the clip",
+    "use_output_get_video": "Watch the film",
+    "use_output_get_image": "See the image",
+    "use_output_loading": "Loading …",
+    "use_output_pending": "Not finished yet.",
+    "use_output_error": "Couldn't find the result. Try again a little later.",
+    "use_output_open": "Open in new tab",
+    "use_held_back_production": "Your agency has chosen that you see the production's name, but not the text or the result.",
+    "use_held_back_script": "Your agency has chosen that you see the text, but not the result."
   },
   "catalog": {
     "h1": "Voices",
@@ -2342,7 +2363,13 @@
     "chan_trickletracks": "TrickleTracks",
     "chan_indigoboom": "IndigoBoom",
     "chan_other": "Other distribution",
-    "version_n": "version {n}"
+    "version_n": "version {n}",
+    "insight_label": "The rights holder sees:",
+    "insight_full": "Everything, including the result",
+    "insight_script": "The production and the text",
+    "insight_production": "Only the production's name",
+    "insight_agency_hint": "The agency ({name}) decides this, and can also change it from the agency page.",
+    "insight_dropin_hint": "without an agency they always see everything"
   },
   "payouts": {
     "back": "← Voice and face bank",
@@ -2640,7 +2667,16 @@
     "covers_platform": "Us",
     "covers_agency": "The agency",
     "covers_platform_hint": "The performer pays at the meeting and we refund them straight away.",
-    "covers_agency_hint": "We refund the performer straight away and invoice the agency in one go."
+    "covers_agency_hint": "We refund the performer straight away and invoice the agency in one go.",
+    "insight_label": "Clients see of the use:",
+    "insight_full": "Everything, including the result",
+    "insight_script": "The production and the text",
+    "insight_production": "Only the production's name",
+    "insight_hint": "Applies to new licences. The agency can change it per licence.",
+    "insight_link": "The agency's insight page:",
+    "insight_create": "Create link",
+    "insight_rotate": "New link",
+    "insight_rotate_confirm": "Create a new insight link for {name}? The old one stops working immediately."
   },
   "tierAdmin": {
     "h": "Tier and review",

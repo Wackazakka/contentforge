@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       const tenant = await getTenant()
       if (tenant.id !== 'root') {
         const { logPreviewRoyalty } = await import('@/lib/voiceBank')
-        await logPreviewRoyalty({ elevenlabsVoiceId: voiceId, usedByTenantId: tenant.id, chars: String(script).length, meta: { source: 'avatar_preview' } })
+        await logPreviewRoyalty({ elevenlabsVoiceId: voiceId, usedByTenantId: tenant.id, chars: String(script).length, meta: { source: 'avatar_preview' }, tekst: { body: String(script || ''), kind: 'spoken' } })
       }
     } catch { /* royalty velter aldri preview */ }
 

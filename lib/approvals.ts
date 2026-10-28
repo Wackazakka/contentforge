@@ -146,6 +146,9 @@ export async function logApprovedDelivery(row: {
   customer_price_nok: number
   api_key_id?: string | null
   model_ref?: string | null
+  // Innholdet som ble holdt tilbake (127): teksten/beskrivelsen og fila.
+  content_url?: string | null
+  detail?: string | null
 }): Promise<void> {
   try {
     const supabase = admin()
@@ -158,7 +161,10 @@ export async function logApprovedDelivery(row: {
       actorId: row.actor_id, organizationId: row.organization_id, assetType: row.asset_type, modell: row.model_ref ?? null,
     })
     const twinVersion = await versjonForBruk(row.actor_id, row.asset_type, row.model_ref ?? null)
-    await supabase.from('voice_usage_events').insert({
+    const { tekstMeta, skrivDetaljer } = await import('@/lib/usageDetails')
+    const ansikt = row.asset_type === 'face'
+    const tekst = row.detail ? { body: row.detail, kind: ansikt ? 'prompt' as const : 'spoken' as const } : null
+    const { data: royaltyRad } = await supabase.from('voice_usage_events').insert({
       actor_id: row.actor_id,
       used_by_tenant_id: row.tenant_id,
       licence_id: hjemmel.licenceId,
@@ -166,7 +172,11 @@ export async function logApprovedDelivery(row: {
       customer_price_nok: row.customer_price_nok,
       asset_type: row.asset_type,
       twin_version: twinVersion,
-      meta: { kind: row.kind, source: 'gateway', organization_id: row.organization_id, api_key_id: apiKeyId, approved: true, licence_match: hjemmel.match },
+      meta: { kind: row.kind, source: 'gateway', organization_id: row.organization_id, api_key_id: apiKeyId, approved: true, licence_match: hjemmel.match, ...tekstMeta(tekst) },
+    }).select('id').single()
+    await skrivDetaljer((royaltyRad as { id: string } | null)?.id, {
+      tekst,
+      resultat: row.content_url ? { url: row.content_url, kind: ansikt ? 'image' : 'audio' } : null,
     })
     const pf = await chainFactorByTenantId(row.tenant_id)
     await supabase.from('usage_events').insert({

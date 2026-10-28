@@ -1,24 +1,27 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAuth } from '@/lib/authContext'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import LeveringPanel from '@/components/LeveringPanel'
 import EgenModellPanel from '@/components/EgenModellPanel'
+import { BrukDetaljer, harInnhold, type BrukInnhold } from './BrukDetaljer'
 
 // Rettighetshaverens hovedbok. Alt her er hentet fra /api/voice-bank/me, som
 // avgjør identitet fra den innloggede e-posten — ikke fra noe på siden.
 // Kundepris og kundenavn sendes ikke fra serveren, og vises derfor ikke.
 
 interface Payout { id: string; periode_fra: string; periode_til: string; amount_nok: number; betalt_dato: string; note: string | null }
-interface Usage { id: number; at: string; kind: string; chars: number | null; assetType: string; usedBy: string; toYouNok: number; licenceId: string | null; licenceLabel: string | null }
+interface Usage extends BrukInnhold { at: string; kind: string; chars: number | null; assetType: string; usedBy: string; toYouNok: number; licenceId: string | null; licenceLabel: string | null; productName: string | null }
 interface Actor {
   id: string; tlid: string | null; twinVersion: number; name: string; hasVoice: boolean; hasFace: boolean; isActive: boolean; isExclusive: boolean
   defaultRateNok: number; rates: Record<string, number>; previewRatePer1000: number; since: string; managedBy: string
   uses: number; earnedNok: number; meterNok: number; licenceNok: number; royaltyNok: number; paidNok: number; dueNok: number
   agentNok?: number; agency?: { name: string; pct: number } | null
+  // Kom hun gjennom et byrå, styrer byrået hva hun ser av bruken (127)
+  agencyControlsInsight?: boolean
   payouts: Payout[]; events: Usage[]; licences: Licence[]
   // Paameldingen (101)
   offersVoice: boolean; wantsFace: boolean; hasOwnRecording: boolean | null
@@ -46,6 +49,7 @@ interface Licence {
   compModel: 'fee' | 'royalty' | 'hybrid'
   royaltyPct: number | null; releaseChannel: string | null; releaseTitle: string | null
   statements: Avregning[]
+  insight?: 'production' | 'script' | 'full'
 }
 interface Avregning { periodStart: string; periodEnd: string; source: string | null; basisNok: number; pct: number; toYouNok: number }
 
@@ -68,6 +72,9 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
   const [actors, setActors] = useState<Actor[]>([])
   // Teller som tvinger ny henting etter at hun har endret hva hun tilbyr.
   const [reload, setReload] = useState(0)
+  // Hvilke bruk-rader som er foldet ut (127)
+  const [aapne, setAapne] = useState<Set<string>>(new Set())
+  const vend = (id: string) => setAapne((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const [tilbudBusy, setTilbudBusy] = useState(false)
   // Utledet, ikke satt synkront i effekten: uten sesjon er det ingenting å vente på.
   const loading = authLoading || (!!session && !fetched)
@@ -414,6 +421,10 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                               {l.twinVersion != null && <span className="ml-2 text-xs font-normal text-gray-500">· {t('version_n', { n: l.twinVersion })}</span>}
                             </div>
                             <div className="text-gray-600 mt-0.5">{omfang.filter(Boolean).join(' · ')}</div>
+                            {/* Hva hun ser av bruken under lisensen (127) — bare når et byrå styrer det */}
+                            {a.agencyControlsInsight && l.insight && (
+                              <div className="text-xs text-gray-500 mt-1">{t('lic_insight', { level: t(`insight_${l.insight}`) })}</div>
+                            )}
                           </div>
                           <div className="text-right">
                             <div className="font-bold">{nok(l.netNok)}</div>
@@ -526,10 +537,25 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                     <th className="px-4 py-2">{t('th_when')}</th><th className="px-4 py-2">{t('th_what')}</th><th className="px-4 py-2">{t('th_under')}</th><th className="px-4 py-2">{t('th_by')}</th><th className="px-4 py-2 text-right">{t('th_to_you')}</th>
                   </tr></thead>
                   <tbody>
-                    {a.events.map((e) => (
-                      <tr key={e.id} className="border-b border-gray-100 last:border-0">
+                    {a.events.map((e) => {
+                      const id = String(e.id)
+                      const kan = harInnhold(e)
+                      const aapen = aapne.has(id)
+                      return (<Fragment key={id}>
+                      <tr className={`border-b border-gray-100 last:border-0 ${kan ? 'cursor-pointer hover:bg-[var(--paper,#F7F5F0)]' : ''}`}
+                        onClick={kan ? () => vend(id) : undefined}>
                         <td className="px-4 py-2 whitespace-nowrap text-gray-600">{dato(e.at)}</td>
-                        <td className="px-4 py-2">{ord('kind', e.kind) || e.kind}{e.kind === 'preview' && e.chars ? <span className="text-gray-400">{t('chars', { n: e.chars })}</span> : null}</td>
+                        <td className="px-4 py-2">
+                          {ord('kind', e.kind) || e.kind}{e.kind === 'preview' && e.chars ? <span className="text-gray-400">{t('chars', { n: e.chars })}</span> : null}
+                          {/* Produksjonen (127) */}
+                          {e.productName && <div className="text-xs text-gray-500">{e.productName}</div>}
+                          {kan && (
+                            <button type="button" aria-expanded={aapen} onClick={(ev) => { ev.stopPropagation(); vend(id) }}
+                              className="block text-xs text-[var(--ember-deep,#B4532A)] hover:underline mt-0.5">
+                              {aapen ? t('use_hide') : t(e.output ? 'use_show_all' : 'use_show_text')}
+                            </button>
+                          )}
+                        </td>
                         {/* Hjemmelen. Prøvelytt har ingen med vilje — det er
                             utforskning før en avtale finnes. */}
                         <td className="px-4 py-2 text-gray-600">
@@ -540,7 +566,15 @@ export default function MinStemmeClient({ appName }: { appName: string }) {
                         <td className="px-4 py-2">{e.usedBy}</td>
                         <td className="px-4 py-2 text-right font-medium tabular-nums">{nok(e.toYouNok)}</td>
                       </tr>
-                    ))}
+                      {aapen && (
+                        <tr className="border-b border-gray-100 last:border-0">
+                          <td colSpan={5} className="px-4 pb-4 pt-1">
+                            <BrukDetaljer e={e} bearer={session?.access_token || ''} agency={!!a.agencyControlsInsight} />
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>)
+                    })}
                   </tbody>
                 </table>
                 {a.events.length >= 200 && <p className="text-xs text-gray-400 px-4 py-2">{t('capped')}</p>}

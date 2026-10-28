@@ -1851,7 +1851,28 @@
     "fee_cancelled": "Betalingen ble avbrutt. Du kan prøve igjen når du vil.",
     "sub_own": "Stemmeabonnementet ({sum}) betalte du selv.",
     "sub_to_refund": "Stemmeabonnementet ({sum}) dekkes av {who}. Du får pengene tilbake.",
-    "sub_refunded": "Stemmeabonnementet ({sum}) dekkes av {who} og ble refundert {date}."
+    "sub_refunded": "Stemmeabonnementet ({sum}) dekkes av {who} og ble refundert {date}.",
+    "insight_production": "navnet på produksjonen",
+    "insight_script": "produksjonen og teksten",
+    "insight_full": "alt, også resultatet",
+    "lic_insight": "Det du ser av bruken: {level}. Valgt av byrået ditt.",
+    "use_show_text": "Vis teksten",
+    "use_show_all": "Vis tekst og resultat",
+    "use_hide": "Skjul",
+    "use_text_spoken": "Teksten som ble lest",
+    "use_text_prompt": "Beskrivelsen bildet ble laget fra",
+    "use_text_line": "Replikken",
+    "use_text_none": "Teksten er ikke lagret for denne bruken.",
+    "use_output_h": "Resultatet",
+    "use_output_get_audio": "Hør lydklippet",
+    "use_output_get_video": "Se filmen",
+    "use_output_get_image": "Se bildet",
+    "use_output_loading": "Henter …",
+    "use_output_pending": "Ikke ferdig laget ennå.",
+    "use_output_error": "Fant ikke resultatet. Prøv igjen litt senere.",
+    "use_output_open": "Åpne i ny fane",
+    "use_held_back_production": "Byrået ditt har valgt at du ser navnet på produksjonen, men ikke teksten eller resultatet.",
+    "use_held_back_script": "Byrået ditt har valgt at du ser teksten, men ikke resultatet."
   },
   "catalog": {
     "h1": "Stemmer",
@@ -2342,7 +2363,13 @@
     "chan_trickletracks": "TrickleTracks",
     "chan_indigoboom": "IndigoBoom",
     "chan_other": "Annen distribusjon",
-    "version_n": "versjon {n}"
+    "version_n": "versjon {n}",
+    "insight_label": "Rettighetshaveren ser:",
+    "insight_full": "Alt, også resultatet",
+    "insight_script": "Produksjonen og teksten",
+    "insight_production": "Bare navnet på produksjonen",
+    "insight_agency_hint": "Byrået ({name}) bestemmer dette, og kan også endre det selv fra byråsiden.",
+    "insight_dropin_hint": "uten byrå ser hen alltid alt"
   },
   "payouts": {
     "back": "← Stemme- og ansiktsbank",
@@ -2640,7 +2667,16 @@
     "covers_platform": "Oss",
     "covers_agency": "Byrået",
     "covers_platform_hint": "Skuespilleren betaler i møtet og får pengene tilbake fra oss med en gang.",
-    "covers_agency_hint": "Skuespilleren får pengene tilbake fra oss med en gang, og byrået faktureres samlet."
+    "covers_agency_hint": "Skuespilleren får pengene tilbake fra oss med en gang, og byrået faktureres samlet.",
+    "insight_label": "Klientene ser av bruken:",
+    "insight_full": "Alt, også resultatet",
+    "insight_script": "Produksjonen og teksten",
+    "insight_production": "Bare navnet på produksjonen",
+    "insight_hint": "Gjelder nye lisenser. Byrået kan endre det per lisens.",
+    "insight_link": "Byråets innsynsside:",
+    "insight_create": "Lag lenke",
+    "insight_rotate": "Ny lenke",
+    "insight_rotate_confirm": "Lage ny innsynslenke for {name}? Den gamle slutter å virke med en gang."
   },
   "tierAdmin": {
     "h": "Nivå og vurdering",

@@ -66,6 +66,8 @@ interface Licence {
   list_fee_customer_nok: number | null
   customer_label: string | null
   notes: string | null
+  // Hva rettighetshaveren ser av bruken (127). Mangler før migrasjonen er kjørt.
+  actor_insight?: 'production' | 'script' | 'full'
   splits: Split[]
   steps: Step[]
 }
@@ -95,6 +97,8 @@ export default function LisenserPage() {
   const nok = lagNok(locale)
   const { actorId } = useParams<{ actorId: string }>()
   const [licences, setLicences] = useState<Licence[]>([])
+  // Byrået hun kom gjennom (127) — null for en drop-in, som alltid ser alt.
+  const [byraa, setByraa] = useState<{ name: string | null } | null>(null)
   // Tilbud laget FRA en kundeforespoersel (090). Aksene fylles inn fra
   // hennes svar, og raden kobles tilbake naar tilbudet er laget -- ellers
   // blir koen aldri kortere og neste forespoersel avvises som duplikat.
@@ -141,6 +145,7 @@ export default function LisenserPage() {
       if (!res.ok) { setError(data.error || t('err_fetch')); return }
       setError(null)
       setLicences(data.licences || [])
+      setByraa(data.agency ?? null)
     } catch (e) {
       setError(e instanceof Error ? e.message : t('err_unknown'))
     } finally {
@@ -472,7 +477,7 @@ export default function LisenserPage() {
         : (
           <div className="space-y-4">
             {licences.map((l) => (
-              <LisensKort key={l.id} l={l} onEndre={endre} onAvregning={foerAvregning} />
+              <LisensKort key={l.id} l={l} onEndre={endre} onAvregning={foerAvregning} byraa={byraa} />
             ))}
           </div>
         )}
@@ -533,10 +538,11 @@ function Rad({ tekst, v, sterk, advarsel }: { tekst: string; v: number; sterk?: 
   )
 }
 
-function LisensKort({ l, onEndre, onAvregning }: {
+function LisensKort({ l, onEndre, onAvregning, byraa }: {
   l: Licence
   onEndre: (id: string, p: Record<string, unknown>) => Promise<void>
   onAvregning: (id: string, p: Record<string, unknown>) => Promise<void>
+  byraa: { name: string | null } | null
 }) {
   const t = useTranslations('licences')
   const nok = lagNok(useLocale())
@@ -658,6 +664,25 @@ function LisensKort({ l, onEndre, onAvregning }: {
               <span className="tabular-nums text-gray-700">{nok(s.amount_nok)}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Hva rettighetshaveren ser av bruken (127). Byrået styrer; adminen kan
+          sette det på byråets vegne. En drop-in ser alltid alt. */}
+      {l.actor_insight && (
+        <div className="mt-3 pt-3 border-t border-gray-200 text-sm flex flex-wrap items-center gap-2">
+          <span className="text-gray-600">{t('insight_label')}</span>
+          {byraa ? (
+            <>
+              <select value={l.actor_insight} onChange={(e) => onEndre(l.id, { actorInsight: e.target.value })}
+                className="px-2 py-1 border border-gray-300 rounded-lg text-sm bg-[var(--paper)]">
+                {(['full', 'script', 'production'] as const).map((v) => <option key={v} value={v}>{t(`insight_${v}`)}</option>)}
+              </select>
+              <span className="text-xs text-gray-500">{t('insight_agency_hint', { name: byraa.name || '—' })}</span>
+            </>
+          ) : (
+            <span className="text-gray-700">{t('insight_full')} <span className="text-xs text-gray-500">· {t('insight_dropin_hint')}</span></span>
+          )}
         </div>
       )}
 

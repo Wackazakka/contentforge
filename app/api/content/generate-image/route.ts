@@ -400,6 +400,9 @@ export async function POST(request: NextRequest) {
             organizationId: pt.organizationId,
             productId,
             draftId: draftId || null,
+            // Hva bildet ble laget fra, og bildet selv (127)
+            tekst: { body: String(topic || ''), kind: 'prompt' },
+            resultat: { url: r2Url, kind: 'image' },
           })
         }
       } catch (royErr) {

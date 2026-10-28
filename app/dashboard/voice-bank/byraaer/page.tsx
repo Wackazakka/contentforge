@@ -20,6 +20,9 @@ interface Byraa {
   createdAt: string; link: string | null; actors: number
   // Hvem dekker stemmeabonnementet (126). null = migrasjonen er ikke kjørt.
   coversOnboarding: 'platform' | 'agency' | null
+  // Innsynet (127). null = migrasjonen er ikke kjørt.
+  defaultActorInsight: 'production' | 'script' | 'full' | null
+  insightLink: string | null
 }
 
 export default function ByraaerPage() {
@@ -73,9 +76,9 @@ export default function ByraaerPage() {
     catch (err) { setError(err instanceof Error ? err.message : t('err_generic')) } finally { setBusy(false) }
   }
 
-  const kopier = async (r: Byraa) => {
-    if (!r.link) return
-    try { await navigator.clipboard.writeText(r.link); setKopiert(r.id); setTimeout(() => setKopiert(null), 2000) } catch { /* viser lenken uansett */ }
+  const kopier = async (lenke: string | null, noekkel: string) => {
+    if (!lenke) return
+    try { await navigator.clipboard.writeText(lenke); setKopiert(noekkel); setTimeout(() => setKopiert(null), 2000) } catch { /* viser lenken uansett */ }
   }
 
   const felt = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
@@ -134,9 +137,42 @@ export default function ByraaerPage() {
               {r.link && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <code className="text-xs bg-[var(--paper)] border border-gray-200 rounded px-2 py-1 break-all select-all">{r.link}</code>
-                  <button onClick={() => kopier(r)} className="text-xs px-3 py-1 rounded-lg bg-[var(--ink)] text-[var(--paper)] font-semibold">
+                  <button onClick={() => kopier(r.link, r.id)} className="text-xs px-3 py-1 rounded-lg bg-[var(--ink)] text-[var(--paper)] font-semibold">
                     {kopiert === r.id ? t('copied') : t('copy')}
                   </button>
+                </div>
+              )}
+              {/* Hva klientene ser av bruken (127): byråets standard for nye
+                  lisenser, og lenken der byrået styrer det selv. */}
+              {r.defaultActorInsight && (
+                <div className="mt-4 pt-3 border-t border-gray-200 space-y-2">
+                  <label className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                    {t('insight_label')}
+                    <select value={r.defaultActorInsight} disabled={busy}
+                      onChange={(e) => endre({ id: r.id, defaultActorInsight: e.target.value })}
+                      className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-[var(--paper)]">
+                      {(['full', 'script', 'production'] as const).map((v) => <option key={v} value={v}>{t(`insight_${v}`)}</option>)}
+                    </select>
+                    <span className="text-gray-400">{t('insight_hint')}</span>
+                  </label>
+                  {r.isActive && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-gray-600">{t('insight_link')}</span>
+                      {r.insightLink && (
+                        <>
+                          <code className="text-xs bg-[var(--paper)] border border-gray-200 rounded px-2 py-1 break-all select-all">{r.insightLink}</code>
+                          <button onClick={() => kopier(r.insightLink, `${r.id}:innsyn`)} className="text-xs px-3 py-1 rounded-lg bg-[var(--ink)] text-[var(--paper)] font-semibold">
+                            {kopiert === `${r.id}:innsyn` ? t('copied') : t('copy')}
+                          </button>
+                        </>
+                      )}
+                      <button disabled={busy}
+                        onClick={() => endre({ id: r.id, action: 'rotate_insight' }, r.insightLink ? t('insight_rotate_confirm', { name: r.name }) : undefined)}
+                        className="px-3 py-1 rounded-lg text-xs font-semibold border border-gray-300 text-gray-700 hover:border-[var(--ember-deep)] disabled:opacity-40">
+                        {r.insightLink ? t('insight_rotate') : t('insight_create')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

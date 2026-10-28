@@ -291,7 +291,9 @@ export async function lagLesning(takeId: string, regi?: string | null) {
 
   // En lesning er utforskning FØR en avtale finnes — samme kategori som
   // prøvelytt. Skuespilleren får betalt, raden står uten hjemmel.
-  await supabase.from('voice_usage_events').insert({
+  const { tekstMeta, skrivDetaljer } = await import('@/lib/usageDetails')
+  const replikk = { body: String(a!.line || ''), kind: 'line' as const }
+  const { data: royaltyRad } = await supabase.from('voice_usage_events').insert({
     actor_id: actor.id,
     used_by_tenant_id: a!.tenant_id,
     organization_id: a!.organization_id ?? null,
@@ -301,8 +303,10 @@ export async function lagLesning(takeId: string, regi?: string | null) {
     asset_type: 'voice',
     // Versjonen som leste (112) — gjeldende, siden lesningen bruker gjeldende stemme.
     twin_version: (actor as { twin_version?: number | null }).twin_version ?? null,
-    meta: { kind: 'audition_read', audition_id: a!.id, chars: String(a!.line).length, licence_match: 'preview' },
-  })
+    meta: { kind: 'audition_read', audition_id: a!.id, chars: String(a!.line).length, licence_match: 'preview', ...tekstMeta(replikk) },
+  }).select('id').single()
+  // Replikken og lesningen ved siden av hovedboken (127). Lyden ligger privat.
+  await skrivDetaljer((royaltyRad as { id: string } | null)?.id, { tekst: replikk, resultat: { url: sti, kind: 'audio', store: 'training-sets' } })
 
   await supabase.from('audition_takes').update({ stage: 'ready', updated_at: new Date().toISOString() }).eq('id', takeId)
   // Lesningen er lagret og ført; en signeringshikke her skal ikke se ut som at den feilet.
@@ -395,7 +399,9 @@ export async function flyttTake(takeId: string): Promise<void> {
 
       // Filmen er det kunden BESTILTE. Raden skrives først her, så en hengende
       // kø verken belaster kunden eller krediterer skuespilleren.
-      await supabase.from('voice_usage_events').insert({
+      const { tekstMeta, skrivDetaljer } = await import('@/lib/usageDetails')
+      const replikk = { body: String(a!.line || ''), kind: 'line' as const }
+      const { data: royaltyRad } = await supabase.from('voice_usage_events').insert({
         actor_id: actor!.id,
         used_by_tenant_id: a!.tenant_id,
         organization_id: a!.organization_id ?? null,
@@ -410,8 +416,10 @@ export async function flyttTake(takeId: string): Promise<void> {
         meta: {
           kind: 'audition', audition_id: a!.id, includes_voice: true, licence_match: 'preview',
           ...(t.face_model_ref ? { model: t.face_model_ref, age_model: t.face_model_label } : {}),
+          ...tekstMeta(replikk),
         },
-      })
+      }).select('id').single()
+      await skrivDetaljer((royaltyRad as { id: string } | null)?.id, { tekst: replikk, resultat: { url: videoSti, kind: 'video', store: 'training-sets' } })
       await sett({ stage: 'done', video_url: videoSti })
       return
     }

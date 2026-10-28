@@ -195,7 +195,9 @@ export async function logPreviewRoyalty(e: {
   chars: number
   draftId?: string | null
   meta?: Record<string, unknown>
-}): Promise<{ actorNok: number; customerNok: number } | null> {
+  // Teksten som ble lest (127) — fingeravtrykket i hovedboken, teksten ved siden av.
+  tekst?: import('@/lib/usageDetails').Tekst | null
+}): Promise<{ actorNok: number; customerNok: number; eventId: string | null } | null> {
   try {
     if (!e.elevenlabsVoiceId || !e.usedByTenantId || !(e.chars > 0)) return null
     const actors = await getAvailableVoiceActors(e.usedByTenantId)
@@ -206,7 +208,8 @@ export async function logPreviewRoyalty(e: {
     const perCustomer = Number(o?.customer_price_nok ?? PREVIEW_ROYALTY_PER_1000.customer)
     const actorNok = Math.max(0.01, Math.round((e.chars / 1000) * perActor * 100) / 100)
     const customerNok = Math.max(0.02, Math.round((e.chars / 1000) * perCustomer * 100) / 100)
-    await admin().from('voice_usage_events').insert({
+    const { tekstMeta, skrivDetaljer } = await import('@/lib/usageDetails')
+    const { data: rad } = await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
       organization_id: e.organizationId ?? null,
@@ -219,9 +222,11 @@ export async function logPreviewRoyalty(e: {
       // BEVISST uten licence_id: prøvelytt er utforskning FØR en avtale
       // finnes. Å kreve hjemmel her ville gjort det umulig å vurdere en
       // stemme uten først å inngå lisens — og iterasjon skal være billig.
-      meta: { kind: 'preview', chars: e.chars, licence_match: 'preview', ...(e.meta ?? {}) },
-    })
-    return { actorNok, customerNok }
+      meta: { kind: 'preview', chars: e.chars, licence_match: 'preview', ...(e.meta ?? {}), ...tekstMeta(e.tekst) },
+    }).select('id').single()
+    const eventId = (rad as { id: string } | null)?.id ?? null
+    await skrivDetaljer(eventId, { tekst: e.tekst })
+    return { actorNok, customerNok, eventId }
   } catch {
     return null
   }
@@ -240,9 +245,12 @@ export async function logFaceUsage(e: {
   productId?: string | null
   draftId?: string | null
   jobId?: string | null
-}): Promise<void> {
+  // Hva som ble laget (127): beskrivelsen bildet kom fra, og bildet/filmen.
+  tekst?: import('@/lib/usageDetails').Tekst | null
+  resultat?: import('@/lib/usageDetails').Resultat | null
+}): Promise<string | null> {
   try {
-    if (!e.characterId || !e.usedByTenantId) return
+    if (!e.characterId || !e.usedByTenantId) return null
     // Samme tilgjengelighetslogikk som stemmer: kjede + delt + library —
     // delte/library-ansikter blir dermed fakturerbare også utenfor eierkjeden
     const available = await getAvailableFaceActors(e.usedByTenantId)
@@ -255,13 +263,14 @@ export async function logFaceUsage(e: {
       const eiere = await skuespillereForModell('face', e.characterId).catch(() => [] as string[])
       actor = available.find((a) => eiere.includes(a.id)) as VoiceActor | undefined
     }
-    if (!actor) return
+    if (!actor) return null
     const { rate, price } = ratesForKind(actor, 'face')
     const hjemmel = await finnLisensFor({
       actorId: actor.id, organizationId: e.organizationId, assetType: 'face', modell: e.characterId,
     })
     const twinVersion = await versjonForBruk(actor.id, 'face', e.characterId)
-    await admin().from('voice_usage_events').insert({
+    const { tekstMeta, skrivDetaljer } = await import('@/lib/usageDetails')
+    const { data: rad } = await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
       licence_id: hjemmel.licenceId,
@@ -278,11 +287,15 @@ export async function logFaceUsage(e: {
       twin_version: twinVersion,
       // licence_match lagres selv når ingen hjemmel ble funnet: da er hullet
       // revisjonerbart («ingen avtale» vs «flere avtale-kandidater»).
-      meta: { kind: 'face', licence_match: hjemmel.match, model: e.characterId },
-    })
+      meta: { kind: 'face', licence_match: hjemmel.match, model: e.characterId, ...tekstMeta(e.tekst) },
+    }).select('id').single()
+    const eventId = (rad as { id: string } | null)?.id ?? null
+    await skrivDetaljer(eventId, { tekst: e.tekst, resultat: e.resultat })
     console.log(`[voiceBank] Ansikts-royalty: ${actor.name} brukt av tenant ${e.usedByTenantId}`)
+    return eventId
   } catch (err) {
     console.warn('[voiceBank] ansikts-logging feilet (ignoreres):', err)
+    return null
   }
 }
 
@@ -299,9 +312,12 @@ export async function logVoiceUsage(e: {
   draftId?: string | null
   jobId?: string | null
   meta?: Record<string, unknown>
-}): Promise<void> {
+  // Hva som ble laget (127): teksten som ble lest, og lyden/filmen.
+  tekst?: import('@/lib/usageDetails').Tekst | null
+  resultat?: import('@/lib/usageDetails').Resultat | null
+}): Promise<string | null> {
   try {
-    if (!e.elevenlabsVoiceId || !e.usedByTenantId) return
+    if (!e.elevenlabsVoiceId || !e.usedByTenantId) return null
     const actors = await getAvailableVoiceActors(e.usedByTenantId)
     const { finnLisensFor, skuespillereForModell, versjonForBruk } = await import('@/lib/licenceMatch')
     let actor = actors.find((a) => a.elevenlabs_voice_id === e.elevenlabsVoiceId)
@@ -310,7 +326,7 @@ export async function logVoiceUsage(e: {
       const eiere = await skuespillereForModell('voice', e.elevenlabsVoiceId).catch(() => [] as string[])
       actor = actors.find((a) => eiere.includes(a.id))
     }
-    if (!actor) return
+    if (!actor) return null
     // Takst etter brukstype (meta.kind) — fryses på raden
     const { rate, price } = ratesForKind(actor, typeof e.meta?.kind === 'string' ? e.meta.kind : null)
     const hjemmel = await finnLisensFor({
@@ -319,7 +335,8 @@ export async function logVoiceUsage(e: {
       modell: e.elevenlabsVoiceId,
     })
     const twinVersion = await versjonForBruk(actor.id, 'voice', e.elevenlabsVoiceId)
-    await admin().from('voice_usage_events').insert({
+    const { tekstMeta, skrivDetaljer } = await import('@/lib/usageDetails')
+    const { data: rad } = await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: e.usedByTenantId,
       licence_id: hjemmel.licenceId,
@@ -332,10 +349,14 @@ export async function logVoiceUsage(e: {
       actor_rate_nok: rate,
       customer_price_nok: price,
       twin_version: twinVersion,
-      meta: { ...(e.meta ?? {}), licence_match: hjemmel.match },
-    })
+      meta: { ...(e.meta ?? {}), licence_match: hjemmel.match, ...tekstMeta(e.tekst) },
+    }).select('id').single()
+    const eventId = (rad as { id: string } | null)?.id ?? null
+    await skrivDetaljer(eventId, { tekst: e.tekst, resultat: e.resultat })
     console.log(`[voiceBank] Royalty-hendelse: ${actor.name} brukt av tenant ${e.usedByTenantId} (hjemmel: ${hjemmel.match})`)
+    return eventId
   } catch (err) {
     console.warn('[voiceBank] logging feilet (ignoreres):', err)
+    return null
   }
 }

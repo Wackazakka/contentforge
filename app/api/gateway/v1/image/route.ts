@@ -117,7 +117,9 @@ export async function POST(request: Request) {
     const hjemmel = await finnLisensFor({
       actorId: actor.id, organizationId: auth.organizationId, assetType: 'face', modell,
     })
-    await admin().from('voice_usage_events').insert({
+    const { tekstMeta, skrivDetaljer } = await import('@/lib/usageDetails')
+    const tekst = { body: String(prompt || ''), kind: 'prompt' as const }
+    const { data: royaltyRad } = await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: auth.tenantId,
       licence_id: hjemmel.licenceId,
@@ -125,8 +127,10 @@ export async function POST(request: Request) {
       customer_price_nok: price,
       asset_type: 'face',
       twin_version: valg.versjon,
-      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, licence_match: hjemmel.match, model: modell, ...(aldersmodell ? { age_model: aldersmodell.label } : {}) },
-    })
+      meta: { kind: 'face', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, licence_match: hjemmel.match, model: modell, ...(aldersmodell ? { age_model: aldersmodell.label } : {}), ...tekstMeta(tekst) },
+    }).select('id').single()
+    // Beskrivelsen og bildet ved siden av hovedboken (127)
+    await skrivDetaljer((royaltyRad as { id: string } | null)?.id, { tekst, resultat: { url, kind: 'image' } })
 
     // Meter kundens forbruk (trekker forskuddssaldoen)
     const customerPrice = await customerPriceFor(auth, actor, 'face')

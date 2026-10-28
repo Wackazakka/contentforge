@@ -116,7 +116,9 @@ export async function POST(request: Request) {
     const hjemmel = await finnLisensFor({
       actorId: actor.id, organizationId: auth.organizationId, assetType: 'voice', modell: stemme,
     })
-    await admin().from('voice_usage_events').insert({
+    const { tekstMeta, skrivDetaljer } = await import('@/lib/usageDetails')
+    const tekst = { body: text, kind: 'spoken' as const }
+    const { data: royaltyRad } = await admin().from('voice_usage_events').insert({
       actor_id: actor.id,
       used_by_tenant_id: auth.tenantId,
       licence_id: hjemmel.licenceId,
@@ -126,8 +128,10 @@ export async function POST(request: Request) {
       twin_version: valg.versjon,
       // api_key_id: hvilken av kundens nøkler som ble brukt — organisasjonen alene
       // skiller dem ikke når en kunde har flere.
-      meta: { kind: 'speech', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, chars: text.length, licence_match: hjemmel.match },
-    })
+      meta: { kind: 'speech', source: 'gateway', organization_id: auth.organizationId, api_key_id: auth.keyId, chars: text.length, licence_match: hjemmel.match, ...tekstMeta(tekst) },
+    }).select('id').single()
+    // Teksten og lyden ved siden av hovedboken (127)
+    await skrivDetaljer((royaltyRad as { id: string } | null)?.id, { tekst, resultat: { url, kind: 'audio' } })
 
     // Meter kundens forbruk (trekker forskuddssaldoen) — separat fra royalty-loggen,
     // akkurat som editoren logger både usage_events og voice_usage_events

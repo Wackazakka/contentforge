@@ -190,17 +190,22 @@ export async function POST(request: Request) {
         const { getProductTenant: gpt2 } = await import('@/lib/tenantBilling')
         const { logVoiceUsage, logFaceUsage } = await import('@/lib/voiceBank')
         const pt2 = await gpt2(draftProductId)
-        const { data: d3 } = await supabase.from('production_drafts').select('voice_id, character_id').eq('id', draftId).single()
+        const { data: d3 } = await supabase.from('production_drafts').select('voice_id, character_id, segments').eq('id', draftId).single()
+        // Hva filmen sier og hvor den havner (127) — rettighetshaveren får se det
+        // i hovedboken sin, så langt lisensen tillater.
+        const { manusFraSegmenter, dropletResultat } = await import('@/lib/usageDetails')
+        const manus = manusFraSegmenter(d3?.segments)
+        const film = dropletResultat('video', jobId)
         // awaites: et uavventet lofte kan bli avlivet naar svaret returneres,
         // og royalty-raden forsvinner da uten feilmelding. Begge funksjonene
         // feiler stille internt, saa ventingen koster oss ingenting.
         if (pt2.tenantId && d3?.voice_id) {
-          await logVoiceUsage({ elevenlabsVoiceId: d3.voice_id, usedByTenantId: pt2.tenantId, organizationId: pt2.organizationId, productId: draftProductId, draftId, jobId, meta: { kind: 'video' } })
+          await logVoiceUsage({ elevenlabsVoiceId: d3.voice_id, usedByTenantId: pt2.tenantId, organizationId: pt2.organizationId, productId: draftProductId, draftId, jobId, meta: { kind: 'video' }, tekst: manus ? { body: manus, kind: 'spoken' } : null, resultat: film })
         }
         // Karakteren kommer fra body i gratis-stien og fra draft-kolonnen i betalings-stien
         const charId = character || d3?.character_id
         if (pt2.tenantId && charId) {
-          await logFaceUsage({ characterId: charId, usedByTenantId: pt2.tenantId, organizationId: pt2.organizationId, productId: draftProductId, draftId, jobId })
+          await logFaceUsage({ characterId: charId, usedByTenantId: pt2.tenantId, organizationId: pt2.organizationId, productId: draftProductId, draftId, jobId, resultat: film })
         }
       }
     } catch { /* måling velter aldri produksjon */ }

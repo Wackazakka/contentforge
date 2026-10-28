@@ -181,7 +181,7 @@ export async function GET(request: Request) {
         actorSettlement(a.id),
         supabase
           .from('voice_usage_events')
-          .select('id, used_by_tenant_id, actor_rate_nok, meta, asset_type, created_at, licence_id')
+          .select('id, used_by_tenant_id, actor_rate_nok, meta, asset_type, created_at, licence_id, product_id, draft_id, job_id')
           .eq('actor_id', a.id)
           .order('created_at', { ascending: false })
           .limit(200),
@@ -196,6 +196,12 @@ export async function GET(request: Request) {
       const events = ev.data || []
       await nameOf([a.owner_tenant_id as string, ...events.map((e) => e.used_by_tenant_id as string)])
 
+      // HVA tvillingen ble brukt til (127): produksjon, tekst og resultat, så
+      // langt lisensen tillater. Filtrert her — det som holdes tilbake, sendes ikke.
+      const agentId = (a as { talent_agent_id?: string | null }).talent_agent_id ?? null
+      const { innsynForBruk, lisensNivaaer } = await import('@/lib/innsynServer')
+      const innsyn = await innsynForBruk({ talentAgentId: agentId, events: events as never })
+
       // Lisensene rettighetshaveren er bundet av. Hen får se OMFANGET — man kan
       // ikke ha samtykket til en film uten å vite hvilken — og sin egen side av
       // pengene, inkludert fradrag som tas AV honoraret (agent/manager). Ikke
@@ -208,6 +214,7 @@ export async function GET(request: Request) {
         .in('status', ['quote', 'active', 'expired'])
         .order('created_at', { ascending: false })
       const licIds = (lics || []).map((l) => l.id as string)
+      const lisensInnsyn = agentId ? await lisensNivaaer(licIds) : new Map()
       const [{ data: splits }, { data: steps }, { data: stmts }] = await Promise.all([
         licIds.length
           ? supabase.from('licence_splits').select('licence_id, party_type, party_label, basis, pct, amount_nok').in('licence_id', licIds)
@@ -292,6 +299,8 @@ export async function GET(request: Request) {
         previewRatePer1000,
         since: a.created_at,
         managedBy: tenantNames.get(a.owner_tenant_id as string) ?? tenant.app_name,
+        // Kom hun gjennom et byrå, er det byrået som styrer innsynet (127).
+        agencyControlsInsight: !!agentId,
         uses: settlement.uses,
         earnedNok: settlement.earnedNok,
         // Byråets andel (117): det som er frosset på utbetalingene pluss det som
@@ -334,6 +343,8 @@ export async function GET(request: Request) {
             royaltyPct: l.royalty_pct != null ? Number(l.royalty_pct) : null,
             releaseChannel: l.release_channel,
             releaseTitle: l.release_title,
+            // Hva hun ser av bruken under lisensen (127). Drop-in: alltid alt.
+            insight: agentId ? (lisensInnsyn.get(l.id as string) ?? 'full') : 'full',
             statements: (stmts || [])
               .filter((s) => s.licence_id === l.id)
               .map((s) => ({
@@ -364,6 +375,12 @@ export async function GET(request: Request) {
           assetType: e.asset_type || 'voice',
           usedBy: tenantNames.get(e.used_by_tenant_id as string) ?? 'Ukjent',
           toYouNok: Number(e.actor_rate_nok),
+          // Innsynet (127): null-felter er enten holdt tilbake eller ikke kjent.
+          insight: innsyn.get(e.id)?.insight ?? 'production',
+          productName: innsyn.get(e.id)?.productName ?? null,
+          text: innsyn.get(e.id)?.text ?? null,
+          textKind: innsyn.get(e.id)?.textKind ?? null,
+          output: innsyn.get(e.id)?.output ?? null,
           // Hjemmelen: hvilken avtale denne ene genereringen skjedde under.
           // Det er dette leddet som gjør hovedboken til et klareringsregister.
           licenceId: (e.licence_id as string) ?? null,

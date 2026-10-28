@@ -103,6 +103,8 @@ export async function POST(request: Request) {
     // Skuespiller-preview? Da får skuespilleren en liten tegnbasert royalty
     // (à la ElevenLabs-satsene), og kundens taxameter belastes tilsvarende.
     let actorExtraNok = 0
+    // Hovedbokraden for prøvelyttet (127): lyden festes til den etter opplastingen.
+    let royaltyRad: string | null = null
     if (draftId && voiceId) {
       try {
         const { createClient } = await import('@supabase/supabase-js')
@@ -115,8 +117,9 @@ export async function POST(request: Request) {
           const pt = await getProductTenant(productId)
           if (pt.tenantId) {
             const { logPreviewRoyalty } = await import('@/lib/voiceBank')
-            const r = await logPreviewRoyalty({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, organizationId: pt.organizationId, chars: String(text).length, draftId })
+            const r = await logPreviewRoyalty({ elevenlabsVoiceId: voiceId, usedByTenantId: pt.tenantId, organizationId: pt.organizationId, chars: String(text).length, draftId, tekst: { body: String(text || ''), kind: 'spoken' } })
             if (r) {
+              royaltyRad = r.eventId
               actorExtraNok = r.customerNok
               await supabase.rpc('add_draft_cost', { p_draft_id: draftId, p_amount: r.customerNok })
               logUE({ draftId, eventType: 'voiceover_actor_preview', costNok: r.customerNok })
@@ -167,6 +170,10 @@ export async function POST(request: Request) {
 
     const url = `${R2_PUBLIC_URL}/${key}`
     console.log(`[preview-voiceover] Success: ${url}`)
+    if (royaltyRad) {
+      const { skrivDetaljer } = await import('@/lib/usageDetails')
+      await skrivDetaljer(royaltyRad, { resultat: { url, kind: 'audio' } })
+    }
 
     return NextResponse.json({ url, actorExtraNok })
   } catch (err: any) {

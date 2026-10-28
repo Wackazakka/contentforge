@@ -82,7 +82,13 @@ export async function GET(request: Request) {
       }))
     )
     const card = await hentTakstkort(tenant.id)
-    return NextResponse.json({ licences: detaljer, rateCard: card })
+    // Har hun byrå? Bare da kan innsynet begrenses (127).
+    const { data: sk } = await admin().from('voice_actors').select('talent_agent_id, talent_agents(name)').eq('id', actorId).maybeSingle()
+    const ta = (sk as { talent_agents?: { name: string } | { name: string }[] | null } | null)?.talent_agents
+    const byraa = (sk as { talent_agent_id?: string | null } | null)?.talent_agent_id
+      ? { name: (Array.isArray(ta) ? ta[0]?.name : ta?.name) ?? null }
+      : null
+    return NextResponse.json({ licences: detaljer, rateCard: card, agency: byraa })
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })
   }
@@ -133,6 +139,22 @@ export async function PATCH(request: Request) {
     const { data: lic } = await admin()
       .from('licences').select('*').eq('id', licenceId).eq('tenant_id', tenant.id).maybeSingle()
     if (!lic) return NextResponse.json({ error: 'Lisensen finnes ikke i denne banken' }, { status: 404 })
+
+    // Hva rettighetshaveren ser av bruken (127). Eget løp: det rører verken
+    // beløp eller fordeling, og skal ikke skrive fordelingen om.
+    if (body.actorInsight !== undefined) {
+      const { erInnsyn } = await import('@/lib/usageDetails')
+      if (!erInnsyn(body.actorInsight)) return NextResponse.json({ error: 'Ukjent innsynsnivå' }, { status: 400 })
+      const { data: sk } = await admin().from('voice_actors').select('talent_agent_id').eq('id', lic.actor_id).maybeSingle()
+      // Bare et byrå kan begrense. En drop-in ser alt, og det skal ikke se ut
+      // som noen har valgt noe annet for henne.
+      if (body.actorInsight !== 'full' && !(sk as { talent_agent_id?: string | null } | null)?.talent_agent_id) {
+        return NextResponse.json({ error: 'Rettighetshaveren har ikke byrå og ser alltid alt' }, { status: 400 })
+      }
+      const { error } = await admin().from('licences').update({ actor_insight: body.actorInsight }).eq('id', licenceId)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true })
+    }
 
     const patch: Record<string, unknown> = {}
     if (body.feeCustomerNok !== undefined) {
