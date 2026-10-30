@@ -15,8 +15,9 @@ export const UNDERSOKELSE = {
   // Søndag 1.11 kl. 23:59 norsk tid (vintertid, UTC+1). Flyttet fra tirsdag
   // 27.10 til fredag 30.10, så til søndag (Lars 27.10): bare én av fire hadde
   // startet, og David sendte SMS-påminnelse samme dag.
-  bonusFrist: '2026-11-01T22:59:59Z',
-  bonusFristTekst: 'søndag 1. november',
+  // Søndag 8.11 fra 30.10 (Lars): andre testrunde, fem nye testere fra David.
+  bonusFrist: '2026-11-08T22:59:59Z',
+  bonusFristTekst: 'søndag 8. november',
   grenseKreditter: 200,
   bonusKreditter: 3000,
 } as const

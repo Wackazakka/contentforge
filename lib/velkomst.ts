@@ -155,6 +155,7 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
         </td>
       </tr></table>
       <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#5E564A;">Knappen åpner ${esc(produkt)} i nettleseren. Trykk på knappen der én gang til, så kommer du til siden der du velger passordet ditt. Skriv det to ganger (minst 8 tegn) og trykk «Lagre og kom i gang». Da er du inne.</p>
+      ${t.vertical === 'music' ? `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;">📋 <strong>Dette trenger du:</strong> én låt og 4–6 bilder av deg eller bandet. Låten kan være MP3, WAV, AIFF, M4A eller FLAC, og bildene kan du ta rett fra mobilen.</p>` : ''}
       ${notat ? `<div style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;border-left:4px solid ${esc(aksent)};font-size:14.5px;line-height:1.6;color:#1C1A16;">${esc(notat)}</div>` : ''}
       ${veiledning(t, pf, kreditter)}
       ${svarTil ? `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;"><strong>Får du det ikke til?</strong> Svar på denne e-posten, så hjelper vi deg.</p>` : ''}
