@@ -906,8 +906,10 @@ export default function DraftV2Page() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sess?.session?.access_token || ''}` },
         body: JSON.stringify({ text: seg.voiceover, voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX', draftId, segmentIndex: index, languageCode: languageForGroup((VOICES.find((v) => v.id === draft.voice_id) as any)?.gruppe) }),
       })
-      const data = await res.json()
-      if (data.url) {
+      const data = await res.json().catch(() => null)
+      // Avvist stemme eller utløpt innlogging skal synes — ikke bare la knappen stå stille
+      if (!res.ok) { alert(data?.error || `Innlesingen feilet (HTTP ${res.status})`); return }
+      if (data?.url) {
         setVoicePreviews((p) => ({ ...p, [index]: data.url }))
         setDraft((prev) => {
           if (!prev) return prev
