@@ -20,7 +20,18 @@ export const UNDERSOKELSE = {
   bonusFristTekst: 'søndag 8. november',
   grenseKreditter: 200,
   bonusKreditter: 3000,
+  // Andre runde (Lars 30.10): 2 000 i start og 2 000 i bonus. Første runde
+  // fikk løfte om 3 000 i e-postene sine og beholder det.
+  bonusKreditterRunde2: 2000,
+  runde2Fra: '2026-10-30T00:00:00Z',
 } as const
+
+// Bonusen for en tester, ut fra når hun først ble invitert
+export function bonusKredittFor(forsteInvitasjon: string | null): number {
+  return forsteInvitasjon && new Date(forsteInvitasjon) >= new Date(UNDERSOKELSE.runde2Fra)
+    ? UNDERSOKELSE.bonusKreditterRunde2
+    : UNDERSOKELSE.bonusKreditter
+}
 
 export type Sporsmal =
   | { id: string; type: 'ett'; tekst: string; valg: string[]; kreves?: boolean | 'hvisVideo'; hint?: string }

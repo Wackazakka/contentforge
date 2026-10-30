@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getOrgBalance } from '@/lib/tenantBilling'
-import { UNDERSOKELSE, validerSvar } from '@/lib/tilbakemelding'
+import { UNDERSOKELSE, validerSvar, bonusKredittFor } from '@/lib/tilbakemelding'
 
 // Tilbakemeldingsskjemaet (migrasjon 108, Lars 21.10.2026).
 // GET  → status: saldo, tidligere svar, om bonusen er mulig/gitt
@@ -30,13 +30,16 @@ async function hvem(request: Request) {
   // Organisasjonen på DETTE domenet (samme regel som /api/org-balance)
   const { data: orgs } = await sb.from('organizations').select('id, tenant_id').eq('owner_id', user.id).order('created_at', { ascending: true })
   const org = (orgs || []).find((o: any) => o.tenant_id === tenant.id) ?? null
-  const { count } = await sb.from('welcome_invites').select('id', { count: 'exact', head: true })
+  const { data: invitasjoner } = await sb.from('welcome_invites').select('created_at')
     .eq('user_id', user.id).eq('tenant_slug', UNDERSOKELSE.tenantSlug)
+    .order('created_at', { ascending: true }).limit(1)
+  const forste = invitasjoner?.[0]?.created_at ?? null
   const kroner = org ? await getOrgBalance(org.id) : null
   return {
     sb, user, tenant, org,
     aktiv: tenant.slug === UNDERSOKELSE.tenantSlug,
-    invitert: (count || 0) > 0,
+    invitert: !!forste,
+    bonusKreditter: bonusKredittFor(forste),
     saldoKreditter: kroner === null ? null : Math.round(kroner * 10 * 10) / 10,
   }
 }
@@ -61,7 +64,7 @@ export async function GET(request: Request) {
       gitt: !!rad?.bonus_granted_at,
       fristUte: fristUte(),
       grense: UNDERSOKELSE.grenseKreditter,
-      kreditter: UNDERSOKELSE.bonusKreditter,
+      kreditter: h.bonusKreditter,
       fristTekst: UNDERSOKELSE.bonusFristTekst,
     },
   })
@@ -96,15 +99,15 @@ export async function POST(request: Request) {
   const mulig = h.invitert && !fristUte() && h.org && h.saldoKreditter !== null && h.saldoKreditter < UNDERSOKELSE.grenseKreditter
   if (mulig && h.org) {
     const { data: krevd } = await h.sb.from('feedback_responses')
-      .update({ bonus_granted_at: new Date().toISOString(), bonus_credits: UNDERSOKELSE.bonusKreditter })
+      .update({ bonus_granted_at: new Date().toISOString(), bonus_credits: h.bonusKreditter })
       .eq('user_id', h.user.id).eq('survey', UNDERSOKELSE.id).is('bonus_granted_at', null)
       .select('id')
     if (krevd?.length) {
       const { error: kErr } = await h.sb.from('org_topups').insert({
         organization_id: h.org.id,
         amount_nok: 0,
-        bonus_nok: UNDERSOKELSE.bonusKreditter / 10, // kreditter = kr × 10
-        note: `Tilbakemeldingsbonus ${UNDERSOKELSE.id}: ${UNDERSOKELSE.bonusKreditter} kreditter (under ${UNDERSOKELSE.grenseKreditter} igjen ved innsending)`,
+        bonus_nok: h.bonusKreditter / 10, // kreditter = kr × 10
+        note: `Tilbakemeldingsbonus ${UNDERSOKELSE.id}: ${h.bonusKreditter} kreditter (under ${UNDERSOKELSE.grenseKreditter} igjen ved innsending)`,
       })
       if (kErr) {
         // Gi kravet tilbake, så neste innsending kan prøve igjen
