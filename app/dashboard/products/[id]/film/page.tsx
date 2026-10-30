@@ -10,12 +10,12 @@ import { innloggingHeader } from '@/lib/innlogging'
 import { useTenant } from '@/lib/tenantContext'
 import { fetchMusicLibrary, ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
 import { FILM_LIBRARY_FOLDER } from '@/lib/filmVoices'
-import { uploadTrack, TRACK_UPLOAD_MAX_BYTES } from '@/lib/uploadTrack'
+import { uploadTrack, TRACK_UPLOAD_MAX_BYTES, LAAT_ACCEPT, erStottetLaat } from '@/lib/uploadTrack'
 import { filmPricing } from '@/lib/verticals'
 import { fillMissingImages, type FilmSeg } from '@/lib/filmImages'
 import { defaultTrackFor, trackDisplayName } from '@/lib/filmMusic'
 import { personPromptFor, DRAWING_MAX_TRIES } from '@/lib/filmPersonPrompt'
-import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
+import { komprimerBilde, bildeFeil, BILDE_ACCEPT } from '@/lib/komprimerBilde'
 
 // Den enkle filmflyten (Standard Ropert, Lars 4/9): sang → bilder → tekst →
 // film. Ingen segmentredigering, ingen stemmevalg, ingen taxameter. Sangen
@@ -239,7 +239,7 @@ export default function FilmPage() {
 
   const onTrackChosen = async (file: File) => {
     setTrackError(null)
-    if (!/\.mp3$/i.test(file.name) && file.type !== 'audio/mpeg') { setTrackError(t('onlyMp3')); return }
+    if (!erStottetLaat(file)) { setTrackError(t('onlyMp3')); return }
     if (file.size > TRACK_UPLOAD_MAX_BYTES) { setTrackError(t('tooLarge')); return }
     setUploadingTrack(true)
     try {
@@ -605,7 +605,7 @@ export default function FilmPage() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <label style={{ ...(chosenTrack ? ghostBtn : bigBtn), opacity: uploadingTrack || busy ? 0.6 : 1 }}>
               {uploadingTrack ? t('uploading') : chosenTrack ? t('changeSong') : t('uploadSong')}
-              <input type="file" accept=".mp3,audio/mpeg" className="hidden" disabled={uploadingTrack || busy} onChange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ''; if (f) onTrackChosen(f) }} />
+              <input type="file" accept={LAAT_ACCEPT} className="hidden" disabled={uploadingTrack || busy} onChange={(e) => { const f = e.currentTarget.files?.[0]; e.currentTarget.value = ''; if (f) onTrackChosen(f) }} />
             </label>
             {chosenTrack && (
               <button type="button" onClick={() => { setMusicFile(null); setMusicDuration(null) }} disabled={busy} style={{ ...ghostBtn, border: 'none', color: 'var(--text-muted)' }}>{t('noSong')}</button>
@@ -649,7 +649,7 @@ export default function FilmPage() {
           )}
           <label style={{ ...(photos.length ? ghostBtn : bigBtn), opacity: uploadingPhotos || busy ? 0.6 : 1 }}>
             {uploadingPhotos ? t('uploading') : photos.length ? t('morePhotos') : t('addPhotos')}
-            <input type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" disabled={uploadingPhotos || busy} onChange={(e) => { const fs = Array.from(e.currentTarget.files || []); e.currentTarget.value = ''; if (fs.length) onPhotosChosen(fs) }} />
+            <input type="file" accept={BILDE_ACCEPT} multiple className="hidden" disabled={uploadingPhotos || busy} onChange={(e) => { const fs = Array.from(e.currentTarget.files || []); e.currentTarget.value = ''; if (fs.length) onPhotosChosen(fs) }} />
           </label>
           {photos.length === 0 && <p style={{ ...hint, margin: '12px 0 0', fontSize: 13.5 }}>{t('noPhotosHint')}</p>}
           {photoError && <p style={{ fontFamily: HANKEN, fontSize: 14, color: 'var(--ember-deep)', margin: '10px 0 0' }}>{photoError}</p>}

@@ -387,29 +387,53 @@ app.post('/music/import', express.json(), (req, res) => {
       return res.status(400).json({ error: 'Kun Supabase Storage-URL-er kan importeres' })
     }
     if (!folder) return res.status(400).json({ error: 'Ugyldig mappe' })
+    // Alt lagres som MP3 (Lars 30.10): WAV/AIFF/M4A/FLAC gjøres om her, så
+    // klipp, medley og renderen (som forutsetter .mp3) slipper å ta hensyn.
     const sanitized = sanitizeMusicName(rawName)
-    const outName = /\.(mp3|wav|m4a|ogg|flac)$/.test(sanitized) ? sanitized : sanitized + '.mp3'
+    const kildeExt = (sanitized.match(/\.(mp3|wav|aiff?|m4a|ogg|flac)$/i) || [])[1]
+    const base = sanitized.replace(/\.(mp3|wav|aiff?|m4a|ogg|flac)$/i, '') || 'laat'
+    const outName = `${base}.mp3`
     const folderPath = path.join(MUSIC_DIR, folder)
     if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true })
     const outPath = path.join(folderPath, outName)
 
+    const MAKS = 150 * 1024 * 1024
     const r = await fetch(url)
     if (!r.ok) return res.status(400).json({ error: `Nedlasting feilet (HTTP ${r.status})` })
     const len = Number(r.headers.get('content-length') || 0)
-    if (len > 50 * 1024 * 1024) return res.status(400).json({ error: 'Fila er for stor (maks 50 MB)' })
+    if (len > MAKS) return res.status(400).json({ error: 'Fila er for stor (maks 150 MB)' })
     const buf = Buffer.from(await r.arrayBuffer())
-    if (buf.byteLength > 50 * 1024 * 1024) return res.status(400).json({ error: 'Fila er for stor (maks 50 MB)' })
-    fs.writeFileSync(outPath, buf)
+    if (buf.byteLength > MAKS) return res.status(400).json({ error: 'Fila er for stor (maks 150 MB)' })
+
+    if (!kildeExt || kildeExt.toLowerCase() === 'mp3') {
+      fs.writeFileSync(outPath, buf)
+    } else {
+      const tmp = path.join(require('os').tmpdir(), `import-${Date.now()}-${Math.random().toString(36).slice(2)}.${kildeExt.toLowerCase()}`)
+      fs.writeFileSync(tmp, buf)
+      try {
+        await new Promise((resolve, reject) => {
+          execFile('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', tmp, '-vn', '-c:a', 'libmp3lame', '-b:a', '320k', outPath],
+            { timeout: 180000 }, (err, _stdout, stderr) => err ? reject(new Error(String(stderr).slice(-300) || err.message)) : resolve())
+        })
+      } catch (err) {
+        try { fs.unlinkSync(outPath) } catch { /* fantes ikke */ }
+        console.error('[server] Music import ffmpeg-feil:', err.message)
+        return res.status(400).json({ error: 'Lydfila kunne ikke leses. Prøv å lagre den som MP3 eller WAV.' })
+      } finally {
+        try { fs.unlinkSync(tmp) } catch { /* ok */ }
+      }
+    }
+    const size = fs.statSync(outPath).size
 
     const fileInfo = {
       filename: `${folder}/${outName}`,
-      name: (() => { const b = outName.replace(/\.(mp3|wav|m4a|ogg|flac)$/i, ''); return (b.includes(' ') ? b : b.replace(/[-_]/g, ' ')).trim() })(),
+      name: (b => (b.includes(' ') ? b : b.replace(/[-_]/g, ' ')).trim())(base),
       folder,
       url: `http://139.59.212.218:${PORT}/music/files/${encodeURIComponent(`${folder}/${outName}`)}`,
-      size: buf.byteLength,
+      size,
       uploadedAt: new Date().toISOString(),
     }
-    console.log(`[server] Music imported: ${fileInfo.filename} (${buf.byteLength} bytes)`)
+    console.log(`[server] Music imported: ${fileInfo.filename} (${buf.byteLength} bytes${kildeExt && kildeExt.toLowerCase() !== 'mp3' ? ` ${kildeExt} → mp3 ${size} bytes` : ''})`)
     res.json({ success: true, file: fileInfo })
   })().catch((err) => {
     console.error('[server] Music import error:', err.message)

@@ -9,9 +9,9 @@ import { useTranslations } from 'next-intl'
 import { useTenant } from '@/lib/tenantContext'
 import { verticalConfig, offersProduction } from '@/lib/verticals'
 import OccasionSimplePage from '@/components/OccasionSimplePage'
-import { uploadTrack } from '@/lib/uploadTrack'
+import { uploadTrack, LAAT_ACCEPT, LAAT_FORMATER } from '@/lib/uploadTrack'
 import { fetchMusicLibrary } from '@/lib/musicLibrary'
-import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
+import { komprimerBilde, bildeFeil, BILDE_ACCEPT } from '@/lib/komprimerBilde'
 import { fargerFraLogo } from '@/lib/logoFarger'
 
 function renderMarkdown(text: string) {
@@ -1182,7 +1182,7 @@ function FullProductPage() {
                 </span>
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,image/webp"
+                  accept={BILDE_ACCEPT}
                   multiple
                   className="hidden"
                   disabled={imgLibUploading}
@@ -1220,7 +1220,7 @@ function FullProductPage() {
                   }}
                 />
               </label>
-              <span className="text-xs text-gray-400 ml-3">PNG, JPG eller WebP. Store bilder komprimeres automatisk. Velg gjerne flere samtidig.</span>
+              <span className="text-xs text-gray-400 ml-3">JPG, PNG, WebP eller HEIC (iPhone). Store bilder komprimeres automatisk. Velg gjerne flere samtidig.</span>
             </div>
           )
           const laater = (
@@ -1266,7 +1266,7 @@ function FullProductPage() {
                 </span>
                 <input
                   type="file"
-                  accept=".mp3,audio/mpeg"
+                  accept={LAAT_ACCEPT}
                   multiple
                   className="hidden"
                   disabled={trackUploading}
@@ -1291,7 +1291,7 @@ function FullProductPage() {
                   }}
                 />
               </label>
-              <span className="text-xs text-gray-400 ml-3">MP3 — maks 50 MB per låt. Velg gjerne flere samtidig.</span>
+              <span className="text-xs text-gray-400 ml-3">{LAAT_FORMATER} — maks 150 MB per låt. Velg gjerne flere samtidig.</span>
             </div>
           )
           return tenant.vertical === 'music' ? <>{laater}{bilder}</> : <>{bilder}{laater}</>

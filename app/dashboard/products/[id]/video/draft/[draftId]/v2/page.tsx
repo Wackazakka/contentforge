@@ -19,7 +19,7 @@ import { MOTION_STYLES } from '@/lib/motionStyles'
 import { uploadSegmentVideo, VIDEO_MAX_BYTES } from '@/lib/uploadSegmentVideo'
 import { VOICES as VOICES_FALLBACK, voiceName, type VoiceOption, languageForGroup } from '@/lib/voices'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile, fetchMusicLibrary } from '@/lib/musicLibrary'
-import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
+import { komprimerBilde, bildeFeil, BILDE_ACCEPT } from '@/lib/komprimerBilde'
 
 interface Segment {
   index: number
@@ -1447,7 +1447,7 @@ export default function DraftV2Page() {
                                 {libUploading ? 'Laster opp…' : '+ Last opp nytt bilde'}
                                 <input
                                   type="file"
-                                  accept="image/png,image/jpeg,image/webp"
+                                  accept={BILDE_ACCEPT}
                                   className="hidden"
                                   disabled={libUploading}
                                   onChange={async (e) => {

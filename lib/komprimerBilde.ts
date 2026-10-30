@@ -33,23 +33,50 @@ const JPEG_KVALITET = 0.85
 const LA_STAA_UNDER = 1_000_000
 
 /**
+ * Filtypene bildeopplastingene godtar (accept på <input type="file">).
+ * HEIC/HEIF er med (Lars 30.10): bilder fra iPhone og Bilder-appen på Mac er
+ * HEIC, og uten dem i lista ble filene grå i filvelgeren — testerne på Safari
+ * kom aldri forbi «Bildene dine». komprimerBilde gjør dem om til JPG.
+ */
+export const BILDE_ACCEPT = 'image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif'
+
+export function erHeic(fil: File): boolean {
+  return /image\/hei[cf]/.test(fil.type || '') || /\.hei[cf]$/i.test(fil.name || '')
+}
+
+/**
  * Skalerer ned og re-koder et bilde i nettleseren.
  *
- * Returnerer ALLTID en brukbar File: feiler dekodingen — typisk HEIC fra
- * iPhone, som de fleste nettlesere ikke tegner på canvas — får du originalen
- * tilbake uendret, og den vanlige størrelsesgrensen fanger den i stedet.
- * Denne funksjonen skal aldri være grunnen til at en opplasting stopper.
+ * HEIC gjøres alltid om til JPG: Safari leser HEIC selv; Chrome og Firefox
+ * kan ikke, og da brukes heic2any (lastes bare ned når det trengs).
+ *
+ * Returnerer ALLTID en brukbar File: feiler dekodingen, får du originalen
+ * tilbake uendret, og bildeFeil forklarer hvorfor. Denne funksjonen skal
+ * aldri være grunnen til at en opplasting stopper.
  */
 export async function komprimerBilde(fil: File): Promise<File> {
-  if (!fil.type.startsWith('image/')) return fil
-  // SVG er vektor — nedskalering er meningsløst og ville rastrert den.
-  if (fil.type === 'image/svg+xml') return fil
-  if (fil.size <= LA_STAA_UNDER) return fil
+  const heic = erHeic(fil)
+  if (!heic) {
+    if (!fil.type.startsWith('image/')) return fil
+    // SVG er vektor — nedskalering er meningsløst og ville rastrert den.
+    if (fil.type === 'image/svg+xml') return fil
+    if (fil.size <= LA_STAA_UNDER) return fil
+  }
 
   let url: string | null = null
   try {
-    url = URL.createObjectURL(fil)
-    const bilde = await lastBilde(url)
+    let bilde: HTMLImageElement
+    try {
+      url = URL.createObjectURL(fil)
+      bilde = await lastBilde(url)
+    } catch (err) {
+      if (!heic) throw err
+      const heic2any = (await import('heic2any')).default
+      const ut = await heic2any({ blob: fil, toType: 'image/jpeg', quality: JPEG_KVALITET })
+      URL.revokeObjectURL(url!)
+      url = URL.createObjectURL(Array.isArray(ut) ? ut[0] : ut)
+      bilde = await lastBilde(url)
+    }
 
     const storsteKant = Math.max(bilde.width, bilde.height)
     const skala = storsteKant > MAKS_KANT ? MAKS_KANT / storsteKant : 1
@@ -72,8 +99,8 @@ export async function komprimerBilde(fil: File): Promise<File> {
     )
     if (!blob) return fil
     // Ble den ikke mindre, er originalen best. Skjer for små eller
-    // allerede hardt komprimerte filer.
-    if (blob.size >= fil.size) return fil
+    // allerede hardt komprimerte filer. Ikke for HEIC — den må bli JPG.
+    if (!heic && blob.size >= fil.size) return fil
 
     return new File([blob], bytUtEndelse(fil.name), {
       type: 'image/jpeg',
@@ -103,17 +130,15 @@ function bytUtEndelse(navn: string): string {
  * Hvorfor et bilde ikke kan lastes opp, i klartekst -- eller null.
  * Kalles ETTER komprimerBilde, med originalen og resultatet.
  *
- * HEIC/HEIF er iPhones standardformat. Nettleseren kan ikke dekode det, saa
- * komprimeringen gir originalen tilbake urort, og ruta avviser den uansett
- * (kun PNG/JPG/WebP). Foer fikk brukeren «for stort» eller et JSON-kraesj
- * uten aa faa vite hva som var galt (Lars 18/9).
+ * HEIC/HEIF gjøres om til JPG i komprimerBilde (Lars 30.10). Er resultatet
+ * fortsatt HEIC, feilet omgjøringen, og ruta ville avvist fila (kun
+ * PNG/JPG/WebP). Foer fikk brukeren «for stort» eller et JSON-kraesj uten aa
+ * faa vite hva som var galt (Lars 18/9).
  */
 export function bildeFeil(original: File, klar: File): string | null {
-  const navn = (original.name || '').toLowerCase()
-  const erHeic = /image\/hei[cf]/.test(original.type || '') || /\.hei[cf]$/.test(navn)
-  if (erHeic) {
-    return `«${original.name}» er i HEIC-format, som nettlesere ikke kan lese. Bruk JPG eller PNG. ` +
-      'På iPhone: Innstillinger → Kamera → Formater → «Mest kompatibelt» — eller del bildet fra Bilder-appen, så sendes det som JPG.'
+  if (erHeic(klar)) {
+    return `«${original.name}» er i HEIC-format og kunne ikke gjøres om til JPG. ` +
+      'Eksporter bildet som JPG (i Bilder-appen på Mac: Arkiv → Eksporter), og last det opp på nytt.'
   }
   if (klar.size > MAKS_OPPLASTING) {
     const mb = (klar.size / 1024 / 1024).toFixed(1)

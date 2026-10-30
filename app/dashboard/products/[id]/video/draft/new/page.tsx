@@ -9,7 +9,7 @@ import { useTenant } from '@/lib/tenantContext'
 import { campaignTemplates, type CampaignTemplate, type Locale } from '@/lib/campaignTemplates'
 import { lesOnsketStemme, fjernOnsketStemme, type OnsketStemme } from '@/lib/onsketStemme'
 import { fetchMusicLibrary, ownTracks, tracksFolder, isMedleyFile, type MusicFile } from '@/lib/musicLibrary'
-import { uploadTrack } from '@/lib/uploadTrack'
+import { uploadTrack, LAAT_ACCEPT } from '@/lib/uploadTrack'
 
 const VIDEO_FORMATS = [
   { value: '9:16', label: 'Portrait (TikTok)', color: 'blue' },
@@ -348,7 +348,7 @@ export default function NewDraftPage() {
                 {musikkLaster ? 'Laster opp…' : (laater.length > 0 ? '+ Last opp en ny låt' : '+ Last opp låten din')}
                 <input
                   type="file"
-                  accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav"
+                  accept={LAAT_ACCEPT}
                   className="hidden"
                   disabled={musikkLaster}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) void lastOppLaat(f); e.currentTarget.value = '' }}

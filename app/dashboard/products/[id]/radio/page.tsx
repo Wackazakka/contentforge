@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
 import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
-import { uploadTrack } from '@/lib/uploadTrack'
+import { uploadTrack, LAAT_ACCEPT, LAAT_FORMATER, erStottetLaat } from '@/lib/uploadTrack'
 import LisensertStemme, { lisensSperrer, type BankStemme } from '@/components/LisensertStemme'
 
 const DEFAULT_VOICE_ID = 'nhvaqgRyAq6BmFs3WcdX'
@@ -497,14 +497,14 @@ export default function RadioAdPage() {
               <div className={`grid ${tenantInfo.slug === 'centerforge' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
                 <label className="block">
                   <span className="text-xs font-medium text-gray-700 block mb-1">
-                    {tenantInfo.vertical === 'music' ? 'Last opp egen låt (MP3, maks 50 MB)' : 'Last opp egen musikk (MP3, maks 50 MB)'}
+                    {tenantInfo.vertical === 'music' ? `Last opp egen låt (${LAAT_FORMATER}, maks 150 MB)` : `Last opp egen musikk (${LAAT_FORMATER}, maks 150 MB)`}
                   </span>
-                  <input type="file" accept=".mp3"
+                  <input type="file" accept={LAAT_ACCEPT}
                     onChange={async (e) => {
                       const input = e.currentTarget
                       const file = input.files?.[0]
                       if (!file) return
-                      if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer støttes.'); input.value = ''; return }
+                      if (!erStottetLaat(file)) { alert(`Støttede formater: ${LAAT_FORMATER}.`); input.value = ''; return }
                       try {
                         // Produkt-scopet, utenom Netlify-proxyen (413 over ~4,5 MB)
                         await uploadTrack(file, tracksFolder(productId))

@@ -21,7 +21,9 @@ export const tracksFolder = (productId: string) => `tracks-${productId}`
 // (3–4 min MP3 @192 kbps ≈ 5–6 MB). Dropleten tar imot langt større filer.
 // Samme tall som lib/uploadTrack (4/9: tre ulike grenser sto i UI-et —
 // 4, 15 og 50 MB — mens 50 var den som faktisk ble haandhevet).
-export const TRACK_MAX_BYTES = 50 * 1024 * 1024
+// 150 MB fra 30.10: WAV/AIFF-mastere er ofte 50–100 MB, og dropleten gjør dem
+// om til MP3 ved import. Innboksen (music-inbox) har samme grense.
+export const TRACK_MAX_BYTES = 150 * 1024 * 1024
 
 // Henter biblioteket MED innloggingstoken naar det finnes. Serveren scoper
 // tracks-/jingles-mapper til produkter brukeren eier (4/9: endepunktet var

@@ -14,8 +14,8 @@ import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
 import LisensertStemme, { lisensSperrer, type BankStemme } from '@/components/LisensertStemme'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
-import { uploadTrack } from '@/lib/uploadTrack'
-import { komprimerBilde, bildeFeil } from '@/lib/komprimerBilde'
+import { uploadTrack, LAAT_ACCEPT, LAAT_FORMATER } from '@/lib/uploadTrack'
+import { komprimerBilde, bildeFeil, BILDE_ACCEPT } from '@/lib/komprimerBilde'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 
@@ -1361,14 +1361,15 @@ export default function DraftPage() {
                 )}
                 <input
                   type="file"
-                  accept=".mp3"
+                  accept={tenantInfo.slug === 'centerforge' ? '.mp3' : LAAT_ACCEPT}
                   disabled={musicUploading}
                   onChange={async (e) => {
                     const el = e.currentTarget
                     const file = el.files?.[0]
                     if (!file) return
                     const isRootSharedUpload = tenantInfo.slug === 'centerforge'
-                    if (!file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer.'); el.value = ''; return }
+                    // Bare den delte rot-mappa krever MP3; egne låter gjøres om til MP3 ved import
+                    if (isRootSharedUpload && !file.name.toLowerCase().endsWith('.mp3')) { alert('Kun MP3-filer.'); el.value = ''; return }
                     if (isRootSharedUpload && file.size > 4 * 1024 * 1024) { alert('Filen er for stor (maks 4MB).'); el.value = ''; return }
                     setMusicUploading(true)
                     try {
@@ -1396,7 +1397,7 @@ export default function DraftPage() {
                   className="block flex-1 text-sm text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-[var(--ember-deep)] file:px-2 file:py-1 file:text-xs file:font-medium file:text-[var(--on-ember)] hover:file:bg-[var(--ink)] disabled:opacity-50"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? 'Spilles under hele videoen. Last opp låtene du vil bruke (MP3, maks 50MB) — egen musikk, eller musikk du har rett til å bruke. Kun synlige for denne artisten. Flere låter? Lag en medley.' : 'Spilles under hele videoen. Last opp egen MP3 (maks 50 MB) — kun synlig for dette produktet.')}</p>
+              <p className="text-xs text-gray-400 mt-1">{musicUploading ? 'Laster opp musikk…' : (tenantInfo.slug === 'centerforge' ? 'Spilles under hele videoen. Eller last opp egen MP3 (maks 4MB).' : tenantInfo.vertical === 'music' ? `Spilles under hele videoen. Last opp låtene du vil bruke (${LAAT_FORMATER}, maks 150 MB) — egen musikk, eller musikk du har rett til å bruke. Kun synlige for denne artisten. Flere låter? Lag en medley.` : `Spilles under hele videoen. Last opp egen musikk (${LAAT_FORMATER}, maks 150 MB) — kun synlig for dette produktet.`)}</p>
             </div>
 
             {/* Medley av egne låter (fase 3b) — vises når produktet har ≥2 egne låter */}
@@ -1844,7 +1845,7 @@ export default function DraftPage() {
                         <span className="underline">{libUploading ? 'Laster opp…' : '+ Last opp nytt (pressebilde/artwork)'}</span>
                         <input
                           type="file"
-                          accept="image/png,image/jpeg,image/webp"
+                          accept={BILDE_ACCEPT}
                           className="hidden"
                           disabled={libUploading}
                           onChange={async (e) => {
