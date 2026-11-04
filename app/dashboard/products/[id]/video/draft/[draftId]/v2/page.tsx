@@ -20,6 +20,7 @@ import { uploadSegmentVideo, VIDEO_MAX_BYTES } from '@/lib/uploadSegmentVideo'
 import { VOICES as VOICES_FALLBACK, voiceName, type VoiceOption, languageForGroup } from '@/lib/voices'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, type MusicFile, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { komprimerBilde, bildeFeil, BILDE_ACCEPT } from '@/lib/komprimerBilde'
+import { godtaEgenStemme } from '@/lib/egenStemme'
 
 interface Segment {
   index: number
@@ -1270,6 +1271,7 @@ export default function DraftV2Page() {
                                         e.currentTarget.value = ''
                                         if (!f) return
                                         if (f.size > 20 * 1024 * 1024) { alert('Fila er for stor (maks 20 MB).'); return }
+                                        if (!(await godtaEgenStemme(f, musicDur, tenant.vertical === 'music' ? 'Musikk' : 'Bakgrunnsmusikk'))) return
                                         await uploadOwnVoice(index, f, f.type || 'audio/mpeg', f.name)
                                       }}
                                     />

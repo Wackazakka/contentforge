@@ -88,6 +88,30 @@ const MAX_SAMTIDIGE_RENDER = Number(process.env.MAX_RENDER || 2)
 // Renderingen tar ~7 min naar maskinen er rolig. Taket er romslig med vilje:
 // det skal fange en DOED render, ikke avbryte en treg en.
 const RENDER_TAK_MS = Number(process.env.RENDER_TAK_MIN || 30) * 60 * 1000
+
+// Taket maa vokse med filmens lengde (Lars 4/11): Iselins film ble 3:55 og
+// trengte 31 min paa Fly — den ble ferdig 1,5 min ETTER at vi ga opp. Lengden
+// regnes som rendereren gjoer det (vo + 0,4 + hold per scene + sluttplakat).
+// 10 min fast + 10 min per filmminutt; aldri under RENDER_TAK_MS.
+function renderTakMs(cfg) {
+  try {
+    const { execFileSync } = require('child_process')
+    let sek = 0
+    for (const s of (cfg && cfg.segments) || []) {
+      let vo = 0
+      if (s.vo_path && fs.existsSync(s.vo_path)) {
+        try {
+          vo = parseFloat(String(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', s.vo_path], { timeout: 15000 }))) || 0
+        } catch (_) { /* ukjent lengde -> bare hold */ }
+      }
+      sek += (vo > 0 ? vo + 0.4 : 0) + (Number(s.hold) || 0)
+    }
+    if (cfg && cfg.outroCard) sek += Number(cfg.outroCard.durationSeconds) || 3
+    return Math.max(RENDER_TAK_MS, (10 + 10 * (sek / 60)) * 60 * 1000)
+  } catch (_) {
+    return RENDER_TAK_MS
+  }
+}
 let aktiveRender = 0
 const renderKoe = []
 
@@ -198,6 +222,10 @@ function sjekkHengende() {
     try { startet = fs.statSync(path.join(OUTPUT_DIR, d, 'config.json')).mtimeMs } catch (_) { continue }
     const alder = Date.now() - startet
     if (alder < HENGER_MS || fs.existsSync(path.join(OUTPUT_DIR, d, 'output.mp4'))) continue
+    // Lange filmer har lengre rendertak; vent til taket + 20 min er passert.
+    let cfg = null
+    try { cfg = JSON.parse(fs.readFileSync(path.join(OUTPUT_DIR, d, 'config.json'), 'utf8')) } catch (_) {}
+    if (alder < renderTakMs(cfg) + 20 * 60 * 1000) continue
     const job = activeJobs.get(d)
     meldFeil({
       jobId: d,
@@ -1177,6 +1205,8 @@ router.post('/', async (req, res) => {
 
       // Vent paa ledig plass i koen foer vi starter noe tungt.
       await taRenderPlass()
+      const takMs = renderTakMs(config)
+      if (takMs > RENDER_TAK_MS) console.log('[job-queue] lang film: rendertak ' + Math.round(takMs / 60000) + ' min for job ' + jobId)
 
       // stdio var 'ignore', saa en Python-traceback forsvant sporloest og
       // jobben ble staaende som «behandler» for alltid (Thomas 10/8).
@@ -1202,7 +1232,7 @@ router.post('/', async (req, res) => {
           try {
             const { jobId: jid, cfg } = await fly.packageToR2(configPath)
             const machineId = await fly.launchMachine(jid)
-            await fly.waitForOutput(jid, cfg, Math.round(RENDER_TAK_MS / 60000), machineId)
+            await fly.waitForOutput(jid, cfg, Math.round(takMs / 60000), machineId)
             await fly.downloadOutput(jid, cfg, outputFile)
             console.log(`[render-fly] output klart lokalt for ${jid} — polleren tar over`)
           } catch (e) {
@@ -1243,7 +1273,7 @@ router.post('/', async (req, res) => {
         // Polleren hadde KUN en clearInterval, i suksessgrenen: doede renderen,
         // pollet den i evighet etter en fil som aldri kom, plassen ble aldri
         // sluppet, og brukeren saa en spinner uten feilmelding (Thomas 10/8).
-        if (!fs.existsSync(outputFile) && Date.now() - renderStartet > RENDER_TAK_MS) {
+        if (!fs.existsSync(outputFile) && Date.now() - renderStartet > takMs) {
           clearInterval(pollInterval)
           const min = Math.round((Date.now() - renderStartet) / 60000)
           console.error('[job-queue] RENDER GA OPP etter ' + min + ' min for job ' + jobId + ' - se render.log i jobbmappa')

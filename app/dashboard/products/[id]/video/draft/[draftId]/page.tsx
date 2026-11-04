@@ -16,6 +16,7 @@ import LisensertStemme, { lisensSperrer, type BankStemme } from '@/components/Li
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack, LAAT_ACCEPT, LAAT_FORMATER } from '@/lib/uploadTrack'
 import { komprimerBilde, bildeFeil, BILDE_ACCEPT } from '@/lib/komprimerBilde'
+import { godtaEgenStemme } from '@/lib/egenStemme'
 
 // Tilgjengelige stemmer (speiler draft/new-siden). Preview spilles direkte fra ElevenLabs.
 
@@ -1970,6 +1971,7 @@ export default function DraftPage() {
                                   e.currentTarget.value = ''
                                   if (!f) return
                                   if (f.size > 20 * 1024 * 1024) { alert('Fila er for stor (maks 20 MB).'); return }
+                                  if (!(await godtaEgenStemme(f, musicDur, 'Bakgrunnsmusikk'))) return
                                   await uploadOwnVoice(index, f, f.type || 'audio/mpeg', f.name)
                                 }}
                               />
