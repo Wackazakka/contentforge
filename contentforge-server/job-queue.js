@@ -1383,35 +1383,42 @@ router.get('/:jobId', (req, res) => {
 })
 
 
-// ─── Scheduled Publishing Cron ────────────────────────────────────────────────
+// ─── Vakt for planlagt publisering (Lars 4.11) ─────────────────────────────────
+// Publiseringen gjoeres av Netlifys planlagte funksjon cron-publish (hvert
+// minutt). Dropleten kalte tidligere samme rute selv, men med feil header og
+// feil hemmelighet — avvist stille siden 25.10. Den skal IKKE publisere: to
+// samtidige kall kan plukke samme rad og poste innlegget to ganger.
+//
+// I stedet passer dropleten paa Netlify: et planlagt innlegg som er mer enn
+// 10 min forsinket betyr at cron-publish har stoppet (A-Pops planlegger doede
+// stille i juli 2026). Da faar Lars e-post, én gang per innlegg. Alarm og
+// motor deler ikke mekanisme.
+const VAKT_URL = 'https://contentforge-610.netlify.app/api/varsel/publisering-vakt'
 
-const NETLIFY_BASE = 'https://contentforge-610.netlify.app'
-const CRON_SECRET = process.env.CRON_SECRET
-
-function runScheduledPublisher() {
-  if (!CRON_SECRET) {
-    console.warn('[scheduler] CRON_SECRET not set, skipping scheduled publishing')
-    return
-  }
-  fetch(`${NETLIFY_BASE}/api/cron/publish-scheduled`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${CRON_SECRET}`,
-    },
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.processed > 0) {
-        console.log(`[scheduler] Processed ${data.processed} scheduled publication(s)`)
+function sjekkPublisering() {
+  const hemmelighet = process.env.RENDER_VARSEL_SECRET
+  if (!hemmelighet) return
+  fetch(VAKT_URL, { headers: { 'x-cron-secret': hemmelighet }, signal: AbortSignal.timeout(20000) })
+    .then(async (r) => {
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200))
+      return r.json()
+    })
+    .then(({ forfalte = [] }) => {
+      for (const f of forfalte) {
+        meldFeil({
+          type: 'publisering',
+          jobId: 'publisering-' + f.id,
+          productId: f.productId,
+          steg: 'Planlagt publisering (Netlify cron-publish)',
+          feil: `${f.platform} ${f.contentType} skulle ut ${f.planlagt}, er ${f.minutterForsinket} min forsinket. ` +
+            'Netlifys planlagte funksjon cron-publish kjoerer trolig ikke — sjekk funksjonsloggen i Netlify.',
+        })
       }
     })
-    .catch((err) => console.error('[scheduler] Cron error:', err.message))
+    .catch((e) => console.error('[publiseringsvakt] sjekken feilet:', e.message))
 }
-
-// Run every minute
-setInterval(runScheduledPublisher, 60 * 1000)
-console.log('[scheduler] Scheduled publisher started (every 60s)')
+setInterval(sjekkPublisering, 10 * 60 * 1000).unref()
+console.log('[publiseringsvakt] passer paa cron-publish (hvert 10. min)')
 
 
 // ─── Radio Ad Jobs ────────────────────────────────────────────────────────────

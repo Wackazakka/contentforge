@@ -11,7 +11,7 @@ import { admin } from '@/lib/velkomst'
 // jobben — en nyere produksjon skal ikke overskrives), og artistsiden viser
 // det til brukeren. Uansett type sendes én e-post til VARSEL_EPOST.
 //
-// Body: { type: 'film' | 'import', steg, feil, jobId?, productId?, filnavn?, merk? }
+// Body: { type: 'film' | 'import' | 'publisering', steg, feil, jobId?, productId?, filnavn?, merk? }
 // merk:false = filmen finnes, men leveransen rundt den gikk galt — varsle, men
 // ikke merk utkastet som feilet.
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   if (stopp) return stopp
 
   const b = await request.json().catch(() => ({}))
-  const type = b?.type === 'import' ? 'import' : 'film'
+  const type = b?.type === 'import' || b?.type === 'publisering' ? b.type : 'film'
   const jobId: string | null = b?.jobId ? String(b.jobId) : null
   const steg = String(b?.steg || 'ukjent steg')
   const feil = String(b?.feil || 'ingen feilmelding').slice(0, 2000)
@@ -69,7 +69,11 @@ export async function POST(request: Request) {
   }
 
   const tid = new Date().toLocaleString('nb-NO', { timeZone: 'Europe/Oslo', dateStyle: 'short', timeStyle: 'short' })
-  const hva = type === 'import' ? `Låtimport feilet${b?.filnavn ? ` («${b.filnavn}»)` : ''}` : `Film feilet${draft?.title ? `: ${draft.title}` : ''}`
+  const hva = type === 'import'
+    ? `Låtimport feilet${b?.filnavn ? ` («${b.filnavn}»)` : ''}`
+    : type === 'publisering'
+      ? 'Planlagt publisering har ikke gått ut'
+      : `Film feilet${draft?.title ? `: ${draft.title}` : ''}`
   const lenke = draft ? `${origin}/dashboard/products/${draft.product_id}/video/draft/${draft.id}` : productId ? `${origin}/dashboard/products/${productId}` : null
   const rader: Array<[string, string]> = [
     ['Hvem', bruker],
