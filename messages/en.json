@@ -462,7 +462,11 @@
     "endCardSample": "Out now",
     "logoSuggestion": "Suggested from your logo:",
     "logoSuggestionUse": "Use",
-    "brandProfileOptional": "Everything here is optional. Fill in what you like and leave the rest blank."
+    "brandProfileOptional": "Everything here is optional. Fill in what you like and leave the rest blank.",
+    "filmFeiletTittel": "The film “{title}” could not be made",
+    "filmFeiletUtenTittel": "untitled",
+    "filmFeiletTekst": "Something went wrong on our side while the film was being made. We have been notified and are looking into it. You can try again from the draft.",
+    "filmFeiletKnapp": "Open the draft"
   },
   "videoProduction": {
     "backToProduct": "← Back to product",

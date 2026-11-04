@@ -149,6 +149,7 @@ function FullProductPage() {
   const [draftByJobId, setDraftByJobId] = useState<Record<string, string>>({})
   // Siste utvei naar koblingen mangler (Lars 3/8, fjerde runde paa samme knapp)
   const [nyesteDraftId, setNyesteDraftId] = useState<string | null>(null)
+  const [feiledeUtkast, setFeiledeUtkast] = useState<Array<{ id: string; title: string | null }>>([])
   const [titleByJobId, setTitleByJobId] = useState<Record<string, string>>({})
   const [jobsLoading, setJobsLoading] = useState(false)
   // Bildebiblioteket (artist-images/<productId> i R2): administreres her,
@@ -560,6 +561,15 @@ function FullProductPage() {
           .eq('product_id', productId)
           .order('updated_at', { ascending: false })
         if ((alleUtkast || []).length > 0) setNyesteDraftId((alleUtkast as any[])[0].id)
+        // Filmer som feilet (merket av dropletens feilvarsel, 4.11) — foer
+        // forsvant de sporloest, og brukeren ventet paa en film som aldri kom
+        const { data: feilet } = await supabase
+          .from('production_drafts')
+          .select('id, title')
+          .eq('product_id', productId)
+          .eq('status', 'failed')
+          .order('updated_at', { ascending: false })
+        setFeiledeUtkast((feilet as Array<{ id: string; title: string | null }>) || [])
         if (jobIds.length > 0) {
           // Hent ALLE utkast for produktet, ikke bare de med treff paa job_id:
           // eldre utkast kan mangle koblingen, men har campaign_id — og jobben
@@ -1582,6 +1592,20 @@ function FullProductPage() {
 
         {/* Content Banks */}
         <div className="space-y-6">
+          {feiledeUtkast.map((u) => (
+            <div key={u.id} className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1 text-sm">
+                <p className="font-semibold text-red-800">{t('filmFeiletTittel', { title: u.title || t('filmFeiletUtenTittel') })}</p>
+                <p className="text-red-700 mt-1">{t('filmFeiletTekst')}</p>
+              </div>
+              <button
+                onClick={() => router.push(`/dashboard/products/${productId}/video/draft/${u.id}`)}
+                className="shrink-0 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                {t('filmFeiletKnapp')}
+              </button>
+            </div>
+          ))}
           {/* Videos */}
           <div className="bg-[var(--paper-raised)] rounded-lg border border-gray-200 p-6">
             <SectionHeader

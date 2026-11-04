@@ -138,6 +138,77 @@ async function waitForFile(filePath, maxAttempts = 30) {
 // In-memory registry of active jobs (survives for lifetime of this process)
 const activeJobs = new Map()
 
+// ─── Feilvarsel (Lars 4.11) ───────────────────────────────────────────────────
+// Astrids film feilet to ganger 3.11, og vi fant det ved en tilfeldig sjekk
+// dagen etter. Naa sier dropleten fra MED EN GANG: /api/varsel/produksjon
+// sender Lars en e-post og merker utkastet 'failed', saa brukeren ser det.
+// merk:false = filmen finnes, men noe rundt den gikk galt (R2, webhook) —
+// da varsles Lars, men utkastet roeres ikke.
+// Varslede jobber huskes paa disk, saa en omstart ikke gir dobbeltvarsel.
+const VARSEL_URL = 'https://contentforge-610.netlify.app/api/varsel/produksjon'
+const VARSLET_FIL = path.join(OUTPUT_DIR, '.varslet.json')
+const HENGER_MS = 60 * 60 * 1000
+const varslet = (() => {
+  try { return new Set(JSON.parse(fs.readFileSync(VARSLET_FIL, 'utf8'))) } catch (_) {}
+  // Foerste gang: alt som allerede ligger og er eldre enn grensen er gammelt
+  // nytt — det skal ikke gi en bunke varsler i det koden rulles ut
+  const s = new Set()
+  try {
+    for (const d of fs.readdirSync(OUTPUT_DIR)) {
+      try { if (Date.now() - fs.statSync(path.join(OUTPUT_DIR, d)).mtimeMs > HENGER_MS) s.add(d) } catch (_) {}
+    }
+    fs.writeFileSync(VARSLET_FIL, JSON.stringify([...s]))
+  } catch (_) {}
+  return s
+})()
+
+function meldFeil(data) {
+  if (data.jobId) {
+    if (varslet.has(data.jobId)) return
+    varslet.add(data.jobId)
+    try { fs.writeFileSync(VARSLET_FIL, JSON.stringify([...varslet].slice(-500))) } catch (_) {}
+  }
+  const hemmelighet = process.env.RENDER_VARSEL_SECRET
+  if (!hemmelighet) {
+    console.warn('[varsel] RENDER_VARSEL_SECRET mangler — ikke varslet:', data.jobId || data.filnavn, data.feil)
+    return
+  }
+  fetch(VARSEL_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-cron-secret': hemmelighet },
+    body: JSON.stringify({ type: 'film', ...data }),
+    signal: AbortSignal.timeout(20000),
+  })
+    .then(async (r) => {
+      if (r.ok) console.log('[varsel] sendt:', data.jobId || data.filnavn, '-', data.steg)
+      else console.error('[varsel] svar ' + r.status + ':', (await r.text()).slice(0, 200))
+    })
+    .catch((e) => console.error('[varsel] kunne ikke sende:', e.message))
+}
+
+// Vaktsjekk hvert 10. min: en jobb med config men uten film en time etter
+// start har stoppet et sted varslene over ikke ser — typisk en omstart midt
+// i renderingen (jobben finnes da bare paa disk, ikke i minnet).
+function sjekkHengende() {
+  let mapper = []
+  try { mapper = fs.readdirSync(OUTPUT_DIR) } catch (_) { return }
+  for (const d of mapper) {
+    if (d.startsWith('.') || varslet.has(d)) continue
+    let startet
+    try { startet = fs.statSync(path.join(OUTPUT_DIR, d, 'config.json')).mtimeMs } catch (_) { continue }
+    const alder = Date.now() - startet
+    if (alder < HENGER_MS || fs.existsSync(path.join(OUTPUT_DIR, d, 'output.mp4'))) continue
+    const job = activeJobs.get(d)
+    meldFeil({
+      jobId: d,
+      steg: 'Henger',
+      feil: `Ingen film ${Math.round(alder / 60000)} min etter at renderingen startet ` +
+        (job ? `(status i minnet: ${job.status})` : '(workeren kjenner ikke jobben — trolig omstart midt i renderingen)'),
+    })
+  }
+}
+setInterval(sjekkHengende, 10 * 60 * 1000).unref()
+
 const { exec } = require('child_process')
 const { promisify } = require('util')
 const execAsync = promisify(exec)
@@ -1140,6 +1211,7 @@ router.post('/', async (req, res) => {
             if (pollInterval) clearInterval(pollInterval)  // hindre at polleren ogsaa slipper
             activeJobs.set(jobId, { startTime: activeJobs.get(jobId)?.startTime, status: 'failed', error: e.message })
             slippRenderPlass(jobId)
+            meldFeil({ jobId, productId, steg: 'Rendering på Fly', feil: e.message })
           }
         })()
       } else {
@@ -1156,7 +1228,10 @@ router.post('/', async (req, res) => {
         // Doer prosessen ved oppstart, slipper vi plassen med en gang.
         child.on('error', (e) => {
           console.error('[job-queue] kunne ikke starte renderer (' + RENDER_MODE + ') for ' + jobId + ':', e.message)
+          if (pollInterval) clearInterval(pollInterval)
+          activeJobs.set(jobId, { startTime: activeJobs.get(jobId)?.startTime, status: 'failed', error: e.message })
           slippRenderPlass(jobId)
+          meldFeil({ jobId, productId, steg: 'Start av renderer (' + RENDER_MODE + ')', feil: e.message })
         })
         console.log(`[job-queue] renderer spawned (${nativeFestlig ? 'festlig-native' : RENDER_MODE}) for job ${jobId}`)
       }
@@ -1174,6 +1249,7 @@ router.post('/', async (req, res) => {
           console.error('[job-queue] RENDER GA OPP etter ' + min + ' min for job ' + jobId + ' - se render.log i jobbmappa')
           activeJobs.set(jobId, { startTime: activeJobs.get(jobId)?.startTime, status: 'failed', error: 'Renderingen svarte ikke innen ' + min + ' minutter' })
           slippRenderPlass(jobId)
+          meldFeil({ jobId, productId, steg: 'Rendering (' + RENDER_MODE + ')', feil: 'Ingen film innen ' + min + ' minutter. Se render.log i jobbmappa.' })
           return
         }
         if (fs.existsSync(outputFile)) {
@@ -1234,6 +1310,7 @@ router.post('/', async (req, res) => {
               activeJobs.set(jobId, { startTime: activeJobs.get(jobId)?.startTime, status: 'done', videoUrl })
             } catch (r2Err) {
               console.error(`[job-queue] R2 upload failed for job ${jobId}:`, r2Err.message)
+              meldFeil({ jobId, productId, merk: false, steg: 'Opplasting til R2 (filmen leveres fra dropleten i stedet)', feil: r2Err.message })
               console.log(`[job-queue] Falling back to droplet URL for job ${jobId}`)
             }
           }
@@ -1266,11 +1343,13 @@ router.post('/', async (req, res) => {
             console.log(`[job-queue] Webhook completed for job ${jobId}`)
           } catch (err) {
             console.error(`[job-queue] Webhook error for job ${jobId}:`, err.message)
+            meldFeil({ jobId, productId, merk: false, steg: 'Levering til appen (webhook) — filmen er laget, men vises ikke for brukeren', feil: err.message })
           }
         }
       }, 5000) // Poll every 5 seconds
     } catch (err) {
       console.error(`[job-queue] Asset generation failed for job ${jobId}:`, err.message)
+      meldFeil({ jobId, productId, steg: 'Forberedelse (bilder, stemme, klipp)', feil: err.message })
       activeJobs.set(jobId, {
         startTime: activeJobs.get(jobId)?.startTime,
         status: 'failed',
@@ -1463,6 +1542,7 @@ router.get('/radio-jobs/:jobId', (req, res) => {
   return res.json({ jobId, status: job.status, error: job.error || undefined })
 })
 
+router.meldFeil = meldFeil
 module.exports = router
 
 // ─── Avatar Video Jobs ────────────────────────────────────────────────────────

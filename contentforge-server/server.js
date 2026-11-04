@@ -387,6 +387,10 @@ app.post('/music/import', express.json(), (req, res) => {
       return res.status(400).json({ error: 'Kun Supabase Storage-URL-er kan importeres' })
     }
     if (!folder) return res.status(400).json({ error: 'Ugyldig mappe' })
+    // Feilvarsel (Lars 4.11): en tester som staar fast i opplastingen skal
+    // vi vite om med en gang, ikke oppdage ved en tilfeldig sjekk
+    const productId = (folder.match(/^tracks-([0-9a-f-]{36})$/) || [])[1] || null
+    const varsle = (steg, feil) => jobQueueRouter.meldFeil({ type: 'import', productId, filnavn: rawName, steg, feil })
     // Alt lagres som MP3 (Lars 30.10): WAV/AIFF/M4A/FLAC gjøres om her, så
     // klipp, medley og renderen (som forutsetter .mp3) slipper å ta hensyn.
     const sanitized = sanitizeMusicName(rawName)
@@ -399,11 +403,18 @@ app.post('/music/import', express.json(), (req, res) => {
 
     const MAKS = 150 * 1024 * 1024
     const r = await fetch(url)
-    if (!r.ok) return res.status(400).json({ error: `Nedlasting feilet (HTTP ${r.status})` })
+    if (!r.ok) {
+      varsle('Nedlasting fra innboksen', `HTTP ${r.status}`)
+      return res.status(400).json({ error: `Nedlasting feilet (HTTP ${r.status})` })
+    }
     const len = Number(r.headers.get('content-length') || 0)
-    if (len > MAKS) return res.status(400).json({ error: 'Fila er for stor (maks 150 MB)' })
+    const forStor = () => {
+      varsle('Størrelse', `Fila er for stor (${Math.round(Math.max(len, 0) / 1048576)} MB, maks 150 MB)`)
+      return res.status(400).json({ error: 'Fila er for stor (maks 150 MB)' })
+    }
+    if (len > MAKS) return forStor()
     const buf = Buffer.from(await r.arrayBuffer())
-    if (buf.byteLength > MAKS) return res.status(400).json({ error: 'Fila er for stor (maks 150 MB)' })
+    if (buf.byteLength > MAKS) return forStor()
 
     if (!kildeExt || kildeExt.toLowerCase() === 'mp3') {
       fs.writeFileSync(outPath, buf)
@@ -418,6 +429,7 @@ app.post('/music/import', express.json(), (req, res) => {
       } catch (err) {
         try { fs.unlinkSync(outPath) } catch { /* fantes ikke */ }
         console.error('[server] Music import ffmpeg-feil:', err.message)
+        varsle(`Konvertering ${kildeExt} → mp3 (ffmpeg)`, err.message)
         return res.status(400).json({ error: 'Lydfila kunne ikke leses. Prøv å lagre den som MP3 eller WAV.' })
       } finally {
         try { fs.unlinkSync(tmp) } catch { /* ok */ }
@@ -437,6 +449,7 @@ app.post('/music/import', express.json(), (req, res) => {
     res.json({ success: true, file: fileInfo })
   })().catch((err) => {
     console.error('[server] Music import error:', err.message)
+    jobQueueRouter.meldFeil({ type: 'import', filnavn: String(req.body?.name || ''), steg: 'Import (uventet feil)', feil: err.message })
     res.status(500).json({ error: err.message })
   })
 })

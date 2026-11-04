@@ -462,7 +462,11 @@
     "endCardSample": "Ute nå",
     "logoSuggestion": "Forslag fra logoen:",
     "logoSuggestionUse": "Bruk",
-    "brandProfileOptional": "Alt her er valgfritt. Fyll ut det du vil, resten kan stå tomt."
+    "brandProfileOptional": "Alt her er valgfritt. Fyll ut det du vil, resten kan stå tomt.",
+    "filmFeiletTittel": "Filmen «{title}» kunne ikke lages",
+    "filmFeiletUtenTittel": "uten tittel",
+    "filmFeiletTekst": "Noe gikk galt hos oss mens filmen ble laget. Vi har fått beskjed og ser på det. Du kan prøve igjen fra utkastet.",
+    "filmFeiletKnapp": "Åpne utkastet"
   },
   "videoProduction": {
     "backToProduct": "← Tilbake til produkt",

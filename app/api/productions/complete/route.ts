@@ -105,6 +105,11 @@ export async function POST(request: NextRequest) {
         .eq('job_id', jobId)
         .maybeSingle()
       draftIdForAsset = d?.id ?? null
+      // Utkastet sto som 'processing' for alltid, ogsaa etter levert film. Med
+      // feilvarslene (4.11) betyr 'failed' noe — da maa 'done' ogsaa gjoere det.
+      if (draftIdForAsset) {
+        await supabase.from('production_drafts').update({ status: 'done' }).eq('id', draftIdForAsset).eq('job_id', jobId)
+      }
     } catch { /* koblingen er en bekvemmelighet, aldri en blokker */ }
 
     // Bare bilder produktet IKKE har fra foer. Hver produksjon sender alle
