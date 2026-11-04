@@ -65,20 +65,29 @@ async function packageToR2(configPath) {
   const s3 = r2()
   const output = cfg.output
 
+  // Inputer som mangler lokalt null-es UT av configen maskinen faar.
+  // render_remote.py laster ned HVER /root-sti den finner, og en manglende
+  // fil gir exit 1 etter 4 sek (Astrid 3/11: standardlaaten laa paa feil
+  // sti). Med null rendrer make_tiktok uten — samme oppfoersel som native.
+  const mangler = new Set(absPaths(cfg).filter((p) => p !== output && !fs.existsSync(p)))
+  for (const p of mangler) console.warn(`[render-fly] input mangler lokalt, fjernes fra config: ${p}`)
+  const utenManglende = (v) => {
+    if (typeof v === 'string') return mangler.has(v) ? null : v
+    if (Array.isArray(v)) return v.map(utenManglende)
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, utenManglende(x)]))
+    return v
+  }
+
   await s3.send(new PutObjectCommand({
     Bucket: BUCKET,
     Key: `${PREFIX}/${jobId}/config.json`,
-    Body: fs.readFileSync(configPath),
+    Body: mangler.size ? JSON.stringify(utenManglende(cfg), null, 2) : fs.readFileSync(configPath),
     ContentType: 'application/json',
   }))
 
   let n = 1
   for (const p of absPaths(cfg)) {
-    if (p === output) continue // output SKRIVES av renderen
-    if (!fs.existsSync(p)) {
-      console.warn(`[render-fly] input mangler lokalt, hopper over: ${p}`)
-      continue
-    }
+    if (p === output || mangler.has(p)) continue // output SKRIVES av renderen
     await s3.send(new PutObjectCommand({
       Bucket: BUCKET,
       Key: keyFor(jobId, p),
@@ -106,6 +115,21 @@ async function launchMachine(jobId) {
   const region = process.env.FLY_REGION || 'ams'
   if (!token) throw new Error('FLY_API_TOKEN mangler — kan ikke starte Fly-maskin')
 
+  // Nettfeil og 5xx/429 proeves igjen (Astrid 3/11: ett «fetch failed» mot
+  // api.machines.dev veltet hele filmen). 4xx er feil i selve forespoerselen.
+  const ventetider = [5000, 15000]
+  for (let forsok = 0; ; forsok++) {
+    try {
+      return await opprettMaskin(jobId, { token, app, image, region })
+    } catch (e) {
+      if (e.ikkeProvIgjen || forsok >= ventetider.length) throw e
+      console.warn(`[render-fly] start av maskin feilet for ${jobId} (${e.message}) — proever igjen om ${ventetider[forsok] / 1000} s`)
+      await new Promise((r) => setTimeout(r, ventetider[forsok]))
+    }
+  }
+}
+
+async function opprettMaskin(jobId, { token, app, image, region }) {
   const res = await fetch(`https://api.machines.dev/v1/apps/${app}/machines`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -134,26 +158,54 @@ async function launchMachine(jobId) {
   })
   if (!res.ok) {
     const txt = await res.text().catch(() => '')
-    throw new Error(`Fly create machine feilet (${res.status}): ${txt.slice(0, 200)}`)
+    const err = new Error(`Fly create machine feilet (${res.status}): ${txt.slice(0, 200)}`)
+    err.ikkeProvIgjen = res.status < 500 && res.status !== 429
+    throw err
   }
   const m = await res.json()
   console.log(`[render-fly] maskin startet for ${jobId}: ${m.id} (${region})`)
   return m.id
 }
 
+// Maskinens tilstand + exit-kode, eller null hvis Fly ikke svarer (da
+// fortsetter vi bare aa vente — tilstandssjekken er en snarvei, ikke fasit).
+async function maskinStatus(machineId) {
+  const app = process.env.FLY_APP_NAME || 'cf-render'
+  try {
+    const res = await fetch(`https://api.machines.dev/v1/apps/${app}/machines/${machineId}`, {
+      headers: { Authorization: `Bearer ${process.env.FLY_API_TOKEN}` },
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!res.ok) return null
+    const m = await res.json()
+    const exit = (m.events || []).find((e) => e.type === 'exit')
+    return { state: m.state, exitCode: exit?.request?.exit_event?.exit_code ?? null }
+  } catch (_) {
+    return null
+  }
+}
+
 // Vent til containeren har lastet output opp til R2 (den skriver til samme
 // render-jobs-nokkel som input). Tak i minutter; poller hvert 10. sek.
-async function waitForOutput(jobId, cfg, takMin = 30) {
+// Med machineId sjekkes maskinen hvert 30. sek: er den stoppet uten output,
+// gir vi opp MED EN GANG i stedet for aa vente ut taket (Astrid 3/11: maskinen
+// doede etter 4 sek, dropleten ventet 30 min).
+async function waitForOutput(jobId, cfg, takMin = 30, machineId = null) {
   const s3 = r2()
   const key = keyFor(jobId, cfg.output)
+  const finnes = () => s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key })).then(() => true, () => false)
   const deadline = Date.now() + takMin * 60 * 1000
-  while (Date.now() < deadline) {
-    try {
-      await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }))
-      return key // finnes
-    } catch (_) {
-      await new Promise((r) => setTimeout(r, 10000))
+  for (let runde = 1; Date.now() < deadline; runde++) {
+    if (await finnes()) return key
+    if (machineId && runde % 3 === 0) {
+      const st = await maskinStatus(machineId)
+      if (st && ['stopped', 'destroying', 'destroyed', 'failed'].includes(st.state)) {
+        // Opplastingen kan ha landet rett foer maskinen avsluttet
+        if (await finnes()) return key
+        throw new Error(`Fly-maskinen ${machineId} stoppet (${st.state}, exit ${st.exitCode ?? '?'}) uten output for ${jobId}`)
+      }
     }
+    await new Promise((r) => setTimeout(r, 10000))
   }
   throw new Error(`Fly-render for ${jobId} ga ikke output innen ${takMin} min`)
 }

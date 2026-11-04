@@ -1008,7 +1008,9 @@ router.post('/', async (req, res) => {
           output: `${jobDir}/output.mp4`,
           backgroundMusic: musicFile
             ? path.join(MUSIC_DIR, musicFile)
-            : '/root/.openclaw/workspace/contentforge-server/music/spor1-upbeat.mp3',
+            // Standardsporet ligger i global/ — den gamle stien uten global/
+            // fantes ikke, og hver Fly-render uten egen laat feilet (Lars 4/11)
+            : '/root/.openclaw/workspace/contentforge-server/music/global/spor1-upbeat.mp3',
           format: video_format || '9:16', // Pass format to Python script
           // 'contain' = hele bildet med sort rundt (artistenes egne bilder, 31/7)
           imageFit: imageFit === 'contain' ? 'contain' : 'cover',
@@ -1128,8 +1130,8 @@ router.post('/', async (req, res) => {
         ;(async () => {
           try {
             const { jobId: jid, cfg } = await fly.packageToR2(configPath)
-            await fly.launchMachine(jid)
-            await fly.waitForOutput(jid, cfg, Math.round(RENDER_TAK_MS / 60000))
+            const machineId = await fly.launchMachine(jid)
+            await fly.waitForOutput(jid, cfg, Math.round(RENDER_TAK_MS / 60000), machineId)
             await fly.downloadOutput(jid, cfg, outputFile)
             console.log(`[render-fly] output klart lokalt for ${jid} — polleren tar over`)
           } catch (e) {
