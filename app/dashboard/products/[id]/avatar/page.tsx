@@ -348,7 +348,8 @@ export default function AvatarVideoPage() {
             fd.append('file', segments[i].audioBlob!, `seg_${i}.mp3`)
             fd.append('jobId', tempId)
             fd.append('segmentIndex', String(i))
-            const r = await fetch('/api/avatar/upload-audio', { method: 'POST', body: fd })
+            fd.append('productId', productId)
+            const r = await fetch('/api/avatar/upload-audio', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd })
             const d = await r.json()
             if (!r.ok) throw new Error(d.error || 'Segment-opplasting feilet')
             audioSegmentUrls.push(d.url)
@@ -498,7 +499,9 @@ export default function AvatarVideoPage() {
                       try {
                         const formData = new FormData()
                         formData.append('file', file)
-                        const res = await fetch('/api/avatar/upload-image', { method: 'POST', body: formData })
+                        formData.append('productId', productId)
+                        const token = (await getSupabase().auth.getSession()).data?.session?.access_token
+                        const res = await fetch('/api/avatar/upload-image', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : undefined, body: formData })
                         const data = await res.json()
                         if (!res.ok) throw new Error(data.error || 'Opplasting feilet')
                         setAvatarImageUrl(data.url)

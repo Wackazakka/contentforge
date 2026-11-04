@@ -1005,8 +1005,10 @@ export default function DraftPage() {
           segmentIndex: index,
         }),
       })
-      const data = await res.json()
-      if (data.url) {
+      const data = await res.json().catch(() => null)
+      // Avvist stemme eller utløpt innlogging skal synes — ikke bare la knappen stå stille
+      if (!res.ok) { alert(data?.error || `Innlesingen feilet (HTTP ${res.status})`); return }
+      if (data?.url) {
         addCost(COSTS_NOK.voiceoverPreview + (Number(data.actorExtraNok) || 0))
         setVoicePreviews((prev) => ({ ...prev, [index]: data.url }))
 

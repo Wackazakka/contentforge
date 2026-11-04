@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomBytes } from 'crypto'
+import { krevInnlogget, krevProdukteier } from '@/lib/routeAuth'
 
 const R2_ENDPOINT = process.env.R2_ENDPOINT
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
@@ -13,10 +14,17 @@ const MAX_SIZE = 25 * 1024 * 1024 // klienten komprimerer foerst (lib/komprimerB
 
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData()
-    const file = formData.get('file') as File
+    // Innlogging + eierskap (25.10.2026): før kunne hvem som helst legge
+    // bilder i den offentlige bøtta. Tokenet sjekkes før kroppen leses.
+    const bruker = await krevInnlogget(request)
+    if (bruker instanceof NextResponse) return bruker
 
-    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    const formData = await request.formData()
+    const nei = await krevProdukteier(bruker.token, String(formData.get('productId') || ''))
+    if (nei) return nei
+    const file = formData.get('file')
+
+    if (!file || !(file instanceof File)) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     if (!ALLOWED_TYPES.includes(file.type)) return NextResponse.json({ error: 'Kun JPG, PNG og WebP støttes' }, { status: 400 })
     if (file.size > MAX_SIZE) return NextResponse.json({ error: 'Maks filstørrelse er 8 MB' }, { status: 400 })
 
