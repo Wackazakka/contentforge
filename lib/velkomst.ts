@@ -204,9 +204,13 @@ export function paminnelseEpost(t: VelkomstTenant, lenke: string | null, navn: s
   const fristSetning = runde.utvidet
     ? `Vi har utvidet fristen til <strong>${esc(frist)}</strong>`
     : `Fristen er <strong>${esc(frist)}</strong>`
-  const trenger = t.vertical === 'music' && !runde.utvidet
-    ? `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;">📋 <strong>Dette trenger du:</strong> én låt og 4–6 bilder av deg eller bandet. Låten kan være MP3, WAV, AIFF, M4A eller FLAC, og alt kan lastes opp rett fra mobilen.</p>`
-    : ''
+  // Runde 2 får «Dette trenger du»; runde 1 fikk velkomst før formatfiksen
+  // 30.10 (Emilie og Astrid stoppet ved opplastingen i Safari) og får «Nytt».
+  const trenger = t.vertical !== 'music'
+    ? ''
+    : runde.utvidet
+      ? `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;">✨ <strong>Nytt:</strong> Nå kan du laste opp låten som WAV, AIFF, M4A eller FLAC, og bilder rett fra iPhone.</p>`
+      : `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;">📋 <strong>Dette trenger du:</strong> én låt og 4–6 bilder av deg eller bandet. Låten kan være MP3, WAV, AIFF, M4A eller FLAC, og alt kan lastes opp rett fra mobilen.</p>`
   let innhold = `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1C1A16;">${fornavn ? `Hei, ${esc(fornavn)}! ` : ''}Du rekker det fortsatt</h1>`
   if (lenke) {
     innhold += tekst(`Du har fått en testkonto i ${esc(fullt)}${kreditter ? ` med <strong>${Math.round(kreditter).toLocaleString('nb-NO')} kreditter</strong>` : ''}, men du har ikke logget inn ennå. ${fristSetning}.`)
