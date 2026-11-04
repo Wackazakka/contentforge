@@ -177,7 +177,9 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
 // startet). To varianter: har testeren ikke logget inn, får hun en ny
 // passordlenke (lenke ≠ null) og stegene; er hun i gang, får hun en lenke til
 // appen. Fristen og bonusen hentes fra UNDERSOKELSE, så teksten følger skjemaet.
-export function paminnelseEpost(t: VelkomstTenant, lenke: string | null, navn: string | null, kreditter: number | null, svarTil: string | null = null, hilsenFra: string | null = null) {
+// Runde 2 (Lars 4.11): fristen er ikke utvidet for dem, og bonusen er 2 000 —
+// `runde` styrer begge, så runde 1 får nøyaktig samme tekst som før.
+export function paminnelseEpost(t: VelkomstTenant, lenke: string | null, navn: string | null, kreditter: number | null, svarTil: string | null = null, hilsenFra: string | null = null, runde: { bonusKreditter: number; utvidet: boolean } = { bonusKreditter: UNDERSOKELSE.bonusKreditter, utvidet: true }) {
   const produkt = (produktnavn(t as any) || 'CenterForge').replace(/[<>"]/g, '')
   const fullt = (fulltNavn(t as any) || produkt).replace(/[<>"]/g, '')
   const aksent = (t.colors && t.colors['--ember']) || '#1C1A16'
@@ -194,20 +196,32 @@ export function paminnelseEpost(t: VelkomstTenant, lenke: string | null, navn: s
           <a href="${href}" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:${lesbarTekst(aksent)};text-decoration:none;border-radius:10px;">${etikett}</a>
         </td>
       </tr></table>`
-  const bonus = `<div style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;border-left:4px solid ${esc(aksent)};font-size:14.5px;line-height:1.6;color:#1C1A16;">🎁 Når du har under ${UNDERSOKELSE.grenseKreditter} kreditter igjen, kan du svare på 11 korte spørsmål om hvordan det gikk, og få ${UNDERSOKELSE.bonusKreditter.toLocaleString('nb-NO')} nye kreditter med en gang. Gjelder til og med ${esc(frist)}. Skjemaet finner du på <a href="${origin}/tilbakemelding" style="color:#1C1A16;">${esc(domene)}/tilbakemelding</a>.</div>`
+  const bonus = `<div style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;border-left:4px solid ${esc(aksent)};font-size:14.5px;line-height:1.6;color:#1C1A16;">🎁 Når du har under ${UNDERSOKELSE.grenseKreditter} kreditter igjen, kan du svare på 11 korte spørsmål om hvordan det gikk, og få ${runde.bonusKreditter.toLocaleString('nb-NO')} nye kreditter med en gang. Gjelder til og med ${esc(frist)}. Skjemaet finner du på <a href="${origin}/tilbakemelding" style="color:#1C1A16;">${esc(domene)}/tilbakemelding</a>.</div>`
 
-  const subject = `Påminnelse: Fristen for å teste ${fullt} er utvidet til ${UNDERSOKELSE.bonusFristTekst}`
+  const subject = runde.utvidet
+    ? `Påminnelse: Fristen for å teste ${fullt} er utvidet til ${UNDERSOKELSE.bonusFristTekst}`
+    : `Påminnelse: Du har til ${UNDERSOKELSE.bonusFristTekst} med å teste ${fullt}`
+  const fristSetning = runde.utvidet
+    ? `Vi har utvidet fristen til <strong>${esc(frist)}</strong>`
+    : `Fristen er <strong>${esc(frist)}</strong>`
+  const trenger = t.vertical === 'music' && !runde.utvidet
+    ? `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;">📋 <strong>Dette trenger du:</strong> én låt og 4–6 bilder av deg eller bandet. Låten kan være MP3, WAV, AIFF, M4A eller FLAC, og alt kan lastes opp rett fra mobilen.</p>`
+    : ''
   let innhold = `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1C1A16;">${fornavn ? `Hei, ${esc(fornavn)}! ` : ''}Du rekker det fortsatt</h1>`
   if (lenke) {
-    innhold += tekst(`Du har fått en testkonto i ${esc(fullt)}${kreditter ? ` med <strong>${Math.round(kreditter).toLocaleString('nb-NO')} kreditter</strong>` : ''}, men du har ikke logget inn ennå. Vi har utvidet fristen til <strong>${esc(frist)}</strong>.`)
+    innhold += tekst(`Du har fått en testkonto i ${esc(fullt)}${kreditter ? ` med <strong>${Math.round(kreditter).toLocaleString('nb-NO')} kreditter</strong>` : ''}, men du har ikke logget inn ennå. ${fristSetning}.`)
     innhold += tekst('For å lage en video trenger du bare fotografier og musikk. Programmet gjør bildene levende.', 24)
     innhold += knapp(lenke, 'Velg passord og kom i gang')
     innhold += `<p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#5E564A;">Knappen åpner ${esc(produkt)} i nettleseren. Trykk på knappen der én gang til, så kommer du til siden der du velger passordet ditt. Skriv det to ganger (minst 8 tegn) og trykk «Lagre og kom i gang». Da er du inne.</p>`
+    innhold += trenger
     innhold += bonus
     innhold += kommIGang(t)
   } else {
-    innhold += tekst(`Takk for at du tester ${esc(fullt)}! Vi har utvidet fristen til <strong>${esc(frist)}</strong>, så du har tid til å lage flere videoer.`, 24)
+    innhold += tekst(runde.utvidet
+      ? `Takk for at du tester ${esc(fullt)}! Vi har utvidet fristen til <strong>${esc(frist)}</strong>, så du har tid til å lage flere videoer.`
+      : `Takk for at du har logget inn i ${esc(fullt)}! ${fristSetning}, så du har god tid til å lage videoer.`, 24)
     innhold += knapp(`${origin}/dashboard`, `Gå til ${esc(produkt)}`)
+    innhold += trenger
     innhold += bonus
   }
   if (svarTil) innhold += `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;"><strong>Får du det ikke til?</strong> Svar på denne e-posten, så hjelper vi deg.</p>`

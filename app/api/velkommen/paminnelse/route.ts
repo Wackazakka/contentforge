@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { cronVakt } from '@/lib/cronVakt'
 import { Resend } from 'resend'
 import { admin, hashToken, nyttToken, hentTenant, tenantOrigin, paminnelseEpost } from '@/lib/velkomst'
-import { UNDERSOKELSE } from '@/lib/tilbakemelding'
+import { UNDERSOKELSE, bonusKredittFor } from '@/lib/tilbakemelding'
 
 // Påminnelse med utvidet frist (Lars 27.10). Kalles for hånd med
 // x-cron-secret = WELCOME_SEND_SECRET og { epost: [...] }.
@@ -12,6 +12,9 @@ import { UNDERSOKELSE } from '@/lib/tilbakemelding'
 // raden røres ikke, så lenken i første e-post virker fortsatt. Er testeren i
 // gang, sendes en lenke til appen i stedet.
 // variant: 'ny' | 'i_gang' overstyrer valget — bare til forhåndsvisning.
+// forhandsvisTil: sender til den adressen i stedet, med [TEST] i emnet og en
+// død lenke — ingen invitasjonsrad lages, så ingen ekte innloggingslenke
+// havner hos andre enn testeren selv (4.11).
 
 export const runtime = 'nodejs'
 
@@ -22,6 +25,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}))
   const adresser: string[] = Array.isArray(body?.epost) ? body.epost.map((e: unknown) => String(e).trim().toLowerCase()).filter(Boolean) : []
   const variant = body?.variant === 'ny' || body?.variant === 'i_gang' ? body.variant : null
+  const forhandsvisTil = typeof body?.forhandsvisTil === 'string' && body.forhandsvisTil.includes('@') ? body.forhandsvisTil.trim() : null
   if (!adresser.length) return NextResponse.json({ error: 'epost mangler' }, { status: 400 })
 
   const sb = admin()
@@ -41,12 +45,19 @@ export async function POST(request: Request) {
     const tenant = await hentTenant(inv.tenant_slug)
     if (!tenant) { resultat.push({ email, ok: false, feil: `ukjent tenant ${inv.tenant_slug}` }); continue }
 
+    // Runde ut fra FØRSTE invitasjon: runde 2 har 2 000 i bonus og ingen utvidet frist
+    const { data: forste } = await sb.from('welcome_invites').select('created_at').eq('email', email).order('created_at', { ascending: true }).limit(1).maybeSingle()
+    const bonusKreditter = bonusKredittFor(forste?.created_at ?? null)
+    const runde = { bonusKreditter, utvidet: bonusKreditter === UNDERSOKELSE.bonusKreditter }
+
     const { data: bruker } = await sb.auth.admin.getUserById(inv.user_id)
     const iGang = variant ? variant === 'i_gang' : Boolean(bruker?.user?.last_sign_in_at || inv.used_at)
 
     let lenke: string | null = null
     let nyRad: string | null = null
-    if (!iGang) {
+    if (!iGang && forhandsvisTil) {
+      lenke = `${tenantOrigin(tenant)}/velkommen?t=forhandsvisning`
+    } else if (!iGang) {
       const token = nyttToken()
       const naa = new Date().toISOString()
       const { data: rad, error } = await sb.from('welcome_invites').insert({
@@ -59,10 +70,10 @@ export async function POST(request: Request) {
       lenke = `${tenantOrigin(tenant)}/velkommen?t=${encodeURIComponent(token)}`
     }
 
-    const { subject, html, fra } = paminnelseEpost(tenant, lenke, inv.full_name, inv.credits != null ? Number(inv.credits) : null, inv.svar_til || null, inv.hilsen_fra || null)
+    const { subject, html, fra } = paminnelseEpost(tenant, lenke, inv.full_name, inv.credits != null ? Number(inv.credits) : null, inv.svar_til || null, inv.hilsen_fra || null, runde)
     try {
       // Resend KASTER IKKE ved feil — { error } må sjekkes
-      const { error: sendErr } = await resend.emails.send({ from: fra, to: inv.email, subject, html, ...(inv.svar_til ? { replyTo: inv.svar_til } : {}) })
+      const { error: sendErr } = await resend.emails.send({ from: fra, to: forhandsvisTil || inv.email, subject: forhandsvisTil ? `[TEST] ${subject}` : subject, html, ...(inv.svar_til ? { replyTo: inv.svar_til } : {}) })
       if (sendErr) throw new Error(sendErr.message)
       resultat.push({ email, ok: true, variant: iGang ? 'i_gang' : 'ny' })
     } catch (err) {
