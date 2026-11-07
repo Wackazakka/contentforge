@@ -142,7 +142,10 @@ async function opprettMaskin(jobId, { token, app, image, region }) {
         // performance (dedikert, IKKE strupet) — shared-cpu grindet encode-
         // steget saa sakte at det saa hengt ut. performance gir ~dropletens
         // fart (~7 min). Dyrere per sekund, men fortsatt faa oere/render.
-        guest: { cpu_kind: 'performance', cpus: 2, memory_mb: 4096 },
+        // 8 GB (Lars 7/11): Lises film (2,5 min, seks KI-klipp) ble drept av
+        // minnet (oom_killed) etter 26 min paa 4 GB. Ekstra-RAM-en koster
+        // ~1 oere per render.
+        guest: { cpu_kind: 'performance', cpus: 2, memory_mb: Number(process.env.RENDER_FLY_MEM_MB || 8192) },
         init: { cmd: [jobId] },
         // R2-noklene sendes med fra job-queues eget miljo — sparer et eget
         // «fly secrets set»-steg. Maskinen er kortlivd og config er kun synlig
@@ -179,7 +182,7 @@ async function maskinStatus(machineId) {
     if (!res.ok) return null
     const m = await res.json()
     const exit = (m.events || []).find((e) => e.type === 'exit')
-    return { state: m.state, exitCode: exit?.request?.exit_event?.exit_code ?? null }
+    return { state: m.state, exitCode: exit?.request?.exit_event?.exit_code ?? null, oom: exit?.request?.exit_event?.oom_killed === true }
   } catch (_) {
     return null
   }
@@ -202,7 +205,7 @@ async function waitForOutput(jobId, cfg, takMin = 30, machineId = null) {
       if (st && ['stopped', 'destroying', 'destroyed', 'failed'].includes(st.state)) {
         // Opplastingen kan ha landet rett foer maskinen avsluttet
         if (await finnes()) return key
-        throw new Error(`Fly-maskinen ${machineId} stoppet (${st.state}, exit ${st.exitCode ?? '?'}) uten output for ${jobId}`)
+        throw new Error(`Fly-maskinen ${machineId} stoppet (${st.state}, exit ${st.exitCode ?? '?'}${st.oom ? ', TOM FOR MINNE' : ''}) uten output for ${jobId}`)
       }
     }
     await new Promise((r) => setTimeout(r, 10000))

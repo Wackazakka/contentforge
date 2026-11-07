@@ -92,7 +92,8 @@ const RENDER_TAK_MS = Number(process.env.RENDER_TAK_MIN || 30) * 60 * 1000
 // Taket maa vokse med filmens lengde (Lars 4/11): Iselins film ble 3:55 og
 // trengte 31 min paa Fly — den ble ferdig 1,5 min ETTER at vi ga opp. Lengden
 // regnes som rendereren gjoer det (vo + 0,4 + hold per scene + sluttplakat).
-// 10 min fast + 10 min per filmminutt; aldri under RENDER_TAK_MS.
+// 15 min fast + 12 min per filmminutt; aldri under RENDER_TAK_MS. Lises
+// KI-film (2,6 min, seks klipp) brukte 32 min paa 8 GB (7/11) — 10+10 ga 36.
 function renderTakMs(cfg) {
   try {
     const { execFileSync } = require('child_process')
@@ -107,7 +108,7 @@ function renderTakMs(cfg) {
       sek += (vo > 0 ? vo + 0.4 : 0) + (Number(s.hold) || 0)
     }
     if (cfg && cfg.outroCard) sek += Number(cfg.outroCard.durationSeconds) || 3
-    return Math.max(RENDER_TAK_MS, (10 + 10 * (sek / 60)) * 60 * 1000)
+    return Math.max(RENDER_TAK_MS, (15 + 12 * (sek / 60)) * 60 * 1000)
   } catch (_) {
     return RENDER_TAK_MS
   }
