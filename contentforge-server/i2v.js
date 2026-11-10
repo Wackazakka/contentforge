@@ -23,9 +23,28 @@ async function extractLastFrame(clipPath, outPng) {
   return outPng
 }
 
+// Maks to skjøtinger samtidig, 2 tråder hver (testfilmene 10/11: en film med
+// KI-bevegelse på seks scener skjøtet alle seks samtidig — seks ffmpeg à
+// ~550 MB, 3,3 GB til sammen, nær minnetaket på dropleten).
+const SKJOT_MAKS = 2
+let skjoterNaa = 0
+const skjotKo = []
+async function iSkjotKo(fn) {
+  if (skjoterNaa >= SKJOT_MAKS) await new Promise((r) => skjotKo.push(r))
+  skjoterNaa++
+  try { return await fn() } finally {
+    skjoterNaa--
+    const neste = skjotKo.shift()
+    if (neste) neste()
+  }
+}
+
 // Skjøt klipp sømløst: alle skaleres/beskjæres til første klipps mål og
 // felles fps, så concat-filteret aldri snubler i blandede kilder.
 async function concatClips(paths, outPath) {
+  return iSkjotKo(() => skjotKlipp(paths, outPath))
+}
+async function skjotKlipp(paths, outPath) {
   const dims = await ff('ffprobe', ['-v', 'error', '-select_streams', 'v:0',
     '-show_entries', 'stream=width,height', '-of', 'csv=p=0', paths[0]])
   const [w, h] = String(dims).trim().split(',').map(Number)
@@ -39,7 +58,7 @@ async function concatClips(paths, outPath) {
   const fc = filters.join(';') + ';' + paths.map((_, i) => `[v${i}]`).join('')
     + `concat=n=${paths.length}:v=1:a=0[out]`
   await ff('ffmpeg', ['-y', ...inputs, '-filter_complex', fc, '-map', '[out]',
-    '-c:v', 'libx264', '-preset', 'fast', '-crf', '20', '-pix_fmt', 'yuv420p', '-an', outPath])
+    '-c:v', 'libx264', '-preset', 'fast', '-crf', '20', '-threads', '2', '-pix_fmt', 'yuv420p', '-an', outPath])
   return outPath
 }
 
