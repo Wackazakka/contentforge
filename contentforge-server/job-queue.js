@@ -84,7 +84,11 @@ const RENDER_WORKSPACE = process.env.RENDER_WORKSPACE || '/root/.openclaw/worksp
 // Foer dette startet HVER jobb en Python-prosess umiddelbart. Ti samtidige
 // trykk = ti prosesser paa fire kjerner, som maskinen DELER med trading-boten.
 // Med et tak blir travle perioder TREGE i stedet for at alt havarerer likt.
-const MAX_SAMTIDIGE_RENDER = Number(process.env.MAX_RENDER || 2)
+// Med RENDER_MODE=fly (fra 11/8) rendrer hver film paa sin EGEN Fly-maskin;
+// dropleten bare pakker og henter. Taket paa 2 ble staaende og fikk filmer
+// til aa vente i koe uten grunn (testfilmene 10/11: test 1 ventet 7 min,
+// test 4 i 15 min). For Fly er taket 6; native beholder 2.
+const MAX_SAMTIDIGE_RENDER = Number(process.env.MAX_RENDER || (process.env.RENDER_MODE === 'fly' ? 6 : 2))
 // Renderingen tar ~7 min naar maskinen er rolig. Taket er romslig med vilje:
 // det skal fange en DOED render, ikke avbryte en treg en.
 const RENDER_TAK_MS = Number(process.env.RENDER_TAK_MIN || 30) * 60 * 1000
