@@ -27,6 +27,9 @@ interface DraftRequest {
   musicFile?: string | null
   includeOutroCard?: boolean
   imageStyle?: string
+  // Språk i filmen (Lars 10.11, Lises ønske). 'en' = engelsk scenetekst og
+  // tale uansett hvilket språk beskrivelsen er skrevet på. Ellers som før.
+  language?: 'no' | 'en'
 }
 
 // Stilene workeren kjenner (contentforge-server/job-queue.js). Brukes bare for
@@ -50,7 +53,8 @@ async function generateScript(
   tone: string = 'Energisk',
   cta: string = '',
   perspective: 'du' | 'jeg' | 'vi' = 'du',
-  senderContext: string = ''
+  senderContext: string = '',
+  language: 'no' | 'en' | null = null
 ): Promise<Segment[]> {
   console.log(`[generateDraft] Calling Claude to generate script with ${segmentCount} segments for topic: "${topic}"`)
 
@@ -80,7 +84,9 @@ For each segment, provide:
 2. Voiceover (what to say, max 85 chars / ~12 words — ONE short punchy sentence, about 4-5 seconds spoken. Never longer; short segments keep the video dynamic)
 3. Image prompt (descriptive, cinematic, for DALL-E 3 — IMPORTANT: add "no text, no words, no letters" at the end)
 
-Write in the same language as the topic and sender description above. Match the language naturally.
+${language === 'en'
+  ? 'LANGUAGE: Write ALL on-screen text and ALL voiceover in natural, idiomatic English — even if the topic and sender description above are written in Norwegian. Translate names of places only when an English name is in common use. Keep the perspective rules above, using I/we/you in English.'
+  : 'Write in the same language as the topic and sender description above. Match the language naturally.'}
 IMPORTANT PUNCTUATION:
 - End each line of text with proper punctuation (period, exclamation mark, or question mark)
 - Ensure every sentence is complete and properly punctuated
@@ -170,6 +176,7 @@ export async function POST(request: NextRequest) {
       includeOutroCard,
       imageStyle,
     } = body
+    const language: 'en' | null = body.language === 'en' ? 'en' : null
 
     if (!productId || !campaignId || !topic) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -191,7 +198,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
     const websiteUrl = profile?.website_url || null
     // Use explicit CTA if provided, otherwise fall back to website URL
-    const effectiveCta = cta?.trim() || (websiteUrl ? `Besøk ${websiteUrl}` : '')
+    const effectiveCta = cta?.trim() || (websiteUrl ? `${language === 'en' ? 'Visit' : 'Besøk'} ${websiteUrl}` : '')
     console.log(`[generateDraft] CTA: "${effectiveCta}" (websiteUrl: ${websiteUrl})`)
 
     // «Om avsenderen»-kontekst: produktet/bedriften/artisten bak videoen —
@@ -207,7 +214,7 @@ export async function POST(request: NextRequest) {
 
     // Step 1: Generate script with Claude (NO IMAGE GENERATION)
     console.log(`[generateDraft] Step 1: Generating script...`)
-    let segments = await generateScript(topic, segmentCount, targetAudience, problem, tone, effectiveCta, perspective, senderContext)
+    let segments = await generateScript(topic, segmentCount, targetAudience, problem, tone, effectiveCta, perspective, senderContext, language)
     console.log(`[generateDraft] Step 1: ✅ Script generated`)
 
     // Set empty image_url for each segment (images will be generated client-side)
@@ -228,6 +235,7 @@ export async function POST(request: NextRequest) {
         campaign_id: isValidUuid(campaignId) ? campaignId : null,
         title: title || topic,
         status: 'draft',
+        ...(language ? { language } : {}),
         segments: segments,
         target_audience: targetAudience || '',
         problem: problem || '',

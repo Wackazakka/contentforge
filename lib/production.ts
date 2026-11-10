@@ -307,7 +307,9 @@ export async function startProductionForDraft(
       // Engelsk stemme trenger 'en' — ellers leses teksten med norske
       // uttaleregler (Lars 1/8). Slaas opp direkte hos ElevenLabs, saa det
       // ikke krever en ny kolonne og aldri kan komme i utakt med stemmevalget.
-      voiceLanguage: await voiceLanguageFor(draft.voice_id),
+      // Utkast laget på engelsk (språkvalget, 10.11) leses med engelsk uttale
+      // uansett stemme; ellers avgjør stemmens aksent som før.
+      voiceLanguage: (draft as any).language === 'en' ? 'en' : await voiceLanguageFor(draft.voice_id),
       brandCard,
     }),
   })

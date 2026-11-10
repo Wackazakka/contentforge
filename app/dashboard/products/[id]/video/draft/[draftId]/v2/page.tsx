@@ -995,7 +995,7 @@ export default function DraftV2Page() {
       const res = await fetch('/api/content/preview-voiceover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sess?.session?.access_token || ''}` },
-        body: JSON.stringify({ text: seg.voiceover, voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX', draftId, segmentIndex: index, languageCode: languageForGroup((VOICES.find((v) => v.id === draft.voice_id) as any)?.gruppe) }),
+        body: JSON.stringify({ text: seg.voiceover, voiceId: draft.voice_id || 'nhvaqgRyAq6BmFs3WcdX', draftId, segmentIndex: index, languageCode: (draft as any).language === 'en' ? 'en' : languageForGroup((VOICES.find((v) => v.id === draft.voice_id) as any)?.gruppe) }),
       })
       const data = await res.json()
       if (data.url) {

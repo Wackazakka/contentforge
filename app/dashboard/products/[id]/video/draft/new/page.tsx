@@ -123,6 +123,10 @@ export default function NewDraftPage() {
   }, [tenant.vertical])
   const [cta, setCta] = useState('')
   const locale = (useLocale() === 'en' ? 'en' : 'no') as Locale
+  // Språk i filmen (Lars 10.11, Lises ønske om engelsk tekst). Engelsk = all
+  // scenetekst og tale skrives på engelsk, uansett språk i beskrivelsen.
+  // Står under `locale`, som startverdien leses fra.
+  const [filmSprak, setFilmSprak] = useState<'no' | 'en'>(locale === 'en' ? 'en' : 'no')
   // Anledninger (celebration): «produktet» ER det videoen skal handle om, så
   // det brukeren skrev i «Ny anledning» gjenbrukes som utgangspunkt (Lars 4/9:
   // «bruk infoen som allerede er oppgitt»). Bare tomme felt fylles — alt
@@ -230,6 +234,7 @@ export default function NewDraftPage() {
           tone,
           perspective,
           cta,
+          language: filmSprak,
           videoFormat,
           includeOutroCard,
           imageStyle,
@@ -410,6 +415,27 @@ export default function NewDraftPage() {
                       (Lars 31/7: ~5 s per bilde; stille scener er helt fint) */}
                   {tenant.vertical === 'music' && (
                     <p className="mt-1 text-xs text-gray-500">{t('segmentsHint')}</p>
+                  )}
+                </div>
+
+                {/* Språk i filmen (Lars 10.11) */}
+                <div>
+                  <label htmlFor="filmSprak" className="block text-sm font-medium text-gray-700 mb-2">{locale === 'en' ? 'Language in the video' : 'Språk i filmen'}</label>
+                  <select
+                    id="filmSprak"
+                    value={filmSprak}
+                    onChange={(e) => setFilmSprak(e.target.value === 'en' ? 'en' : 'no')}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--ember-deep)] focus:border-transparent"
+                  >
+                    <option value="no">{locale === 'en' ? 'Norwegian' : 'Norsk'}</option>
+                    <option value="en">{locale === 'en' ? 'English' : 'Engelsk'}</option>
+                  </select>
+                  {filmSprak === 'en' && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {locale === 'en'
+                        ? 'All on-screen text and voiceover is written in English, even if you describe the video in Norwegian.'
+                        : 'All tekst og tale i filmen skrives på engelsk, selv om du beskriver filmen på norsk.'}
+                    </p>
                   )}
                 </div>
 
