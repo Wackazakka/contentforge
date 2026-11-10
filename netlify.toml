@@ -46,6 +46,14 @@
   status = 301
   force = true
 
+# StarLedger (131): skrives om paa «/» som twinledger.ai, saa rota tas i
+# proxy.ts og undersidene her.
+[[redirects]]
+  from = "https://www.starledger.ai/*"
+  to = "https://starledger.ai/:splat"
+  status = 301
+  force = true
+
 # «Stemmebank» er ETT ord naar man sier det, og ruta heter voice-bank. Lars
 # skrev /dashboard/voicebank og fikk 404 paa en side han hadde faatt lenke
 # til. Skrivefeilen er ikke hans -- den ligger i at adressen ikke likner
