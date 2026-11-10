@@ -876,7 +876,26 @@ router.post('/', async (req, res) => {
             const stylePrefix = (imageStyle && STYLE_PROMPTS[imageStyle]) ? STYLE_PROMPTS[imageStyle] + ' ' : 'Cinematic photorealistic scene. Professional photography, dramatic lighting. '
             const visualPrompt = segment.imagePrompt || `${stylePrefix}Visual scene illustrating: "${segment.text.substring(0, 180)}". No text, words, letters, or typography anywhere in the image.`
             console.log(`[job-queue] Segment ${i + 1}: Generating image with visual prompt...`)
-            const imageResult = await generateImage(visualPrompt, localImagePath, openaiKey, video_format, { campaignId, jobId, imageName: `image_${i + 1}.png` })
+            const bildeOpts = { campaignId, jobId, imageName: `image_${i + 1}.png` }
+            let imageResult
+            try {
+              imageResult = await generateImage(visualPrompt, localImagePath, openaiKey, video_format, bildeOpts)
+            } catch (gErr) {
+              // Amy 10/11: OpenAIs sikkerhetsfilter avviste scene 7 (samme
+              // tekst gikk gjennom to ganger 8/11) og hele filmen stoppet.
+              // Proev én gang til uten brukerens tekst.
+              console.warn(`[job-queue] Segment ${i + 1}: bilde avvist (${String(gErr.message).slice(0, 120)}) - proever noeytral beskrivelse`)
+              try {
+                imageResult = await generateImage(`${stylePrefix}Atmospheric, moody scene with soft light and gentle colours. No people, no text, words, letters, or typography anywhere in the image.`, localImagePath, openaiKey, video_format, bildeOpts)
+              } catch (g2Err) {
+                // Scenen har artistens egen video — bildet er bare reserve.
+                // Et svart bilde holder; filmen skal ikke stoppe for det.
+                if (!segment.videoUrl) throw g2Err
+                console.warn(`[job-queue] Segment ${i + 1}: reservebilde feilet igjen - bruker svart bilde (scenen har egen video)`)
+                await execAsync(`ffmpeg -y -loglevel error -f lavfi -i color=c=black:s=1080x1920 -frames:v 1 "${localImagePath}"`)
+                imageResult = {}
+              }
+            }
             if (imageResult.r2Url) imageUrls.push(imageResult.r2Url)
             segImageUrls[i] = imageResult.r2Url || null
           }
