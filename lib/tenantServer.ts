@@ -42,6 +42,10 @@ export interface Tenant {
   // vertical === 'music' — en tilfeldighet: musikk-tenanter var de eneste som
   // ikke skulle ha den. Naa eksplisitt; NULL/undefined betyr synlig.
   twinledger_enabled?: boolean | null
+  // Artistbanken (130): en kopi av TwinLedger for sangere alene. Paamelding
+  // krever sang og tilbyr ikke tale, galleriet viser bare sangere, og forsiden
+  // snakker til artister. NULL/undefined = vanlig bank. Se lib/tenantNames.
+  artists_only?: boolean | null
   // Om Publiser + Kalender vises. Aa publisere til Facebook/Instagram krever
   // en Facebook-side OG en Instagram-bedriftskonto koblet til den — for
   // tenanter der kundene ikke har det, er flaten bare en blindvei.

@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/supabaseClient'
 import CostMeter from '@/components/CostMeter'
 import { COSTS_NOK } from '@/lib/costs'
 import { useTenant } from '@/lib/tenantContext'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack } from '@/lib/uploadTrack'
 import LisensertStemme, { lisensSperrer, type BankStemme } from '@/components/LisensertStemme'
@@ -98,7 +99,7 @@ export default function AvatarVideoPage() {
       } catch { /* ingen skuespillere å vise */ }
     })()
   }, [productId])
-  const rettighetsmodus = useTenant().slug === 'twinledger'
+  const rettighetsmodus = erRettighetsbank(useTenant())
   const sperret = lisensSperrer(actorVoices, voiceId, rettighetsmodus)
   const [saldo, setSaldo] = useState<number | null>(null)
   useEffect(() => {

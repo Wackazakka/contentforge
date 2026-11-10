@@ -10,6 +10,7 @@ import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import { isSimpleMode } from '@/lib/verticals'
 import { useDashboardRole } from '@/lib/useDashboardRole'
 
@@ -134,7 +135,7 @@ export default function NavBar() {
   // beholder topplinja. Samme grunn som at paletten ligger i tenant.colors og
   // ikke i :root — en layoutendring her ville flyttet menyen for VoiceBank,
   // PromoMaker, Bombaza og BådeOg uten at noen hadde bedt om det.
-  const sidemeny = tenant.slug === 'twinledger'
+  const sidemeny = erRettighetsbank(tenant)
 
   const gruppenavn = [t('group_production'), t('group_management'), t('group_me')]
   // Rekkefølgen på gruppene varierer med vertikal, så navnet må følge

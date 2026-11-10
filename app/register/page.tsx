@@ -7,13 +7,14 @@ import { useTranslations } from 'next-intl'
 import { AuthShell, AuthField, AuthSubmit, AuthBanner, AuthSwitch } from '@/components/AuthUI'
 import Link from 'next/link'
 import { useTenant } from '@/lib/tenantContext'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import { isSimpleMode } from '@/lib/verticals'
 
 export default function RegisterPage() {
   const t = useTranslations('register')
   const tenant = useTenant()
   // Kun pa tjenester med rettighetsforvaltning finnes det en «annen dor».
-  const erRettighetsforvaltning = tenant.twinledger_enabled !== false && tenant.slug === 'twinledger'
+  const erRettighetsforvaltning = tenant.twinledger_enabled !== false && erRettighetsbank(tenant)
   // Enkel modus (4/9): ett passordfelt er nok — «bekreft passord» er et
   // hinder til for folk som saa vidt sender e-post.
   const enkel = isSimpleMode(tenant.vertical)

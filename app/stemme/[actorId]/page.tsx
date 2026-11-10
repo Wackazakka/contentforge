@@ -274,12 +274,12 @@ export default async function ActorPresentationPage({ params }: { params: Promis
               {/* Be om lisens (28.10): på TwinLedger er lisensen klareringen, og
                   kunden skal kunne be om den her hen møter skuespilleren. Er hen
                   ikke innlogget, tar lisenssida seg av det og sender hen tilbake. */}
-              {!actor.isDemo && lisensErKlareringen(tenant.slug) && (actor.hasVoice || actor.hasFace || actor.hasSinging) && (
+              {!actor.isDemo && lisensErKlareringen(tenant) && (actor.hasVoice || actor.hasFace || actor.hasSinging) && (
                 <Link href={lisensLenke(actor.id, { asset: assetFor(actor) })} style={knapp('ember')}>
                   {t('cta_licence')}
                 </Link>
               )}
-              <Link href={actor.isDemo ? '/bli-stemme' : '/register'} style={knapp(!actor.isDemo && lisensErKlareringen(tenant.slug) ? 'ramme' : 'ember')}>
+              <Link href={actor.isDemo ? '/bli-stemme' : '/register'} style={knapp(!actor.isDemo && lisensErKlareringen(tenant) ? 'ramme' : 'ember')}>
                 {actor.isDemo ? t('demo_cta_join') : t('cta_signup')}
               </Link>
               <Link href="/stemmer" style={knapp('ramme')}>

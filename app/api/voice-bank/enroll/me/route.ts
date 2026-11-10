@@ -42,8 +42,10 @@ export async function POST(request: Request) {
     if (!name) return NextResponse.json({ error: 'Navn må fylles ut' }, { status: 400 })
 
     // Ekte eller virtuell artist, og sang (127) — samme regel som /enroll.
+    // Artistbanken (130) krever sang og tilbyr ikke tale.
     const { lesSangPaamelding } = await import('@/lib/sang')
-    const sang = lesSangPaamelding(b, new Date().toISOString())
+    const { erArtistbank } = await import('@/lib/tenantNames')
+    const sang = lesSangPaamelding(b, new Date().toISOString(), { kunArtister: erArtistbank(tenant) })
     if ('feil' in sang) return NextResponse.json({ error: sang.feil }, { status: 400 })
     const offersVoice = !sang.tvingIngenTale && b.offersVoice !== false
     const wantsFace = b.wantsFace === true
@@ -169,7 +171,10 @@ export async function PATCH(request: Request) {
       .select('offers_singing, singing_model_id, artist_kind').eq('id', rad.id).maybeSingle()
     const sangRad = sr as { offers_singing?: boolean; singing_model_id?: string | null; artist_kind?: string } | null
     const virtuell = sangRad?.artist_kind === 'virtual'
-    const offersSinging = typeof b.offersSinging === 'boolean' ? b.offersSinging : sangRad?.offers_singing === true
+    // Artistbanken (130): sang står fast, tale finnes ikke — som ved påmelding.
+    const { erArtistbank } = await import('@/lib/tenantNames')
+    const kunArtister = erArtistbank(tenant)
+    const offersSinging = kunArtister || (typeof b.offersSinging === 'boolean' ? b.offersSinging : sangRad?.offers_singing === true)
     if (typeof b.offersSinging === 'boolean' && !sangRad) {
       return NextResponse.json({ error: 'Sang er ikke slått på ennå' }, { status: 409 })
     }
@@ -178,7 +183,7 @@ export async function PATCH(request: Request) {
     }
 
     // En virtuell artist tilbyr ikke tale ennå (lib/sang).
-    const offersVoice = virtuell ? false : typeof b.offersVoice === 'boolean' ? b.offersVoice : rad.offers_voice !== false
+    const offersVoice = virtuell || kunArtister ? false : typeof b.offersVoice === 'boolean' ? b.offersVoice : rad.offers_voice !== false
     const wantsFace = typeof b.wantsFace === 'boolean' ? b.wantsFace : rad.wants_face === true
     if (!offersVoice && !wantsFace && !offersSinging) return NextResponse.json({ error: 'Velg minst ett: stemme, sang eller ansikt' }, { status: 400 })
     // Ta bort noe som alt er i drift — nei. Bruk av-bryteren.

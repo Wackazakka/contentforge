@@ -69,5 +69,14 @@ sjekk('virtuell på engelsk fryses på engelsk', v.felter, { offers_singing: tru
 sjekk('virtuell tilbyr ikke tale', v.tvingIngenTale, true)
 sjekk('fra metadata: ukjent tekst blir den norske', radFelter({ artistType: 'virtual', tilbyrSang: false, naa, erklaering: 'tull' }).virtual_declaration, VIRTUELLE_ERKLAERINGER.no)
 
+// 6. Artistbanken (130): sang står fast, tale finnes ikke — uansett hva skjemaet sendte
+const a = lesSangPaamelding({ offersSinging: false, offersVoice: true }, naa, { kunArtister: true })
+sjekk('artistbank: menneske får sang selv om skjemaet sa nei', a.felter, { offers_singing: true })
+sjekk('artistbank: menneske tilbyr ikke tale', a.tvingIngenTale, true)
+const av = lesSangPaamelding({ artistKind: 'virtual', virtualDeclared: true, virtualDeclarationText: VIRTUELLE_ERKLAERINGER.no }, naa, { kunArtister: true })
+sjekk('artistbank: virtuell får sang uten å krysse av', av.felter, { offers_singing: true, artist_kind: 'virtual', virtual_declaration: VIRTUELLE_ERKLAERINGER.no, virtual_declared_at: naa })
+sjekk('artistbank: virtuell uten erklæring avvises fortsatt', lesSangPaamelding({ artistKind: 'virtual' }, naa, { kunArtister: true }).feil?.includes('erklæringen'), true)
+sjekk('vanlig bank: uendret uten flagget', lesSangPaamelding({ offersSinging: false }, naa, {}).felter, {})
+
 console.log(`${ok}/${ok + feil} ok`)
 process.exit(feil ? 1 : 0)

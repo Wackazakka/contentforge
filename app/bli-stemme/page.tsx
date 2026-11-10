@@ -4,7 +4,12 @@ import Link from 'next/link'
 import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
 import { LangToggle } from '@/components/LangToggle'
+import { erArtistbank } from '@/lib/tenantNames'
 import ApplyForm from './ApplyForm'
+
+// ARTISTBANKEN (130): samme side og samme skjema, men teksten snakker til
+// sangere, og skjemaet krever sang og tilbyr ikke tale. Nøklene med a_-
+// prefiks i 'apply' er artistvariantene; resten deles.
 
 // «Bli en stemme i banken» — offentlig drop-in-inngang for skuespillere.
 // Vises kun når tenanten har skrudd på accept_actor_applications (opt-in).
@@ -32,9 +37,10 @@ export async function generateMetadata() {
   // til et avslag er verre enn ingen treff. Da skal den ikke indekseres.
   const aapen = tenant.id !== 'root' && tenant.accept_actor_applications === true
   const kanIndekseres = aapen && tenant.allow_indexing === true
+  const a = erArtistbank(tenant) ? 'a_' : ''
   return {
-    title: t('meta_title', { tenant: tenant.app_name }),
-    description: t('meta_description', { tenant: tenant.app_name }),
+    title: t(`${a}meta_title`, { tenant: tenant.app_name }),
+    description: t(`${a}meta_description`, { tenant: tenant.app_name }),
     ...(kanIndekseres
       ? { alternates: { canonical: `${await getTenantCanonicalOrigin(tenant)}/bli-stemme` } }
       : {}),
@@ -79,10 +85,12 @@ export default async function BliStemmePage({ searchParams }: { searchParams: Pr
     )
   }
 
+  const artistbank = erArtistbank(tenant)
+  const a = artistbank ? 'a_' : ''
   const steg = [
-    ['01', t('step1_h'), t('step1_p')],
-    ['02', t('step2_h'), t('step2_p')],
-    ['03', t('step3_h'), t('step3_p')],
+    ['01', t(`${a}step1_h`), t(`${a}step1_p`)],
+    ['02', t(`${a}step2_h`), t(`${a}step2_p`)],
+    ['03', t(`${a}step3_h`), t(`${a}step3_p`)],
   ]
 
   return (
@@ -106,9 +114,9 @@ export default async function BliStemmePage({ searchParams }: { searchParams: Pr
 
       <div className="bs-split">
         <div style={{ padding: `clamp(36px, 5vw, 64px) ${GUTTER}` }}>
-          <p style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-faint)', margin: '0 0 12px' }}>{t('side_eyebrow')}</p>
-          <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(30px, 3.6vw, 44px)', letterSpacing: '-0.035em', lineHeight: 1.06, margin: '0 0 16px', textWrap: 'balance' }}>{t('side_h1')}</h1>
-          <p style={{ fontSize: 17, lineHeight: 1.55, color: 'var(--ink-soft)', margin: '0 0 36px', maxWidth: '32em' }}>{t('side_lede')}</p>
+          <p style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-faint)', margin: '0 0 12px' }}>{t(`${a}side_eyebrow`)}</p>
+          <h1 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(30px, 3.6vw, 44px)', letterSpacing: '-0.035em', lineHeight: 1.06, margin: '0 0 16px', textWrap: 'balance' }}>{t(`${a}side_h1`)}</h1>
+          <p style={{ fontSize: 17, lineHeight: 1.55, color: 'var(--ink-soft)', margin: '0 0 36px', maxWidth: '32em' }}>{t(`${a}side_lede`)}</p>
 
           {steg.map(([n, h, p2], i) => (
             <div key={n} style={{ display: 'flex', gap: 18, padding: '18px 0', borderTop: `1px solid ${i === 0 ? 'var(--ds-border-strong)' : 'var(--ds-border)'}` }}>
@@ -128,7 +136,7 @@ export default async function BliStemmePage({ searchParams }: { searchParams: Pr
         </div>
 
         <div className="bs-form" style={{ borderLeft: '1px solid var(--ds-border)', background: 'var(--paper-sunken)', padding: `clamp(36px, 5vw, 64px) ${GUTTER}` }}>
-          <ApplyForm byraa={byraa} />
+          <ApplyForm byraa={byraa} artistsOnly={artistbank} />
         </div>
       </div>
     </div>

@@ -5,6 +5,8 @@ import { getTranslations } from 'next-intl/server'
 import { getTenant, getTenantCanonicalOrigin } from '@/lib/tenantServer'
 import { LangToggle } from '@/components/LangToggle'
 import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
+import { CenterForgeLogo } from '@/components/CenterForgeLogo'
+import { erArtistbank } from '@/lib/tenantNames'
 
 // Norditechs egen dør inn til TwinLedger.
 //
@@ -38,8 +40,17 @@ import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
 // byttet drakt på tre andre produkter. tenant.colors er mekanismen som finnes
 // for nettopp dette (VoiceBank og PromoMaker bruker den).
 
+// ═══ ARTISTBANKEN (130, 10.11.2026) ═══
+//
+// Kopien av TwinLedger for sangere bruker DENNE sida, med egen tekst: samme
+// nøkler i messages/*.json under 'artistbank'. Strukturen (to dører, hvorfor
+// nå, hovedboken, linja, byråstripa) er den samme fordi produktet er det
+// samme — det som skifter er hvem døra snakker til. Én side, to stemmer, så
+// en formendring her treffer begge.
+const navnerom = (tenant: { artists_only?: boolean | null }) => (erArtistbank(tenant) ? 'artistbank' : 'twinledger')
+
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('twinledger')
+  const t = await getTranslations(navnerom(await getTenant()))
   // Sida serveres på «/» via omskrivingen i proxy.ts, og kanoniseres dit — ikke
   // til /twinledger, som er en intern sti ingen skal lande på.
   const origin = await getTenantCanonicalOrigin()
@@ -62,12 +73,14 @@ export default async function TwinLedgerPage() {
   // partnerdomene skal siden ikke finnes — partneren er kunden, og skal ikke
   // vise at andre kan kjøpe det samme (Lars 16/9).
   const tenant = await getTenant()
-  const t = await getTranslations('twinledger')
-  const egenDor = tenant.slug === 'centerforge' || tenant.slug === 'twinledger'
+  const artistbank = erArtistbank(tenant)
+  const t = await getTranslations(navnerom(tenant))
+  const egenDor = tenant.slug === 'centerforge' || tenant.slug === 'twinledger' || artistbank
   if (!egenDor) notFound()
-  // På TwinLedger-tenanten er dette forsiden til en app med rettighetshavere
-  // og admin bak seg — da hører innlogging og utvalget hjemme i toppen.
-  const erApp = tenant.slug === 'twinledger'
+  // På TwinLedger-tenanten (og artistbanken) er dette forsiden til en app med
+  // rettighetshavere og admin bak seg — da hører innlogging og utvalget
+  // hjemme i toppen.
+  const erApp = tenant.slug === 'twinledger' || artistbank
 
   const rader = [
     { use: t('r1_use'), asset: t('r1_asset'), under: t('r1_under'), from: '400.00', to: '150.00' },
@@ -126,7 +139,9 @@ export default async function TwinLedgerPage() {
       `}</style>
 
       <header style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', padding: `18px ${GUTTER}`, background: 'var(--paper-raised)', borderBottom: '1px solid var(--ds-border)' }}>
-        <Link href="/" style={{ textDecoration: 'none' }}><TwinLedgerLogo size={22} /></Link>
+        {/* Artistbanken har ikke TwinLedgers ordmerke — den heter noe eget.
+            CenterForgeLogo tegner tenantens logo_url, ellers navnet. */}
+        <Link href="/" style={{ textDecoration: 'none' }}>{artistbank ? <CenterForgeLogo size={24} wordmarkSize={19} /> : <TwinLedgerLogo size={22} />}</Link>
         <span style={{ fontFamily: MONO, fontSize: 10.5, fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ember-deep)', background: 'var(--ember-tint-bg)', border: '1px solid var(--ember-tint-border)', padding: '5px 9px' }}>
           {t('by_norditech')}
         </span>
@@ -311,7 +326,7 @@ export default async function TwinLedgerPage() {
 
       <footer style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap', padding: `28px ${GUTTER} 48px`, borderTop: '1px solid var(--ds-border)' }}>
         <span style={{ fontFamily: MONO, fontSize: 12.5, color: 'var(--text-faint)' }}>{t('foot_brand')}</span>
-        <Link href="/" style={{ color: 'var(--ink-soft)', fontSize: 14, textDecoration: 'none' }}>{t('foot_centerforge')}</Link>
+        <Link href={artistbank ? 'https://twinledger.ai' : '/'} style={{ color: 'var(--ink-soft)', fontSize: 14, textDecoration: 'none' }}>{t('foot_centerforge')}</Link>
         <Link href="/white-label" style={{ color: 'var(--ink-soft)', fontSize: 14, textDecoration: 'none' }}>{t('foot_partner')}</Link>
       </footer>
     </div>

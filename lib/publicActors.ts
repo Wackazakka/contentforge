@@ -73,7 +73,7 @@ export interface PublicActor {
   hasSinging: boolean
 }
 
-const FELT = 'id, tlid, twin_version, owner_tenant_id, name, bio, photo_urls, sample_urls, video_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo, gender, playing_age_from, playing_age_to, height_cm, attributes, tier, artist_kind, singing_model_id'
+const FELT = 'id, tlid, twin_version, owner_tenant_id, name, bio, photo_urls, sample_urls, video_urls, preview_url, elevenlabs_voice_id, face_character_id, is_public, is_active, is_exclusive, is_demo, gender, playing_age_from, playing_age_to, height_cm, attributes, tier, artist_kind, singing_model_id, offers_singing'
 
 type Rad = {
   id: string; tlid: string | null; twin_version: number | null; owner_tenant_id: string; name: string; bio: string | null
@@ -85,6 +85,7 @@ type Rad = {
   height_cm: number | null; attributes: Record<string, string[]> | null
   tier?: string | null
   artist_kind?: string | null; singing_model_id?: string | null
+  offers_singing?: boolean | null
 }
 
 async function kjedeOpp(tenantId: string): Promise<string[]> {
@@ -183,9 +184,13 @@ function erEgenDor(tenant: Tenant): boolean {
   return tenant.slug === 'twinledger' || tenant.slug === 'centerforge'
 }
 
-function synligHer(a: Rad, chain: string[] | null, egenDor: boolean): boolean {
+// Artistbanken (130) viser bare sangere. Banken arves nedover og delte
+// rettighetshavere er synlige på tvers — uten dette ville en taleskuespiller
+// fra forelderen stått i en katalog som lover sangere.
+function synligHer(a: Rad, chain: string[] | null, egenDor: boolean, kunSangere = false): boolean {
   if (!a.is_public || !a.is_active) return false
   if (a.is_demo === true && !egenDor) return false
+  if (kunSangere && a.offers_singing !== true) return false
   if (chain === null) return true // rot-domenet ser på tvers
   return chain.includes(a.owner_tenant_id) || a.is_exclusive === false
 }
@@ -198,7 +203,7 @@ export async function getPublicActors(tenant: Tenant): Promise<PublicActor[]> {
       .order('name')
     const chain = tenant.id === 'root' ? null : await kjedeOpp(tenant.id)
     const egenDor = erEgenDor(tenant)
-    const rader = ((data || []) as Rad[]).filter((a) => synligHer(a, chain, egenDor))
+    const rader = ((data || []) as Rad[]).filter((a) => synligHer(a, chain, egenDor, tenant.artists_only === true))
     const { trukketTilbake } = await import('@/lib/faceWithdrawal')
     const [navn, modeller, stengte] = await Promise.all([
       navnFor(rader.map((a) => a.owner_tenant_id)),
@@ -250,7 +255,7 @@ async function hentEn(tenant: Tenant, kol: 'id' | 'tlid', verdi: string): Promis
     const a = data as Rad | null
     if (!a) return null
     const chain = tenant.id === 'root' ? null : await kjedeOpp(tenant.id)
-    if (!synligHer(a, chain, erEgenDor(tenant))) return null
+    if (!synligHer(a, chain, erEgenDor(tenant), tenant.artists_only === true)) return null
     const { trukketTilbake } = await import('@/lib/faceWithdrawal')
     const [navn, modeller, stengte] = await Promise.all([
       navnFor([a.owner_tenant_id]),

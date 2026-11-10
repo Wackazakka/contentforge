@@ -105,14 +105,22 @@ export type LisensSvar =
   | { ok: true; kreves: boolean; hjemmel: { licenceId: string | null; match: string } }
   | { ok: false; status: number; body: Record<string, unknown> }
 
-const slugCache = new Map<string, string | null>()
-async function slugFor(tenantId: string | null | undefined): Promise<string | null> {
+// Slug OG artists_only: artistbanken (130) er en rettighetsbank uten aa hete
+// twinledger. Mangler kolonnen (130 ikke kjoert), faller vi til slug alene.
+type BankRad = { slug: string | null; artists_only: boolean | null }
+const slugCache = new Map<string, BankRad | null>()
+async function slugFor(tenantId: string | null | undefined): Promise<BankRad | null> {
   if (!tenantId) return null
   if (slugCache.has(tenantId)) return slugCache.get(tenantId) ?? null
-  const { data } = await admin().from('tenants').select('slug').eq('id', tenantId).maybeSingle()
-  const slug = (data as { slug?: string } | null)?.slug ?? null
-  slugCache.set(tenantId, slug)
-  return slug
+  let rad: BankRad | null = null
+  const { data } = await admin().from('tenants').select('slug, artists_only').eq('id', tenantId).maybeSingle()
+  if (data) rad = { slug: (data as { slug?: string }).slug ?? null, artists_only: (data as { artists_only?: boolean | null }).artists_only ?? null }
+  else {
+    const { data: bare } = await admin().from('tenants').select('slug').eq('id', tenantId).maybeSingle()
+    if (bare) rad = { slug: (bare as { slug?: string }).slug ?? null, artists_only: null }
+  }
+  slugCache.set(tenantId, rad)
+  return rad
 }
 
 /**

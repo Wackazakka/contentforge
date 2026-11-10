@@ -53,8 +53,12 @@ function Etikett({ children }: { children: React.ReactNode }) {
 // Byrålenken (116): satt når hen kom via /bli-stemme?byraa=<nøkkel>.
 type ByraaProp = { token: string; name: string } | { ugyldig: true } | null
 
-export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
+export default function ApplyForm({ byraa = null, artistsOnly = false }: { byraa?: ByraaProp; artistsOnly?: boolean }) {
   const t = useTranslations('apply')
+  // ARTISTBANKEN (130): sang er ikke et valg, tale finnes ikke, utseende er
+  // valgfritt — for ekte sangere og virtuelle artister likt. Serveren
+  // (lib/sang) håndhever det samme uansett hva skjemaet sender.
+  const kunArtister = artistsOnly === true
   const viaByraa = byraa && 'token' in byraa ? byraa : null
   // Innlogget? Da finnes kontoen alt, og paameldingen gaar rett i raden
   // (/api/voice-bank/enroll/me). E-post og passord skjules; navnet
@@ -100,7 +104,8 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
   // artist velger sang og/eller utseende, og tilbyr ikke tale ennå.
   const [synger, setSynger] = useState(false)
   const [vSang, setVSang] = useState(true)
-  const [vAnsikt, setVAnsikt] = useState(true)
+  // I artistbanken er utseendet et tillegg til sangstemmen — av som standard.
+  const [vAnsikt, setVAnsikt] = useState(!artistsOnly)
   const [virtueltErklaert, setVirtueltErklaert] = useState(false)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
@@ -109,9 +114,9 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
   const [error, setError] = useState<string | null>(null)
 
   // De tre segmentene er én beslutning for søkeren, men to kolonner i basen.
-  const offersVoice = !virtuell && tilbud !== 'ansikt'
-  const wantsFace = virtuell ? vAnsikt : tilbud !== 'stemme'
-  const offersSinging = virtuell ? vSang : synger
+  const offersVoice = !virtuell && !kunArtister && tilbud !== 'ansikt'
+  const wantsFace = virtuell || kunArtister ? vAnsikt : tilbud !== 'stemme'
+  const offersSinging = kunArtister ? true : virtuell ? vSang : synger
 
   const veksle = (f: Fasett, v: string) => setAttr((p) => {
     const naa = p[f] ?? []
@@ -227,7 +232,7 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
                   border: 'none', borderLeft: i > 0 ? '1px solid var(--ds-border-strong)' : 'none',
                 }}>
                 <span style={{ display: 'block', fontWeight: 600 }}>{t(v === 'human' ? 'who_self' : 'who_virtual')}</span>
-                <span style={{ display: 'block', fontSize: 12.5, opacity: 0.8, marginTop: 3 }}>{t(v === 'human' ? 'who_self_sub' : 'who_virtual_sub')}</span>
+                <span style={{ display: 'block', fontSize: 12.5, opacity: 0.8, marginTop: 3 }}>{t(`${kunArtister ? 'a_' : ''}${v === 'human' ? 'who_self_sub' : 'who_virtual_sub'}`)}</span>
               </button>
             )
           })}
@@ -254,14 +259,19 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
       </label>
 
       {/* En virtuell artist: sang og/eller utseende, to avkryssinger. Tale
-          tilbys ikke ennå — proffklonen må være eierens egen stemme. */}
-      {virtuell && (
+          tilbys ikke ennå — proffklonen må være eierens egen stemme.
+          I artistbanken (130) gjelder de samme to for et menneske også — og
+          sangen står fast, så den vises avkrysset og låst. */}
+      {(virtuell || kunArtister) && (
         <div style={{ marginBottom: 20 }}>
-          <Etikett>{t('v_offer_label')}</Etikett>
-          {([['sang', vSang, setVSang, 'v_offer_singing'], ['ansikt', vAnsikt, setVAnsikt, 'v_offer_face']] as const).map(([k, paa, sett, tekst]) => (
-            <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 14.5, marginBottom: 8 }}>
-              <input type="checkbox" checked={paa} disabled={busy} onChange={(e) => sett(e.target.checked)} />
-              <span>{t(tekst)}</span>
+          <Etikett>{t(kunArtister ? 'a_offer_label' : 'v_offer_label')}</Etikett>
+          {([['sang', kunArtister || vSang, setVSang, 'v_offer_singing'], ['ansikt', vAnsikt, setVAnsikt, 'v_offer_face']] as const).map(([k, paa, sett, tekst]) => (
+            <label key={k} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 14.5, marginBottom: 8 }}>
+              <input type="checkbox" checked={paa} disabled={busy || (kunArtister && k === 'sang')} onChange={(e) => sett(e.target.checked)} style={{ marginTop: 3 }} />
+              <span>
+                {t(tekst)}
+                {kunArtister && k === 'sang' && <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>{t('a_offer_singing_sub')}</span>}
+              </span>
             </label>
           ))}
         </div>
@@ -269,7 +279,7 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
 
       {/* Tre segmenter, ikke to avkryssingsbokser: for søkeren er dette ÉN
           beslutning, selv om den blir to kolonner i basen. */}
-      {!virtuell && (<>
+      {!virtuell && !kunArtister && (<>
       <div style={{ marginBottom: 20 }}>
         <Etikett>{t('offer_label')}</Etikett>
         <div style={{ display: 'flex', border: '1px solid var(--ds-border-strong)' }}>
@@ -328,14 +338,14 @@ export default function ApplyForm({ byraa = null }: { byraa?: ByraaProp }) {
           (099). Skjemaet sier hva som venter, og e-posten baerer lenken. */}
       {(wantsFace || offersSinging || (offersVoice && harOpptak === 'ja')) && (
         <p style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text-muted)', margin: '-6px 0 22px' }}>
-          {t('delivery_hint')}
+          {t(kunArtister ? 'a_delivery_hint' : 'delivery_hint')}
         </p>
       )}
 
       <label style={{ display: 'block', marginBottom: 24 }}>
-        <Etikett>{t('f_bio')}</Etikett>
+        <Etikett>{t(kunArtister ? 'a_f_bio' : 'f_bio')}</Etikett>
         <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} disabled={busy}
-          placeholder={t('bio_placeholder')} style={{ ...felt, resize: 'vertical' }} />
+          placeholder={t(kunArtister ? 'a_bio_placeholder' : 'bio_placeholder')} style={{ ...felt, resize: 'vertical' }} />
       </label>
 
       {/* Castingfeltene. Står her og ikke i adminen — se toppkommentaren. */}

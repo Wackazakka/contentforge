@@ -12,6 +12,7 @@ import { MOTION_STYLES } from '@/lib/motionStyles'
 import { VOICES as VOICES_FALLBACK, type VoiceOption, languageForGroup } from '@/lib/voices'
 import CostMeter from '@/components/CostMeter'
 import { useTenant } from '@/lib/tenantContext'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import LisensertStemme, { lisensSperrer, type BankStemme } from '@/components/LisensertStemme'
 import { ownTracks, sharedMusic, tracksFolder, isMedleyFile, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack, LAAT_ACCEPT, LAAT_FORMATER } from '@/lib/uploadTrack'
@@ -1050,7 +1051,7 @@ export default function DraftPage() {
   // Utpris-faktor (white-label): kunden ser priser der partnerens margin er inkludert
   const pf = tenantInfo.price_multiplier || 1
   // Lisensporten gjelder kun der lisensen ER klareringen — se LisensertStemme.
-  const rettighetsmodus = tenantInfo.slug === 'twinledger'
+  const rettighetsmodus = erRettighetsbank(tenantInfo)
   const lisensSperret = lisensSperrer(actorVoices, draft?.voice_id || '', rettighetsmodus)
   const billingOn = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
   const [checkout, setCheckout] = useState<{ url: string; price: number; tier: string; breakdown: Array<{ label: string; nok: number }> } | null>(null)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getTenant } from '@/lib/tenantServer'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import { getAvailableVoiceActors, ratesForKind, actorHasVoice } from '@/lib/voiceBank'
 
 // Stemmebanken for gjeldende tenant (host-basert): egne + arvede skuespillerstemmer.
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
     // Satsen ganges IKKE med kjedefaktoren: rettighetshaveren får sitt uansett
     // hva leddene over legger på. `actor_earnings` summerer nøyaktig denne
     // kolonnen, så tallet er det hen faktisk tjener — ikke et anslag.
-    const viserSats = tenant.slug === 'twinledger'
+    const viserSats = erRettighetsbank(tenant)
 
     return NextResponse.json({
       voices: actors.map((a) => {

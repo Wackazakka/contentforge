@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useAuth } from "@/lib/authContext"
 import { getSupabase } from "@/lib/supabaseClient"
 import { useTenant } from '@/lib/tenantContext'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import { fulltNavn } from '@/lib/tenantNames'
 import { useProducts } from "@/lib/useProducts"
 import { ProductModal, type CreateProductFormInput } from "@/components/ProductModal"
@@ -302,7 +303,7 @@ export default function DashboardPage() {
                   22.09: 409 paa /bli-stemme, «logg inn», og ingenting inne.
                   Vises bare for den som verken er admin eller alt er paameldt;
                   en paameldt sendes til /min-stemme av rollen uansett. */}
-              {tenant.slug === 'twinledger' && role.loaded && !role.admin && !role.actor && (
+              {erRettighetsbank(tenant) && role.loaded && !role.admin && !role.actor && (
                 <Link
                   href="/bli-stemme"
                   style={{ fontFamily: HANKEN, fontWeight: 700, fontSize: 15, color: 'var(--ink)', background: 'transparent', border: '1.5px solid var(--ds-border)', borderRadius: 999, padding: '11px 22px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
@@ -311,7 +312,7 @@ export default function DashboardPage() {
                 </Link>
               )}
             </div>
-            {tenant.slug === 'twinledger' && role.loaded && !role.admin && !role.actor && (
+            {erRettighetsbank(tenant) && role.loaded && !role.admin && !role.actor && (
               <p style={{ fontFamily: HANKEN, fontSize: 13.5, lineHeight: 1.5, color: 'var(--text-muted)', margin: '-14px 0 24px' }}>{t('enrollHint')}</p>
             )}
             <div style={{ textAlign: 'left', borderTop: '1px solid var(--ds-border-faint)', paddingTop: 24 }}>

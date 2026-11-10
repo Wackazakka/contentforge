@@ -18,6 +18,8 @@ export interface TenantInfo {
   show_advanced_admin?: boolean | null
   // Om TwinLedger-flatene (stemmebanken) vises. NULL/undefined = synlig.
   twinledger_enabled?: boolean | null
+  // Artistbanken (130): TwinLedger-kopi for sangere. Se lib/tenantNames.
+  artists_only?: boolean | null
   // Om Publiser + Kalender vises. NULL/undefined = synlig. Se lib/tenantServer.
   publishing_enabled?: boolean | null
 }

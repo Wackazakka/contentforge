@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useTenant } from '@/lib/tenantContext'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import { ownTracks, sharedMusic, tracksFolder, TRACK_MAX_BYTES, fetchMusicLibrary } from '@/lib/musicLibrary'
 import { uploadTrack, LAAT_ACCEPT, LAAT_FORMATER, erStottetLaat } from '@/lib/uploadTrack'
 import LisensertStemme, { lisensSperrer, type BankStemme } from '@/components/LisensertStemme'
@@ -73,7 +74,7 @@ export default function RadioAdPage() {
   // skuespillerstemme kunne bare brukes ved å lime inn ID-en, altså utenom
   // både banken og hjemmelen.
   const [bank, setBank] = useState<BankStemme[]>([])
-  const rettighetsmodus = tenantInfo.slug === 'twinledger'
+  const rettighetsmodus = erRettighetsbank(tenantInfo)
 
   useEffect(() => {
     let avbrutt = false

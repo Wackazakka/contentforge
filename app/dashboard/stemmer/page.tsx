@@ -38,7 +38,7 @@ export default function StemmerPage() {
   const locale = useLocale()
   // På TwinLedger er lisensen klareringen (lib/lisensLenke): hvert kort får
   // «Be om lisens» ved siden av «Bruk denne stemmen».
-  const visLisens = lisensErKlareringen(useTenant().slug)
+  const visLisens = lisensErKlareringen(useTenant())
   const nok = (n: number) => `${(Math.round(n * 100) / 100).toLocaleString(BCP47[locale] || 'en-GB')} kr`
   const router = useRouter()
   const [loading, setLoading] = useState(true)

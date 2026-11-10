@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getTenant } from '@/lib/tenantServer'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import { isTenantAdmin } from '@/lib/voiceBank'
 
 // Hovedbokens kontroll (118) — går hele hash-kjeden og regner hvert
@@ -16,7 +17,7 @@ function admin() {
 
 export async function GET(request: Request) {
   const tenant = await getTenant()
-  if (tenant.slug !== 'twinledger') return NextResponse.json({ error: 'Ikke tilgjengelig her' }, { status: 404 })
+  if (!erRettighetsbank(tenant)) return NextResponse.json({ error: 'Ikke tilgjengelig her' }, { status: 404 })
   const auth = request.headers.get('authorization')
   const email = auth?.startsWith('Bearer ') ? (await admin().auth.getUser(auth.slice(7))).data?.user?.email ?? null : null
   if (!email) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { mergeRateCard } from '@/lib/rateCard'
 import { getTenant, getTenantCanonicalOrigin } from '@/lib/tenantServer'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import KredittPriser from './KredittPriser'
 import LisensPriser from './LisensPriser'
 
@@ -17,7 +18,7 @@ import LisensPriser from './LisensPriser'
 
 export async function generateMetadata(): Promise<Metadata> {
   const tenant = await getTenant()
-  if (tenant.twinledger_enabled === false || tenant.slug !== 'twinledger') return {}
+  if (tenant.twinledger_enabled === false || !erRettighetsbank(tenant)) return {}
   const t = await getTranslations('licencePricing')
   const kort = mergeRateCard(tenant.rate_card ?? null)
   const origin = await getTenantCanonicalOrigin(tenant)
@@ -30,5 +31,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PricingPage() {
   const tenant = await getTenant()
-  return tenant.slug === 'twinledger' ? <LisensPriser /> : <KredittPriser />
+  return erRettighetsbank(tenant) ? <LisensPriser /> : <KredittPriser />
 }

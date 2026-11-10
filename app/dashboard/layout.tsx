@@ -1,4 +1,5 @@
 import { getTenant } from '@/lib/tenantServer'
+import { erRettighetsbank } from '@/lib/tenantNames'
 import NavBar from './NavBar'
 import TilbakemeldingBanner from '@/components/TilbakemeldingBanner'
 import { UNDERSOKELSE } from '@/lib/tilbakemelding'
@@ -12,7 +13,7 @@ export default async function DashboardLayout({
   // tenantene har topplinje, og da skal innholdet ikke rykke inn. Flagget må
   // avgjøres her OG i NavBar: den ene tegner menyen, den andre lager plass.
   const tenant = await getTenant()
-  const sidemeny = tenant.slug === 'twinledger'
+  const sidemeny = erRettighetsbank(tenant)
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--paper)', fontFamily: 'var(--font-hanken), sans-serif', color: 'var(--ink)' }}>
       <div className="cf-grain" aria-hidden="true" />

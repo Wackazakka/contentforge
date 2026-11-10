@@ -8,8 +8,15 @@
 export type LisensType = 'campaign' | 'work'
 export type LisensAsset = 'voice' | 'face' | 'both'
 
-/** Gjelder lisensporten her? Samme regel som studioet (LisensertStemme). */
-export const lisensErKlareringen = (tenantSlug: string | null | undefined) => tenantSlug === 'twinledger'
+import { erRettighetsbank, type Rettighetsbank } from '@/lib/tenantNames'
+
+/**
+ * Gjelder lisensporten her? Samme regel som studioet (LisensertStemme).
+ * Tar tenanten (slug + artists_only) — artistbanken (130) er også en
+ * rettighetsbank. En ren slug godtas fortsatt for gamle kallere.
+ */
+export const lisensErKlareringen = (t: Rettighetsbank | string | null | undefined) =>
+  erRettighetsbank(typeof t === 'string' ? { slug: t } : t)
 
 /** Hva lisensen naturlig gjelder, ut fra hva skuespilleren tilbyr. */
 export function assetFor(o: { hasVoice?: boolean; hasFace?: boolean }): LisensAsset {

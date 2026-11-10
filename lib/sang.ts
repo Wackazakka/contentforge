@@ -110,10 +110,14 @@ export function datasettNavn(navn: string): string {
  * En virtuell artist tilbyr ikke tale ennå: proffklonen hos stemmeleverandøren
  * må være eierens egen stemme, verifisert av eieren selv.
  */
-export function lesSangPaamelding(b: Record<string, unknown>, naa: string):
+export function lesSangPaamelding(b: Record<string, unknown>, naa: string, o: { kunArtister?: boolean } = {}):
   { feil: string } | { artistType: ArtistType; tilbyrSang: boolean; tvingIngenTale: boolean; felter: Record<string, unknown> } {
   const artistType = lesArtistType(b.artistKind)
-  const tilbyrSang = b.offersSinging === true
+  // 🔑 ARTISTBANKEN (130) TAR BARE IMOT SANGERE. Sang er ikke et valg der, og
+  // tale tilbys ikke — heller ikke av et menneske. Avgjøres HER, på serveren,
+  // uansett hva skjemaet sendte: en bank for sangere skal ikke kunne få en
+  // taleskuespiller inn gjennom et redigert kall.
+  const tilbyrSang = o.kunArtister === true || b.offersSinging === true
   const erklaering = kjentVirtuellErklaering(b.virtualDeclarationText)
   if (artistType === 'virtual' && (b.virtualDeclared !== true || !erklaering)) {
     return { feil: 'Kryss av for erklæringen om den virtuelle artisten.' }
@@ -121,7 +125,7 @@ export function lesSangPaamelding(b: Record<string, unknown>, naa: string):
   return {
     artistType,
     tilbyrSang,
-    tvingIngenTale: artistType === 'virtual',
+    tvingIngenTale: artistType === 'virtual' || o.kunArtister === true,
     felter: radFelter({ artistType, tilbyrSang, naa, erklaering }),
   }
 }

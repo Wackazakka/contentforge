@@ -17,6 +17,11 @@ import type { NextRequest } from 'next/server'
 const TWINLEDGER_HOSTS = new Set([
   'twinledger.ai', 'www.twinledger.ai',
   'twinledger.norditech.io', 'www.twinledger.norditech.io',
+  // Artistbanken (130): TwinLedger-kopien for sangere. Samme forside-
+  // komponent, egen tenant (artists_only) som velger artistteksten. Sluggen i
+  // migrasjon 130 er `artister`; får banken eget domene, må det stå BÅDE her
+  // og i tenants.custom_domain — se advarselen over.
+  'artister.norditech.io', 'www.artister.norditech.io',
 ])
 
 function bareHost(request: NextRequest): string {

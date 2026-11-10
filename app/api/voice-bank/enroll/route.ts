@@ -41,9 +41,11 @@ export async function POST(request: Request) {
     if (!name || !email.includes('@')) return NextResponse.json({ error: 'Navn og gyldig e-post må fylles ut' }, { status: 400 })
     if (password.length < 8) return NextResponse.json({ error: 'Passordet må være minst 8 tegn' }, { status: 400 })
 
-    // Ekte eller virtuell artist, og sang (127).
+    // Ekte eller virtuell artist, og sang (127). Artistbanken (130) krever
+    // sang og tilbyr ikke tale — regelen ligger i lib/sang.
     const { lesSangPaamelding } = await import('@/lib/sang')
-    const sang = lesSangPaamelding(b, new Date().toISOString())
+    const { erArtistbank } = await import('@/lib/tenantNames')
+    const sang = lesSangPaamelding(b, new Date().toISOString(), { kunArtister: erArtistbank(tenant) })
     if ('feil' in sang) return NextResponse.json({ error: sang.feil }, { status: 400 })
     const offersVoice = !sang.tvingIngenTale && b.offersVoice !== false
     const wantsFace = b.wantsFace === true

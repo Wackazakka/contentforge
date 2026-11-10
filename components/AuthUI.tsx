@@ -6,6 +6,7 @@ import { CenterForgeLogo } from '@/components/CenterForgeLogo'
 import { TwinLedgerLogo } from '@/components/TwinLedgerLogo'
 import { LangToggle } from '@/components/LangToggle'
 import { useTenant } from '@/lib/tenantContext'
+import { erRettighetsbank } from '@/lib/tenantNames'
 
 const HANKEN = 'var(--font-hanken), sans-serif'
 const SERIF = 'var(--font-serif), serif'
@@ -43,7 +44,7 @@ export function AuthShell({
   // Daylight Studio-formen (radius, skygge, serif, ember-glød) er deres. Bare
   // TwinLedger får den firkantede — samme grunn som at paletten ligger i
   // tenant.colors og ikke i :root.
-  const firkantet = tenant.slug === 'twinledger'
+  const firkantet = erRettighetsbank(tenant)
   return (
     <div
       style={{

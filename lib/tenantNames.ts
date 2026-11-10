@@ -11,6 +11,30 @@
 
 type Navn = { app_name?: string | null; product_name?: string | null }
 
+/**
+ * Rettighetsbanken — TwinLedger-modusen (130, 10.11.2026).
+ *
+ * Fram til 130 var «er dette TwinLedger?» spurt som `slug === 'twinledger'`
+ * femten steder: sidemenyen, lisensporten, hovedboken, prissiden, den
+ * firkantede innloggingen. Artistbanken er en KOPI av TwinLedger for
+ * sangere — samme hovedbok, samme lisensport, egen tenant — og skal svare ja
+ * på det samme spørsmålet, uten at femten steder må kjenne enda en slug.
+ *
+ * 🔑 Én kilde: en tenant er rettighetsbank når den ER TwinLedger, eller når
+ * den er en artistbank (`artists_only`). Et annet flagg senere legges til HER.
+ */
+export type Rettighetsbank = { slug?: string | null; artists_only?: boolean | null }
+
+/** TwinLedger-modus: hovedbok, lisensport, sidemeny, firkantet drakt. */
+export function erRettighetsbank(t: Rettighetsbank | null | undefined): boolean {
+  return !!t && (t.slug === 'twinledger' || t.artists_only === true)
+}
+
+/** Artistbanken: bare sangere (ekte og virtuelle), ingen tale, utseende valgfritt. */
+export function erArtistbank(t: Rettighetsbank | null | undefined): boolean {
+  return !!t && t.artists_only === true
+}
+
 /** Tjenestens navn. Faller tilbake til selskapsnavnet når de er like. */
 export function produktnavn(t: Navn): string {
   return (t.product_name || '').trim() || (t.app_name || '').trim()

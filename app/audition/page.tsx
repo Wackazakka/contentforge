@@ -90,7 +90,7 @@ export default function AuditionPage() {
   const tc = useTranslations('casting')
   // Etter auditionen er neste spørsmål «hva koster det å bruke henne?» — det
   // er lisensen (lib/lisensLenke). Bare der lisensen er klareringen.
-  const visLisens = lisensErKlareringen(useTenant().slug)
+  const visLisens = lisensErKlareringen(useTenant())
   // Auth-konteksten, ikke getSession() direkte: ved første rendring er
   // sesjonen ikke hydrert ennå, og et kall da ser ut som «ikke innlogget».
   const { session, loading: authLoading } = useAuth()
