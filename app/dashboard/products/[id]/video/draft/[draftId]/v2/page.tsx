@@ -45,6 +45,8 @@ interface Segment {
   // Artistens egen video som scenebakgrunn (1/8)
   video_url?: string
   video_name?: string
+  // Overgang INN i denne scenen (Lars 10.11). Mangler = som resten av filmen
+  overgang?: 'standard' | 'kutt' | 'kort' | 'lang' | null
   // Historikk over genererte klipp (Lars 1/8: «hadde vært fint om de gamle
   // blir lagret slik at man kan skifte tilbake»). Filene ligger allerede i
   // dropletens cache — vi husker bare hvilken oppskrift som ga hvilket klipp.
@@ -1922,6 +1924,32 @@ export default function DraftV2Page() {
                               </div>
                               <p className="text-[11px] text-gray-400 mt-1">
                                 Gratis å bytte mellom — klippene er allerede laget.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Overgang inn i scenen (Lars 10.11): overstyrer
+                              filmens valg, f.eks. glidende akkurat der et
+                              KI-klipp går over i et stillbilde */}
+                          {index > 0 && (
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+                              <label htmlFor={`overgang-${index}`} className="block text-[11px] uppercase tracking-widest text-gray-400 mb-1.5">
+                                Overgang inn i denne scenen
+                              </label>
+                              <select
+                                id={`overgang-${index}`}
+                                value={seg.overgang || ''}
+                                onChange={(e) => updateSegment(index, { overgang: (e.currentTarget.value || null) as Segment['overgang'], approved: false })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-[13.5px] bg-white"
+                              >
+                                <option value="">Som resten av filmen</option>
+                                <option value="standard">Kort toning fra svart</option>
+                                <option value="kort">Glidende overgang</option>
+                                <option value="lang">Lang, glidende overgang</option>
+                                <option value="kutt">Rett over, uten toning</option>
+                              </select>
+                              <p className="text-[12px] text-gray-400 mt-1">
+                                Fra scene {index} til scene {index + 1}. Glidende er fint når et bilde med bevegelse går over i et stillbilde.
                               </p>
                             </div>
                           )}

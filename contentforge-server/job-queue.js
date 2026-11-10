@@ -1144,6 +1144,8 @@ router.post('/', async (req, res) => {
               // segHolds er regnet FOER animasjonen (film=musikk vinner over
               // manuelle verdier) og er samme tall kjedegenereringen bestilte.
               hold: segHolds[i],
+              // Overgang INN i scenen (Lars 10/11) — overstyrer filmens valg
+              transition: ['standard', 'kutt', 'kort', 'lang'].includes(seg.transition) ? seg.transition : undefined,
             }
           }),
           output: `${jobDir}/output.mp4`,

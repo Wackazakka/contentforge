@@ -264,6 +264,8 @@ export async function startProductionForDraft(
     // segmenter uten film=musikk og uten egen verdi får 5 s standard —
     // ellers ville scenen vart 0,4 s.
     holdSeconds: holdSecondsFor(s),
+    // Overgang inn i scenen (Lars 10.11): overstyrer filmens valg. null = følg filmen
+    transition: s.overgang || null,
     animate: s.animate === true,
     motion: s.motion || (s.animate === true ? 'move' : 'none'),
   }))

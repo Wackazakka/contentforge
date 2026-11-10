@@ -828,9 +828,16 @@ OVERGANGER = {'standard': 0.0, 'kutt': 0.0, 'kort': 0.5, 'lang': 1.0}
 def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=None, outroCard=None, mix=None, brandCard=None, transition=None):
     """Build full video from segments."""
     overgang = transition if transition in OVERGANGER else 'standard'
-    kryss = OVERGANGER[overgang] if len(segments_def) > 1 else 0.0
-    if overgang != 'standard':
-        print(f"[overgang] {overgang} ({kryss:.1f}s krysstoning)" if kryss else f"[overgang] {overgang}", flush=True)
+    # Overgang INN i hver scene: scenens eget valg (seg["transition"], Lars
+    # 10/11) overstyrer filmens. Scene 1 har ingen overgang inn.
+    inn = [None] + [
+        (s.get("transition") if s.get("transition") in OVERGANGER else overgang)
+        for s in segments_def[1:]
+    ]
+    kryss_inn = [0.0] + [OVERGANGER[m] for m in inn[1:]]
+    kryss = max(kryss_inn)  # > 0 = minst én krysstoning i filmen
+    if overgang != 'standard' or any(m != overgang for m in inn[1:]):
+        print(f"[overgang] film: {overgang}, inn per scene: {inn[1:]}", flush=True)
     print("🎬 Bygger Reforhandle TikTok video...")
 
     if backgroundMusicPath is None:
@@ -853,17 +860,17 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         # Krysstoning: scenene overlapper med `kryss` sekunder. Hver scene
         # (unntatt den siste) faar like mye ekstra hviletid, saa filmen blir
         # like lang som foer og ingen stemme overlapper neste scene.
-        if kryss and i < len(segments_def) - 1:
-            seg_hold += kryss
+        if i < len(segments_def) - 1 and kryss_inn[i + 1]:
+            seg_hold += kryss_inn[i + 1]
         seg_vo = seg.get("vo_path") or None  # None = stille segment
         if seg.get("clip"):
             clip = make_segment_video(seg["clip"], seg["lines"], seg_vo, seg.get("sub"), logo_url=logoUrl, hold=seg_hold)
         else:
             clip = make_segment(seg["bg"], seg["lines"], seg_vo, seg.get("sub"), logo_url=logoUrl, hold=seg_hold, motion_idx=i)
         if i > 0:
-            if kryss:
-                clip = clip.with_effects([vfx.CrossFadeIn(kryss)])
-            elif overgang == 'standard':
+            if kryss_inn[i]:
+                clip = clip.with_effects([vfx.CrossFadeIn(kryss_inn[i])])
+            elif inn[i] == 'standard':
                 clip = clip.with_effects([vfx.FadeIn(0.3)])
         clips.append(clip)
     n_scener = len(clips)
@@ -896,13 +903,20 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
     starts, _t = [], 0.0
     for k, c in enumerate(clips):
         starts.append(_t)
-        _t += c.duration - (kryss if k < n_scener - 1 else 0.0)
+        _t += c.duration - (kryss_inn[k + 1] if k < n_scener - 1 else 0.0)
     total = _t
 
     def _sett_sammen():
         if not kryss:
             return concatenate_videoclips(clips, method="compose")
-        scener = concatenate_videoclips(clips[:n_scener], method="compose", padding=-kryss)
+        # Scenene legges ut med egne starttider, siden overlappen kan variere
+        # fra overgang til overgang. Senere scener ligger oeverst, saa
+        # krysstoningen (masken) viser den forrige under.
+        scenelengde = starts[n_scener - 1] + clips[n_scener - 1].duration
+        scener = CompositeVideoClip(
+            [c.with_start(s) for c, s in zip(clips[:n_scener], starts[:n_scener])],
+            size=(W, H),
+        ).with_duration(scenelengde)
         resten = clips[n_scener:]
         return concatenate_videoclips([scener] + resten, method="compose") if resten else scener
     print(f"⏱️  Total: {total:.1f}s — legger til musikk...")
