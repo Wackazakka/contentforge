@@ -4,14 +4,15 @@ import { cronVakt } from '@/lib/cronVakt'
 import { admin, hentTenant, skjemaEpost } from '@/lib/velkomst'
 
 // Be testere svare på spørreskjemaet (Lars 10.11.2026). Kalles for hånd med
-// x-cron-secret = WELCOME_SEND_SECRET og { epost: [...] }. Avsender, svar-til
+// x-cron-secret = CRON_SECRET (WELCOME_SEND_SECRET er dashbord-maskert og
+// kan ikke leses lokalt) og { epost: [...] }. Avsender, svar-til
 // og hilsen hentes fra testerens siste invitasjon, som i påminnelsen.
 // forhandsvisTil: sender til den adressen i stedet, med [TEST] i emnet.
 
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
-  const stopp = cronVakt(request, 'WELCOME_SEND_SECRET')
+  const stopp = cronVakt(request)
   if (stopp) return stopp
 
   const body = await request.json().catch(() => ({}))
