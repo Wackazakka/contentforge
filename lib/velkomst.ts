@@ -179,6 +179,47 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
 // appen. Fristen og bonusen hentes fra UNDERSOKELSE, så teksten følger skjemaet.
 // Runde 2 (Lars 4.11): fristen er ikke utvidet for dem, og bonusen er 2 000 —
 // `runde` styrer begge, så runde 1 får nøyaktig samme tekst som før.
+// Be testere som har en ferdig film om å svare på spørreskjemaet (Lars 10.11).
+// Bonusfristen er ute, så e-posten nevner ingen bonus — bare at svaret
+// hjelper oss.
+export function skjemaEpost(t: VelkomstTenant, navn: string | null, svarTil: string | null = null, hilsenFra: string | null = null) {
+  const produkt = (produktnavn(t as any) || 'CenterForge').replace(/[<>"]/g, '')
+  const fullt = (fulltNavn(t as any) || produkt).replace(/[<>"]/g, '')
+  const aksent = (t.colors && t.colors['--ember']) || '#1C1A16'
+  const fornavn = (navn || '').trim().split(/\s+/)[0]
+  const origin = tenantOrigin(t)
+  const domene = origin.replace('https://', '')
+  const logo = t.logo_url
+    ? `<img src="${esc(t.logo_url)}" alt="${esc(produkt)}" height="38" style="height:38px;max-width:220px;object-fit:contain;display:block;margin:0 auto;" />`
+    : `<span style="font-size:22px;font-weight:700;color:#1C1A16;">${esc(produkt)}</span>`
+  const tekst = (s: string, mb = 14) => `<p style="margin:0 0 ${mb}px;font-size:15px;line-height:1.6;color:#5E564A;">${s}</p>`
+  let innhold = `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1C1A16;">${fornavn ? `Hei, ${esc(fornavn)}! ` : ''}Hvordan var det å lage filmen?</h1>`
+  innhold += tekst(`Takk for at du har testet ${esc(fullt)}! Filmen din ligger klar på artistsiden din.`)
+  innhold += tekst(`Nå vil vi gjerne høre hvordan det var. Spørreskjemaet har 11 korte spørsmål og tar et par minutter. Det vil være til stor hjelp for oss når vi skal gjøre ${esc(produkt)} bedre, og vi vil like gjerne høre det som var tungvint eller ikke virket, som det som var bra.`, 24)
+  innhold += `<table cellpadding="0" cellspacing="0"><tr>
+        <td style="border-radius:10px;background:${esc(aksent)};">
+          <a href="${origin}/tilbakemelding" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:${lesbarTekst(aksent)};text-decoration:none;border-radius:10px;">Svar på spørsmålene</a>
+        </td>
+      </tr></table>`
+  innhold += `<p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#5E564A;">Du må være logget inn. Er du ikke det, får du en lenke til innloggingen, og etterpå kommer du rett til skjemaet.</p>`
+  if (svarTil) innhold += `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;">Vil du heller fortelle det med egne ord? Svar på denne e-posten.</p>`
+  if (hilsenFra) {
+    const [navnLinje, ...resten] = hilsenFra.split('\n').map((l) => l.trim()).filter(Boolean)
+    innhold += `<p style="margin:24px 0 0;font-size:15px;line-height:1.6;color:#5E564A;">Hilsen<br><strong style="color:#1C1A16;">${esc(navnLinje || '')}</strong>${resten.map((l) => `<br>${esc(l)}`).join('')}</p>`
+  }
+  innhold += `<p style="margin:22px 0 0;font-size:12.5px;line-height:1.5;color:#978B79;">Funker ikke knappen? Gå til <a href="${origin}/tilbakemelding" style="color:#978B79;">${esc(domene)}/tilbakemelding</a>.</p>`
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F4EEE2;padding:40px 16px;">
+  <div style="max-width:520px;margin:0 auto;">
+    <div style="text-align:center;padding-bottom:26px;">${logo}</div>
+    <div style="background:#FFFDF8;border:1px solid #E6DDCC;border-radius:16px;padding:36px 36px 30px;">
+      ${innhold}
+    </div>
+    <p style="text-align:center;margin:18px 0 0;font-size:11.5px;color:#978B79;">${esc(produkt)} leveres av Norditech</p>
+  </div>
+</div>`
+  return { subject: `Hvordan var det å lage filmen i ${fullt}?`, html, fra: `${produkt} <no-reply@send.norditech.io>` }
+}
+
 export function paminnelseEpost(t: VelkomstTenant, lenke: string | null, navn: string | null, kreditter: number | null, svarTil: string | null = null, hilsenFra: string | null = null, runde: { bonusKreditter: number; utvidet: boolean } = { bonusKreditter: UNDERSOKELSE.bonusKreditter, utvidet: true }) {
   const produkt = (produktnavn(t as any) || 'CenterForge').replace(/[<>"]/g, '')
   const fullt = (fulltNavn(t as any) || produkt).replace(/[<>"]/g, '')
