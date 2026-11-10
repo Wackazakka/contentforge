@@ -718,6 +718,8 @@ router.post('/', async (req, res) => {
     textStyle,
     // Mørkt felt bak teksten (12/10): false = av, teksten får mørk kant
     textBox,
+    // Overgang mellom scenene (10/11): standard | kutt | kort | lang
+    transition,
     // «Festlig» (4/9): taktklipp, plakater, konfetti, palett per anledning
     festlig,
     occasionTheme,
@@ -1164,6 +1166,9 @@ router.post('/', async (req, res) => {
           outroCard: outroCard ? { ...outroCard, jinglePath: outroCard.jingleFile ? path.join(MUSIC_DIR, outroCard.jingleFile) : null } : null,
           // Merkekort mot rabatt (Lars 1/8) — 2 s ETTER artistens plakat
           brandCard: brandCard || null,
+          // Overgang mellom scenene (Lars 10/11). Ukjent/mangler = standard
+          // (kort toning fra svart, som alle filmer har hatt)
+          transition: ['standard', 'kutt', 'kort', 'lang'].includes(transition) ? transition : 'standard',
         }
         if (festlig) {
           // Festlig-modus: egen renderer. Plakater = scenetekstene, bilder =

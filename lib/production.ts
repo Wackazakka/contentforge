@@ -298,6 +298,8 @@ export async function startProductionForDraft(
       imageFit,
       // Mørkt felt bak teksten — på med mindre utkastet sier eksplisitt nei (12/10)
       textBox: (draft as any).text_box !== false,
+      // Overgang mellom scenene (Lars 10.11, Lises ønske). null = standard
+      transition: (draft as any).overgang || 'standard',
       stillMotion: erSimpleFilm,
       textStyle: erSimpleFilm ? 'headline' : undefined,
       // «Festlig» (Lars 4/9): Ropert-filmene lages av festlig.py — taktklipp,

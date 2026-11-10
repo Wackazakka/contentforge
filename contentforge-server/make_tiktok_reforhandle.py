@@ -752,10 +752,18 @@ def concat_videos(main_path, outro_path, final_path):
 
 
 
-def _duck_music(music_path, clips, duck_vol=0.15, full_vol=0.38, fade_secs=0.30, fade_tail=True):
-    """Auto-ducking: lower music volume while voice is active, rise during 0.4s end gap."""
+def _duck_music(music_path, clips, duck_vol=0.15, full_vol=0.38, fade_secs=0.30, fade_tail=True, starts=None):
+    """Auto-ducking: lower music volume while voice is active, rise during 0.4s end gap.
+
+    starts: klippenes starttid i filmen naar de overlapper (krysstoning,
+    Lars 10/11). None = rett etter hverandre, som foer."""
     import numpy as np
-    total = sum(c.duration for c in clips)
+    if starts is None:
+        starts, _acc = [], 0.0
+        for c in clips:
+            starts.append(_acc)
+            _acc += c.duration
+    total = max(s + c.duration for s, c in zip(starts, clips)) if clips else 0.0
     # Loop the track to fill the full video when the music is shorter than the video
     # (otherwise subclipped(0, total) raises ValueError: end_time > clip duration).
     _music_src = AudioFileClip(music_path)
@@ -770,8 +778,7 @@ def _duck_music(music_path, clips, duck_vol=0.15, full_vol=0.38, fade_secs=0.30,
     env = np.full(n, full_vol, dtype=np.float64)
     fade_n = max(1, int(fade_secs * fps))
 
-    t = 0.0
-    for clip in clips:
+    for clip, t in zip(clips, starts):
         dur = clip.duration
         # Faktisk stemmelengde fra klippets audio (presist ogsaa med hold-tid).
         # Ingen audio = STILLE segment (31/7) — musikken skal staa i full
@@ -794,7 +801,6 @@ def _duck_music(music_path, clips, duck_vol=0.15, full_vol=0.38, fade_secs=0.30,
             ramp_s2 = min(n, ve - fade_n // 2)
             ramp_e2 = min(n, ramp_s2 + fade_n)
             env[ramp_s2:ramp_e2] = np.linspace(duck_vol, full_vol, ramp_e2 - ramp_s2)
-        t += dur
 
     # Fade ut musikken de siste ~2.5 s i stedet for braatt kutt ved videoslutt.
     # MEN: kommer det en sluttplakat som SELV har musikk, skal det ikke fades
@@ -810,8 +816,21 @@ def _duck_music(music_path, clips, duck_vol=0.15, full_vol=0.38, fade_secs=0.30,
     return AudioArrayClip(result, fps=fps)
 
 
-def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=None, outroCard=None, mix=None, brandCard=None):
+# Overgang mellom scenene (Lars 10/11, Lises oenske: «overgangen til neste
+# bilde ble ikke bra»). Varighet i sekunder; 0 = ingen overlapp.
+#   standard  kort toning fra svart (0,3 s) — slik alle filmer har vaert
+#   kutt      rett over, ingen toning
+#   kort      krysstoning 0,5 s — scenene glir over i hverandre
+#   lang      krysstoning 1,0 s
+OVERGANGER = {'standard': 0.0, 'kutt': 0.0, 'kort': 0.5, 'lang': 1.0}
+
+
+def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=None, outroCard=None, mix=None, brandCard=None, transition=None):
     """Build full video from segments."""
+    overgang = transition if transition in OVERGANGER else 'standard'
+    kryss = OVERGANGER[overgang] if len(segments_def) > 1 else 0.0
+    if overgang != 'standard':
+        print(f"[overgang] {overgang} ({kryss:.1f}s krysstoning)" if kryss else f"[overgang] {overgang}", flush=True)
     print("🎬 Bygger Reforhandle TikTok video...")
 
     if backgroundMusicPath is None:
@@ -831,14 +850,23 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
     for i, seg in enumerate(segments_def):
         print(f"  📹 Segment {i+1}/{len(segments_def)}...")
         seg_hold = float(seg.get("hold") or 0)
+        # Krysstoning: scenene overlapper med `kryss` sekunder. Hver scene
+        # (unntatt den siste) faar like mye ekstra hviletid, saa filmen blir
+        # like lang som foer og ingen stemme overlapper neste scene.
+        if kryss and i < len(segments_def) - 1:
+            seg_hold += kryss
         seg_vo = seg.get("vo_path") or None  # None = stille segment
         if seg.get("clip"):
             clip = make_segment_video(seg["clip"], seg["lines"], seg_vo, seg.get("sub"), logo_url=logoUrl, hold=seg_hold)
         else:
             clip = make_segment(seg["bg"], seg["lines"], seg_vo, seg.get("sub"), logo_url=logoUrl, hold=seg_hold, motion_idx=i)
         if i > 0:
-            clip = clip.with_effects([vfx.FadeIn(0.3)])
+            if kryss:
+                clip = clip.with_effects([vfx.CrossFadeIn(kryss)])
+            elif overgang == 'standard':
+                clip = clip.with_effects([vfx.FadeIn(0.3)])
         clips.append(clip)
+    n_scener = len(clips)
 
     # Sluttplakat UTEN jingle: legg den inn som et KLIPP i filmen i stedet for
     # aa lage en egen video og skjoete den paa (Lars 31/7: «hoerbart klipp i
@@ -863,7 +891,20 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         clips.append(ImageClip(_bframe, duration=_bd))
         print(f"  🏷️  Merkekort lagt inn ({_bd:.1f}s): {brandCard.get('text')}", flush=True)
 
-    total = sum(c.duration for c in clips)
+    # Starttid per klipp: scenene overlapper med `kryss`, plakat og merkekort
+    # kommer rett etter siste scene (som foer)
+    starts, _t = [], 0.0
+    for k, c in enumerate(clips):
+        starts.append(_t)
+        _t += c.duration - (kryss if k < n_scener - 1 else 0.0)
+    total = _t
+
+    def _sett_sammen():
+        if not kryss:
+            return concatenate_videoclips(clips, method="compose")
+        scener = concatenate_videoclips(clips[:n_scener], method="compose", padding=-kryss)
+        resten = clips[n_scener:]
+        return concatenate_videoclips([scener] + resten, method="compose") if resten else scener
     print(f"⏱️  Total: {total:.1f}s — legger til musikk...")
 
     if os.path.exists(backgroundMusicPath):
@@ -876,8 +917,9 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         # normale uttoningen treffer plakatens slutt — akkurat som oensket.
         music = _duck_music(backgroundMusicPath, clips,
                             duck_vol=float(_mix.get('duckVol') or 0.15),
-                            full_vol=float(_mix.get('fullVol') or 0.38))
-        final = concatenate_videoclips(clips, method="compose")
+                            full_vol=float(_mix.get('fullVol') or 0.38),
+                            starts=starts)
+        final = _sett_sammen()
         # En film HELT uten tale har final.audio = None: alle Kling/PixVerse-
         # klipp er stumme, og ingen segmenter har voiceover. Da krasjet
         # CompositeAudioClip paa None, renderen doede, og jobben ble staaende
@@ -893,7 +935,7 @@ def build_video(segments_def, output_path, backgroundMusicPath=None, logoUrl=Non
         final_audio = final_audio.with_duration(final.duration)
         final = final.with_audio(final_audio)
     else:
-        final = concatenate_videoclips(clips, method="compose")
+        final = _sett_sammen()
 
     print("🎥 Encoder...", flush=True)
     tmp_path = None
@@ -997,7 +1039,7 @@ if __name__ == "__main__":
     if config.get('textBox') is False:
         _TEXT_BOX = False
         print("[textBox] uten mørkt felt; tekst med kant")
-    build_video(config["segments"], config["output"], backgroundMusicPath, logoUrl=logoUrl, outroCard=outroCard, mix=config.get("mix"), brandCard=config.get("brandCard"))
+    build_video(config["segments"], config["output"], backgroundMusicPath, logoUrl=logoUrl, outroCard=outroCard, mix=config.get("mix"), brandCard=config.get("brandCard"), transition=config.get("transition"))
 
     # Signal completion to job-queue
     done_path = config["output"] + ".done"

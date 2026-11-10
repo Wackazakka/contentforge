@@ -72,6 +72,8 @@ interface Draft {
   character_id?: string | null
   // Mørkt felt bak teksten (106, standard på)
   text_box?: boolean
+  // Overgang mellom scenene (134, Lises ønske 10.11). null = standard
+  overgang?: 'standard' | 'kutt' | 'kort' | 'lang' | null
   cost_accumulated?: number | null
   outro_config?: { message?: string | null; url?: string; imageUrl?: string | null } | null
   // Merkekort mot rabatt (1/8)
@@ -2440,6 +2442,28 @@ export default function DraftV2Page() {
                     </span>
                   </span>
                 </label>
+                {/* Overgang mellom scenene (Lars 10.11, Lises ønske) */}
+                <div className="py-3 border-b border-gray-100">
+                  <label htmlFor="overgang" className="block text-[13.5px] text-gray-900">Overgang mellom scenene</label>
+                  <select
+                    id="overgang"
+                    value={draft.overgang || 'standard'}
+                    onChange={(e) => updateDraftFields({ overgang: e.currentTarget.value as Draft['overgang'] })}
+                    className="mt-1.5 w-full px-3 py-2 border border-gray-300 rounded-lg text-[13.5px] bg-white"
+                  >
+                    <option value="standard">Kort toning fra svart (standard)</option>
+                    <option value="kort">Glidende overgang</option>
+                    <option value="lang">Lang, glidende overgang</option>
+                    <option value="kutt">Rett over, uten toning</option>
+                  </select>
+                  <span className="block text-[12px] text-gray-400 leading-relaxed mt-1">
+                    {(draft.overgang === 'kort' || draft.overgang === 'lang')
+                      ? 'Scenene glir over i hverandre. Fint når et bilde med bevegelse går over i et stillbilde.'
+                      : draft.overgang === 'kutt'
+                        ? 'Neste scene kommer med en gang, uten toning.'
+                        : 'Hver scene tones kort inn fra svart, slik filmene har vært til nå.'}
+                  </span>
+                </div>
                 <label className="flex items-start gap-3 py-3 cursor-pointer">
                   <input
                     type="checkbox"
