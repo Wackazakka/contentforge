@@ -179,6 +179,44 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
 // appen. Fristen og bonusen hentes fra UNDERSOKELSE, så teksten følger skjemaet.
 // Runde 2 (Lars 4.11): fristen er ikke utvidet for dem, og bonusen er 2 000 —
 // `runde` styrer begge, så runde 1 får nøyaktig samme tekst som før.
+// Fri e-post til en tester i samme utseende som invitasjonene (Lars 10.11:
+// «fortell at de har fått disse ønskene oppfylt»). Avsnittene er ren tekst og
+// escapes; knappen peker på en sti i testerens app.
+export function fritekstEpost(t: VelkomstTenant, navn: string | null, overskrift: string, avsnitt: string[], knapp: { tekst: string; sti: string } | null, svarTil: string | null = null, hilsenFra: string | null = null) {
+  const produkt = (produktnavn(t as any) || 'CenterForge').replace(/[<>"]/g, '')
+  const aksent = (t.colors && t.colors['--ember']) || '#1C1A16'
+  const fornavn = (navn || '').trim().split(/\s+/)[0]
+  const origin = tenantOrigin(t)
+  const logo = t.logo_url
+    ? `<img src="${esc(t.logo_url)}" alt="${esc(produkt)}" height="38" style="height:38px;max-width:220px;object-fit:contain;display:block;margin:0 auto;" />`
+    : `<span style="font-size:22px;font-weight:700;color:#1C1A16;">${esc(produkt)}</span>`
+  let innhold = `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1C1A16;">${fornavn ? `Hei, ${esc(fornavn)}! ` : ''}${esc(overskrift)}</h1>`
+  avsnitt.forEach((a, i) => { innhold += `<p style="margin:0 0 ${i === avsnitt.length - 1 ? 24 : 14}px;font-size:15px;line-height:1.6;color:#5E564A;">${esc(a)}</p>` })
+  if (knapp) {
+    const sti = knapp.sti.startsWith('/') ? knapp.sti : '/dashboard'
+    innhold += `<table cellpadding="0" cellspacing="0"><tr>
+        <td style="border-radius:10px;background:${esc(aksent)};">
+          <a href="${origin}${esc(sti)}" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:${lesbarTekst(aksent)};text-decoration:none;border-radius:10px;">${esc(knapp.tekst)}</a>
+        </td>
+      </tr></table>`
+  }
+  if (svarTil) innhold += `<p style="margin:22px 0 0;padding:14px 16px;border-radius:10px;background:#F4EEE2;font-size:14.5px;line-height:1.6;color:#1C1A16;">Har du spørsmål eller flere ønsker? Svar på denne e-posten.</p>`
+  if (hilsenFra) {
+    const [navnLinje, ...resten] = hilsenFra.split('\n').map((l) => l.trim()).filter(Boolean)
+    innhold += `<p style="margin:24px 0 0;font-size:15px;line-height:1.6;color:#5E564A;">Hilsen<br><strong style="color:#1C1A16;">${esc(navnLinje || '')}</strong>${resten.map((l) => `<br>${esc(l)}`).join('')}</p>`
+  }
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F4EEE2;padding:40px 16px;">
+  <div style="max-width:520px;margin:0 auto;">
+    <div style="text-align:center;padding-bottom:26px;">${logo}</div>
+    <div style="background:#FFFDF8;border:1px solid #E6DDCC;border-radius:16px;padding:36px 36px 30px;">
+      ${innhold}
+    </div>
+    <p style="text-align:center;margin:18px 0 0;font-size:11.5px;color:#978B79;">${esc(produkt)} leveres av Norditech</p>
+  </div>
+</div>`
+  return { html, fra: `${produkt} <no-reply@send.norditech.io>` }
+}
+
 // Be testere svare på spørreskjemaet (Lars 10.11). harFilm=false: testeren har
 // logget inn men ikke laget film — da spør vi hva som stoppet dem.
 // Bonusfristen er ute, så e-posten nevner ingen bonus — bare at svaret
