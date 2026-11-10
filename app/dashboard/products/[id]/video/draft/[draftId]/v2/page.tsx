@@ -522,29 +522,119 @@ export default function DraftV2Page() {
   // samme i grensesnittet
   const erBibliotekKlipp = (url?: string) => (url || '').includes('/artist-clips/')
 
+  // ---- «Last opp mange» (Amy 8/11: «tungvint å måtte legge ned video for
+  // video, bilde for bilde») ----
+  // Et VALG ved siden av opplasting per scene, som er uendret. Artisten velger
+  // mange bilder og klipp på én gang; de lastes opp én etter én og fordeles på
+  // scenene i den rekkefølgen de ble tatt. Er det flere filer enn scener, lages
+  // nye scener. Etterpå kan hver scene justeres som før.
+  const BULK_MAKS = 20
+  const [bulkApen, setBulkApen] = useState(false)
+  const [bulkModus, setBulkModus] = useState<'tomme' | 'fra_start'>('tomme')
+  const [bulk, setBulk] = useState<{ total: number; ferdig: number; feil: string[]; plassert?: number; nyeScener?: number } | null>(null)
+  const bulkKjorer = !!bulk && bulk.ferdig < bulk.total
+
+  const lastOppMange = async (filListe: FileList | null) => {
+    if (!filListe || !filListe.length || !draft) return
+    const modus = bulkModus // valget slik det var da artisten trykket
+    // Rekkefølge: når fila ble laget, deretter navnet (IMG_0001 før IMG_0002)
+    const filer = Array.from(filListe)
+      .sort((a, b) => (a.lastModified - b.lastModified) || a.name.localeCompare(b.name, undefined, { numeric: true }))
+    const feil: string[] = []
+    const brukbare = filer.filter((f) => {
+      const erBilde = /^image\//.test(f.type) || /\.(heic|heif)$/i.test(f.name)
+      const erVideo = /^video\//.test(f.type)
+      if (!erBilde && !erVideo) { feil.push(`${f.name}: ikke et bilde eller en video`); return false }
+      return true
+    })
+    if (brukbare.length > BULK_MAKS) {
+      feil.push(`Bare de ${BULK_MAKS} første filene er tatt med (du valgte ${brukbare.length}).`)
+      brukbare.length = BULK_MAKS
+    }
+    setBulk({ total: brukbare.length, ferdig: 0, feil })
+
+    // Én og én — mobilnett og lagringsgrensen tåler ikke 20 samtidige
+    const media: Array<{ type: 'bilde' | 'video'; url: string; navn: string }> = []
+    for (const f of brukbare) {
+      try {
+        if (/^video\//.test(f.type)) {
+          const v = await uploadSegmentVideo(f, productId)
+          media.push({ type: 'video', url: v.url, navn: v.name })
+        } else {
+          media.push({ type: 'bilde', url: await lastOppBilde(f), navn: f.name })
+        }
+      } catch (err) {
+        feil.push(`${f.name}: ${err instanceof Error ? err.message : 'opplastingen feilet'}`)
+      }
+      setBulk((b) => (b ? { ...b, ferdig: b.ferdig + 1, feil: [...feil] } : b))
+    }
+
+    // Fordel på scenene i ett grep (siste versjon av utkastet), så ingen
+    // tekstendring artisten gjorde under opplastingen går tapt
+    const fordel = (d: NonNullable<typeof draft>) => {
+      const arr = [...d.segments]
+      const harMedia = (s: Segment) => !!(s.image_url || '').trim() || !!s.video_url
+      let i = 0, nye = 0
+      for (const m of media) {
+        if (modus === 'tomme') while (i < arr.length && harMedia(arr[i])) i++
+        if (i >= arr.length) {
+          arr.push({
+            index: 0, text: '', voiceover: '', image_url: '', approved: false,
+            match_music: d.segments[0]?.match_music === true,
+            motion: d.ai_motion ? 'move' : undefined,
+          })
+          nye++
+        }
+        arr[i] = m.type === 'video'
+          ? { ...arr[i], video_url: m.url, video_name: m.navn, approved: false }
+          : { ...arr[i], image_url: m.url, video_url: undefined, video_name: undefined, approved: false }
+        i++
+      }
+      return { segments: reindex(arr), nye }
+    }
+    const nyeScener = fordel(draft).nye
+    setDraft((prev) => {
+      if (!prev) return prev
+      const { segments } = fordel(prev)
+      persistSegments(segments)
+      return { ...prev, segments }
+    })
+    setBulk((b) => (b ? { ...b, plassert: media.length, nyeScener } : b))
+    refreshImageLibrary()
+    hentLagring()
+  }
+
   const setSegmentImage = (index: number, url: string) => {
     updateSegment(index, { image_url: url, approved: false })
     setImagePickerFor(null)
   }
 
-  const uploadLibraryImage = async (file: File): Promise<string | null> => {
+  // Kjernen i bildeopplastingen: komprimer og last opp til biblioteket.
+  // Kaster ved feil — brukes både av enkeltopplastingen under og av «Last opp
+  // mange», som samler feilene i stedet for å vise ett varsel per fil.
+  const lastOppBilde = async (file: File): Promise<string> => {
     const klar = await komprimerBilde(file)
-    { const feil = bildeFeil(file, klar); if (feil) { alert(feil); return null } }
+    { const feil = bildeFeil(file, klar); if (feil) throw new Error(feil) }
+    const { data: sess } = await getSupabase().auth.getSession()
+    const fd = new FormData()
+    fd.append('file', klar)
+    fd.append('productId', productId)
+    const res = await fetch('/api/products/images', {
+      method: 'POST',
+      headers: sess?.session?.access_token ? { Authorization: `Bearer ${sess.session.access_token}` } : undefined,
+      body: fd,
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Opplastingen feilet')
+    return data.url as string
+  }
+
+  const uploadLibraryImage = async (file: File): Promise<string | null> => {
     setLibUploading(true)
     try {
-      const { data: sess } = await getSupabase().auth.getSession()
-      const fd = new FormData()
-      fd.append('file', klar)
-      fd.append('productId', productId)
-      const res = await fetch('/api/products/images', {
-        method: 'POST',
-        headers: sess?.session?.access_token ? { Authorization: `Bearer ${sess.session.access_token}` } : undefined,
-        body: fd,
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Opplastingen feilet')
+      const url = await lastOppBilde(file)
       await refreshImageLibrary()
-      return data.url as string
+      return url
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Opplastingen feilet')
       return null
@@ -1111,20 +1201,27 @@ export default function DraftV2Page() {
 
           {/* Scene-kortet */}
           <div className="bg-[var(--paper-raised)] rounded-2xl border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+            <div className="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-baseline gap-3 min-w-0">
                 <h2 className="text-base font-semibold text-gray-900">Scener</h2>
                 <span className="text-[12.5px] text-gray-400 whitespace-nowrap">
                   {approvedCount} av {segments.length} godkjent
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setOpenIndex(-1)}
                   className="px-3 py-1.5 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-gray-400 hover:text-gray-900"
                 >
                   Lukk alle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkApen((v) => !v)}
+                  className={`px-3 py-1.5 rounded-lg border text-[13px] ${bulkApen ? 'border-[var(--ember-deep)] text-gray-900' : 'border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-900'}`}
+                >
+                  ⬆ Last opp mange
                 </button>
                 <button
                   type="button"
@@ -1135,6 +1232,48 @@ export default function DraftV2Page() {
                 </button>
               </div>
             </div>
+
+            {bulkApen && (
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/70">
+                <p className="text-[13.5px] text-gray-700 leading-relaxed">
+                  Velg alle bildene og videoklippene du vil bruke på én gang (maks {BULK_MAKS}). De legges inn i scenene i den rekkefølgen de ble tatt. Har du flere filer enn scener, lages det nye scener. Etterpå kan du bytte og justere i hver scene som vanlig.
+                </p>
+                <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-5 text-[13px] text-gray-700">
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="bulkModus" checked={bulkModus === 'tomme'} onChange={() => setBulkModus('tomme')} disabled={bulkKjorer} />
+                    Fyll scener uten bilde først
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="radio" name="bulkModus" checked={bulkModus === 'fra_start'} onChange={() => setBulkModus('fra_start')} disabled={bulkKjorer} />
+                    Bytt ut fra scene 1
+                  </label>
+                </div>
+                <label className={`mt-3 inline-block px-4 py-2 rounded-lg text-[13.5px] font-semibold ${bulkKjorer ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[var(--ember-deep)] text-[var(--on-ember)] cursor-pointer'}`}>
+                  {bulkKjorer ? `Laster opp ${Math.min((bulk?.ferdig || 0) + 1, bulk?.total || 0)} av ${bulk?.total} …` : 'Velg filer'}
+                  <input
+                    type="file"
+                    multiple
+                    accept={`${BILDE_ACCEPT},video/mp4,video/quicktime,video/webm`}
+                    className="hidden"
+                    disabled={bulkKjorer}
+                    onChange={(e) => { const f = e.target.files; lastOppMange(f).finally(() => { e.target.value = '' }) }}
+                  />
+                </label>
+                {bulkKjorer && (
+                  <p className="mt-2 text-[12.5px] text-gray-500">Ikke lukk siden før opplastingen er ferdig. Videoklipp tar lengst tid.</p>
+                )}
+                {bulk && !bulkKjorer && typeof bulk.plassert === 'number' && (
+                  <p className="mt-2 text-[13px] text-gray-800">
+                    ✅ {bulk.plassert} {bulk.plassert === 1 ? 'fil' : 'filer'} lagt inn{bulk.nyeScener ? `, ${bulk.nyeScener} nye scener laget` : ''}. Gå gjennom scenene og godkjenn dem.
+                  </p>
+                )}
+                {bulk && bulk.feil.length > 0 && (
+                  <div className="mt-2 text-[12.5px] text-red-700">
+                    {bulk.feil.map((f, i) => <div key={i}>⚠️ {f}</div>)}
+                  </div>
+                )}
+              </div>
+            )}
 
             {segments.map((seg, index) => {
               const open = openIndex === index
