@@ -242,6 +242,19 @@ const { exec } = require('child_process')
 const { promisify } = require('util')
 const execAsync = promisify(exec)
 
+// Artistens egne videoklipp (Amy 8/11): alle klippene ble konvertert
+// SAMTIDIG i full opplosning (mobilvideo, ~1 GB minne per ffmpeg). Dropleten
+// gikk tom for minne to ganger, og systemd tok ned hele tjenesten — uten
+// varsel. Naa: ett klipp om gangen paa tvers av alle jobber, skalert ned
+// til maks 1920 px paa lengste side (filmen er 1080x1920 uansett), 2 traader.
+const EGEN_VIDEO_SKALER = "scale='if(gt(iw,ih),min(1920,iw),-2)':'if(gt(iw,ih),-2,min(1920,ih))'"
+let egenVideoKjede = Promise.resolve()
+function iKoeForEgenVideo(fn) {
+  const neste = egenVideoKjede.then(fn, fn)
+  egenVideoKjede = neste.catch(() => {})
+  return neste
+}
+
 const router = express.Router()
 router.use(express.json())
 
@@ -863,7 +876,26 @@ router.post('/', async (req, res) => {
             const stylePrefix = (imageStyle && STYLE_PROMPTS[imageStyle]) ? STYLE_PROMPTS[imageStyle] + ' ' : 'Cinematic photorealistic scene. Professional photography, dramatic lighting. '
             const visualPrompt = segment.imagePrompt || `${stylePrefix}Visual scene illustrating: "${segment.text.substring(0, 180)}". No text, words, letters, or typography anywhere in the image.`
             console.log(`[job-queue] Segment ${i + 1}: Generating image with visual prompt...`)
-            const imageResult = await generateImage(visualPrompt, localImagePath, openaiKey, video_format, { campaignId, jobId, imageName: `image_${i + 1}.png` })
+            const bildeOpts = { campaignId, jobId, imageName: `image_${i + 1}.png` }
+            let imageResult
+            try {
+              imageResult = await generateImage(visualPrompt, localImagePath, openaiKey, video_format, bildeOpts)
+            } catch (gErr) {
+              // Amy 10/11: OpenAIs sikkerhetsfilter avviste scene 7 (samme
+              // tekst gikk gjennom to ganger 8/11) og hele filmen stoppet.
+              // Proev én gang til uten brukerens tekst.
+              console.warn(`[job-queue] Segment ${i + 1}: bilde avvist (${String(gErr.message).slice(0, 120)}) - proever noeytral beskrivelse`)
+              try {
+                imageResult = await generateImage(`${stylePrefix}Atmospheric, moody scene with soft light and gentle colours. No people, no text, words, letters, or typography anywhere in the image.`, localImagePath, openaiKey, video_format, bildeOpts)
+              } catch (g2Err) {
+                // Scenen har artistens egen video — bildet er bare reserve.
+                // Et svart bilde holder; filmen skal ikke stoppe for det.
+                if (!segment.videoUrl) throw g2Err
+                console.warn(`[job-queue] Segment ${i + 1}: reservebilde feilet igjen - bruker svart bilde (scenen har egen video)`)
+                await execAsync(`ffmpeg -y -loglevel error -f lavfi -i color=c=black:s=1080x1920 -frames:v 1 "${localImagePath}"`)
+                imageResult = {}
+              }
+            }
             if (imageResult.r2Url) imageUrls.push(imageResult.r2Url)
             segImageUrls[i] = imageResult.r2Url || null
           }
@@ -971,10 +1003,13 @@ router.post('/', async (req, res) => {
             if (seg.videoUrl) {
               try {
                 const raw = `${jobDir}/egen_${i + 1}_raw`
-                const r = await fetch(seg.videoUrl)
-                if (!r.ok) throw new Error(`HTTP ${r.status}`)
-                fs.writeFileSync(raw, Buffer.from(await r.arrayBuffer()))
-                await execAsync(`ffmpeg -y -loglevel error -i "${raw}" -an -c:v libx264 -preset fast -crf 21 -pix_fmt yuv420p "${clipPath}"`)
+                await iKoeForEgenVideo(async () => {
+                  const r = await fetch(seg.videoUrl)
+                  if (!r.ok) throw new Error(`HTTP ${r.status}`)
+                  // Strommes til disk — hele fila i minnet tok plass fra ffmpeg
+                  await require('stream/promises').pipeline(require('stream').Readable.fromWeb(r.body), fs.createWriteStream(raw))
+                  await execAsync(`ffmpeg -y -loglevel error -i "${raw}" -an -vf "${EGEN_VIDEO_SKALER}" -c:v libx264 -preset fast -crf 21 -threads 2 -pix_fmt yuv420p "${clipPath}"`)
+                })
                 fs.unlink(raw, () => {})
                 console.log(`[job-queue] segment ${i + 1}: bruker artistens egen video (lyd strippet)`)
                 return clipPath

@@ -316,7 +316,8 @@ export async function startProductionForDraft(
 
   const { error: updateError } = await supabase
     .from('production_drafts')
-    .update({ status: 'processing', job_id: job.jobId })
+    // updated_at = starttidspunktet produksjonsvakten maaler alder fra
+    .update({ status: 'processing', job_id: job.jobId, updated_at: new Date().toISOString() })
     .eq('id', draftId)
   if (updateError) console.error('[production] draft-oppdatering feilet (jobben er i kø):', updateError)
 
