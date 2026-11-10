@@ -231,7 +231,7 @@ export default function ApplyForm({ byraa = null, artistsOnly = false }: { byraa
                   background: valgt ? 'var(--ink)' : 'var(--paper)', color: valgt ? 'var(--paper)' : 'var(--ink)',
                   border: 'none', borderLeft: i > 0 ? '1px solid var(--ds-border-strong)' : 'none',
                 }}>
-                <span style={{ display: 'block', fontWeight: 600 }}>{t(v === 'human' ? 'who_self' : 'who_virtual')}</span>
+                <span style={{ display: 'block', fontWeight: 600 }}>{t(`${kunArtister ? 'a_' : ''}${v === 'human' ? 'who_self' : 'who_virtual'}`)}</span>
                 <span style={{ display: 'block', fontSize: 12.5, opacity: 0.8, marginTop: 3 }}>{t(`${kunArtister ? 'a_' : ''}${v === 'human' ? 'who_self_sub' : 'who_virtual_sub'}`)}</span>
               </button>
             )
