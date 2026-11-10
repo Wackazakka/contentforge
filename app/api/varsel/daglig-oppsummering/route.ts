@@ -51,11 +51,11 @@ export async function POST(request: Request) {
   // ── Testerne ──────────────────────────────────────────────────────────────
   const testere = new Map<string, string>()
   for (const i of invites || []) if (i.email && !ER_LARS(i.email)) testere.set(i.email.toLowerCase(), i.full_name || i.email)
-  type Rad = { navn: string; innlogget: boolean; nyeUtkast: number; startet: number; ferdig: number; feilet: number }
+  type Rad = { navn: string; innlogget: boolean; nyeUtkast: number; startet: number; ferdig: number; feilet: number; nedlastinger: number }
   const perTester = new Map<string, Rad>()
   const rad = (e: string) => {
     const k = e.toLowerCase()
-    if (!perTester.has(k)) perTester.set(k, { navn: testere.get(k) || e, innlogget: false, nyeUtkast: 0, startet: 0, ferdig: 0, feilet: 0 })
+    if (!perTester.has(k)) perTester.set(k, { navn: testere.get(k) || e, innlogget: false, nyeUtkast: 0, startet: 0, ferdig: 0, feilet: 0, nedlastinger: 0 })
     return perTester.get(k)!
   }
   for (const u of brukere) {
@@ -78,11 +78,33 @@ export async function POST(request: Request) {
     if (testere.has(e)) rad(e).ferdig++
   }
 
-  // Totalt: hvor mange testere har noen gang fått en ferdig film
-  const { data: alleVideoer } = await sb.from('asset_banks').select('product_id').eq('asset_type', 'video')
-  const alleProduktIder = [...new Set((alleVideoer || []).map((v) => v.product_id))]
+  // Totalt: hvor mange testere har fått en ferdig film — og hvor mange klarte
+  // det selv, uten at vi startet produksjonen på nytt for dem (film_hendelser)
+  const [{ data: alleVideoer }, { data: hendelser }, { data: skjemaSvar }] = await Promise.all([
+    sb.from('asset_banks').select('product_id, job_id').eq('asset_type', 'video'),
+    sb.from('film_hendelser').select('type, job_id, product_id, created_at'),
+    sb.from('feedback_responses').select('user_id, answers, created_at, updated_at'),
+  ])
+  const alleProduktIder = [...new Set([...(alleVideoer || []).map((v) => v.product_id), ...(hendelser || []).map((h) => h.product_id).filter(Boolean)])]
   const { data: alleProdukter } = alleProduktIder.length ? await sb.from('products').select('id, created_by').in('id', alleProduktIder) : { data: [] as Array<{ id: string; created_by: string }> }
-  const medFilm = new Set((alleProdukter || []).map((p) => (epostFor.get(p.created_by) || '').toLowerCase()).filter((e) => testere.has(e)))
+  const eierAv = new Map((alleProdukter || []).map((p) => [p.id, (epostFor.get(p.created_by) || '').toLowerCase()]))
+  const hjulpet = new Set((hendelser || []).filter((h) => h.type === 'startet_av_oss').map((h) => String(h.job_id)))
+  const medFilm = new Set<string>(), selv = new Set<string>()
+  for (const v of alleVideoer || []) {
+    const e = eierAv.get(v.product_id) || ''
+    if (!testere.has(e)) continue
+    medFilm.add(e)
+    if (!hjulpet.has(String(v.job_id))) selv.add(e)
+  }
+  const lastetNed = new Set<string>()
+  for (const h of hendelser || []) {
+    if (h.type !== 'nedlasting') continue
+    const e = eierAv.get(h.product_id || '') || ''
+    if (!testere.has(e)) continue
+    lastetNed.add(e)
+    if (new Date(h.created_at).toISOString() >= fra) rad(e).nedlastinger++
+  }
+  const nyeSkjema = (skjemaSvar || []).filter((s) => new Date(s.updated_at || s.created_at).toISOString() >= fra)
 
   // ── Alle produksjoner siste døgn (alle tenants) ───────────────────────────
   const startet = (utkast || []).filter((d) => d.job_id && utc(d.updated_at).toISOString() >= fra)
@@ -110,7 +132,7 @@ export async function POST(request: Request) {
   const testerOk = testRader.length > 0 && testRader.every((r) => r.status.startsWith('✅'))
 
   // ── E-posten ──────────────────────────────────────────────────────────────
-  const aktive = [...perTester.values()].filter((r) => r.innlogget || r.nyeUtkast || r.startet || r.ferdig)
+  const aktive = [...perTester.values()].filter((r) => r.innlogget || r.nyeUtkast || r.startet || r.ferdig || r.nedlastinger)
   const td = 'padding:4px 12px 4px 0;vertical-align:top;border-bottom:1px solid #eee'
   const th = 'padding:4px 12px 4px 0;text-align:left;color:#6b6457;font-weight:500'
   const tabell = (hode: string[], rader: string[][]) =>
@@ -121,10 +143,16 @@ export async function POST(request: Request) {
   const deler: string[] = []
   deler.push(h3('Testerne siste døgn'))
   deler.push(aktive.length
-    ? tabell(['Tester', 'Innlogget', 'Nye utkast', 'Startet', 'Ferdige filmer', 'Feilet'],
-        aktive.map((r) => [esc(r.navn), r.innlogget ? 'ja' : '–', String(r.nyeUtkast || '–'), String(r.startet || '–'), String(r.ferdig || '–'), r.feilet ? `<b style="color:#b3261e">${r.feilet}</b>` : '–']))
+    ? tabell(['Tester', 'Innlogget', 'Nye utkast', 'Startet', 'Ferdige filmer', 'Feilet', 'Lastet ned'],
+        aktive.map((r) => [esc(r.navn), r.innlogget ? 'ja' : '–', String(r.nyeUtkast || '–'), String(r.startet || '–'), String(r.ferdig || '–'), r.feilet ? `<b style="color:#b3261e">${r.feilet}</b>` : '–', String(r.nedlastinger || '–')]))
     : '<p style="margin:4px 0;color:#6b6457">Ingen testere har vært aktive.</p>')
-  deler.push(`<p style="margin:6px 0;color:#6b6457">Totalt har ${medFilm.size} av ${testere.size} testere fått minst én ferdig film.</p>`)
+  deler.push(`<p style="margin:6px 0;color:#6b6457">Totalt: ${medFilm.size} av ${testere.size} testere har fått minst én ferdig film — ${selv.size} klarte det selv, ${medFilm.size - selv.size} bare med vår hjelp. ${lastetNed.size} har lastet ned en film (telles fra 10.11).</p>`)
+  deler.push(`<p style="margin:6px 0;color:#6b6457">Spørreskjema: ${(skjemaSvar || []).length} svar totalt${nyeSkjema.length ? `, <b style="color:#1C1A16">${nyeSkjema.length} nytt siste døgn</b>` : ''}.</p>`)
+  for (const s of nyeSkjema) {
+    const a: any = s.answers || {}
+    const e = epostFor.get(s.user_id || '') || '?'
+    deler.push(`<p style="margin:6px 0;padding:8px 10px;background:#f6f4ef;border-radius:6px"><b>${esc(testere.get(e.toLowerCase()) || e)}</b>: fornøyd ${esc(a.fornoyd ?? '?')}/5 · lett ${esc(a.lett ?? '?')}/5 · ferdig video: ${esc(a.ferdig_video ?? '?')}${a.feil?.beskrivelse ? `<br>Feil: ${esc(String(a.feil.beskrivelse).slice(0, 300))}` : ''}${a.bedre ? `<br>Bedre: ${esc(String(a.bedre).slice(0, 300))}` : ''}</p>`)
+  }
 
   deler.push(h3('Produksjoner siste døgn (alle)'))
   deler.push(`<p style="margin:4px 0">${startet.length} startet · ${(videoer || []).length} ferdige filmer · ${feilet.length} feilet · ${underveis.length} ikke ferdig ennå</p>`)

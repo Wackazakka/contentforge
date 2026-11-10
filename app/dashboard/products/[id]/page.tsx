@@ -10,6 +10,7 @@ import { useTenant } from '@/lib/tenantContext'
 import { verticalConfig, offersProduction } from '@/lib/verticals'
 import OccasionSimplePage from '@/components/OccasionSimplePage'
 import { uploadTrack, LAAT_ACCEPT, LAAT_FORMATER } from '@/lib/uploadTrack'
+import { nedlastingsLenke } from '@/lib/nedlasting'
 import { fetchMusicLibrary } from '@/lib/musicLibrary'
 import { komprimerBilde, bildeFeil, BILDE_ACCEPT } from '@/lib/komprimerBilde'
 import { fargerFraLogo } from '@/lib/logoFarger'
@@ -1460,7 +1461,7 @@ function FullProductPage() {
                             </button>
                             )}
                             <a
-                              href={videoUrl}
+                              href={nedlastingsLenke(videoUrl, 'artistside')}
                               download={`${job.title.replace(/\s+/g, '_')}.mp4`}
                               className="flex-1 text-center bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
                             >
@@ -1666,7 +1667,7 @@ function FullProductPage() {
                             </button>
                             )}
                             <a
-                              href={video.asset_url}
+                              href={nedlastingsLenke(video.asset_url, 'bibliotek')}
                               download={(video as any).name || 'video.mp4'}
                               className="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                             >

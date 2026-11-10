@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { nedlastingsLenke } from "@/lib/nedlasting";
 
 type JobStatus = "pending" | "processing" | "done" | "failed" | "queued" | "generating" | "rendering";
 
@@ -142,7 +143,7 @@ export default function JobProgressPanel({ jobId }: Props) {
             {t('preview')}
           </a>
           <a
-            href={videoUrl}
+            href={nedlastingsLenke(videoUrl, 'fremdrift')}
             download
             className="flex-1 text-center text-sm rounded-full border border-green-300 bg-green-50 hover:bg-green-100 text-green-700 py-2.5 font-semibold transition-colors"
           >
