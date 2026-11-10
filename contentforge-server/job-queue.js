@@ -242,6 +242,19 @@ const { exec } = require('child_process')
 const { promisify } = require('util')
 const execAsync = promisify(exec)
 
+// Artistens egne videoklipp (Amy 8/11): alle klippene ble konvertert
+// SAMTIDIG i full opplosning (mobilvideo, ~1 GB minne per ffmpeg). Dropleten
+// gikk tom for minne to ganger, og systemd tok ned hele tjenesten — uten
+// varsel. Naa: ett klipp om gangen paa tvers av alle jobber, skalert ned
+// til maks 1920 px paa lengste side (filmen er 1080x1920 uansett), 2 traader.
+const EGEN_VIDEO_SKALER = "scale='if(gt(iw,ih),min(1920,iw),-2)':'if(gt(iw,ih),-2,min(1920,ih))'"
+let egenVideoKjede = Promise.resolve()
+function iKoeForEgenVideo(fn) {
+  const neste = egenVideoKjede.then(fn, fn)
+  egenVideoKjede = neste.catch(() => {})
+  return neste
+}
+
 const router = express.Router()
 router.use(express.json())
 
@@ -971,10 +984,13 @@ router.post('/', async (req, res) => {
             if (seg.videoUrl) {
               try {
                 const raw = `${jobDir}/egen_${i + 1}_raw`
-                const r = await fetch(seg.videoUrl)
-                if (!r.ok) throw new Error(`HTTP ${r.status}`)
-                fs.writeFileSync(raw, Buffer.from(await r.arrayBuffer()))
-                await execAsync(`ffmpeg -y -loglevel error -i "${raw}" -an -c:v libx264 -preset fast -crf 21 -pix_fmt yuv420p "${clipPath}"`)
+                await iKoeForEgenVideo(async () => {
+                  const r = await fetch(seg.videoUrl)
+                  if (!r.ok) throw new Error(`HTTP ${r.status}`)
+                  // Strommes til disk — hele fila i minnet tok plass fra ffmpeg
+                  await require('stream/promises').pipeline(require('stream').Readable.fromWeb(r.body), fs.createWriteStream(raw))
+                  await execAsync(`ffmpeg -y -loglevel error -i "${raw}" -an -vf "${EGEN_VIDEO_SKALER}" -c:v libx264 -preset fast -crf 21 -threads 2 -pix_fmt yuv420p "${clipPath}"`)
+                })
                 fs.unlink(raw, () => {})
                 console.log(`[job-queue] segment ${i + 1}: bruker artistens egen video (lyd strippet)`)
                 return clipPath
