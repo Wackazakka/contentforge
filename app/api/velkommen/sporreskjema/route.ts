@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   for (const email of adresser) {
     const { data: inv } = await sb
       .from('welcome_invites')
-      .select('email, full_name, tenant_slug, svar_til, hilsen_fra')
+      .select('user_id, email, full_name, tenant_slug, svar_til, hilsen_fra')
       .eq('email', email)
       .not('sent_at', 'is', null)
       .order('created_at', { ascending: false })
@@ -37,7 +37,13 @@ export async function POST(request: Request) {
     const tenant = await hentTenant(inv.tenant_slug)
     if (!tenant) { resultat.push({ email, ok: false, feil: `ukjent tenant ${inv.tenant_slug}` }); continue }
 
-    const { subject, html, fra } = skjemaEpost(tenant, inv.full_name, inv.svar_til || null, inv.hilsen_fra || null)
+    // Har testeren en ferdig film? Ellers spør e-posten hva som stoppet dem
+    const { data: produkter } = await sb.from('products').select('id').eq('created_by', inv.user_id)
+    const ider = (produkter || []).map((p) => p.id)
+    const { count } = ider.length
+      ? await sb.from('asset_banks').select('id', { count: 'exact', head: true }).eq('asset_type', 'video').in('product_id', ider)
+      : { count: 0 }
+    const { subject, html, fra } = skjemaEpost(tenant, inv.full_name, inv.svar_til || null, inv.hilsen_fra || null, (count || 0) > 0)
     // Resend KASTER IKKE ved feil — { error } må sjekkes
     const { error } = await resend.emails.send({
       from: fra,

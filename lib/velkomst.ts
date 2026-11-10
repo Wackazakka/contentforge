@@ -179,10 +179,11 @@ export function velkomstEpost(t: VelkomstTenant, lenke: string, navn: string | n
 // appen. Fristen og bonusen hentes fra UNDERSOKELSE, så teksten følger skjemaet.
 // Runde 2 (Lars 4.11): fristen er ikke utvidet for dem, og bonusen er 2 000 —
 // `runde` styrer begge, så runde 1 får nøyaktig samme tekst som før.
-// Be testere som har en ferdig film om å svare på spørreskjemaet (Lars 10.11).
+// Be testere svare på spørreskjemaet (Lars 10.11). harFilm=false: testeren har
+// logget inn men ikke laget film — da spør vi hva som stoppet dem.
 // Bonusfristen er ute, så e-posten nevner ingen bonus — bare at svaret
 // hjelper oss.
-export function skjemaEpost(t: VelkomstTenant, navn: string | null, svarTil: string | null = null, hilsenFra: string | null = null) {
+export function skjemaEpost(t: VelkomstTenant, navn: string | null, svarTil: string | null = null, hilsenFra: string | null = null, harFilm = true) {
   const produkt = (produktnavn(t as any) || 'CenterForge').replace(/[<>"]/g, '')
   const fullt = (fulltNavn(t as any) || produkt).replace(/[<>"]/g, '')
   const aksent = (t.colors && t.colors['--ember']) || '#1C1A16'
@@ -193,9 +194,16 @@ export function skjemaEpost(t: VelkomstTenant, navn: string | null, svarTil: str
     ? `<img src="${esc(t.logo_url)}" alt="${esc(produkt)}" height="38" style="height:38px;max-width:220px;object-fit:contain;display:block;margin:0 auto;" />`
     : `<span style="font-size:22px;font-weight:700;color:#1C1A16;">${esc(produkt)}</span>`
   const tekst = (s: string, mb = 14) => `<p style="margin:0 0 ${mb}px;font-size:15px;line-height:1.6;color:#5E564A;">${s}</p>`
-  let innhold = `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1C1A16;">${fornavn ? `Hei, ${esc(fornavn)}! ` : ''}Hvordan var det å lage filmen?</h1>`
-  innhold += tekst(`Takk for at du har testet ${esc(fullt)}! Filmen din ligger klar på artistsiden din.`)
-  innhold += tekst(`Nå vil vi gjerne høre hvordan det var. Spørreskjemaet har 11 korte spørsmål og tar et par minutter. Det vil være til stor hjelp for oss når vi skal gjøre ${esc(produkt)} bedre, og vi vil like gjerne høre det som var tungvint eller ikke virket, som det som var bra.`, 24)
+  let innhold = harFilm
+    ? `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1C1A16;">${fornavn ? `Hei, ${esc(fornavn)}! ` : ''}Hvordan var det å lage filmen?</h1>`
+    : `<h1 style="margin:0 0 10px;font-size:22px;font-weight:700;color:#1C1A16;">${fornavn ? `Hei, ${esc(fornavn)}! ` : ''}Hva stoppet deg?</h1>`
+  if (harFilm) {
+    innhold += tekst(`Takk for at du har testet ${esc(fullt)}! Filmen din ligger klar på artistsiden din.`)
+    innhold += tekst(`Nå vil vi gjerne høre hvordan det var. Spørreskjemaet har 11 korte spørsmål og tar et par minutter. Det vil være til stor hjelp for oss når vi skal gjøre ${esc(produkt)} bedre, og vi vil like gjerne høre det som var tungvint eller ikke virket, som det som var bra.`, 24)
+  } else {
+    innhold += tekst(`Takk for at du logget inn og så på ${esc(fullt)}! Vi ser at du ikke har laget en film, og det er akkurat det vi trenger å forstå.`)
+    innhold += tekst(`Var det tiden, noe som var uklart, noe som ikke virket, eller at du ikke hadde bilder og låt klar? Spørreskjemaet har 11 korte spørsmål og tar et par minutter. Svarene dine vil være til stor hjelp for oss når vi skal gjøre ${esc(produkt)} bedre.`, 24)
+  }
   innhold += `<table cellpadding="0" cellspacing="0"><tr>
         <td style="border-radius:10px;background:${esc(aksent)};">
           <a href="${origin}/tilbakemelding" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:${lesbarTekst(aksent)};text-decoration:none;border-radius:10px;">Svar på spørsmålene</a>
@@ -217,7 +225,7 @@ export function skjemaEpost(t: VelkomstTenant, navn: string | null, svarTil: str
     <p style="text-align:center;margin:18px 0 0;font-size:11.5px;color:#978B79;">${esc(produkt)} leveres av Norditech</p>
   </div>
 </div>`
-  return { subject: `Hvordan var det å lage filmen i ${fullt}?`, html, fra: `${produkt} <no-reply@send.norditech.io>` }
+  return { subject: harFilm ? `Hvordan var det å lage filmen i ${fullt}?` : `Hva stoppet deg i ${fullt}?`, html, fra: `${produkt} <no-reply@send.norditech.io>` }
 }
 
 export function paminnelseEpost(t: VelkomstTenant, lenke: string | null, navn: string | null, kreditter: number | null, svarTil: string | null = null, hilsenFra: string | null = null, runde: { bonusKreditter: number; utvidet: boolean } = { bonusKreditter: UNDERSOKELSE.bonusKreditter, utvidet: true }) {
